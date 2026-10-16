@@ -28,7 +28,7 @@ const Lamp: React.FC<{
   const missing = useProgress(missingAt ?? Number.MAX_SAFE_INTEGER, 10);
   const missPulse = useBreathe({period: 60, amp: 0.25, base: 0.75, offset: index * 20});
   return (
-    <div style={{...enter, position: 'relative', width: 200, height: 330, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+    <div style={{...enter, position: 'relative', width: 236, height: 330, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
       {/* 灯头：点亮=校准绿；未亮且过 missingAt=橙虚线「缺」环 */}
       <div style={{position: 'relative', width: 84, height: 84}}>
         {lit ? (
@@ -60,7 +60,7 @@ const Lamp: React.FC<{
       {/* 灯杆 + 灯座 */}
       <div style={{width: 8, height: 128, background: theme.panelBorder, borderRadius: 4, marginTop: 8}} />
       <div style={{width: 120, height: 14, borderRadius: 7, background: theme.panelBorder, marginTop: 2}} />
-      <div style={{marginTop: 14, fontSize: 24, color: theme.text}}>{label}</div>
+      <div style={{marginTop: 14, fontSize: 21, color: theme.text, textAlign: 'center', lineHeight: 1.4}}>{label}</div>
       {/* 「缺」警示签：未亮灯的停驻态 */}
       {!lit && missingAt !== undefined && missing > 0.5 ? (
         <div
@@ -92,7 +92,7 @@ export const LampTrio: React.FC<{
   labels?: readonly [string, string, string];
 }> = ({at, onAt, missingAt, labels = ['触发器', '消费者', '水位线']}) => {
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 56}}>
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 56}}>
       {labels.map((t, i) => (
         <Lamp key={t} label={t} at={at} onAt={onAt[i]} missingAt={missingAt} index={i} />
       ))}

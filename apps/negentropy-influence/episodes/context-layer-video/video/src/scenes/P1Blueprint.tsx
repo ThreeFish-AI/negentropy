@@ -1,31 +1,37 @@
-/** P1 机库全景：三面蓝图（p1-01..p1-39，39 句；storyboard「P1 机库全景：三面蓝图」节）。
+/** P1 三面蓝图（p1-01..p1-39，39 句；storyboard v4「P1 三面蓝图」节）。
  *
- *  10 镜 / 16 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
- *   1-A 设问一扇窗（装置：模型窗口 + 五色流光自五方涌入）
- *   1-B 机库剖面建立面〔M-004〕built=false + 五储位标签随句点亮（p1-03..06）、p1-07 收拢为投影标记
- *   1-C 投影表拍（装置：三面骨架 + 一把尺三问纠缠 + 权威/复利两把空椅子 + 旧标签降级滑入）
- *   1-D arc-facets@p1-12（单 cue 覆盖 p1-12..15 整镜 stretch——章长 13.29s，逐句 hold 会
- *       每句从头重播且 stageL1..L6 时间面 beats 永不可见，故整镜一镜一章）
- *   1-E arc-axes hold 链：p1-16 缺省 + p1-17..22、p1-24 hold（p1-23 留空窗给「换检索 ·
- *       不动权限」演示；承 1-D 尾镜界背靠背 → lead=false；recap 后置=画框遮盖剖面高亮）
- *   1-F lc2-open@p1-25（trim）→ arc-stages@p1-26..27 hold 链（六段点名两句；承 1-E 链尾
- *       背靠背 → lifecycle 实例 lead=false）+ 六格流程线装置（recap 后置遮盖）
- *   1-G lc2-l4@p1-28 → lc2-l5@p1-29 → lc2-loops@p1-30（三章三句 1:1；loops 压断环句、hold 冻结）
- *   1-H G 法则（装置：六段流程线四枚图钉钉入段间接缝 @p1-32）
- *   1-I 范本三卡 @p1-34 + context rot 曲线（InvertedU 自绘）@p1-36 + 目标函数金句卡 @p1-38
- *   1-J 转场（剖面推进聚焦库房，空货架待命）
+ *  11 镜 / 18 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
+ *   1-A 窗口定义（装置：模型窗口框 + 三动词标签 tie together/add/package@p1-02..03
+ *       + token 阵列点亮@p1-04 + 角标「上下文＝采样时纳入的 token 集合」）
+ *   1-B 五类来源（装置：RequestCard〔M-001〕居中 + 五类标签@p1-05..06 + 对应物连线
+ *       逐条描画@p1-07..08〔M-005〕）
+ *   1-C 来源之外（装置：五类标签收拢压缩为投影行 + 血缘/核准问答对两卡 fall@p1-10
+ *       + 「视角之一」章@p1-11）
+ *   1-D arc-facets@p1-12 + hold@13/14/15（三面各答一问）
+ *   1-E RequestCard 回屏 + 三指线指三面缩略（装置；arc-facets@p1-16 + hold@17 recap
+ *       后置遮盖，承 1-D 尾镜界背靠背 → lead=false）
+ *   1-F arc-axes@p1-18 + hold@19..23（五轴点名；承 1-E 链尾背靠背 → lead=false）
+ *   1-G FiveAxisMap 首建（built=false 建立面生长，Map-First 主锚）+「换 X 不动 Y」
+ *       四行对照@p1-25..27 + 拔轴消融演示@p1-28（警示红 · 破坏实验）
+ *   1-H lc2-open@p1-29 + hold@30/31（六段总览；1-G 装置镜空窗后重现 → 默认 lead）
+ *   1-I lc2-loops@p1-32 + hold@33/34（两环；承 1-H 链尾背靠背 → lead=false；
+ *       p1-34 断环双角标走画框外左余量）
+ *   1-J G1–G7 法则小标快闪钉六段接缝缩略条（1 句重音镜）
+ *   1-K token 方块持续落入 + InvertedU 下垂（持续陈述配持续态〔M-003〕）+ 金句卡@p1-38
+ *       + 「从资产轴开始」预告条@p1-39
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {clamp01, progress, useDraw, useEnter, useImpulse, useProgress, usePushIn, useSpring, useStagger} from '../motion';
+import {clamp01, progress, useDim, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
-import {HangarCrossSection} from '../components/HangarCrossSection';
 import {InvertedU} from '../components/InvertedU';
+import {FiveAxisMap, FIVE_AXIS_GEOM} from '../components/FiveAxisMap';
+import {RequestCard} from '../components/RequestCard';
 
 export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
@@ -33,607 +39,730 @@ export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   // 各镜窗口（from 为幕内帧）。镜内 cue/装置锚点一律「at(句id) - 所在镜.from」——
   // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
-  const bA = w('p1-01', 'p1-02');
-  const bB = w('p1-03', 'p1-07');
-  const bC = w('p1-08', 'p1-11');
+  const bA = w('p1-01', 'p1-04');
+  const bB = w('p1-05', 'p1-08');
+  const bC = w('p1-09', 'p1-11');
   const bD = w('p1-12', 'p1-15');
-  const bE = w('p1-16', 'p1-24');
-  const bF = w('p1-25', 'p1-27');
-  const bG = w('p1-28', 'p1-30');
-  const bH = w('p1-31', 'p1-33');
-  const bI = w('p1-34', 'p1-38');
-  const bJ = w('p1-39');
-  // 1-E 五轴逐句高亮 + 独立性三句（嵌套窗 from 相对 bE）
-  const eAsset = w('p1-17');
-  const eAuth = w('p1-18');
-  const eAsm = w('p1-19');
-  const eRet = w('p1-20');
-  const eComp = w('p1-21');
-  const eOrtho = w('p1-22', 'p1-24');
+  const bE = w('p1-16', 'p1-17');
+  const bF = w('p1-18', 'p1-23');
+  const bG = w('p1-24', 'p1-28');
+  const bH = w('p1-29', 'p1-31');
+  const bI = w('p1-32', 'p1-34');
+  const bJ = w('p1-35');
+  const bK = w('p1-36', 'p1-39');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
-      <SceneTag chapter="P1" tagline="机库全景 · 三面蓝图" accent={theme.concept} />
+      <SceneTag chapter="P1" tagline="三面蓝图" accent={theme.concept} />
 
-      {/* 1-A 设问一扇窗 */}
+      {/* 1-A 窗口定义 */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="1-A">
-        <ModelWindow at01={at('p1-01') - bA.from} at02={at('p1-02') - bA.from} />
-      </Sequence>
-
-      {/* 1-B 机库剖面建立面 + 五储位标签 */}
-      <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="1-B">
-        <HangarCrossSection built={false} at={0} />
-        <FiveSlots
-          a3={at('p1-03') - bB.from}
-          a4={at('p1-04') - bB.from}
-          a5={at('p1-05') - bB.from}
-          a6={at('p1-06') - bB.from}
-          a7={at('p1-07') - bB.from}
+        <WindowDefine
+          a01={at('p1-01') - bA.from}
+          a02={at('p1-02') - bA.from}
+          a03={at('p1-03') - bA.from}
+          a04={at('p1-04') - bA.from}
         />
       </Sequence>
 
-      {/* 1-C 投影表拍 */}
+      {/* 1-B 五类来源：RequestCard + 五类标签 + 对应物连线 */}
+      <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="1-B">
+        <FiveSources
+          a05={at('p1-05') - bB.from}
+          a07={at('p1-07') - bB.from}
+        />
+      </Sequence>
+
+      {/* 1-C 来源之外：五类收拢投影 + 两张圈外对象卡 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="1-C">
-        <ProjectionTable
-          a8={at('p1-08') - bC.from}
-          a9={at('p1-09') - bC.from}
+        <OutsideSources
+          a09={at('p1-09') - bC.from}
           a10={at('p1-10') - bC.from}
           a11={at('p1-11') - bC.from}
         />
       </Sequence>
 
-      {/* 1-D 三面各答一问：arc-facets 整镜单 cue（12 beats 全数过完，末段 hold 冻结收台） */}
+      {/* 1-D 三面各答一问：arc-facets 锚 + hold 链 */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="1-D">
-        <ArchifyRecap
-          slug="blueprint--architecture"
-          caption="三面骨架"
-          cues={[{chapterId: 'arc-facets', at: at('p1-12') - bD.from, durationInFrames: dur('p1-12') + dur('p1-13') + dur('p1-14') + dur('p1-15')}]}
-        />
+        <ArchifyRecap slug="blueprint--architecture" caption="三面蓝图 · 三面各答一问" cues={[
+          {chapterId: 'arc-facets', at: at('p1-12') - bD.from, durationInFrames: dur('p1-12')},
+          {chapterId: 'arc-facets', at: at('p1-13') - bD.from, durationInFrames: dur('p1-13'), fit: 'hold'},
+          {chapterId: 'arc-facets', at: at('p1-14') - bD.from, durationInFrames: dur('p1-14'), fit: 'hold'},
+          {chapterId: 'arc-facets', at: at('p1-15') - bD.from, durationInFrames: dur('p1-15'), fit: 'hold'},
+        ]} />
       </Sequence>
 
-      {/* 1-E 五轴五工位：arc-axes hold 链（p1-23 空窗留给「换检索 · 不动权限」演示）；
-          recap 后置 = 画框遮盖范式（hold 窗内剖面高亮让位） */}
+      {/* 1-E 面到请求：RequestCard + 三指线（装置）+ arc-facets recap 后置遮盖 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="1-E">
-        <Sequence from={eAsset.from - bE.from} durationInFrames={eAsset.durationInFrames} name="1-E-资产">
-          <HangarCrossSection built highlight="asset" at={0} />
-        </Sequence>
-        <Sequence from={eAuth.from - bE.from} durationInFrames={eAuth.durationInFrames} name="1-E-权威">
-          <HangarCrossSection built highlight="authority" at={0} />
-        </Sequence>
-        <Sequence from={eAsm.from - bE.from} durationInFrames={eAsm.durationInFrames} name="1-E-装配">
-          <HangarCrossSection built highlight="assembly" at={0} />
-        </Sequence>
-        <Sequence from={eRet.from - bE.from} durationInFrames={eRet.durationInFrames} name="1-E-检索">
-          <HangarCrossSection built highlight="retrieval" at={0} />
-        </Sequence>
-        <Sequence from={eComp.from - bE.from} durationInFrames={eComp.durationInFrames} name="1-E-复利">
-          <HangarCrossSection built highlight="compounding" at={0} />
-        </Sequence>
-        <Sequence from={eOrtho.from - bE.from} durationInFrames={eOrtho.durationInFrames} name="1-E-独立">
-          <HangarCrossSection built at={0} />
-          <SwapDemo at={at('p1-23') - eOrtho.from} />
-        </Sequence>
-        <ArchifyRecap
-          slug="blueprint--architecture"
-          caption="五轴与独立性"
-          cues={[
-            {chapterId: 'arc-axes', at: at('p1-16') - bE.from, durationInFrames: dur('p1-16')},
-            {chapterId: 'arc-axes', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17'), fit: 'hold'},
-            {chapterId: 'arc-axes', at: at('p1-18') - bE.from, durationInFrames: dur('p1-18'), fit: 'hold'},
-            {chapterId: 'arc-axes', at: at('p1-19') - bE.from, durationInFrames: dur('p1-19'), fit: 'hold'},
-            {chapterId: 'arc-axes', at: at('p1-20') - bE.from, durationInFrames: dur('p1-20'), fit: 'hold'},
-            {chapterId: 'arc-axes', at: at('p1-21') - bE.from, durationInFrames: dur('p1-21'), fit: 'hold'},
-            {chapterId: 'arc-axes', at: at('p1-22') - bE.from, durationInFrames: dur('p1-22'), fit: 'hold'},
-            {chapterId: 'arc-axes', at: at('p1-24') - bE.from, durationInFrames: dur('p1-24'), fit: 'hold'},
-          ]}
-          lead={false}
-        />
+        <FacetPointers a16={at('p1-16') - bE.from} a17={at('p1-17') - bE.from} />
+        <ArchifyRecap slug="blueprint--architecture" caption="三面蓝图 · 面到请求" lead={false} cues={[
+          {chapterId: 'arc-facets', at: at('p1-16') - bE.from, durationInFrames: dur('p1-16')},
+          {chapterId: 'arc-facets', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17'), fit: 'hold'},
+        ]} />
       </Sequence>
 
-      {/* 1-F 六道手续：lc2-open@p1-25 → arc-stages hold 链（p1-26..27 六段点名两句）；
-          流程线装置 recap 后置遮盖；lifecycle 实例承 1-E 链尾背靠背 → lead=false */}
+      {/* 1-F 五轴点名：arc-axes 锚 + hold 链 */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="1-F">
-        <StageWalk at={at('p1-26') - bF.from} walkDur={dur('p1-26') - 20} loopsAt={at('p1-27') - bF.from} />
-        <ArchifyRecap
-          slug="lifecycle"
-          caption="时间面 · 六段两环"
-          cues={[{chapterId: 'lc2-open', at: at('p1-25') - bF.from, durationInFrames: dur('p1-25')}]}
-          lead={false}
-        />
-        <ArchifyRecap
-          slug="blueprint--architecture"
-          caption="时间面 · 六段"
-          cues={[
-            {chapterId: 'arc-stages', at: at('p1-26') - bF.from, durationInFrames: dur('p1-26')},
-            {chapterId: 'arc-stages', at: at('p1-27') - bF.from, durationInFrames: dur('p1-27'), fit: 'hold'},
-          ]}
-        />
+        <ArchifyRecap slug="blueprint--architecture" caption="三面蓝图 · 五轴" lead={false} cues={[
+          {chapterId: 'arc-axes', at: at('p1-18') - bF.from, durationInFrames: dur('p1-18')},
+          {chapterId: 'arc-axes', at: at('p1-19') - bF.from, durationInFrames: dur('p1-19'), fit: 'hold'},
+          {chapterId: 'arc-axes', at: at('p1-20') - bF.from, durationInFrames: dur('p1-20'), fit: 'hold'},
+          {chapterId: 'arc-axes', at: at('p1-21') - bF.from, durationInFrames: dur('p1-21'), fit: 'hold'},
+          {chapterId: 'arc-axes', at: at('p1-22') - bF.from, durationInFrames: dur('p1-22'), fit: 'hold'},
+          {chapterId: 'arc-axes', at: at('p1-23') - bF.from, durationInFrames: dur('p1-23'), fit: 'hold'},
+        ]} />
       </Sequence>
 
-      {/* 1-G 两环：三章三句 1:1（l4=验证环句、l5=进化环句、loops=断环句 hold 冻结总览） */}
+      {/* 1-G 换轴不动：FiveAxisMap 首建 + 四行对照 + 拔轴消融 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="1-G">
-        <ArchifyRecap
-          slug="lifecycle"
-          caption="验证环 · 进化环"
-          cues={[
-            {chapterId: 'lc2-l4', at: at('p1-28') - bG.from, durationInFrames: dur('p1-28')},
-            {chapterId: 'lc2-l5', at: at('p1-29') - bG.from, durationInFrames: dur('p1-29')},
-            {chapterId: 'lc2-loops', at: at('p1-30') - bG.from, durationInFrames: dur('p1-30')},
-          ]}
+        <AxisIndependence
+          a24={at('p1-24') - bG.from}
+          a25={at('p1-25') - bG.from}
+          a26={at('p1-26') - bG.from}
+          a27={at('p1-27') - bG.from}
+          a28={at('p1-28') - bG.from}
         />
       </Sequence>
 
-      {/* 1-H G 法则：四枚图钉钉入段间接缝 */}
+      {/* 1-H 六段总览：lc2-open 锚 + hold 链（空窗后重现 → 默认 lead） */}
       <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="1-H">
-        <StagePins at={at('p1-32') - bH.from} />
+        <ArchifyRecap slug="lifecycle" caption="三面蓝图 · 时间面六段" cues={[
+          {chapterId: 'lc2-open', at: at('p1-29') - bH.from, durationInFrames: dur('p1-29')},
+          {chapterId: 'lc2-open', at: at('p1-30') - bH.from, durationInFrames: dur('p1-30'), fit: 'hold'},
+          {chapterId: 'lc2-open', at: at('p1-31') - bH.from, durationInFrames: dur('p1-31'), fit: 'hold'},
+        ]} />
       </Sequence>
 
-      {/* 1-I 范本 + context rot 曲线 + 目标函数金句卡 */}
+      {/* 1-I 两环：lc2-loops 锚 + hold 链；断环双角标走画框外左余量 */}
       <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="1-I">
-        <CorsetShot a34={at('p1-34') - bI.from} a36={at('p1-36') - bI.from} a37={at('p1-37') - bI.from} a38={at('p1-38') - bI.from} />
+        <BrokenLoopTags a34={at('p1-34') - bI.from} />
+        <ArchifyRecap slug="lifecycle" caption="三面蓝图 · 两环" lead={false} cues={[
+          {chapterId: 'lc2-loops', at: at('p1-32') - bI.from, durationInFrames: dur('p1-32')},
+          {chapterId: 'lc2-loops', at: at('p1-33') - bI.from, durationInFrames: dur('p1-33'), fit: 'hold'},
+          {chapterId: 'lc2-loops', at: at('p1-34') - bI.from, durationInFrames: dur('p1-34'), fit: 'hold'},
+        ]} />
       </Sequence>
 
-      {/* 1-J 转场：剖面推进聚焦库房 */}
+      {/* 1-J 法则点名：G1–G7 小标快闪钉六段接缝缩略条 */}
       <Sequence from={bJ.from} durationInFrames={bJ.durationInFrames} name="1-J">
-        <FocusAsset />
+        <RulePins a35={at('p1-35') - bJ.from} />
+      </Sequence>
+
+      {/* 1-K 预算公理：token 持续落入 + 倒 U 下垂 + 金句卡 + 预告条 */}
+      <Sequence from={bK.from} durationInFrames={bK.durationInFrames} name="1-K">
+        <BudgetAxiom
+          a36={at('p1-36') - bK.from}
+          a37={at('p1-37') - bK.from}
+          a38={at('p1-38') - bK.from}
+          a39={at('p1-39') - bK.from}
+        />
       </Sequence>
     </AbsoluteFill>
   );
 };
 
-/** 1-A「一扇窗」：模型窗口框 + 五色流光自五方涌入（左右交替五向，汇入窗口）。 */
-const ModelWindow: React.FC<{at01: number; at02: number}> = ({at01, at02}) => {
-  const enter = useEnter('pop', {at: at01, dur: 20});
-  const bars = useStagger(5, {stride: 7, at: at02});
+/** 1-A 窗口定义：模型窗口框 + 三动词标签 + token 阵列点亮。 */
+const WindowDefine: React.FC<{a01: number; a02: number; a03: number; a04: number}> = ({a01, a02, a03, a04}) => {
+  const frame = useCurrentFrame();
+  const enter = useEnter('pop', {at: a01, dur: 20});
+  const tokens = useStagger(20, {stride: 3, at: a04});
+  const noteIn = clamp01(progress(frame, a04 + 12, 12));
+  // 三动词标签：p1-02 起依次贴上（tie together / add / package）
+  const verbAnchors = [a02, a03, a03 + 18];
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <div style={{...enter, position: 'relative', width: 640, height: 360, border: `3px solid ${theme.concept}`, borderRadius: 14, background: theme.panel, overflow: 'hidden'}}>
-        {theme.sourceFlows.map((c, i) => {
-          const fromLeft = i % 2 === 0;
-          return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{...enter, position: 'absolute', left: 630, top: 210, width: 660, height: 380, border: `3px solid ${theme.concept}`, borderRadius: 14, background: theme.panel, overflow: 'hidden'}}>
+        {/* token 方块阵列 */}
+        <div style={{position: 'absolute', inset: 24, display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 8, alignContent: 'start'}}>
+          {tokens.map((k, i) => (
             <div
               key={i}
               style={{
-                position: 'absolute',
-                top: `${16 + i * 15}%`,
-                left: fromLeft ? 0 : undefined,
-                right: fromLeft ? undefined : 0,
-                width: `${(34 + i * 11) * bars[i]}%`,
-                height: 10,
-                borderRadius: 5,
-                background: c,
-                opacity: 0.75,
+                height: 30,
+                borderRadius: 4,
+                border: `1.5px solid ${k > 0.3 ? withAlpha(theme.concept, 0.9) : theme.panelBorder}`,
+                background: k > 0.3 ? withAlpha(theme.concept, 0.12) : 'transparent',
+                opacity: 0.35 + 0.65 * k,
               }}
             />
-          );
-        })}
-        <div style={{position: 'absolute', bottom: 14, left: 0, right: 0, textAlign: 'center', fontSize: 20, color: theme.dim}}>
-          一次能读的 · 就一扇窗
+          ))}
         </div>
+        <div style={{position: 'absolute', bottom: 16, left: 0, right: 0, textAlign: 'center', fontSize: 18, color: theme.dim, opacity: noteIn}}>
+          上下文 ＝ 采样时纳入的 token 集合
+        </div>
+      </div>
+      {/* 三动词标签（a16z 定义角标） */}
+      {[
+        {zh: '接起来', en: 'tie together'},
+        {zh: '加业务逻辑', en: 'add'},
+        {zh: '打包供给', en: 'package'},
+      ].map((v, i) => {
+        const k = clamp01(progress(frame, verbAnchors[i], 12));
+        return (
+          <div
+            key={v.zh}
+            style={{
+              position: 'absolute',
+              left: 630 + i * 226,
+              top: 146,
+              padding: '6px 14px',
+              borderRadius: 8,
+              border: `1.5px solid ${theme.concept}`,
+              background: theme.panel,
+              opacity: k,
+              transform: `translateY(${(1 - k) * -14}px)`,
+            }}
+          >
+            <span style={{fontSize: 19, color: theme.text}}>{v.zh}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginLeft: 8}}>{v.en}</span>
+          </div>
+        );
+      })}
+      <div style={{position: 'absolute', left: 1320, top: 152, fontFamily: theme.mono, fontSize: 14, color: theme.dim, opacity: clamp01(progress(frame, a03, 10))}}>
+        a16z 定义 · 三动词
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 1-B 五储位标签：随句点亮（纯函数 progress——map 内禁 hook），p1-07 收拢为「五源 · 投影」。 */
-const SLOT_LABELS = ['工卡开工页', '技术档案', '手册库', '工具格 · 当版页', '签署轨迹'] as const;
-const FiveSlots: React.FC<{a3: number; a4: number; a5: number; a6: number; a7: number}> = ({a3, a4, a5, a6, a7}) => {
+/** 五类来源标签与请求对应物（1-B/1-C 共用几何）。 */
+const SRC_LABELS = ['指令', '记忆', '知识', '工具与技能', '会话'] as const;
+const SRC_OBJECTS = ['指标定义', '负责华东区', '指标说明文档', '查库工具', '这几轮对话'] as const;
+const SRC_W = 240;
+const SRC_STRIDE = 282;
+const SRC_X0 = Math.round((1920 - (5 * SRC_W + 4 * (SRC_STRIDE - SRC_W))) / 2);
+const SRC_Y = 560;
+const OBJ_Y = 452;
+const srcCx = (i: number) => SRC_X0 + i * SRC_STRIDE + SRC_W / 2;
+
+/** 1-B 五类来源：RequestCard 居中 + 五类标签排开 + 连线逐条落到请求对应物。 */
+const FiveSources: React.FC<{a05: number; a07: number}> = ({a05, a07}) => {
   const frame = useCurrentFrame();
-  const anchors = [a3, a4, a5, a6, a6 + 10];
-  const conv = clamp01(progress(frame, a7, 18));
-  const pop = useSpring('settle', {at: a7, dur: 16});
-  const chipW = 250;
-  const x0 = (1920 - (5 * chipW + 4 * 24)) / 2;
+  const labels = useStagger(5, {stride: 8, at: a05 + 4});
+  const lines = useStagger(5, {stride: 16, at: a07});
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {SLOT_LABELS.map((label, i) => {
-        const k = clamp01(progress(frame, anchors[i], 12));
-        const cx = x0 + i * (chipW + 24) + chipW / 2;
-        const tx = (960 - cx) * conv * 0.9;
+      <div style={{position: 'absolute', left: 580, top: 150}}>
+        <RequestCard at={a05} />
+      </div>
+      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
+        {SRC_OBJECTS.map((_, i) => (
+          <path
+            key={i}
+            d={`M 960 356 C 960 ${396 + i * 4}, ${srcCx(i)} ${408}, ${srcCx(i)} ${OBJ_Y - 6}`}
+            fill="none"
+            stroke={theme.concept}
+            strokeWidth={2}
+            opacity={lines[i] * 0.8}
+            pathLength={1}
+            strokeDasharray={lines[i]}
+            strokeDashoffset={1 - lines[i]}
+          />
+        ))}
+      </svg>
+      {SRC_OBJECTS.map((o, i) => (
+        <div
+          key={o}
+          style={{
+            position: 'absolute',
+            left: srcCx(i) - 105,
+            top: OBJ_Y,
+            width: 210,
+            height: 44,
+            borderRadius: 7,
+            border: `1.5px solid ${theme.panelBorder}`,
+            background: theme.panel,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 17,
+            color: theme.dim,
+            opacity: lines[i],
+          }}
+        >
+          {o}
+        </div>
+      ))}
+      {SRC_LABELS.map((s, i) => (
+        <div
+          key={s}
+          style={{
+            position: 'absolute',
+            left: SRC_X0 + i * SRC_STRIDE,
+            top: SRC_Y,
+            width: SRC_W,
+            height: 62,
+            borderRadius: 8,
+            border: `1.5px solid ${theme.concept}`,
+            background: theme.panel,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 22,
+            color: theme.text,
+            opacity: labels[i],
+            transform: `translateY(${(1 - labels[i]) * 14}px)`,
+          }}
+        >
+          {s}
+        </div>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
+/** 1-C 来源之外：五类收拢压缩为投影行 + 血缘/核准问答对两卡 fall + 「视角之一」章。 */
+const OutsideSources: React.FC<{a09: number; a10: number; a11: number}> = ({a09, a10, a11}) => {
+  const frame = useCurrentFrame();
+  const conv = useSpring('settle', {at: a09, dur: 26});
+  const cards = useStagger(2, {stride: 14, at: a10});
+  const stamp = useSpring('snap', {at: a11, dur: 14});
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      {/* 五类标签收拢：向中心压缩淡出 */}
+      {SRC_LABELS.map((s, i) => {
+        const cx = srcCx(i);
         return (
           <div
-            key={label}
+            key={s}
             style={{
               position: 'absolute',
-              left: cx - chipW / 2,
-              top: 168,
-              width: chipW,
-              height: 54,
+              left: SRC_X0 + i * SRC_STRIDE,
+              top: SRC_Y,
+              width: SRC_W,
+              height: 62,
               borderRadius: 8,
-              border: `1.5px solid ${k > 0.1 ? theme.dim : theme.panelBorder}`,
+              border: `1.5px solid ${theme.panelBorder}`,
               background: theme.panel,
-              opacity: k * (1 - 0.75 * conv),
-              transform: `translate(${tx}px, ${conv * 26}px) scale(${1 - 0.45 * conv})`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 21,
-              color: theme.text,
+              fontSize: 22,
+              color: theme.dim,
+              opacity: (1 - conv * 0.85) * (i === 2 ? 1 : 0.8),
+              transform: `translate(${(960 - cx) * conv * 0.8}px, 0) scale(${1 - 0.5 * conv})`,
             }}
           >
-            {label}
+            {s}
           </div>
         );
       })}
+      {/* 投影行：五类来源 · 视角 */}
       <div
         style={{
           position: 'absolute',
-          left: 960 - 130,
-          top: 186,
-          width: 260,
+          left: 960 - 190,
+          top: SRC_Y + 6,
+          width: 380,
           height: 50,
           borderRadius: 8,
           border: `2px solid ${theme.concept}`,
           background: withAlpha(theme.concept, 0.12),
-          transform: `scale(${pop})`,
-          opacity: pop,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 21,
+          fontSize: 20,
           color: theme.concept,
           letterSpacing: 2,
+          opacity: clamp01((conv - 0.55) / 0.3),
+          transform: `scale(${0.7 + 0.3 * clamp01((conv - 0.55) / 0.45)})`,
         }}
       >
-        五源 · 投影
+        五类来源 · 投影行
       </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 1-C 投影表拍：三面骨架面板 + 一把尺三问纠缠 + 两把空椅子（blink×2）+ 旧标签降级滑入投影层。 */
-const ProjectionTable: React.FC<{a8: number; a9: number; a10: number; a11: number}> = ({a8, a9, a10, a11}) => {
-  const panels = useStagger(3, {stride: 8, at: a8});
-  const tangle = useStagger(3, {stride: 7, at: a9});
-  const blinkA = useImpulse({at: a10, dur: 16});
-  const blinkB = useImpulse({at: a10 + 22, dur: 16});
-  const blink = Math.max(blinkA, blinkB);
-  const slide = useSpring('settle', {at: a11, dur: 26});
-  const names = ['验收面', '结构面', '时间面'];
-  return (
-    <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {/* 三面骨架面板 */}
-      {names.map((n, i) => (
-        <div
-          key={n}
-          style={{
-            position: 'absolute',
-            left: 240 + i * 400,
-            top: 200,
-            width: 320,
-            height: 270,
-            borderRadius: 12,
-            border: `2px solid ${theme.concept}`,
-            background: theme.panel,
-            opacity: panels[i],
-            transform: `translateY(${(1 - panels[i]) * 22}px)`,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 14,
-          }}
-        >
-          <span style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim}}>{['F1', 'F2', 'F3'][i]}</span>
-          <span style={{fontSize: 33, color: theme.text}}>{n}</span>
-        </div>
-      ))}
-      {/* 投影层插槽带 */}
       <div
         style={{
           position: 'absolute',
-          left: 240,
-          top: 490,
-          width: 1120,
-          height: 56,
+          left: 960 + 96,
+          top: SRC_Y - 12,
+          padding: '6px 16px',
+          border: `2.5px solid ${theme.ok}`,
           borderRadius: 8,
-          border: `1.5px dashed ${theme.panelBorder}`,
-          display: 'flex',
-          alignItems: 'center',
-          paddingLeft: 16,
-          gap: 22,
-          opacity: panels[0],
+          fontSize: 20,
+          color: theme.ok,
+          background: theme.panel,
+          transform: `rotate(-7deg) scale(${stamp})`,
+          opacity: stamp,
         }}
       >
-        <span style={{fontFamily: theme.mono, fontSize: 16, color: theme.dim}}>投影层</span>
-        {['五源', '五层'].map((t, i) => (
-          <span
-            key={t}
-            style={{
-              fontSize: 18,
-              color: theme.dim,
-              border: `1.5px solid ${theme.panelBorder}`,
-              borderRadius: 6,
-              padding: '3px 16px',
-              opacity: slide,
-              transform: `translateY(${(1 - slide) * 54}px)`,
-            }}
-          >
-            {t}
-          </span>
-        ))}
+        视角之一
       </div>
-      {/* 一把尺：三问纠缠（同一把尺上叠放） */}
-      <div style={{position: 'absolute', left: 240, top: 592, width: 1120, height: 64, opacity: tangle[0]}}>
-        <div style={{position: 'absolute', left: 0, top: 26, width: '100%', height: 5, background: theme.panelBorder, borderRadius: 3}} />
-        {['放什么', '怎么找', '怎么用'].map((t, i) => (
-          <span
-            key={t}
-            style={{
-              position: 'absolute',
-              left: 140 + i * 84,
-              top: 6,
-              fontSize: 19,
-              color: theme.dim,
-              background: theme.panel,
-              border: `1.5px solid ${theme.panelBorder}`,
-              borderRadius: 7,
-              padding: '4px 14px',
-              opacity: tangle[i],
-              transform: `rotate(${[-6, 4, -2][i]}deg)`,
-            }}
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-      {/* 两把空椅子：权威 / 复利（blink×2 缺座暗示） */}
-      {['权威', '复利'].map((t, i) => (
-        <div key={t} style={{position: 'absolute', left: 1560 + i * 150, top: 280, opacity: 0.35 + 0.65 * blink, textAlign: 'center'}}>
-          <svg width={96} height={110}>
-            <rect x={14} y={38} width={68} height={12} rx={3} fill="none" stroke={theme.dim} strokeWidth={3} />
-            <rect x={14} y={6} width={12} height={40} rx={3} fill="none" stroke={theme.dim} strokeWidth={3} />
-            <line x1={22} y1={50} x2={22} y2={96} stroke={theme.dim} strokeWidth={3} />
-            <line x1={74} y1={50} x2={74} y2={96} stroke={theme.dim} strokeWidth={3} />
-          </svg>
-          <div style={{fontSize: 20, color: theme.dim, marginTop: 6}}>{t}</div>
+      {/* 两张五类之外的对象卡 */}
+      {[
+        {t: '血缘', s: '每个数从哪几张表算出来', x: 300},
+        {t: '核准问答对 · 标签规则', s: '也落在五类之外', x: 1140},
+      ].map((c, i) => (
+        <div
+          key={c.t}
+          style={{
+            position: 'absolute',
+            left: c.x,
+            top: 690 + (1 - cards[i]) * -46,
+            width: 480,
+            height: 130,
+            borderRadius: 10,
+            border: `1.5px solid ${theme.panelBorder}`,
+            background: theme.panel,
+            padding: '20px 26px',
+            boxSizing: 'border-box',
+            opacity: cards[i],
+          }}
+        >
+          <div style={{fontSize: 26, color: theme.text}}>{c.t}</div>
+          <div style={{fontSize: 17, color: theme.dim, marginTop: 10}}>{c.s}</div>
         </div>
       ))}
     </AbsoluteFill>
   );
 };
 
-/** 1-E p1-23「换 X 不动 Y」演示：检索工位可换（弧箭旋转）· 权限工位锁定（锁形静止）。 */
-const SwapDemo: React.FC<{at: number}> = ({at}) => {
-  const frame = useCurrentFrame();
-  const e1 = useEnter('rise', {at, dur: 16});
-  const e2 = useEnter('rise', {at: at + 8, dur: 16});
-  const rot = frame * 3;
+/** 1-E 面到请求：RequestCard 回屏 + 三指线指向三面缩略。 */
+const FacetPointers: React.FC<{a16: number; a17: number}> = ({a16, a17}) => {
+  const thumbs = useStagger(3, {stride: 10, at: a16});
+  const lines = useStagger(3, {stride: 14, at: a16 + 6});
+  const lift = useProgress(a17, 14);
+  const FACETS = [
+    {t: '验收面', s: '属于哪一行', y: 260},
+    {t: '结构面', s: '该改哪条轴', y: 430},
+    {t: '时间面', s: '错在哪一段', y: 600},
+  ];
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{...e1, position: 'absolute', left: 1500, top: 160, width: 300, height: 62, borderRadius: 9, border: `1.5px solid ${theme.concept}`, background: theme.panel, display: 'flex', alignItems: 'center', gap: 14, padding: '0 16px', boxSizing: 'border-box'}}>
-        <svg width={30} height={30} style={{transform: `rotate(${rot}deg)`}}>
-          <path d="M 6 19 A 9 9 0 1 1 22 21" fill="none" stroke={theme.concept} strokeWidth={3} strokeLinecap="round" />
-          <path d="M 22 21 l 5 -6 M 22 21 l -7 -2" fill="none" stroke={theme.concept} strokeWidth={3} strokeLinecap="round" />
-        </svg>
-        <span style={{fontSize: 20, color: theme.concept}}>换 · 检索</span>
+      <div style={{position: 'absolute', left: 500, top: 260, transform: `translateY(${-6 * lift}px)`}}>
+        <RequestCard at={a16} />
       </div>
-      <div style={{...e2, position: 'absolute', left: 1500, top: 234, width: 300, height: 62, borderRadius: 9, border: `1.5px solid ${theme.panelBorder}`, background: theme.panel, display: 'flex', alignItems: 'center', gap: 14, padding: '0 16px', boxSizing: 'border-box'}}>
-        <svg width={30} height={30}>
-          <rect x={7} y={14} width={16} height={12} rx={2} fill="none" stroke={theme.dim} strokeWidth={3} />
-          <path d="M 10 14 v -4 a 5 5 0 0 1 10 0 v 4" fill="none" stroke={theme.dim} strokeWidth={3} />
-        </svg>
-        <span style={{fontSize: 20, color: theme.dim}}>不动 · 权限</span>
-      </div>
+      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
+        {FACETS.map((f, i) => (
+          <g key={f.t} opacity={lines[i]}>
+            <path
+              d={`M 1268 ${356} C 1420 ${356}, 1500 ${f.y + 34}, 1636 ${f.y + 34}`}
+              fill="none"
+              stroke={theme.concept}
+              strokeWidth={2.5}
+              pathLength={1}
+              strokeDasharray={lines[i]}
+              strokeDashoffset={1 - lines[i]}
+            />
+            <text x={1420} y={(356 + f.y + 34) / 2 - 10} fill={theme.dim} fontSize={16}>
+              {f.s}
+            </text>
+          </g>
+        ))}
+      </svg>
+      {FACETS.map((f, i) => (
+        <div
+          key={f.t}
+          style={{
+            position: 'absolute',
+            left: 1640,
+            top: f.y,
+            width: 240,
+            height: 68,
+            borderRadius: 8,
+            border: `1.5px solid ${theme.panelBorder}`,
+            background: theme.panel,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 23,
+            color: theme.text,
+            opacity: thumbs[i],
+            transform: `translateX(${(1 - thumbs[i]) * 24}px)`,
+          }}
+        >
+          {f.t}
+        </div>
+      ))}
     </AbsoluteFill>
   );
 };
 
-/** 六格流程线几何：六段 L1..L6（登记/裁决/装配/锚定/回灌/归档）。 */
-const STAGE_CELLS = ['登记', '裁决', '装配', '锚定', '回灌', '归档'] as const;
-const CELL_W = 200;
-const CELL_GAP = 36;
-const CELL_X0 = 270;
-const CELL_Y = 430;
-const CELL_H = 120;
-const cellCx = (i: number) => CELL_X0 + i * (CELL_W + CELL_GAP) + CELL_W / 2;
+/** 1-G 换轴不动：FiveAxisMap 建立面生长 + 「换 X 不动 Y」四行对照 + 拔轴消融演示。 */
+const INDEPENDENCE_ROWS = [
+  {a: '换检索算法', b: '不动权限规则'},
+  {a: '换进窗档位', b: '不动对象清单'},
+  {a: '执法点挪层', b: '候选生成不受影响'},
+  {a: '加回写回路', b: '装配不用改'},
+] as const;
 
-/** 1-F 六格流程线：小工卡沿六格走位（p1-26 六段点名）+ 两环弧线（p1-27）。 */
-const StageWalk: React.FC<{at: number; walkDur: number; loopsAt: number}> = ({at, walkDur, loopsAt}) => {
+const AxisIndependence: React.FC<{a24: number; a25: number; a26: number; a27: number; a28: number}> = ({a24, a25, a26, a27, a28}) => {
   const frame = useCurrentFrame();
-  const ins = useStagger(6, {stride: 6, at});
-  const arc1 = useDraw(loopsAt, 20);
-  const arc2 = useDraw(loopsAt + 12, 20);
-  const loopIn = useProgress(loopsAt, 30);
-  const units = Math.min(5, progress(frame, at + 10, walkDur) * 5.4);
-  const cardX = CELL_X0 + units * (CELL_W + CELL_GAP) + CELL_W / 2;
+  const header = useEnter('rise', {at: a24, dur: 14});
+  // 四行对照：p1-25 两行、p1-26、p1-27 各一行（行锚数组 + 纯函数 progress——map 内禁 hook）
+  const rowAnchors = [a25, a25 + 16, a26, a27];
+  const pulled = useProgress(a28, 12);
+  const pullFlash = useImpulse({at: a28 + 8, dur: 24, peak: 1});
+  const dim = useDim({at: a28, to: 0.45, dur: 14});
+  const gx = FIVE_AXIS_GEOM.nodes[3].x;
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
-        <path d={`M ${cellCx(3)} ${CELL_Y - 8} Q ${(cellCx(3) + cellCx(1)) / 2} ${CELL_Y - 170} ${cellCx(1)} ${CELL_Y - 8}`} fill="none" stroke={theme.ok} strokeWidth={3} {...arc1} />
-        <path d={`M ${cellCx(4)} ${CELL_Y - 8} Q ${(cellCx(4) + cellCx(1)) / 2} ${CELL_Y - 210} ${cellCx(1)} ${CELL_Y - 8}`} fill="none" stroke={theme.ok} strokeWidth={3} {...arc2} />
-      </svg>
-      <span style={{position: 'absolute', left: cellCx(2) - 150, top: CELL_Y - 150, width: 120, textAlign: 'center', fontSize: 19, color: theme.ok, opacity: loopIn}}>验证环</span>
-      <span style={{position: 'absolute', left: cellCx(3) - 40, top: CELL_Y - 196, width: 120, textAlign: 'center', fontSize: 19, color: theme.ok, opacity: loopIn}}>进化环</span>
-      {STAGE_CELLS.map((c, i) => {
-        const lit = units >= i - 0.001;
+      <div style={{opacity: pulled > 0 ? dim : 1}}>
+        <FiveAxisMap built={false} at={0} />
+      </div>
+      {/* 判据 + 四行对照 */}
+      <div style={{...header, position: 'absolute', left: 560, top: 448, padding: '6px 20px', border: `2px solid ${theme.concept}`, borderRadius: 8, fontSize: 22, color: theme.concept, background: theme.panel, letterSpacing: 2}}>
+        判据 · 换掉一条 · 不动其他
+      </div>
+      {INDEPENDENCE_ROWS.map((r, i) => {
+        const k = clamp01(progress(frame, rowAnchors[i], 14));
         return (
           <div
-            key={c}
+            key={r.a}
             style={{
               position: 'absolute',
-              left: CELL_X0 + i * (CELL_W + CELL_GAP),
-              top: CELL_Y,
-              width: CELL_W,
-              height: CELL_H,
-              borderRadius: 10,
-              border: `1.5px solid ${lit ? theme.concept : theme.panelBorder}`,
-              background: lit ? withAlpha(theme.concept, 0.08) : theme.panel,
-              opacity: ins[i],
-              transform: `translateY(${(1 - ins[i]) * 16}px)`,
+              left: 460,
+              top: 516 + i * 84,
+              width: 1000,
+              height: 66,
+              borderRadius: 9,
+              border: `1.5px solid ${theme.panelBorder}`,
+              background: theme.panel,
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
+              padding: '0 26px',
+              gap: 22,
+              opacity: k,
+              transform: `translateX(${(1 - k) * -26}px)`,
+              boxSizing: 'border-box',
             }}
           >
-            <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim}}>L{i + 1}</span>
-            <span style={{fontSize: 27, color: lit ? theme.text : theme.dim}}>{c}</span>
+            <span style={{fontSize: 22, color: theme.text, width: 300}}>{r.a}</span>
+            <svg width={90} height={20}>
+              <line x1={0} y1={10} x2={70} y2={10} stroke={theme.dim} strokeWidth={2.5} />
+              <path d="M 70 4 L 86 10 L 70 16 Z" fill={theme.dim} />
+            </svg>
+            <span style={{fontSize: 22, color: theme.concept}}>{r.b}</span>
           </div>
         );
       })}
-      {/* 小工卡：恒定锚化身，沿格顶滑行 */}
-      <div
-        style={{
-          position: 'absolute',
-          left: cardX - 32,
-          top: CELL_Y - 52,
-          width: 64,
-          height: 44,
-          borderRadius: 6,
-          border: `2px solid ${theme.concept}`,
-          background: theme.panel,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: theme.mono,
-          fontSize: 13,
-          color: theme.concept,
-        }}
-      >
-        工卡
+      {/* 拔轴消融演示：检索轴拆除（警示红 · 破坏实验），其余轴救不了 */}
+      <div style={{opacity: pulled}}>
+        <div
+          style={{
+            position: 'absolute',
+            left: gx,
+            top: FIVE_AXIS_GEOM.node.y,
+            width: FIVE_AXIS_GEOM.node.w,
+            height: FIVE_AXIS_GEOM.node.h,
+            borderRadius: 10,
+            border: `2.5px dashed ${theme.danger}`,
+            transform: `translateY(${pulled * 16}px) rotate(${pulled * -1.2}deg)`,
+            opacity: 0.4 + 0.6 * pullFlash,
+          }}
+        />
+        <svg width={1920} height={1080} style={{position: 'absolute', inset: 0, opacity: pulled}}>
+          <line x1={gx + 18} y1={FIVE_AXIS_GEOM.node.y + 20} x2={gx + FIVE_AXIS_GEOM.node.w - 18} y2={FIVE_AXIS_GEOM.node.y + FIVE_AXIS_GEOM.node.h - 20} stroke={theme.danger} strokeWidth={3} />
+        </svg>
+        <div style={{position: 'absolute', left: gx, top: FIVE_AXIS_GEOM.node.y - 44, padding: '4px 14px', border: `2px solid ${theme.danger}`, borderRadius: 7, fontSize: 18, color: theme.danger, background: theme.panel, opacity: pulled}}>
+          检索轴 · 拆除
+        </div>
+        <div style={{position: 'absolute', left: gx - 4, top: FIVE_AXIS_GEOM.node.y + FIVE_AXIS_GEOM.node.h + 16, fontSize: 17, color: theme.danger, opacity: pulled}}>
+          坏法可复现 · 其余四轴补不上
+        </div>
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 1-H G 法则：四枚图钉钉入段间接缝（闸门在通道/裁决留人/死有葬礼/回环有回执）。 */
-const PIN_TAGS = ['闸门 · 通道', '裁决 · 留人', '死 · 葬礼', '回环 · 回执'] as const;
-const StagePins: React.FC<{at: number}> = ({at}) => {
-  const pins = useStagger(4, {stride: 14, at, dur: 12});
-  const glow = useProgress(at + 70, 20);
+/** 1-I 断环双角标（画框外左余量）：验证环断 / 进化环断。 */
+const BrokenLoopTags: React.FC<{a34: number}> = ({a34}) => {
+  const ins = useStagger(2, {stride: 14, at: a34});
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {STAGE_CELLS.map((c, i) => (
+      {[
+        {t: '验证环断 · 错误静默积累', y: 540},
+        {t: '进化环断 · 停在最初质量', y: 612},
+      ].map((c, i) => (
         <div
-          key={c}
+          key={c.t}
+          style={{
+            position: 'absolute',
+            left: 36,
+            top: c.y,
+            width: 262,
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: `1.5px solid ${theme.conceptDeep}`,
+            background: theme.panel,
+            fontSize: 16,
+            color: theme.conceptDeep,
+            lineHeight: 1.5,
+            opacity: ins[i],
+            boxSizing: 'border-box',
+          }}
+        >
+          {c.t}
+        </div>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
+/** 1-J 法则点名：六段缩略条 + G1–G7 小标快闪钉接缝。 */
+const STAGES6 = ['采集登记', '校验裁决', '装配执法', '应答锚定', '沉淀回写', '衰减退役'] as const;
+const RULES7 = [
+  'G1 执法点绑定',
+  'G2 双期校验',
+  'G3 裁决不自动化',
+  'G4 分开落位',
+  'G5 指针不副本',
+  'G6 退役路径',
+  'G7 闭环可观测',
+] as const;
+const CELL_W = 240;
+const CELL_GAP = 24;
+const CELL_X0 = Math.round((1920 - (6 * CELL_W + 5 * CELL_GAP)) / 2);
+const CELL_Y = 540;
+
+const RulePins: React.FC<{a35: number}> = ({a35}) => {
+  const cells = useStagger(6, {stride: 3, at: a35});
+  const pins = useStagger(7, {stride: 4, at: a35 + 14, dur: 4});
+  const flash = useImpulse({at: a35 + 48, dur: 20, peak: 0.7});
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 420, textAlign: 'center', fontSize: 20, color: theme.dim, opacity: cells[0]}}>
+        七条治理法则 · 落在段与段的转换上
+      </div>
+      {STAGES6.map((s, i) => (
+        <div
+          key={s}
           style={{
             position: 'absolute',
             left: CELL_X0 + i * (CELL_W + CELL_GAP),
             top: CELL_Y,
             width: CELL_W,
-            height: CELL_H,
-            borderRadius: 10,
-            border: `1.5px solid ${theme.concept}`,
-            background: withAlpha(theme.concept, 0.08),
+            height: 96,
+            borderRadius: 9,
+            border: `1.5px solid ${theme.panelBorder}`,
+            background: theme.panel,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8,
+            gap: 6,
+            opacity: cells[i],
+            transform: `translateY(${(1 - cells[i]) * 12}px)`,
           }}
         >
-          <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim}}>L{i + 1}</span>
-          <span style={{fontSize: 27, color: theme.text}}>{c}</span>
+          <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>L{i + 1}</span>
+          <span style={{fontSize: 22, color: theme.text}}>{s}</span>
         </div>
       ))}
-      {PIN_TAGS.map((t, i) => {
-        const seamX = CELL_X0 + (i + 1) * (CELL_W + CELL_GAP) - CELL_GAP / 2;
+      {RULES7.map((r, i) => {
+        // 钉位：首段前缘 / 五处段间接缝 / 末段后缘（法则落在段与段的转换上）
+        const px =
+          i === 0
+            ? CELL_X0
+            : i === 6
+              ? CELL_X0 + 6 * CELL_W + 5 * CELL_GAP
+              : CELL_X0 + i * (CELL_W + CELL_GAP) - CELL_GAP / 2;
         const k = pins[i];
         return (
-          <div key={t} style={{position: 'absolute', left: seamX - 14, top: CELL_Y - 96 + (1 - k) * -44, opacity: k}}>
-            <svg width={28} height={54}>
-              <line x1={14} y1={16} x2={14} y2={50} stroke={theme.conceptDeep} strokeWidth={3} />
-              <circle cx={14} cy={10} r={8} fill={theme.conceptDeep} opacity={0.75 + 0.25 * glow} />
-            </svg>
-            <div
-              style={{
-                position: 'absolute',
-                left: -58,
-                top: 58,
-                width: 144,
-                textAlign: 'center',
-                fontSize: 17,
-                color: theme.conceptDeep,
-                border: `1.5px solid ${withAlpha(theme.conceptDeep, 0.7)}`,
-                borderRadius: 7,
-                padding: '4px 6px',
-                background: theme.panel,
-                transform: 'rotate(-3deg)',
-                boxSizing: 'border-box',
-              }}
-            >
-              {t}
-            </div>
+          <div
+            key={r}
+            style={{
+              position: 'absolute',
+              left: px - 95,
+              top: 460 + (i % 2) * 0 + (1 - k) * -20,
+              width: 190,
+              padding: '5px 0',
+              textAlign: 'center',
+              borderRadius: 7,
+              border: `1.5px solid ${i % 2 ? theme.conceptDeep : theme.concept}`,
+              color: i % 2 ? theme.conceptDeep : theme.concept,
+              fontSize: 15,
+              background: theme.panel,
+              opacity: k * (1 - 0.4 * flash),
+              transform: `translateY(${(1 - k) * -18}px) rotate(${i % 2 ? 1.6 : -1.6}deg)`,
+              boxSizing: 'border-box',
+            }}
+          >
+            {r}
           </div>
         );
       })}
+      {/* 接缝钉点（法则落在接缝上） */}
+      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0, opacity: 0.7}}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <circle
+            key={i}
+            cx={CELL_X0 + i * (CELL_W + CELL_GAP) - CELL_GAP / 2}
+            cy={CELL_Y - 8}
+            r={4}
+            fill={theme.dim}
+            opacity={cells[i]}
+          />
+        ))}
+      </svg>
     </AbsoluteFill>
   );
 };
 
-/** 1-I 范本三卡 + context rot 曲线（InvertedU）+ 目标函数金句卡。 */
-const CorsetShot: React.FC<{a34: number; a36: number; a37: number; a38: number}> = ({a34, a36, a37, a38}) => {
+/** 1-K 预算公理：token 方块持续落入（持续态）+ 倒 U 下垂 + 金句卡 + 预告条。 */
+const BudgetAxiom: React.FC<{a36: number; a37: number; a38: number; a39: number}> = ({a36, a37, a38, a39}) => {
   const frame = useCurrentFrame();
-  const chips = useStagger(3, {stride: 10, at: a34});
-  const lift = clamp01(progress(frame, a36, 16));
   const quoteIn = clamp01(progress(frame, a38, 10));
+  const capIn = clamp01(progress(frame, a37, 12));
+  const barIn = clamp01(progress(frame, a39, 10));
   const curveDim = 1 - 0.72 * quoteIn;
+  // token 方块持续落入（帧驱动确定性循环；167 与 470 互素保证相位均匀不扎堆）
+  const COLS = 9;
+  const squares = Array.from({length: 27}, (_, i) => {
+    const col = i % COLS;
+    const phase = (i * 167) % 470;
+    const y = 250 + ((frame * 3 + phase) % 470);
+    return {col, y, o: y > 660 ? 0.15 : 0.55};
+  });
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', inset: 0, opacity: curveDim}}>
+        {/* 左：窗口填充（token 持续落入 + 有限预算线） */}
+        <div style={{position: 'absolute', left: 250, top: 230, width: 640, height: 470, borderRadius: 12, border: `1.5px solid ${theme.panelBorder}`, background: theme.panel, overflow: 'hidden'}}>
+          <div style={{position: 'absolute', top: 12, left: 0, right: 0, textAlign: 'center', fontSize: 17, color: theme.dim}}>模型窗口 · 填充演示</div>
+          {squares.map((s, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: 28 + s.col * 66,
+                top: s.y,
+                width: 48,
+                height: 26,
+                borderRadius: 4,
+                border: `1.5px solid ${withAlpha(theme.concept, 0.8)}`,
+                background: withAlpha(theme.concept, 0.1),
+                opacity: s.o,
+              }}
+            />
+          ))}
+          <div style={{position: 'absolute', left: 0, right: 0, top: 120 + (1 - capIn) * -30, height: 2, background: theme.conceptDeep, opacity: capIn}} />
+          <div style={{position: 'absolute', right: 16, top: 100, fontSize: 15, color: theme.conceptDeep, opacity: capIn}}>有限预算</div>
+        </div>
+        {/* 右：倒 U（塞得越多越找不准） */}
+        <div style={{position: 'absolute', left: 920, right: 40, top: 150, bottom: 60}}>
+          <InvertedU at={a36} />
+        </div>
+      </div>
+      {/* 金句卡（蓝图目标只有一句） */}
+      <div style={{position: 'absolute', inset: 0, opacity: quoteIn, pointerEvents: 'none'}}>
+        <QuoteCard zh="预算之内 · 只放最有用的那一小部分" accent={theme.concept} />
+      </div>
+      {/* 预告条：从资产轴开始 */}
       <div
         style={{
           position: 'absolute',
-          top: 150 - lift * 26,
           left: 0,
           right: 0,
+          bottom: 170,
           display: 'flex',
           justifyContent: 'center',
-          gap: 26,
-          opacity: (1 - lift * 0.65) * 1,
+          opacity: barIn * (1 - 0.3 * quoteIn),
         }}
       >
-        {['数据平台 · 词表', '会话记忆 · 回写闭环', '工程 · 装配纪律'].map((t, i) => (
-          <span
-            key={t}
-            style={{
-              fontSize: 20,
-              color: theme.dim,
-              border: `1.5px solid ${theme.panelBorder}`,
-              borderRadius: 8,
-              padding: '8px 20px',
-              background: theme.panel,
-              opacity: chips[i],
-              transform: `translateY(${(1 - chips[i]) * 16}px)`,
-            }}
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-      <div style={{position: 'absolute', inset: 0, opacity: curveDim}}>
-        <InvertedU at={a36} />
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          left: 1400,
-          top: 640,
-          fontSize: 19,
-          color: theme.dim,
-          border: `1.5px solid ${theme.panelBorder}`,
-          borderRadius: 7,
-          padding: '5px 14px',
-          background: theme.panel,
-          opacity: clamp01(progress(frame, a37, 12)) * curveDim,
-        }}
-      >
-        不随升级消失
-      </div>
-      <div style={{position: 'absolute', inset: 0, opacity: quoteIn}}>
-        <QuoteCard zh="预算之内 · 最有用的一小撮" accent={theme.concept} />
+        <span style={{padding: '8px 26px', border: `1.5px solid ${theme.concept}`, borderRadius: 8, fontSize: 21, color: theme.concept, background: theme.panel, letterSpacing: 2}}>
+          从资产轴开始
+        </span>
       </div>
     </AbsoluteFill>
-  );
-};
-
-/** 1-J 剖面推进聚焦库房（transformOrigin 落在库房工位，空货架右侧待命）。 */
-const FocusAsset: React.FC = () => {
-  const push = usePushIn(0, {scale: 0.1, dur: 80});
-  return (
-    <div style={{position: 'absolute', inset: 0, transformOrigin: '28% 62%', transform: push}}>
-      <HangarCrossSection built highlight="asset" at={0} />
-    </div>
   );
 };

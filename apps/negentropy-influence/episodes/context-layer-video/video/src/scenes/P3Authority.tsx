@@ -1,26 +1,27 @@
-/** P3 权威轴：会签与放行（p3-01..p3-24，24 句；storyboard v3「P3 权威轴」节）。
+/** P3 权威轴（p3-01..p3-26，26 句；storyboard v4「P3 权威轴」节）。
  *
- *  7 镜 / 5 条 archify cue（chapterId 均为 tm2-* 新代章 id）：
- *   3-A 剖面高亮放行席位（HangarCrossSection built authority）+ 真闸门 vs 装饰门对照装置
- *   3-B 会签栏四格逐格盖章（v2 P4Signoff 迁移）+ 交集维恩成型
- *   3-C 只减不增计数器（X-001 核对）+ 签字笔悬停→时钟绿闪 + 三作废角标
- *   3-D VennShrink 韦恩收缩+工牌碎裂（v2 销账实装）
- *   3-E tm2-open hold 链@p3-16..17（原跨两句窗拆链，15 铺底 17 hold 补锚）→ tm2-threats@p3-18
- *      （stretch，镜内背靠背自动抑制）；数字墙+实线徽挪 cue 窗后 p3-19
- *   3-F 客户端零验签@p3-20 · tm2-surface@p3-21 → hold@p3-22（三底线句，三卡装置让位；
- *      recap 后置=画框遮盖）· 判词条@p3-23
- *   3-G 剖面推进切机位（收束）
+ *  7 镜 / 6 条 archify cue（tm2-open ×2 + tm2-threats ×4，跨镜背靠背 → 后实例 lead={false}）：
+ *   3-A 开轴绕开测试（p3-01..04）：FiveAxisMap 高亮 authority（幕首）→ 判据卡
+ *       「接线执行路径 · 绕行被挡回」vs「未接线 · 旁路畅通」（DualGate 迁移改写）
+ *   3-B 执法点四层（p3-05..07）：分层表逐层落下 + 「绕过余地」递窄箭头
+ *   3-C 双层拦截（p3-08..12）：检索过滤（隐形化）+ 执行拒绝（弹回）+ D5 消融对照
+ *   3-D/E 权限交集（p3-13..18）：VennShrink 双圆求交 → 收缩（撤权）→ 快照凭证失效
+ *       + D9 实心徽 + Classmethod 实线徽行
+ *   3-F 供给面（p3-19..20）：tm2-open 锚 p3-19 → hold p3-20
+ *   3-G 六类威胁（p3-21..24）：tm2-threats 锚 p3-21 → hold 22/23/24（lead={false}）；
+ *       侧栏前景：数字墙 98,380/157/632 + 四客户端零验签 + 三条最低要求
+ *   3-H 轴收束（p3-25..26）：判词条 + FiveAxisMap 推进（passedCount=2）
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {useEnter, useImpulse, useProgress, usePushIn, useSpring, useStagger} from '../motion';
+import {useEnter, useProgress, useReveal, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
-import {HangarCrossSection} from '../components/HangarCrossSection';
+import {FiveAxisMap} from '../components/FiveAxisMap';
 import {VennShrink} from '../components/VennShrink';
 
 export const P3Authority: React.FC<{scene: SceneRange}> = ({scene}) => {
@@ -31,321 +32,340 @@ export const P3Authority: React.FC<{scene: SceneRange}> = ({scene}) => {
   // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
   const bA = w('p3-01', 'p3-04');
   const bB = w('p3-05', 'p3-07');
-  const bC = w('p3-08', 'p3-11');
-  const bD = w('p3-12', 'p3-15');
-  const bE = w('p3-16', 'p3-19');
-  const bF = w('p3-20', 'p3-23');
-  const bG = w('p3-24');
+  const bC = w('p3-08', 'p3-12');
+  const bD = w('p3-13', 'p3-18');
+  const bE = w('p3-19', 'p3-20');
+  const bF = w('p3-21', 'p3-24');
+  const bG = w('p3-25', 'p3-26');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
-      <SceneTag chapter="P3" tagline="权威轴 · 会签与放行" accent={theme.conceptDeep} />
+      <SceneTag chapter="P3" tagline="权威轴" accent={theme.conceptDeep} />
 
-      {/* 3-A 开轴绕开测试：剖面聚光放行席位（首句窗）→ 真闸门 vs 装饰门对照 */}
+      {/* 3-A 开轴绕开测试：Map-First 幕首 → 判据卡 + 接线/未接线对照 */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="3-A">
-        <Sequence from={0} durationInFrames={dur('p3-01')} name="3-A-hangar">
+        <Sequence from={0} durationInFrames={dur('p3-01')} name="3-A-map">
           <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 40}}>
-            <HangarCrossSection built highlight="authority" at={4} />
+            <FiveAxisMap built highlight="authority" at={4} />
           </AbsoluteFill>
         </Sequence>
         <Sequence from={at('p3-02') - bA.from} name="3-A-dev">
-          <DualGate at02={0} at03={at('p3-03') - at('p3-02')} at04={at('p3-04') - at('p3-02')} />
+          <BypassTest at02={0} at03={at('p3-03') - at('p3-02')} at04={at('p3-04') - at('p3-02')} />
         </Sequence>
       </Sequence>
 
-      {/* 3-B 会签栏：四格逐格盖章 + 资格=交集维恩成型（v2 迁移） */}
+      {/* 3-B 执法点四层：逐层落下 + 递窄箭头 */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="3-B">
-        <SignoffRow at05={at('p3-05') - bB.from} at07={at('p3-07') - bB.from} />
+        <EnforcementLayers at05={at('p3-05') - bB.from} at06={at('p3-06') - bB.from} at07={at('p3-07') - bB.from} />
       </Sequence>
 
-      {/* 3-C 只减不增：计数器递减 + 签字笔悬停→时钟绿闪 + 三作废角标 */}
+      {/* 3-C 双层拦截：体验层隐形化 + 强制层弹回 + D5 消融 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="3-C">
-        <ShrinkCounter at08={at('p3-08') - bC.from} at09={at('p3-09') - bC.from} />
-        <Sequence from={at('p3-10') - bC.from} name="3-C-clock">
-          <ClockCheck at10={0} at11={at('p3-11') - at('p3-10')} />
-        </Sequence>
-      </Sequence>
-
-      {/* 3-D 韦恩收缩 + 工牌碎裂（新组件） */}
-      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="3-D">
-        <VennShrink at={at('p3-12') - bD.from} shrinkAt={at('p3-14') - bD.from} crackAt={at('p3-15') - bD.from} />
-      </Sequence>
-
-      {/* 3-E 供给面：tm2-open hold 链铺 p3-16..17 → tm2-threats@p3-18；
-          数字墙+实线徽挪 cue 窗后 p3-19（十万份扫描数字句） */}
-      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="3-E">
-        <ArchifyRecap
-          slug="blueprint--mcp-threat-model"
-          caption="供给面 · 自述不可信"
-          cues={[
-            {chapterId: 'tm2-open', at: at('p3-16') - bE.from, durationInFrames: dur('p3-16')},
-            {chapterId: 'tm2-open', at: at('p3-17') - bE.from, durationInFrames: dur('p3-17'), fit: 'hold'},
-            {chapterId: 'tm2-threats', at: at('p3-18') - bE.from, durationInFrames: dur('p3-18')},
-          ]}
+        <DualIntercept
+          at08={at('p3-08') - bC.from}
+          hideAt={at('p3-09') - bC.from}
+          bounceAt={at('p3-10') - bC.from}
+          labelAt={at('p3-11') - bC.from}
+          d5At={at('p3-12') - bC.from}
         />
-        <Sequence from={at('p3-19') - bE.from} name="3-E-wall">
-          <NumbersWall at={0} />
-          <div style={{position: 'absolute', bottom: 150, left: 80}}>
-            <EvidenceBadge level="solid" at={6} note="98,380 · 生态扫描" />
+      </Sequence>
+
+      {/* 3-D/E 权限交集：VennShrink 双圆求交 → 撤权收缩 → 快照凭证失效 */}
+      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="3-D">
+        <VennShrink at={at('p3-13') - bD.from} shrinkAt={at('p3-17') - bD.from} crackAt={at('p3-18') - bD.from} />
+        <div style={{position: 'absolute', bottom: 190, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16}}>
+          <div style={{display: 'flex', gap: 22, alignItems: 'center'}}>
+            <EvidenceBadge level="solid" at={at('p3-18') - bD.from} note="D9 · 快照式撤权失效" />
+            <EvidenceBadge level="solid" at={at('p3-18') - bD.from + 10} note="Classmethod · RSS 内 INSERT/DDL 全拒" />
           </div>
-        </Sequence>
+        </div>
       </Sequence>
 
-      {/* 3-F 三条底线：客户端零验签@20 · tm2-surface 链@p3-21..22（三卡装置让位，recap 后置遮盖）· 判词条@23 */}
-      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="3-F">
-        <ClientRow at20={at('p3-20') - bF.from} />
-        <BottomLines at22={at('p3-22') - bF.from} />
-        <ArchifyRecap slug="blueprint--mcp-threat-model" caption="供给边界" cues={[
-          {chapterId: 'tm2-surface', at: at('p3-21') - bF.from, durationInFrames: dur('p3-21')},
-          {chapterId: 'tm2-surface', at: at('p3-22') - bF.from, durationInFrames: dur('p3-22'), fit: 'hold'},
+      {/* 3-F 供给面：tm2-open 锚 + hold */}
+      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="3-F">
+        <ArchifyRecap slug="blueprint--mcp-threat-model" caption="供给面 · 接入边界" cues={[
+          {chapterId: 'tm2-open', at: at('p3-19') - bE.from, durationInFrames: dur('p3-19')},
+          {chapterId: 'tm2-open', at: at('p3-20') - bE.from, durationInFrames: dur('p3-20'), fit: 'hold'},
         ]} />
-        <Sequence from={at('p3-23') - bF.from} name="3-F-strip">
-          <JudgeStrip text="真值唯一出处 · 执法点在必经路" accent={theme.ok} />
-        </Sequence>
       </Sequence>
 
-      {/* 3-G 收束：剖面推进切机位工位 */}
-      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="3-G">
-        <HangarPush />
+      {/* 3-G 六类威胁：tm2-threats hold 链（承 3-F 链尾跨镜背靠背 → lead={false}）；
+          前景走画框外左右侧栏（回放框居中 1298px，两侧余量各 ~300px） */}
+      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="3-G">
+        <ArchifyRecap slug="blueprint--mcp-threat-model" caption="供给面 · 六类威胁" cues={[
+          {chapterId: 'tm2-threats', at: at('p3-21') - bF.from, durationInFrames: dur('p3-21')},
+          {chapterId: 'tm2-threats', at: at('p3-22') - bF.from, durationInFrames: dur('p3-22'), fit: 'hold'},
+          {chapterId: 'tm2-threats', at: at('p3-23') - bF.from, durationInFrames: dur('p3-23'), fit: 'hold'},
+          {chapterId: 'tm2-threats', at: at('p3-24') - bF.from, durationInFrames: dur('p3-24'), fit: 'hold'},
+        ]} lead={false} />
+        <ThreatSidebar
+          numsAt={at('p3-21') - bF.from}
+          clientsAt={at('p3-22') - bF.from}
+          rulesAt={at('p3-24') - bF.from}
+        />
+      </Sequence>
+
+      {/* 3-H 轴收束：FiveAxisMap 推进（权威轴走完 · 已过 2/5）+ 判词条（不遮导航图） */}
+      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="3-H">
+        <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 40}}>
+          <FiveAxisMap built highlight={null} passedCount={2} at={4} />
+        </AbsoluteFill>
+        <JudgeStrip at={at('p3-25') - bG.from} />
       </Sequence>
     </AbsoluteFill>
   );
 };
 
-/** 真闸门 vs 装饰门对照（3-A）：左真闸门绕行线撞横杆弹回；右装饰门旁路畅通（橙警示）。 */
-const DualGate: React.FC<{at02: number; at03: number; at04: number}> = ({at02, at03, at04}) => {
+/** 3-A：绕开测试判据卡 + 「接线执行路径」vs「未接线」对照（DualGate v4 改写）。 */
+const BypassTest: React.FC<{at02: number; at03: number; at04: number}> = ({at02, at03, at04}) => {
   const enter = useStagger(2, {stride: 14, at: at02});
-  // 绕行探针：0→1 走向门；真闸门侧在门前后弹回（piecewise），装饰门侧绕过出门
-  const probe = useProgress(at03, 44);
+  const question = useReveal('绕开这个点，会发生什么？', {at: at03, cps: 7});
+  // 探针：0→1 走向门；接线侧被挡回（piecewise），未接线侧旁路畅通
+  const probe = useProgress(at04, 44);
   const bounceT = probe < 0.55 ? probe / 0.55 : 1 - (probe - 0.55) / 0.45;
   const passT = probe;
-  const rule = useProgress(at04, 14);
-  return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60}}>
-      {/* 左：真闸门——横杆在必经通道，绕行线被挡弹回 */}
-      <div style={{opacity: enter[0], position: 'relative'}}>
-        <svg width={420} height={260}>
-          <line x1={20} y1={210} x2={400} y2={210} stroke={theme.panelBorder} strokeWidth={3} />
-          <text x={210} y={244} textAnchor="middle" fill={theme.ok} fontSize={20}>真闸门 · 绕不开</text>
-          <rect x={186} y={130} width={48} height={80} fill={theme.panel} stroke={theme.panelBorder} strokeWidth={1.5} />
-          <line x1={150} y1={140} x2={270} y2={140} stroke={theme.ok} strokeWidth={6} strokeLinecap="round" />
-          {/* 绕行线：走到横杆前被弹回 */}
-          <polyline
-            points={`20,190 ${20 + bounceT * 150},190`}
-            fill="none"
-            stroke={theme.concept}
-            strokeWidth={2.5}
-            strokeDasharray="7 7"
-          />
-          <circle cx={20 + bounceT * 150} cy={190} r={6} fill={theme.concept} />
-        </svg>
-      </div>
-      {/* 右：装饰门——旁路畅通（橙警示） */}
-      <div style={{opacity: enter[1], position: 'relative'}}>
-        <svg width={420} height={260}>
-          <line x1={20} y1={210} x2={400} y2={210} stroke={theme.panelBorder} strokeWidth={3} />
-          <text x={210} y={244} textAnchor="middle" fill={theme.conceptDeep} fontSize={20}>装饰门 · 旁路畅通</text>
-          <rect x={186} y={120} width={48} height={90} fill="none" stroke={theme.conceptDeep} strokeWidth={1.5} strokeDasharray="6 5" />
-          {/* 旁路线：弧线绕过门出门 */}
-          <path
-            d={`M 20 190 C ${60 + passT * 90} 190, ${150 + passT * 120} 108, ${210 + passT * 180} 190`}
-            fill="none"
-            stroke={theme.conceptDeep}
-            strokeWidth={2.5}
-          />
-          <circle cx={210 + passT * 180} cy={190} r={6} fill={theme.conceptDeep} />
-        </svg>
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 170,
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          fontSize: 21,
-          color: theme.dim,
-          opacity: rule,
-        }}
-      >
-        闸门长在物理通道上 · 绕开它会发生什么，答得出才算数
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 会签栏四格（v2 P4Signoff 迁移）+ 交集维恩小图（p3-07 成型）。 */
-const SignoffRow: React.FC<{at05: number; at07: number}> = ({at05, at07}) => {
-  const stamps = useStagger(4, {stride: 24, at: at05 + 8});
-  const venn = useEnter('pop', {at: at07, dur: 20});
-  const labels = ['执照', '机型授权', '必检复核', '客户代表'];
+  const ruleNote = useProgress(at04 + 30, 14);
   return (
     <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40}}>
-      <div style={{display: 'flex', gap: 22}}>
-        {labels.map((t, i) => (
-          <div key={t} style={{width: 178, height: 158, border: `2px solid ${theme.panelBorder}`, borderRadius: 10, background: theme.panel, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 14}}>
-            <span style={{position: 'absolute', top: 12, left: 0, right: 0, textAlign: 'center', fontSize: 20, color: theme.dim}}>{t}</span>
-            <div style={{width: 66, height: 66, borderRadius: 33, border: `3px solid ${theme.ok}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.ok, fontSize: 22, transform: `scale(${stamps[i]})`, opacity: stamps[i]}}>已签</div>
+      {/* 判据卡 + 问话打字机 */}
+      <div style={{display: 'flex', alignItems: 'center', gap: 30}}>
+        <div style={{padding: '12px 26px', border: `2px solid ${theme.concept}`, borderRadius: 10, background: theme.panel}}>
+          <div style={{fontSize: 21, color: theme.concept}}>绕开测试</div>
+          <div style={{fontSize: 17, color: theme.dim, marginTop: 4, fontFamily: theme.mono}}>一条治理规则</div>
+        </div>
+        <span style={{fontSize: 30, color: theme.text, fontFamily: theme.mono, minWidth: 460}}>
+          {question}
+          <span style={{opacity: question.length >= 12 ? 1 : 0}}>▍</span>
+        </span>
+      </div>
+      <div style={{display: 'flex', gap: 60}}>
+        {/* 接入执行路径：横杆在必经通道，绕行线被挡回（绿） */}
+        <div style={{opacity: enter[0], position: 'relative'}}>
+          <svg width={430} height={230}>
+            <line x1={20} y1={180} x2={410} y2={180} stroke={theme.panelBorder} strokeWidth={3} />
+            <rect x={196} y={104} width={44} height={76} fill={theme.panel} stroke={theme.panelBorder} strokeWidth={1.5} />
+            <line x1={162} y1={114} x2={274} y2={114} stroke={theme.ok} strokeWidth={6} strokeLinecap="round" />
+            <polyline
+              points={`24,162 ${24 + bounceT * 132},162`}
+              fill="none"
+              stroke={theme.concept}
+              strokeWidth={2.5}
+              strokeDasharray="7 7"
+            />
+            <circle cx={24 + bounceT * 132} cy={162} r={6} fill={theme.concept} />
+            <text x={215} y={214} textAnchor="middle" fill={theme.ok} fontSize={20}>接线执行路径 · 绕行被挡回</text>
+          </svg>
+        </div>
+        {/* 未接线：旁路畅通（橙警示） */}
+        <div style={{opacity: enter[1], position: 'relative'}}>
+          <svg width={430} height={230}>
+            <line x1={20} y1={180} x2={410} y2={180} stroke={theme.panelBorder} strokeWidth={3} />
+            <rect x={196} y={96} width={44} height={84} fill="none" stroke={theme.conceptDeep} strokeWidth={1.5} strokeDasharray="6 5" />
+            <path
+              d={`M 24 162 C ${64 + passT * 90} 162, ${160 + passT * 120} 84, ${222 + passT * 172} 162`}
+              fill="none"
+              stroke={theme.conceptDeep}
+              strokeWidth={2.5}
+            />
+            <circle cx={222 + passT * 172} cy={162} r={6} fill={theme.conceptDeep} />
+            <text x={215} y={214} textAnchor="middle" fill={theme.conceptDeep} fontSize={20}>未接线 · 旁路畅通</text>
+          </svg>
+        </div>
+      </div>
+      <div style={{fontSize: 20, color: theme.dim, opacity: ruleNote}}>
+        强制力 = 求值点
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 3-B：执法点四层分层表 + 「绕过余地」递窄箭头。 */
+const EnforcementLayers: React.FC<{at05: number; at06: number; at07: number}> = ({at05, at06, at07}) => {
+  const rows = useStagger(4, {stride: 16, at: at06});
+  const wedge = useProgress(at07, 22);
+  const layers: Array<{name: string; src: string; dim?: boolean}> = [
+    {name: '注册期 · 接口校验', src: '422 拒绝入册'},
+    {name: '装配期 · 注册表求值', src: '进窗前核权限'},
+    {name: '执行期 · 引擎求值', src: '查询时强制'},
+    {name: '编译期', src: '本仓无对应物', dim: true},
+  ];
+  return (
+    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60}}>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 18, opacity: useProgress(at05, 12)}}>
+        {layers.map((l, i) => (
+          <div
+            key={l.name}
+            style={{
+              width: 560,
+              padding: '16px 24px',
+              border: `2px solid ${l.dim ? theme.panelBorder : theme.concept}`,
+              borderStyle: l.dim ? 'dashed' : 'solid',
+              borderRadius: 10,
+              background: theme.panel,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              opacity: rows[i] * (l.dim ? 0.6 : 1),
+              transform: `translateY(${(1 - rows[i]) * -18}px)`,
+            }}
+          >
+            <span style={{fontSize: 25, color: l.dim ? theme.dim : theme.concept}}>{l.name}</span>
+            <span style={{fontSize: 18, color: theme.dim, fontFamily: theme.mono}}>{l.src}</span>
           </div>
         ))}
       </div>
-      {/* 资格 = 交集：四格收拢成两圆交集 */}
-      <svg width={330} height={140} style={venn}>
-        <circle cx={128} cy={70} r={62} fill={withAlpha(theme.concept, 0.16)} stroke={theme.concept} strokeWidth={2} />
-        <circle cx={202} cy={70} r={62} fill={withAlpha(theme.conceptDeep, 0.14)} stroke={theme.conceptDeep} strokeWidth={2} />
-        <text x={165} y={78} textAnchor="middle" fill={theme.ok} fontSize={22} fontWeight={700}>资格</text>
-        <text x={165} y={126} textAnchor="middle" fill={theme.dim} fontSize={18}>全部满足 · 才放行</text>
+      {/* 递窄箭头：越往后绕过余地越小 */}
+      <svg width={260} height={330} style={{opacity: wedge}}>
+        <polygon points="30,20 230,20 190,90 70,90" fill={withAlpha(theme.concept, 0.35)} stroke={theme.concept} strokeWidth={2} />
+        <polygon points="82,110 178,110 156,180 104,180" fill={withAlpha(theme.concept, 0.45)} stroke={theme.concept} strokeWidth={2} opacity={0.9} />
+        <polygon points="112,200 148,200 136,270 124,270" fill={withAlpha(theme.ok, 0.5)} stroke={theme.ok} strokeWidth={2} />
+        <text x={130} y={310} textAnchor="middle" fill={theme.dim} fontSize={18}>绕过余地 递减</text>
       </svg>
     </AbsoluteFill>
   );
 };
 
-/** 只减不增计数器（v2 迁移；X-001 核对：人数只减不加）+ 不可代签角标。 */
-const ShrinkCounter: React.FC<{at08: number; at09: number}> = ({at08, at09}) => {
-  // 权重 3+4+4=11 ⇒ 12→1，终值 1 人保交集非空
-  const s1 = useSpring('settle', {at: at08 + 6, dur: 20});
-  const s2 = useSpring('settle', {at: at08 + 20, dur: 20});
-  const s3 = useSpring('settle', {at: at08 + 34, dur: 20});
-  const n = 12 - Math.round(s1 * 3 + s2 * 4 + s3 * 4);
-  const nosub = useProgress(at09, 12);
-  return (
-    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18}}>
-      <div style={{fontSize: 110, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums'}}>
-        {n}
-        <span style={{fontSize: 40, color: theme.dim}}> 人</span>
-      </div>
-      <div style={{fontSize: 24, color: theme.dim}}>每加一道会签 · 能关这张卡的人只会更少</div>
-      <div style={{display: 'flex', gap: 10}}>
-        {[s1, s2, s3].map((s, i) => (
-          <div key={i} style={{width: 90, height: 8, background: theme.panelBorder, borderRadius: 4, overflow: 'hidden'}}>
-            <div style={{width: `${s * 100}%`, height: '100%', background: theme.conceptDeep}} />
-          </div>
-        ))}
-      </div>
-      <div style={{fontSize: 20, color: theme.conceptDeep, opacity: nosub, marginTop: 6}}>不代签 · 一纸不能替另一纸</div>
-    </AbsoluteFill>
-  );
-};
-
-/** 签字笔悬停 → 墙上时钟绿闪（实时求值拍点）+ 三作废角标。 */
-const ClockCheck: React.FC<{at10: number; at11: number}> = ({at10, at11}) => {
+/** 3-C：双层拦截（体验层隐形化 / 强制层弹回）+ D5 消融对照。 */
+const DualIntercept: React.FC<{at08: number; hideAt: number; bounceAt: number; labelAt: number; d5At: number}> = ({
+  at08,
+  hideAt,
+  bounceAt,
+  labelAt,
+  d5At,
+}) => {
   const f = useCurrentFrame();
-  const enter = useEnter('rise', {at: at10, dur: 18});
-  const flash = useImpulse({at: at11 + 8, dur: 20, peak: 1});
-  const tags = useStagger(3, {stride: 12, at: at11 + 14});
-  const tremble = Math.sin(f / 3) * 2; // 笔尖悬停微颤（帧驱动，禁随机）
+  const enter = useProgress(at08, 14);
+  const hide = useProgress(hideAt, 14);
+  // 查询 chip 撞引擎横杆弹回：0→1 前冲，之后按衰减回弹
+  const hit = useSpring('snap', {at: bounceAt, dur: 26});
+  const hitT = f < bounceAt ? 0 : Math.min(1, (f - bounceAt) / 26);
+  const backX = hitT < 0.45 ? hitT / 0.45 : 1 - (hitT - 0.45) / 0.55;
+  const labels = useProgress(labelAt, 14);
+  const d5 = useProgress(d5At, 16);
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 110}}>
-      {/* 签字线 + 悬停笔 */}
-      <div style={{...enter, position: 'relative', width: 320}}>
-        <div style={{borderBottom: `2px solid ${theme.panelBorder}`, height: 90}} />
-        <div style={{fontSize: 18, color: theme.dim, marginTop: 10}}>关盖签字 · 末格</div>
-        <div
-          style={{
-            position: 'absolute',
-            left: 150,
-            top: 34,
-            width: 10,
-            height: 78,
-            background: theme.concept,
-            borderRadius: 3,
-            transform: `rotate(24deg) translateY(${tremble}px)`,
-          }}
-        />
-      </div>
-      {/* 墙上时钟：落笔前那眼钟，绿闪 = 授权仍有效 */}
-      <svg width={240} height={240} style={{...enter}}>
-        <circle cx={120} cy={110} r={86} fill={theme.panel} stroke={flash > 0.05 ? theme.ok : theme.panelBorder} strokeWidth={flash > 0.05 ? 5 : 3} />
-        <line x1={120} y1={110} x2={120} y2={54} stroke={theme.dim} strokeWidth={3} strokeLinecap="round" />
-        <line x1={120} y1={110} x2={158} y2={124} stroke={theme.dim} strokeWidth={3} strokeLinecap="round" />
-        <circle cx={120} cy={110} r={5} fill={theme.dim} />
-        <text x={120} y={228} textAnchor="middle" fill={theme.ok} fontSize={19} opacity={flash}>授权仍有效</text>
-      </svg>
-      <div style={{position: 'absolute', bottom: 180, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 18}}>
-        {['跨班作废', '过期作废', '转授作废'].map((t, i) => (
-          <span key={t} style={{opacity: tags[i], padding: '6px 16px', border: `1.5px solid ${theme.conceptDeep}`, borderRadius: 999, fontSize: 19, color: theme.conceptDeep}}>
-            {t}
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34}}>
+      {/* 上层：检索过滤 · 体验 */}
+      <div style={{opacity: enter, width: 900, padding: '16px 26px', border: `2px solid ${theme.concept}`, borderRadius: 12, background: theme.panel}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <span style={{fontSize: 22, color: theme.concept}}>检索过滤 · 体验层</span>
+          <span style={{fontSize: 17, color: theme.dim, opacity: labels}}>前一层管体验</span>
+        </div>
+        <div style={{display: 'flex', gap: 16, marginTop: 14}}>
+          <span style={{padding: '8px 18px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, fontSize: 19, fontFamily: theme.mono, color: theme.text}}>指标定义</span>
+          <span style={{padding: '8px 18px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, fontSize: 19, fontFamily: theme.mono, color: theme.text}}>订单表</span>
+          <span
+            style={{
+              padding: '8px 18px',
+              border: `1.5px dashed ${theme.conceptDeep}`,
+              borderRadius: 8,
+              fontSize: 19,
+              fontFamily: theme.mono,
+              color: theme.conceptDeep,
+              opacity: 1 - hide * 0.85,
+              outline: hide > 0.5 ? `1.5px dashed ${withAlpha(theme.conceptDeep, 0.4)}` : 'none',
+            }}
+          >
+            customers · phone
           </span>
-        ))}
+          <span style={{fontSize: 17, color: theme.conceptDeep, alignSelf: 'center', opacity: hide}}>
+            候选中不可见
+          </span>
+        </div>
+      </div>
+      {/* 下层：执行拒绝 · 强制 */}
+      <div style={{opacity: enter, width: 900, padding: '16px 26px', border: `2px solid ${theme.conceptDeep}`, borderRadius: 12, background: theme.panel}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <span style={{fontSize: 22, color: theme.conceptDeep}}>执行拒绝 · 强制层</span>
+          <span style={{fontSize: 17, color: theme.dim, opacity: labels}}>后一层才是强制</span>
+        </div>
+        <div style={{position: 'relative', height: 74, marginTop: 12}}>
+          <div
+            style={{
+              position: 'absolute',
+              left: 20 + backX * 250,
+              top: 12,
+              padding: '10px 20px',
+              border: `1.5px solid ${theme.text}`,
+              borderRadius: 8,
+              fontSize: 19,
+              fontFamily: theme.mono,
+              color: theme.text,
+              background: theme.terminalBg,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            SELECT phone FROM customers
+          </div>
+          <div style={{position: 'absolute', right: 24, top: 6, width: 8, height: 58, borderRadius: 4, background: theme.conceptDeep, transform: `scaleY(${1 + hit * 0.25})`}} />
+          <span style={{position: 'absolute', right: 46, top: 20, fontSize: 18, color: theme.conceptDeep, opacity: hitT > 0.4 ? 1 : 0}}>引擎拒绝</span>
+        </div>
+      </div>
+      {/* D5 消融：拆执行层 → 取到（红）/ 装回 → blocked（绿） */}
+      <div style={{display: 'flex', alignItems: 'center', gap: 22, opacity: d5}}>
+        <span style={{padding: '10px 22px', border: `2px solid ${theme.danger}`, borderRadius: 8, fontSize: 21, color: theme.danger}}>
+          拆执行层 → intern 取到数据
+        </span>
+        <span style={{fontSize: 22, color: theme.dim}}>|</span>
+        <span style={{padding: '10px 22px', border: `2px solid ${theme.ok}`, borderRadius: 8, fontSize: 21, color: theme.ok}}>
+          装回 → blocked
+        </span>
+        <EvidenceBadge level="filled" at={d5At + 12} note="D5 · 本仓原型复算" />
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 供给面数字墙（v2 NumbersWall 迁移；客户端行挪 3-F 独立装置）。 */
-const NumbersWall: React.FC<{at: number}> = ({at}) => {
-  const rows = useStagger(3, {stride: 14, at});
+/** 3-G 侧栏前景：数字墙 + 四客户端零验签 + 三条最低要求（画框外左右余量）。 */
+const ThreatSidebar: React.FC<{numsAt: number; clientsAt: number; rulesAt: number}> = ({numsAt, clientsAt, rulesAt}) => {
+  const nums = useStagger(3, {stride: 12, at: numsAt});
+  const clients = useStagger(4, {stride: 8, at: clientsAt});
+  const rules = useStagger(3, {stride: 12, at: rulesAt});
   const data: Array<[string, string]> = [
-    ['98,380', '份社区技能扫描'],
-    ['157', '份确认恶意'],
+    ['98,380', '份技能扫描'],
+    ['157', '份恶意'],
     ['632', '个漏洞'],
   ];
   return (
-    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14}}>
-      {data.map(([n, t], i) => (
-        <div key={t} style={{opacity: rows[i], display: 'flex', gap: 20, alignItems: 'baseline'}}>
-          <span style={{fontSize: 58, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums', minWidth: 260, textAlign: 'right'}}>{n}</span>
-          <span style={{fontSize: 24, color: theme.dim}}>{t}</span>
+    <>
+      {/* 左栏：数字墙 + 实线徽 */}
+      <div style={{position: 'absolute', left: 44, top: 200, width: 250, display: 'flex', flexDirection: 'column', gap: 22}}>
+        {data.map(([n, t], i) => (
+          <div key={t} style={{opacity: nums[i]}}>
+            <div style={{fontSize: 44, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums', fontFamily: theme.mono}}>{n}</div>
+            <div style={{fontSize: 17, color: theme.dim, marginTop: 2}}>{t}</div>
+          </div>
+        ))}
+        <EvidenceBadge level="solid" at={numsAt + 30} note="中立锚 · 生态扫描" />
+      </div>
+      {/* 右栏：四客户端零验签 + 三条最低要求 */}
+      <div style={{position: 'absolute', right: 44, top: 200, width: 250, display: 'flex', flexDirection: 'column', gap: 18}}>
+        <div style={{display: 'flex', flexWrap: 'wrap', gap: 10}}>
+          {['Claude', 'Gemini', 'Codex', 'VS Code'].map((c, i) => (
+            <span key={c} style={{position: 'relative', opacity: clients[i]}}>
+              <span style={{display: 'inline-block', padding: '6px 12px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, fontSize: 16, fontFamily: theme.mono, color: theme.dim, textDecoration: 'line-through'}}>{c}</span>
+              <span style={{position: 'absolute', top: -8, right: -8, fontSize: 17, color: theme.danger, fontWeight: 700}}>✕</span>
+            </span>
+          ))}
         </div>
-      ))}
-    </AbsoluteFill>
-  );
-};
-
-/** 四家客户端 + 零验签红叉（3-F 首句）。 */
-const ClientRow: React.FC<{at20: number}> = ({at20}) => {
-  const marks = useStagger(4, {stride: 10, at: at20 + 6});
-  return (
-    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 170, gap: 20}}>
-      <div style={{display: 'flex', gap: 22}}>
-        {['Claude', 'Gemini', 'Codex', 'VS Code'].map((c, i) => (
-          <div key={c} style={{position: 'relative', opacity: marks[i]}}>
-            <span style={{display: 'inline-block', padding: '8px 18px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, fontSize: 21, color: theme.dim, textDecoration: 'line-through'}}>{c}</span>
-            <span style={{position: 'absolute', top: -10, right: -10, fontSize: 22, color: theme.danger, fontWeight: 700}}>✕</span>
+        <div style={{fontSize: 17, color: theme.conceptDeep, opacity: clients[3]}}>四家头部客户端 · 零验签</div>
+        {['一凭据一来源', '描述按不可信', '破坏动作人确认'].map((t, i) => (
+          <div key={t} style={{opacity: rules[i], padding: '10px 14px', border: `2px solid ${theme.ok}`, borderRadius: 8, fontSize: 18, color: theme.ok, textAlign: 'center'}}>
+            {t}
           </div>
         ))}
       </div>
-      <div style={{fontSize: 21, color: theme.conceptDeep, opacity: marks[3]}}>四家头部客户端 · 零验签</div>
-    </AbsoluteFill>
+    </>
   );
 };
 
-/** 三条底线卡（p3-22 点名）。 */
-const BottomLines: React.FC<{at22: number}> = ({at22}) => {
-  const cards = useStagger(3, {stride: 16, at: at22});
-  const lines = ['凭据一源一绑', '描述按不可信处理', '破坏性动作人工确认'];
+/** 判词条（3-H 收束形：自带底盒、不全屏遮断——FiveAxisMap 的 ✓ 推进须可读）。 */
+const JudgeStrip: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('rise', {at, dur: 18});
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 120}}>
-      <div style={{display: 'flex', gap: 24}}>
-        {lines.map((t, i) => (
-          <div key={t} style={{opacity: cards[i], width: 250, padding: '20px 18px', border: `2px solid ${theme.ok}`, borderRadius: 10, background: withAlpha(theme.ok, 0.05), textAlign: 'center'}}>
-            <div style={{fontSize: 26, color: theme.ok}}>{`底线 ${i + 1}`}</div>
-            <div style={{fontSize: 21, color: theme.text, marginTop: 10}}>{t}</div>
-          </div>
-        ))}
+    <div style={{position: 'absolute', top: 470, left: 0, right: 0, display: 'flex', justifyContent: 'center', opacity: enter.opacity, transform: enter.transform}}>
+      <div style={{padding: '16px 44px', border: `2.5px solid ${theme.ok}`, borderRadius: 12, fontSize: 34, color: theme.ok, letterSpacing: 2, background: withAlpha(theme.bg, 0.88)}}>
+        SSOT × 必经路径
       </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 判词条（各幕收束通用形；带底幕遮断前一装置，Sequence 默认 absolute-fill 不进文档流）。 */
-const JudgeStrip: React.FC<{text: string; accent: string}> = ({text, accent}) => {
-  const enter = useEnter('rise', {at: 4, dur: 18});
-  return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', background: withAlpha(theme.bg, 0.92)}}>
-      <div style={{...enter, padding: '16px 40px', border: `2.5px solid ${accent}`, borderRadius: 12, fontSize: 34, color: accent, letterSpacing: 2, background: withAlpha(theme.bg, 0.85)}}>
-        {text}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 收束推进：剖面（无高亮）+ pushIn 下一工位方向。 */
-const HangarPush: React.FC = () => {
-  const push = usePushIn(4, {scale: 0.1, dur: 60});
-  return (
-    <AbsoluteFill style={{transform: push, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 40}}>
-      <HangarCrossSection built highlight={null} at={0} />
-    </AbsoluteFill>
+    </div>
   );
 };

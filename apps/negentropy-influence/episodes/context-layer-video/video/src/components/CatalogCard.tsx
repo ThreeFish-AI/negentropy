@@ -1,8 +1,9 @@
-/** 目录条目卡〔M-001 同物同形〕：钢蓝描边 2px 恒定锚（与 WorkCard 同形同线宽），
- *  带版次号（version，缺省 v1）与地址角标（address，缺省 ctx://…）。
- *  写读两条管线的接头锚：P2 画格台弹出→盖章→飞落剖面货架；P7 自货架起飞落入
- *  Retrieve 高亮框。small 为货架上的缩样（HangarCrossSection.CatalogShelf 用）。
- *  at 给定 → settle 弹入场（局部帧）；缺省 → 稳态（货架/飞行 wrapper 由调用方摆位）。 */
+/** 目录条目卡〔M-001 同物同形〕：钢蓝描边 2px 恒定锚（与贯穿请求卡同形同线宽），
+ *  带版次号（version，缺省 v1）与固定地址角标（address，缺省 ctx://…）。
+ *  写读两条管线的接头锚：P2 纳管管线末端（Tag·Index）弹出→飞落右侧目录列表；
+ *  P7 自目录列表起飞落入 Retrieve 高亮框（同一张卡、同物同形）。
+ *  small 为目录列表上的缩样（列表组件用）。
+ *  at 给定 → settle 弹入场（局部帧）；缺省 → 稳态（列表/飞行 wrapper 由调用方摆位）。 */
 import React from 'react';
 import {theme} from '../design/theme';
 import {useSpring} from '../motion';

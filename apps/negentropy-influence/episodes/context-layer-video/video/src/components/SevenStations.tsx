@@ -1,17 +1,18 @@
-/** 工卡七道工序横轨（device 层公共件）：七工位横轨——解析/计划/取料/融合/过闸/
- *  裁剪/交付；工卡滑到当前 station，此前工位已盖章（绿章 ✓），当前工位在 at+38
- *  落章（场景把 at 锚在「该站盖章句」上）。Guard 站（⑤过闸）带工业橙分流道进
- *  dropped 留痕盒（盒口「只进不改」——X-001：盒内记录只进不改，条目动画由场景
- *  叠加、几何用 SEVEN_STATIONS_GEOM.dropped 对位）。
+/** 读管线七段横轨（device 层公共件）：Resolve / Plan / Retrieve / Fuse / Guard /
+ *  Compose / Emit 真名标签（与纳管/读管线两线命名 SSOT research/component-glossary.md
+ *  同口径）；请求对象（钢蓝小方＝贯穿请求〔M-001〕的横轨化身）滑到当前段，此前段
+ *  已完成（绿章 ✓），当前段在 at+38 落章（场景把 at 锚在「该段点名句」上）。
+ *  Guard 段（⑤）带治理橙分流道进 dropped 盒（盒口「只进不改」——X-001：盒内记录
+ *  只进不改，条目动画由场景叠加、几何用 SEVEN_STATIONS_GEOM.dropped 对位）。
  *  固定几何：条带占 left 70 / top 610 / 1780×290（底边 900，避让字幕安全带）。 */
 import React from 'react';
 import {AbsoluteFill} from 'remotion';
 import {theme, withAlpha} from '../design/theme';
 import {clamp01, useDraw, useFlowDash, useSpring, useStagger} from '../motion';
 
-export const SEVEN_LABELS = ['解析', '计划', '取料', '融合', '过闸', '裁剪', '交付'] as const;
+export const SEVEN_LABELS = ['Resolve', 'Plan', 'Retrieve', 'Fuse', 'Guard', 'Compose', 'Emit'] as const;
 
-/** 场景对位用几何（画布绝对坐标）：工位盒中心、基线、dropped 盒。 */
+/** 场景对位用几何（画布绝对坐标）：段盒中心、基线、dropped 盒。 */
 export const SEVEN_STATIONS_GEOM = {
   left: 70,
   top: 610,
@@ -23,8 +24,7 @@ export const SEVEN_STATIONS_GEOM = {
   dropped: {x: 1230, y: 824, w: 240, h: 58},
 } as const;
 
-const CARD_W = 92;
-const CARD_H = 60;
+const REQ_SIZE = 44;
 
 export const SevenStations: React.FC<{at: number; station: 1 | 2 | 3 | 4 | 5 | 6 | 7}> = ({at, station}) => {
   const ins = useStagger(7, {stride: 3, at});
@@ -40,7 +40,7 @@ export const SevenStations: React.FC<{at: number; station: 1 | 2 | 3 | 4 | 5 | 6
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: SEVEN_STATIONS_GEOM.left, top: SEVEN_STATIONS_GEOM.top, width: 1780, height: 290}}>
-        {/* Guard 橙色分流道：⑤盒底 → dropped 留痕盒（station≥5 常驻；=5 时行进虚线活动） */}
+        {/* Guard 橙色分流道：⑤盒底 → dropped 盒（station≥5 常驻；=5 时行进虚线活动） */}
         {guardOn ? (
           <svg width={1780} height={290} style={{position: 'absolute', inset: 0}}>
             <path
@@ -93,14 +93,15 @@ export const SevenStations: React.FC<{at: number; station: 1 | 2 | 3 | 4 | 5 | 6
               </div>
               <div
                 style={{
-                  fontSize: 23,
+                  fontFamily: theme.mono,
+                  fontSize: 21,
                   marginTop: 4,
                   color: active ? (guard ? theme.conceptDeep : theme.concept) : theme.text,
                 }}
               >
                 {name}
               </div>
-              {/* 已完成章：绿 ✓ 印（稳态）；当前站章在 stamp 弹窗内落下 */}
+              {/* 已完成章：绿 ✓ 印（稳态）；当前段章在 stamp 弹窗内落下 */}
               <div style={{position: 'absolute', right: 10, top: 10}}>
                 {done ? (
                   <StampGlyph s={1} o={1} />
@@ -111,29 +112,20 @@ export const SevenStations: React.FC<{at: number; station: 1 | 2 | 3 | 4 | 5 | 6
             </div>
           );
         })}
-        {/* 工卡：滑到当前工位（章面小卡 = 恒定锚的横轨化身，钢蓝 2px 同形） */}
+        {/* 请求对象：钢蓝小方（贯穿请求〔M-001〕的横轨化身），滑到当前段 */}
         <div
           style={{
             position: 'absolute',
-            left: cardX - CARD_W / 2,
-            top: 188 - CARD_H - 6,
-            width: CARD_W,
-            height: CARD_H,
-            borderRadius: 7,
+            left: cardX - REQ_SIZE / 2,
+            top: 188 - REQ_SIZE - 6,
+            width: REQ_SIZE,
+            height: REQ_SIZE,
+            borderRadius: 8,
             border: `2px solid ${theme.concept}`,
-            background: theme.panel,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: theme.mono,
-            fontSize: 15,
-            color: theme.concept,
-            letterSpacing: 1,
+            background: withAlpha(theme.concept, 0.14),
           }}
-        >
-          工卡
-        </div>
-        {/* dropped 留痕盒：只进不改 */}
+        />
+        {/* dropped 盒：只进不改 */}
         {guardOn ? (
           <div
             style={{

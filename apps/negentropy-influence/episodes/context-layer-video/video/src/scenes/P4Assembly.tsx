@@ -1,27 +1,35 @@
-/** P4 装配轴：机位与工卡夹（p4-01..p4-28，28 句；storyboard v3「P4 装配轴」节）。
+/** P4 装配轴（p4-01..p4-29 含 24b，30 句；storyboard v4「P4 装配轴」节）。
  *
- *  7 镜 / 15 条 archify cue（assembly-economics 章 id 未变）：
- *   4-A 剖面高亮机位（HangarCrossSection built assembly）+ 计时器烧钱 + 时序四档总表卡
- *   4-B ae-k1 hold 链@p4-07..10（裁纸/圈选/保留单三联装置让位，recap 后置=画框遮盖）
- *   4-C ae-k2 hold 链@p4-11..12 → hold@p4-14（承 4-B 链尾背靠背 → lead=false）；
- *      p4-13 留空窗给 46/19 工具墙+实线徽
- *   4-D ae-k3@p4-15 → hold@p4-16 → ae-k4@p4-17（推车 vs 呼叫铃让位；承 4-C 链尾背靠背 → lead=false）
- *   4-E ae-k5@p4-18 → hold@p4-19 → ae-knobs@p4-20（交接班纪要板让位；承 4-D 尾背靠背 → lead={false}）
- *   4-F InvertedU 倒 U 红线（组 A 组件 import）+ 分片×2 尖刺@23 + 摊页找不着@24
- *   4-G ae-knobs hold@p4-25（「这五条」回指五旋钮终态）→ ae-ch@p4-26（岔路装置让位）·
- *      岔路橙闪@27 · 剖面推进@28
+ *  9 镜 / 16 条 archify cue（assembly-economics：ae-k2 ×4 + ae-k3 ×3 + ae-k4 ×3 + ae-k5 ×6；
+ *  ae-k4/ae-k5 承前链尾跨镜背靠背 → lead={false}）：
+ *   4-A 开轴预算（p4-01..02）：FiveAxisMap 高亮 assembly（幕首）→ TokenBudget 建立
+ *       （刻度轨道 + 预算线 + 四档位机会成本小字）
+ *   4-B 时序四档（p4-03..05）：四档总表逐行亮 + 常驻对应物钉住
+ *   4-C 渐进披露（p4-06..09）：ae-k2 锚 p4-06 → hold 07/08/09；前景对应物卡
+ *       （按需加载 / 仅引用）+ 成本轴收尾
+ *   4-D 工具实验（p4-10..13）：46/19 消融两栏 + 实线徽（经转引）+ 外推限界角标
+ *   4-E 划界（p4-14..16）：ae-k3 锚 p4-14 → hold 15/16；前景提前放/用到再取两区
+ *       + 判据公式卡 @enter:fall
+ *   4-F 缓存排序（p4-17..19）：ae-k4 锚 p4-17 → hold 18/19（lead={false}）；前景
+ *       静态前缀 | 动态段分界示例条 + 复用波纹
+ *   4-G 压缩四步（p4-20..24b）：ae-k5 锚 p4-20 → hold 21/22/23/24/24b（lead={false}）；
+ *       前景「落盘→裁中段→占位→摘要」步骤条 + 成对保留框 + 「0 步」徽
+ *   4-H 倒 U（p4-25..26）：InvertedU + TokenBudget 越线续填（联动）+ 经验观察角标
+ *       + 39%/+112% 实线徽尖刺
+ *   4-I 顺序与转场（p4-27..29）：顺序效应双条 + 结论条 + FiveAxisMap 推进（passedCount=3）
  */
 import React from 'react';
 import {AbsoluteFill, Sequence} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {useEnter, useProgress, usePushIn, useSpring, useStagger} from '../motion';
+import {useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
-import {HangarCrossSection} from '../components/HangarCrossSection';
+import {FiveAxisMap} from '../components/FiveAxisMap';
 import {InvertedU} from '../components/InvertedU';
+import {TokenBudget} from '../components/TokenBudget';
 
 export const P4Assembly: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
@@ -29,424 +37,420 @@ export const P4Assembly: React.FC<{scene: SceneRange}> = ({scene}) => {
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   // 各镜窗口（from 为幕内帧）。镜内 cue/装置锚点一律「at(句id) - 所在镜.from」——
   // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
-  const bA = w('p4-01', 'p4-06');
-  const bB = w('p4-07', 'p4-10');
-  const bC = w('p4-11', 'p4-14');
-  const bD = w('p4-15', 'p4-17');
-  const bE = w('p4-18', 'p4-20');
-  const bF = w('p4-21', 'p4-24');
-  const bG = w('p4-25', 'p4-28');
+  const bA = w('p4-01', 'p4-02');
+  const bB = w('p4-03', 'p4-05');
+  const bC = w('p4-06', 'p4-09');
+  const bD = w('p4-10', 'p4-13');
+  const bE = w('p4-14', 'p4-16');
+  const bF = w('p4-17', 'p4-19');
+  const bG = w('p4-20', 'p4-24b');
+  const bH = w('p4-25', 'p4-26');
+  const bI = w('p4-27', 'p4-29');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
-      <SceneTag chapter="P4" tagline="装配轴 · 机位与工卡夹" accent={theme.concept} />
+      <SceneTag chapter="P4" tagline="装配轴" accent={theme.concept} />
 
-      {/* 4-A 开轴四档：剖面聚光机位（首句窗）→ 计时器 + 四档总表卡 */}
+      {/* 4-A 开轴预算：Map-First 幕首 → TokenBudget 建立 */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="4-A">
-        <Sequence from={0} durationInFrames={dur('p4-01')} name="4-A-hangar">
+        <Sequence from={0} durationInFrames={dur('p4-01')} name="4-A-map">
           <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 40}}>
-            <HangarCrossSection built highlight="assembly" at={4} />
+            <FiveAxisMap built highlight="assembly" at={4} />
           </AbsoluteFill>
         </Sequence>
-        <Sequence from={at('p4-02') - bA.from} name="4-A-dev">
-          <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34}}>
-            <BurnClock at={at('p4-03') - at('p4-02')} />
-            <FourTierTable at={at('p4-04') - at('p4-02')} />
+        <Sequence from={at('p4-02') - bA.from} name="4-A-budget">
+          <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <TokenBudget at={4} tiersAt={16} />
           </AbsoluteFill>
         </Sequence>
       </Sequence>
 
-      {/* 4-B 最小够用：ae-k1 hold 链铺 p4-07..10（三联装置让位，recap 后置遮盖） */}
+      {/* 4-B 时序四档总表 */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="4-B">
-        <Sequence from={at('p4-08') - bB.from} name="4-B-dev">
-          <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44}}>
-            <PaperCut at={0} />
-            <CircleSelect at={at('p4-09') - at('p4-08')} />
-            <RetentionSlip at={at('p4-10') - at('p4-08')} />
-          </AbsoluteFill>
-        </Sequence>
-        <ArchifyRecap slug="assembly-economics" caption="旋钮一 · 预算分配" cues={[
-          {chapterId: 'ae-k1', at: at('p4-07') - bB.from, durationInFrames: dur('p4-07')},
-          {chapterId: 'ae-k1', at: at('p4-08') - bB.from, durationInFrames: dur('p4-08'), fit: 'hold'},
-          {chapterId: 'ae-k1', at: at('p4-09') - bB.from, durationInFrames: dur('p4-09'), fit: 'hold'},
-          {chapterId: 'ae-k1', at: at('p4-10') - bB.from, durationInFrames: dur('p4-10'), fit: 'hold'},
-        ]} />
+        <FourTierTable at03={at('p4-03') - bB.from} at05={at('p4-05') - bB.from} />
       </Sequence>
 
-      {/* 4-C 渐进披露：ae-k2 hold 链@11..12、@14（p4-13 空窗给 46/19 工具墙+实线徽）；承 4-B 链尾背靠背 */}
+      {/* 4-C 渐进披露：ae-k2 hold 链 + 前景对应物卡 + 成本轴收尾 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="4-C">
-        <Sequence from={at('p4-12') - bC.from} durationInFrames={dur('p4-12')} name="4-C-card">
-          <CardFace at={0} />
-        </Sequence>
-        <Sequence from={at('p4-13') - bC.from} name="4-C-wall">
-          <ToolWall46 at={0} />
-          <div style={{position: 'absolute', bottom: 150, left: 80}}>
-            <EvidenceBadge level="solid" at={6} note="工具数饱和 46 败 / 19 成" />
-          </div>
-        </Sequence>
-        <ArchifyRecap slug="assembly-economics" caption="旋钮二 · 渐进披露" cues={[
-          {chapterId: 'ae-k2', at: at('p4-11') - bC.from, durationInFrames: dur('p4-11')},
-          {chapterId: 'ae-k2', at: at('p4-12') - bC.from, durationInFrames: dur('p4-12'), fit: 'hold'},
-          {chapterId: 'ae-k2', at: at('p4-14') - bC.from, durationInFrames: dur('p4-14'), fit: 'hold'},
-        ]} lead={false} />
-      </Sequence>
-
-      {/* 4-D JIT 与缓存：ae-k3@15 → hold@16 → ae-k4@17（推车 vs 呼叫铃让位）；承 4-C 链尾背靠背 */}
-      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="4-D">
-        <Sequence from={at('p4-16') - bD.from} durationInFrames={dur('p4-16')} name="4-D-dev">
-          <JitVsBell at={0} />
-        </Sequence>
-        <ArchifyRecap
-          slug="assembly-economics"
-          caption="旋钮三/四 · JIT 与缓存"
-          cues={[
-            {chapterId: 'ae-k3', at: at('p4-15') - bD.from, durationInFrames: dur('p4-15')},
-            {chapterId: 'ae-k3', at: at('p4-16') - bD.from, durationInFrames: dur('p4-16'), fit: 'hold'},
-            {chapterId: 'ae-k4', at: at('p4-17') - bD.from, durationInFrames: dur('p4-17')},
-          ]}
-          lead={false}
-        />
-      </Sequence>
-
-      {/* 4-E 压缩与命名：ae-k5@18 → hold@19 → ae-knobs@20（纪要板让位）；承 4-D 尾背靠背 lead={false} */}
-      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E">
-        <Sequence from={at('p4-19') - bE.from} durationInFrames={dur('p4-19')} name="4-E-dev">
-          <HandoverBoard at={0} />
-        </Sequence>
-        <ArchifyRecap
-          slug="assembly-economics"
-          caption="旋钮五 · 压缩分级"
-          cues={[
-            {chapterId: 'ae-k5', at: at('p4-18') - bE.from, durationInFrames: dur('p4-18')},
-            {chapterId: 'ae-k5', at: at('p4-19') - bE.from, durationInFrames: dur('p4-19'), fit: 'hold'},
-            {chapterId: 'ae-knobs', at: at('p4-20') - bE.from, durationInFrames: dur('p4-20')},
-          ]}
-          lead={false}
-        />
-      </Sequence>
-
-      {/* 4-F 倒 U 红线：InvertedU（组 A 组件）+ 底部三段小景（红线句标/分片尖刺/摊页，末两段互斥换场） */}
-      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="4-F">
-        <InvertedU at={at('p4-21') - bF.from} />
-        <RedlineChip at={at('p4-22') - bF.from} />
-        <Sequence from={at('p4-23') - bF.from} durationInFrames={dur('p4-23')} name="4-F-spike">
-          <ChunkSpike at={0} />
-        </Sequence>
-        <Sequence from={at('p4-24') - bF.from} name="4-F-pile">
-          <PagesPile at={0} />
-        </Sequence>
-      </Sequence>
-
-      {/* 4-G 检索前置：ae-knobs hold@p4-25（「这五条」回指五旋钮终态，岔路装置让位）→
-          ae-ch 盖 p4-26（窗后橙闪@27；止于 p4-28 前）；剖面推进@28（互斥换场） */}
-      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="4-G">
-        <Sequence from={0} durationInFrames={at('p4-28') - bG.from} name="4-G-fork">
-          <ForkRoad at={0} blinkAt={at('p4-27') - bG.from} />
-        </Sequence>
-        <ArchifyRecap slug="assembly-economics" caption="双通道 · 统一融合" cues={[
-          {chapterId: 'ae-knobs', at: at('p4-25') - bG.from, durationInFrames: dur('p4-25'), fit: 'hold'},
-          {chapterId: 'ae-ch', at: at('p4-26') - bG.from, durationInFrames: dur('p4-26')},
+        <ArchifyRecap slug="assembly-economics" caption="装配经济学 · 渐进披露" cues={[
+          {chapterId: 'ae-k2', at: at('p4-06') - bC.from, durationInFrames: dur('p4-06')},
+          {chapterId: 'ae-k2', at: at('p4-07') - bC.from, durationInFrames: dur('p4-07'), fit: 'hold'},
+          {chapterId: 'ae-k2', at: at('p4-08') - bC.from, durationInFrames: dur('p4-08'), fit: 'hold'},
+          {chapterId: 'ae-k2', at: at('p4-09') - bC.from, durationInFrames: dur('p4-09'), fit: 'hold'},
         ]} />
-        <Sequence from={at('p4-28') - bG.from} name="4-G-push">
-          <HangarPush />
+        <CostAxisOverlay
+          onDemandAt={at('p4-07') - bC.from}
+          refOnlyAt={at('p4-08') - bC.from}
+          axisAt={at('p4-09') - bC.from}
+        />
+      </Sequence>
+
+      {/* 4-D 工具实验：46/19 消融 */}
+      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="4-D">
+        <ToolAblation at={at('p4-10') - bD.from} wallAt={at('p4-11') - bD.from} outroAt={at('p4-12') - bD.from} />
+        <div style={{position: 'absolute', bottom: 190, left: 80}}>
+          <EvidenceBadge level="solid" at={at('p4-11') - bD.from} note="46 败 / 19 成 · 经转引" />
+        </div>
+        <div style={{position: 'absolute', bottom: 190, right: 80}}>
+          <span style={{padding: '8px 20px', border: `1.5px solid ${theme.dim}`, borderRadius: 999, fontSize: 18, color: theme.dim, fontFamily: theme.mono}}>
+            8B 量化模型 · 单条查询示例 · 阈值不可外推
+          </span>
+        </div>
+      </Sequence>
+
+      {/* 4-E 划界：ae-k3 hold 链 + 前景两区 + 公式卡 */}
+      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="4-E">
+        <ArchifyRecap slug="assembly-economics" caption="装配经济学 · 显式划界" cues={[
+          {chapterId: 'ae-k3', at: at('p4-14') - bE.from, durationInFrames: dur('p4-14')},
+          {chapterId: 'ae-k3', at: at('p4-15') - bE.from, durationInFrames: dur('p4-15'), fit: 'hold'},
+          {chapterId: 'ae-k3', at: at('p4-16') - bE.from, durationInFrames: dur('p4-16'), fit: 'hold'},
+        ]} />
+        <DivideZones at={at('p4-14') - bE.from + 8} formulaAt={at('p4-16') - bE.from} />
+      </Sequence>
+
+      {/* 4-F 缓存排序：ae-k4 hold 链（承 4-E 链尾背靠背 → lead={false}）+ 前景分段示例条 */}
+      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="4-F">
+        <ArchifyRecap slug="assembly-economics" caption="装配经济学 · 缓存感知分段" cues={[
+          {chapterId: 'ae-k4', at: at('p4-17') - bF.from, durationInFrames: dur('p4-17')},
+          {chapterId: 'ae-k4', at: at('p4-18') - bF.from, durationInFrames: dur('p4-18'), fit: 'hold'},
+          {chapterId: 'ae-k4', at: at('p4-19') - bF.from, durationInFrames: dur('p4-19'), fit: 'hold'},
+        ]} lead={false} />
+        <CacheSplitOverlay at={at('p4-17') - bF.from + 8} splitAt={at('p4-18') - bF.from} rippleAt={at('p4-18') - bF.from + 24} />
+      </Sequence>
+
+      {/* 4-G 压缩四步：ae-k5 hold 链（承 4-F 链尾背靠背 → lead={false}）+ 前景步骤条 */}
+      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="4-G">
+        <ArchifyRecap slug="assembly-economics" caption="装配经济学 · 压缩分级" cues={[
+          {chapterId: 'ae-k5', at: at('p4-20') - bG.from, durationInFrames: dur('p4-20')},
+          {chapterId: 'ae-k5', at: at('p4-21') - bG.from, durationInFrames: dur('p4-21'), fit: 'hold'},
+          {chapterId: 'ae-k5', at: at('p4-22') - bG.from, durationInFrames: dur('p4-22'), fit: 'hold'},
+          {chapterId: 'ae-k5', at: at('p4-23') - bG.from, durationInFrames: dur('p4-23'), fit: 'hold'},
+          {chapterId: 'ae-k5', at: at('p4-24') - bG.from, durationInFrames: dur('p4-24'), fit: 'hold'},
+          {chapterId: 'ae-k5', at: at('p4-24b') - bG.from, durationInFrames: dur('p4-24b'), fit: 'hold'},
+        ]} lead={false} />
+        <CompressSteps
+          at={at('p4-20') - bG.from + 8}
+          s1At={at('p4-21') - bG.from}
+          s2At={at('p4-22') - bG.from}
+          s3At={at('p4-23') - bG.from}
+          pairAt={at('p4-24') - bG.from}
+          zeroAt={at('p4-24b') - bG.from}
+        />
+      </Sequence>
+
+      {/* 4-H 倒 U：InvertedU + TokenBudget 越线续填（联动）+ 角标/实线徽 */}
+      <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="4-H">
+        <InvertedU at={at('p4-25') - bH.from} />
+        <div style={{position: 'absolute', bottom: 176, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+          <TokenBudget
+            at={at('p4-25') - bH.from}
+            fillAt={at('p4-25') - bH.from + 10}
+            overfillAt={at('p4-25') - bH.from + 26}
+            width={1040}
+          />
+        </div>
+        <div style={{position: 'absolute', top: 140, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 26}}>
+          <span style={{padding: '7px 18px', border: `1.5px solid ${theme.dim}`, borderRadius: 999, fontSize: 18, color: theme.dim, fontFamily: theme.mono}}>
+            填充过半＝经验观察 · 非受控实验
+          </span>
+          <EvidenceBadge level="solid" at={at('p4-26') - bH.from} note="Full→Sharded 退化 39%" />
+        </div>
+        <ShardSpike at={at('p4-26') - bH.from} />
+      </Sequence>
+
+      {/* 4-I 顺序与转场：双条 + 结论 + FiveAxisMap 推进 */}
+      <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="4-I">
+        <Sequence from={0} durationInFrames={at('p4-29') - bI.from} name="4-I-order">
+          <OrderEffect at={at('p4-27') - bI.from} stripAt={at('p4-28') - bI.from} />
+        </Sequence>
+        <Sequence from={at('p4-29') - bI.from} name="4-I-map">
+          <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 40}}>
+            <FiveAxisMap built highlight={null} passedCount={3} at={4} />
+          </AbsoluteFill>
         </Sequence>
       </Sequence>
     </AbsoluteFill>
   );
 };
 
-/** 计时器烧钱（v2 P5Tarmac 迁移）：机位时间每分钟都在烧（橙）。 */
-const BurnClock: React.FC<{at: number}> = ({at}) => {
-  const tick = useSpring('settle', {at, dur: 120});
-  return (
-    <div style={{display: 'flex', alignItems: 'center', gap: 50}}>
-      <div style={{textAlign: 'center'}}>
-        <div style={{fontSize: 76, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums'}}>${(1200 + tick * 3400).toFixed(0)}</div>
-        <div style={{fontSize: 21, color: theme.dim}}>机位时间 · 每分钟都在烧</div>
-      </div>
-      <div style={{width: 250, height: 58, border: `2px solid ${theme.concept}`, borderRadius: 10, background: theme.panel, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 23, color: theme.dim}}>
-        工卡夹 · 就一块
-      </div>
-    </div>
-  );
-};
-
-/** 时序四档总表卡：常驻/渐进/按需/仅引用四行逐行亮（口播 p4-04..06 三句点名）。 */
-const FourTierTable: React.FC<{at: number}> = ({at}) => {
-  const rows = useStagger(4, {stride: 34, at});
-  const tiers: Array<[string, string, string]> = [
-    ['常驻', '档案柜', '进窗 0 恢复成本'],
-    ['渐进', '卡面章节号', '先占一行 · 用时展开'],
-    ['按需', '调当版页', '用时回母本取'],
-    ['仅引用', '库位牌', '只挂不搬 · 凭牌取'],
+/** 4-B：时序四档总表（四行逐句点亮 + 常驻对应物钉住）。 */
+const FourTierTable: React.FC<{at03: number; at05: number}> = ({at03, at05}) => {
+  const rows = useStagger(4, {stride: 12, at: at03});
+  const pin = useProgress(at05, 14);
+  const tiers: Array<{t: string; obj: string; cost: string}> = [
+    {t: '常驻', obj: '身份说明 · 画像块 · 技能目录', cost: '每轮进窗'},
+    {t: '渐进披露', obj: '技能正文 · 用到才载', cost: '目录占位'},
+    {t: '按需加载', obj: '本轮检索到的定义 · 核准查询', cost: '用时入窗'},
+    {t: '仅引用', obj: '订单明细表 · 只给地址', cost: '近零成本'},
   ];
   return (
-    <div style={{width: 860, border: `2px solid ${theme.panelBorder}`, borderRadius: 12, background: theme.panel, padding: '18px 26px', boxSizing: 'border-box'}}>
-      <div style={{display: 'grid', gridTemplateColumns: '150px 220px 1fr', fontSize: 18, color: theme.dim, paddingBottom: 10, borderBottom: `1.5px solid ${theme.panelBorder}`}}>
-        <span>档位</span>
-        <span>机库对应</span>
-        <span>进窗 / 恢复成本</span>
-      </div>
-      {tiers.map(([t, obj, cost], i) => (
-        <div key={t} style={{display: 'grid', gridTemplateColumns: '150px 220px 1fr', alignItems: 'center', padding: '12px 0', opacity: rows[i], borderBottom: i < 3 ? `1px solid ${withAlpha(theme.panelBorder, 0.4)}` : 'none'}}>
-          <span style={{fontSize: 26, color: theme.concept}}>{t}</span>
-          <span style={{fontSize: 22, color: theme.text}}>{obj}</span>
-          <span style={{fontSize: 19, color: theme.dim}}>{cost}</span>
+    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+      <div style={{width: 960, border: `2px solid ${theme.panelBorder}`, borderRadius: 12, background: theme.panel, padding: '20px 30px', boxSizing: 'border-box'}}>
+        <div style={{display: 'grid', gridTemplateColumns: '170px 1fr 170px', fontSize: 18, color: theme.dim, paddingBottom: 10, borderBottom: `1.5px solid ${theme.panelBorder}`}}>
+          <span>档位</span>
+          <span>本请求对应物</span>
+          <span>进窗成本</span>
         </div>
-      ))}
-    </div>
-  );
-};
-
-/** 裁纸刀（v2 迁移）：几十万页手册只切本卡用的几页。 */
-const PaperCut: React.FC<{at: number}> = ({at}) => {
-  const cut = useSpring('settle', {at: at + 8, dur: 30});
-  const enter = useEnter('pop', {at, dur: 14});
-  return (
-    <div style={{...enter, textAlign: 'center'}}>
-      <div style={{width: 170, height: 240, background: theme.panelBorder, borderRadius: 6, position: 'relative', overflow: 'hidden', margin: '0 auto'}}>
-        {Array.from({length: 22}, (_, i) => (
-          <div key={i} style={{position: 'absolute', left: 8, right: 8, top: 8 + i * 10, height: 5, background: theme.bg, opacity: 0.55}} />
+        {tiers.map((r, i) => (
+          <div
+            key={r.t}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '170px 1fr 170px',
+              alignItems: 'center',
+              padding: '15px 0',
+              opacity: 0.35 + rows[i] * 0.65,
+              borderBottom: i < 3 ? `1px solid ${withAlpha(theme.panelBorder, 0.4)}` : 'none',
+            }}
+          >
+            <span style={{fontSize: 25, color: theme.concept}}>{r.t}</span>
+            <span style={{fontSize: 21, color: theme.text}}>{r.obj}</span>
+            <span style={{fontSize: 18, color: theme.dim, fontFamily: theme.mono}}>{r.cost}</span>
+          </div>
         ))}
-      </div>
-      <div style={{fontSize: 44, color: theme.concept, marginTop: 4}}>✂</div>
-      <div style={{width: 104, height: 66, background: theme.paper, borderRadius: 4, margin: '6px auto 0', transform: `translateX(${cut * 26}px)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: theme.paperInk}}>
-        本卡 4 页
-      </div>
-    </div>
-  );
-};
-
-/** 圈选：工具墙几百件，只圈影子板上那几格。 */
-const CircleSelect: React.FC<{at: number}> = ({at}) => {
-  const cells = useStagger(24, {stride: 2, at, dur: 3});
-  const lasso = useEnter('pop', {at: at + 40, dur: 16});
-  return (
-    <div style={{textAlign: 'center'}}>
-      <div style={{width: 210, height: 150, display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 5, margin: '0 auto'}}>
-        {cells.map((k, i) => {
-          const inLasso = [8, 9, 14, 15].includes(i);
-          return (
-            <div key={i} style={{height: 22, borderRadius: 3, background: inLasso ? theme.ok : theme.panelBorder, opacity: inLasso ? 0.9 : k * 0.55}} />
-          );
-        })}
-      </div>
-      <div style={{...lasso, width: 108, height: 62, border: `2.5px dashed ${theme.ok}`, borderRadius: 14, margin: '10px auto 0', transform: `translateY(-92px)`, position: 'relative'}} />
-      <div style={{fontSize: 18, color: theme.dim, marginTop: -64}}>只圈那几格</div>
-    </div>
-  );
-};
-
-/** 保留单：装不下、超窗的活不硬塞，显式记账（橙标签）。 */
-const RetentionSlip: React.FC<{at: number}> = ({at}) => {
-  const stick = useSpring('settle', {at, dur: 18});
-  return (
-    <div style={{transform: `rotate(${stick * 3 - 3}deg) scale(${0.8 + stick * 0.2})`, opacity: stick, width: 190, padding: '16px 18px', border: `2.5px dashed ${theme.conceptDeep}`, borderRadius: 8, textAlign: 'center'}}>
-      <div style={{fontSize: 23, color: theme.conceptDeep}}>保留单</div>
-      <div style={{fontSize: 17, color: theme.dim, marginTop: 6}}>超窗不硬塞</div>
-      <div style={{fontSize: 17, color: theme.dim}}>显式记账</div>
-    </div>
-  );
-};
-
-/** 卡面章节号 → 正文按需展开（4-C 中继装置）。 */
-const CardFace: React.FC<{at: number}> = ({at}) => {
-  const expand = useSpring('settle', {at: at + 20, dur: 26});
-  return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60}}>
-      <div style={{width: 220, height: 150, border: `2px solid ${theme.concept}`, borderRadius: 10, background: theme.panel, padding: 16, boxSizing: 'border-box'}}>
-        <div style={{fontSize: 19, color: theme.concept}}>工卡卡面 · 目录常驻</div>
-        <div style={{fontSize: 16, color: theme.dim, marginTop: 10, fontFamily: theme.mono}}>§ 32-11-00</div>
-        <div style={{fontSize: 16, color: theme.dim, fontFamily: theme.mono}}>§ 32-11-01</div>
-        <div style={{fontSize: 16, color: theme.dim, fontFamily: theme.mono}}>§ 57-10-02</div>
-      </div>
-      <div style={{fontSize: 40, color: theme.dim}}>→</div>
-      <div style={{width: 130 + expand * 190, height: 150, border: `2px solid ${theme.ok}`, borderRadius: 10, background: theme.paper, padding: 14, boxSizing: 'border-box', overflow: 'hidden'}}>
-        <div style={{fontSize: 16, color: theme.paperInkDim}}>正文当版页 · 按需</div>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} style={{height: 7, background: theme.paperInkDim, opacity: 0.3, borderRadius: 4, marginTop: 12, width: `${60 + (i % 3) * 15}%`}} />
-        ))}
+        <div style={{marginTop: 14, fontSize: 20, color: theme.ok, opacity: pin}}>
+          身份画像 · 每轮都在（常驻钉住）
+        </div>
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 46/19 工具墙（v2 迁移）：46 橙挂满失败 + 4 空位 + 19 绿够用成功。 */
-const ToolWall46: React.FC<{at: number}> = ({at}) => {
-  const cells = useStagger(69, {stride: 2, at, dur: 3});
+/** 4-C 前景：按需/仅引用对应物卡 + 成本轴收尾（回放窗下沿半透明条）。 */
+const CostAxisOverlay: React.FC<{onDemandAt: number; refOnlyAt: number; axisAt: number}> = ({onDemandAt, refOnlyAt, axisAt}) => {
+  const c1 = useEnter('rise', {at: onDemandAt, dur: 16});
+  const c2 = useEnter('rise', {at: refOnlyAt, dur: 16});
+  const axis = useEnter('rise', {at: axisAt, dur: 16});
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <div style={{width: 860, height: 360, display: 'grid', gridTemplateColumns: 'repeat(16,1fr)', gap: 6}}>
-        {cells.map((k, i) => {
-          const bad = i < 46;
-          const good = i >= 50 && i < 69;
-          // 46..49 空档格不吃 stagger：恒定低透明度虚线框（「46 橙｜4 空位｜19 绿」空位语义）
-          const gap = !bad && !good;
-          return (
+    <div style={{position: 'absolute', bottom: 172, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14}}>
+      <div style={{display: 'flex', gap: 26}}>
+        <div style={{...c1, padding: '10px 22px', border: `2px solid ${theme.concept}`, borderRadius: 10, background: withAlpha(theme.bg, 0.9)}}>
+          <div style={{fontSize: 20, color: theme.concept}}>按需加载 · 定义 + 核准查询</div>
+        </div>
+        <div style={{...c2, padding: '10px 22px', border: `2px solid ${theme.concept}`, borderRadius: 10, background: withAlpha(theme.bg, 0.9)}}>
+          <div style={{fontSize: 20, color: theme.concept}}>仅引用 · 订单明细表 → 地址</div>
+        </div>
+      </div>
+      <div style={{...axis, display: 'flex', alignItems: 'center', gap: 20, fontSize: 18, fontFamily: theme.mono, color: theme.dim, background: withAlpha(theme.bg, 0.9), padding: '6px 20px', borderRadius: 999, border: `1.5px solid ${theme.panelBorder}`}}>
+        <span>进窗成本 递减 →</span>
+        <span style={{width: 1, height: 16, background: theme.panelBorder}} />
+        <span>← 取回成本 递增</span>
+      </div>
+    </div>
+  );
+};
+
+/** 4-D：46/19 工具消融两栏（消融对比定式）。 */
+const ToolAblation: React.FC<{at: number; wallAt: number; outroAt: number}> = ({at, wallAt, outroAt}) => {
+  const enter = useProgress(at, 12);
+  const badCells = useStagger(46, {stride: 2, at: wallAt, dur: 3});
+  const goodCells = useStagger(19, {stride: 3, at: wallAt + 40, dur: 3});
+  const outro = useEnter('rise', {at: outroAt, dur: 16});
+  return (
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 34, opacity: enter}}>
+      <div style={{display: 'flex', gap: 80, alignItems: 'flex-end'}}>
+        {/* 46 工具 · 失败 */}
+        <div style={{textAlign: 'center'}}>
+          <div style={{width: 560, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 5}}>
+            {badCells.map((k, i) => (
+              <div key={i} style={{height: 26, borderRadius: 3, background: theme.conceptDeep, opacity: k * 0.85}} />
+            ))}
+          </div>
+          <div style={{marginTop: 12, padding: '8px 22px', border: `2px solid ${theme.danger}`, borderRadius: 8, fontSize: 22, color: theme.danger, display: 'inline-block'}}>
+            46 工具 · 任务失败
+          </div>
+        </div>
+        {/* 19 工具 · 成功 */}
+        <div style={{textAlign: 'center'}}>
+          <div style={{width: 560, display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 5}}>
+            {goodCells.map((k, i) => (
+              <div key={i} style={{height: 26, borderRadius: 3, background: theme.ok, opacity: k * 0.9}} />
+            ))}
+          </div>
+          <div style={{marginTop: 12, padding: '8px 22px', border: `2px solid ${theme.ok}`, borderRadius: 8, fontSize: 22, color: theme.ok, display: 'inline-block'}}>
+            19 工具 · 同一任务成功
+          </div>
+        </div>
+      </div>
+      <div style={{...outro, padding: '12px 34px', border: `2.5px solid ${theme.ok}`, borderRadius: 12, fontSize: 30, color: theme.ok, letterSpacing: 2}}>
+        目录要短 · 正文按需取
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 4-E 前景：提前放 / 用到再取 两区划界 + 判据公式卡。 */
+const DivideZones: React.FC<{at: number; formulaAt: number}> = ({at, formulaAt}) => {
+  const enter = useProgress(at, 14);
+  const divide = useProgress(at + 12, 18);
+  const formula = useEnter('fall', {at: formulaAt, dur: 20});
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: '50%',
+        top: 330,
+        transform: `translateX(-50%) translateY(${(1 - enter) * 20}px)`,
+        width: 940,
+        opacity: enter,
+        padding: '20px 30px',
+        background: withAlpha(theme.bg, 0.9),
+        border: `2px solid ${theme.panelBorder}`,
+        borderRadius: 14,
+      }}
+    >
+      <div style={{display: 'flex', gap: 30}}>
+        <div style={{flex: 1, padding: '14px 20px', border: `2px solid ${theme.concept}`, borderRadius: 10}}>
+          <div style={{fontSize: 22, color: theme.concept}}>提前放</div>
+          <div style={{fontSize: 17, color: theme.dim, marginTop: 6, fontFamily: theme.mono}}>体量小 · 很少变</div>
+        </div>
+        {/* 划界线 */}
+        <div style={{width: 3, background: theme.text, opacity: divide, borderRadius: 2}} />
+        <div style={{flex: 1, padding: '14px 20px', border: `2px solid ${theme.conceptDeep}`, borderRadius: 10}}>
+          <div style={{fontSize: 22, color: theme.conceptDeep}}>用到再取</div>
+          <div style={{fontSize: 17, color: theme.dim, marginTop: 6, fontFamily: theme.mono}}>体量大 · 常更新</div>
+        </div>
+      </div>
+      <div style={{...formula, marginTop: 18, textAlign: 'center', fontSize: 26, fontFamily: theme.mono, color: theme.text}}>
+        被用到的概率 × 每轮带着它的成本
+      </div>
+    </div>
+  );
+};
+
+/** 4-F 前景：静态前缀 | 动态段 分界示例条 + 复用波纹。 */
+const CacheSplitOverlay: React.FC<{at: number; splitAt: number; rippleAt: number}> = ({at, splitAt, rippleAt}) => {
+  const enter = useProgress(at, 14);
+  const split = useProgress(splitAt, 16);
+  const ripple = useImpulse({at: rippleAt, dur: 30, peak: 1});
+  return (
+    <div style={{position: 'absolute', bottom: 190, left: '50%', transform: `translateX(-50%) translateY(${(1 - enter) * 18}px)`, width: 900, opacity: enter}}>
+      <div style={{display: 'flex', alignItems: 'stretch', border: `2px solid ${theme.panelBorder}`, borderRadius: 12, background: withAlpha(theme.bg, 0.9), overflow: 'hidden'}}>
+        <div style={{flex: 1.1, padding: '14px 22px', background: withAlpha(theme.concept, 0.14 + ripple * 0.12), borderRight: `2.5px solid ${theme.text}`}}>
+          <div style={{fontSize: 20, color: theme.concept}}>静态前缀</div>
+          <div style={{fontSize: 17, color: theme.dim, marginTop: 6, fontFamily: theme.mono}}>身份说明 · 每轮相同</div>
+          <div style={{fontSize: 16, color: theme.concept, marginTop: 8, opacity: ripple}}>↑ 复用上一轮已算部分</div>
+        </div>
+        <div style={{flex: 1, padding: '14px 22px'}}>
+          <div style={{fontSize: 20, color: theme.conceptDeep}}>动态段</div>
+          <div style={{fontSize: 17, color: theme.dim, marginTop: 6, fontFamily: theme.mono}}>检索到的定义 · 用户消息侧</div>
+        </div>
+      </div>
+      <div style={{position: 'absolute', left: '52%', top: -14, bottom: -14, width: 3, background: theme.text, opacity: split, borderRadius: 2}} />
+    </div>
+  );
+};
+
+/** 4-G 前景：压缩四步步骤条 + 成对保留框 + 「0 步」徽。 */
+const CompressSteps: React.FC<{at: number; s1At: number; s2At: number; s3At: number; pairAt: number; zeroAt: number}> = ({
+  at,
+  s1At,
+  s2At,
+  s3At,
+  pairAt,
+  zeroAt,
+}) => {
+  const enter = useProgress(at, 14);
+  const a1 = useProgress(s1At, 12);
+  const a2 = useProgress(s2At, 12);
+  const a3 = useProgress(s3At, 12);
+  const pair = useEnter('rise', {at: pairAt, dur: 14});
+  const zero = useSpring('snap', {at: zeroAt + 6, dur: 16});
+  const dim = useProgress(zeroAt, 14);
+  const steps = [
+    {t: '落盘', s: '写磁盘 · 留路径', a: a1},
+    {t: '裁中段', s: '留归档标记', a: a2},
+    {t: '占位', s: '带路径占位', a: a2},
+    {t: '摘要', s: '才调模型写', a: a3},
+  ];
+  return (
+    <div style={{position: 'absolute', bottom: 172, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, opacity: enter * (1 - dim * 0.55)}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+        {steps.map((s, i) => (
+          <div key={s.t} style={{display: 'flex', alignItems: 'center', gap: 14}}>
             <div
-              key={i}
               style={{
-                height: 34,
-                borderRadius: 4,
-                opacity: gap ? 0.35 : k * 0.9,
-                background: bad ? theme.conceptDeep : good ? theme.ok : 'transparent',
-                border: gap ? `1px dashed ${theme.panelBorder}` : 'none',
+                width: 172,
+                padding: '10px 14px',
+                border: `2px solid ${s.a > 0.4 ? theme.conceptDeep : theme.panelBorder}`,
+                borderRadius: 10,
+                background: withAlpha(theme.bg, 0.9),
+                opacity: 0.5 + s.a * 0.5,
               }}
-            />
-          );
-        })}
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 预取推车 vs 呼叫铃（4-D 分屏）：小体量少变预取 / 大体量常更新按需。 */
-const JitVsBell: React.FC<{at: number}> = ({at}) => {
-  const cartIn = useSpring('settle', {at: at + 6, dur: 26});
-  const ring = useSpring('settle', {at: at + 42, dur: 12});
-  const crate = useSpring('settle', {at: at + 54, dur: 18});
-  return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 70}}>
-      <div style={{width: 380, padding: '22px 26px', border: `2px solid ${theme.concept}`, borderRadius: 12, background: theme.panel, textAlign: 'center'}}>
-        <div style={{fontSize: 24, color: theme.concept}}>预取 · 小体量少变</div>
-        <svg width={300} height={120} style={{marginTop: 10}}>
-          <g transform={`translate(${cartIn * 130}, 0)`}>
-            <rect x={20} y={64} width={86} height={34} rx={6} fill="none" stroke={theme.concept} strokeWidth={2.5} />
-            <rect x={30} y={48} width={20} height={16} rx={3} fill={withAlpha(theme.concept, 0.5)} />
-            <rect x={56} y={48} width={20} height={16} rx={3} fill={withAlpha(theme.concept, 0.5)} />
-            <circle cx={38} cy={104} r={8} fill="none" stroke={theme.concept} strokeWidth={2.5} />
-            <circle cx={88} cy={104} r={8} fill="none" stroke={theme.concept} strokeWidth={2.5} />
-          </g>
-          <line x1={10} y1={114} x2={290} y2={114} stroke={theme.panelBorder} strokeWidth={2} />
-        </svg>
-        <div style={{fontSize: 18, color: theme.dim}}>推车先装好 · 开工即用</div>
-      </div>
-      <div style={{width: 380, padding: '22px 26px', border: `2px solid ${theme.conceptDeep}`, borderRadius: 12, background: theme.panel, textAlign: 'center'}}>
-        <div style={{fontSize: 24, color: theme.conceptDeep}}>按需 · 大体量常更新</div>
-        <svg width={300} height={120} style={{marginTop: 10}}>
-          <g transform={`rotate(${ring * 14} 150 44)`}>
-            <path d="M 132 58 A 18 18 0 1 1 168 58 Z" fill="none" stroke={theme.conceptDeep} strokeWidth={2.5} />
-            <line x1={150} y1={20} x2={150} y2={34} stroke={theme.conceptDeep} strokeWidth={2.5} />
-          </g>
-          <rect x={112} y={86 - crate * 20} width={76} height={30} rx={4} fill="none" stroke={theme.conceptDeep} strokeWidth={2.5} />
-          <line x1={10} y1={114} x2={290} y2={114} stroke={theme.panelBorder} strokeWidth={2} />
-        </svg>
-        <div style={{fontSize: 18, color: theme.dim}}>按铃再取 · 取的是当版</div>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 交接班纪要板（v2 P3ShadowBoard 迁移）：关掉的折一行，例外项一字不折 + 最后落章。 */
-const HandoverBoard: React.FC<{at: number}> = ({at}) => {
-  const notes = useStagger(4, {stride: 10, at});
-  const seal = useSpring('settle', {at: at + 60, dur: 16});
-  return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <div style={{width: 660, padding: 26, background: theme.panel, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 12}}>
-        <div style={{fontSize: 22, color: theme.dim, marginBottom: 14}}>交接班纪要</div>
-        <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>
-          {['已关闭工序 ×3 → 折成一行', '未关闭 · 一字不折', '保留项 · 一字不折', '异常发现 · 一字不折'].map((t, i) => (
-            <div key={t} style={{opacity: notes[i], fontSize: 22, color: i === 0 ? theme.dim : theme.text, display: 'flex', gap: 12, alignItems: 'center'}}>
-              <span style={{width: 10, height: 10, borderRadius: 5, background: i === 0 ? theme.dim : theme.ok}} />
-              {t}
+            >
+              <div style={{fontSize: 20, color: s.a > 0.4 ? theme.conceptDeep : theme.dim}}>
+                {`0${i + 1} ${s.t}`}
+              </div>
+              <div style={{fontSize: 15, color: theme.dim, fontFamily: theme.mono, marginTop: 3}}>{s.s}</div>
             </div>
-          ))}
-        </div>
-        <div style={{marginTop: 18, textAlign: 'right'}}>
-          <span style={{display: 'inline-block', padding: '6px 18px', border: `2.5px solid ${theme.ok}`, borderRadius: 8, color: theme.ok, fontSize: 26, transform: `rotate(-6deg) scale(${seal})`, opacity: seal}}>不费模型的在前 · 费模型的殿后</span>
-        </div>
+            {i < 3 ? <span style={{fontSize: 20, color: theme.dim}}>→</span> : null}
+          </div>
+        ))}
+        <span style={{fontSize: 16, color: theme.dim, fontFamily: theme.mono, alignSelf: 'flex-end', opacity: a3}}>信息损失递增</span>
       </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 倒 U 红线句标（4-F 底部角标；曲线本体在 InvertedU 组件内）。 */
-const RedlineChip: React.FC<{at: number}> = ({at}) => {
-  const enter = useEnter('rise', {at, dur: 14});
-  return (
-    <div style={{position: 'absolute', bottom: 250, left: 0, right: 0, display: 'flex', justifyContent: 'center', opacity: enter.opacity, transform: enter.transform}}>
-      <span style={{padding: '8px 22px', border: `2px solid ${theme.conceptDeep}`, borderRadius: 999, fontSize: 21, color: theme.conceptDeep}}>
-        填充率过半 · 性能常常不升反降
-      </span>
-    </div>
-  );
-};
-
-/** 分片尖刺（4-F）：长对话切碎喂，不可靠性平均翻一倍还多。 */
-const ChunkSpike: React.FC<{at: number}> = ({at}) => {
-  const spike = useSpring('settle', {at: at + 8, dur: 18});
-  return (
-    <div style={{position: 'absolute', bottom: 168, left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 26}}>
-      <div style={{textAlign: 'center'}}>
-        <div style={{width: 90, height: 46, background: theme.panelBorder, borderRadius: 4, opacity: 0.8}} />
-        <div style={{fontSize: 17, color: theme.dim, marginTop: 6}}>整窗喂</div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 22}}>
+        <span style={{fontSize: 17, color: theme.dim, fontFamily: theme.mono, opacity: a3}}>前三步不调模型</span>
+        <span style={{...pair, padding: '8px 20px', border: `2px solid ${theme.danger}`, borderRadius: 8, fontSize: 18, fontFamily: theme.mono, color: theme.danger, background: withAlpha(theme.bg, 0.9)}}>
+          工具调用 ⇄ 结果 成对保留 · 切开 → 接口拒绝
+        </span>
       </div>
-      <div style={{textAlign: 'center'}}>
-        <div style={{width: 90, height: 46 + spike * 66, background: theme.conceptDeep, borderRadius: 4}} />
-        <div style={{fontSize: 17, color: theme.conceptDeep, marginTop: 6}}>切碎分片 · 不可靠性 ×2</div>
+      {/* 「0 步」徽：第一轮四步一步不用跑 */}
+      <div
+        style={{
+          padding: '8px 26px',
+          border: `2.5px solid ${theme.ok}`,
+          borderRadius: 999,
+          fontSize: 24,
+          fontFamily: theme.mono,
+          color: theme.ok,
+          background: withAlpha(theme.bg, 0.95),
+          transform: `scale(${0.7 + zero * 0.3})`,
+          opacity: Math.min(1, zero),
+        }}
+      >
+        本请求 · 0 步
       </div>
     </div>
   );
 };
 
-/** 摊页小景（4-F 尾句）：机位上摊太多页，反而找不着要的那页。 */
-const PagesPile: React.FC<{at: number}> = ({at}) => {
-  const pages = useStagger(9, {stride: 4, at, dur: 4});
+/** 4-H：+112% 尖刺数字（分片实验重音）。 */
+const ShardSpike: React.FC<{at: number}> = ({at}) => {
+  const spike = useSpring('settle', {at: at + 8, dur: 20});
   return (
-    <div style={{position: 'absolute', bottom: 168, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10, alignItems: 'flex-end'}}>
-      {pages.map((k, i) => (
-        <div
-          key={i}
-          style={{
-            width: 62,
-            height: 84,
-            background: theme.paper,
-            borderRadius: 3,
-            opacity: k * 0.85,
-            transform: `rotate(${(i - 4) * 4}deg)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 13,
-            color: theme.paperInkDim,
-            fontFamily: theme.mono,
-          }}
-        >
-          {`p${i + 1}`}
-        </div>
-      ))}
-      <div style={{fontSize: 19, color: theme.dim, marginLeft: 18, marginBottom: 28}}>要的那页 · 找不着</div>
+    <div style={{position: 'absolute', right: 200, top: 330, textAlign: 'center', opacity: Math.min(1, spike)}}>
+      <div style={{fontSize: 62, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums', transform: `scale(${1 + Math.max(0, spike - 0.9) * 0.2})`}}>
+        +112%
+      </div>
+      <div style={{fontSize: 18, color: theme.dim, fontFamily: theme.mono, marginTop: 4}}>不可靠性</div>
     </div>
   );
 };
 
-/** 岔路预告（4-G）：找错对象 = 橙岔路（cue 窗后橙闪）。 */
-const ForkRoad: React.FC<{at: number; blinkAt: number}> = ({at, blinkAt}) => {
-  const draw = useSpring('settle', {at: at + 6, dur: 26});
-  const blink = useProgress(blinkAt, 60);
-  const bad = 1 - blink * 0.5 * (Math.sin(blink * Math.PI * 6) > 0 ? 1 : 0.2);
+/** 4-I：顺序效应双条（任务说明位置决定成绩）+ 结论条。 */
+const OrderEffect: React.FC<{at: number; stripAt: number}> = ({at, stripAt}) => {
+  const growHi = useSpring('settle', {at: at + 4, dur: 30});
+  const growLo = useSpring('settle', {at: at + 22, dur: 24});
+  const strip = useEnter('rise', {at: stripAt, dur: 16});
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <svg width={760} height={300}>
-        <path d={`M 60 220 C ${60 + draw * 200} 220, ${180 + draw * 160} 220, 340 220`} fill="none" stroke={theme.concept} strokeWidth={4} />
-        <path d={`M 340 220 C ${400 + draw * 80} 220, 480 160, 660 110`} fill="none" stroke={theme.ok} strokeWidth={4} opacity={draw} />
-        <path d={`M 340 220 C ${400 + draw * 60} 230, 470 262, 660 268`} fill="none" stroke={theme.conceptDeep} strokeWidth={4} opacity={draw * bad} />
-        <circle cx={60} cy={220} r={9} fill={theme.concept} />
-        <text x={670} y={104} fill={theme.ok} fontSize={20} opacity={draw}>对象对</text>
-        <text x={670} y={276} fill={theme.conceptDeep} fontSize={20} opacity={draw * bad}>找错对象 · 后面全错</text>
-        <text x={330} y={190} fill={theme.dim} fontSize={18} opacity={draw}>候选怎么排</text>
-      </svg>
-    </AbsoluteFill>
-  );
-};
-
-/** 收束推进：剖面（无高亮）+ pushIn 下一工位方向。 */
-const HangarPush: React.FC = () => {
-  const push = usePushIn(4, {scale: 0.1, dur: 60});
-  return (
-    <AbsoluteFill style={{transform: push, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 40}}>
-      <HangarCrossSection built highlight={null} at={0} />
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 40}}>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 26, width: 860}}>
+        <div>
+          <div style={{fontSize: 21, color: theme.ok, marginBottom: 8}}>任务说明在长证据前面 · 高</div>
+          <div style={{height: 36, border: `1.5px solid ${theme.ok}`, borderRadius: 8, background: theme.panel}}>
+            <div style={{width: `${82 * growHi}%`, height: '100%', background: withAlpha(theme.ok, 0.75), borderRadius: 7}} />
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize: 21, color: theme.conceptDeep, marginBottom: 8}}>任务说明放在后面 · 低</div>
+          <div style={{height: 36, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, background: theme.panel}}>
+            <div style={{width: `${54 * growLo}%`, height: '100%', background: withAlpha(theme.conceptDeep, 0.7), borderRadius: 7}} />
+          </div>
+        </div>
+      </div>
+      <div style={{...strip, padding: '14px 38px', border: `2.5px solid ${theme.concept}`, borderRadius: 12, fontSize: 32, color: theme.concept, letterSpacing: 2}}>
+        预算 ⇒ 正确性
+      </div>
     </AbsoluteFill>
   );
 };

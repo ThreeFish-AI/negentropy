@@ -1,28 +1,29 @@
-/** P0 三个自信的错（p0-01..p0-27，27 句；storyboard v3「P0 三个自信的错」节）。
+/** P0 三种失效（p0-01..p0-27，27 句；storyboard v4「P0 三种失效」节）。
  *
- *  9 镜 / 3 条 archify cue（v3：三错全屏图回放改真装置，销账项实装）：
- *   0-A 夜机坪（装置：机库夜灯+绿勾×3 显示屏+工卡首现）
- *   0-B 过期页特写（真装置：页脚修订号推近+放大镜框 REV 差异）· 0-C 两页对峙天平（真装置）
- *   0-D 无资格印章+闸门横杆（真装置）· 0-E 三错快闪回放+判词条
- *   0-F fm2-open@p0-15（dur p0-15+16，rate≈1.01 stretch）+ NumCrash@p0-17 + 双实线徽@p0-17
- *   0-G 崩崖@p0-19 + Spider 徽@p0-20 + 97/4 比例条@p0-22（销账实装）+ 虚线徽@p0-22
- *   0-H fm2-open@p0-23（trim）→ fm2-def@p0-24（hold，镜内背靠背自动抑制入场）
- *   0-I 发工卡（装置：格子逐格亮起+「上下文层蓝图」标题角）
- *  证据徽避让：p0-16 徽与 p0-17 NumCrash 同批入场（fm2-open 窗后空窗句）。
+ *  7 镜 / 8 条 archify cue（failure-map：fm2-def ×4 + fm2-open ×4）：
+ *   0-A 成绩对撞（p0-01..06）：19/85 双成绩条（ScoreDuo·NumCrash 迁移）+ 同模型标签脉冲
+ *       + 实线徽 + 「29/150 题」刻度 + 「证据页直给」角标 + 本集标题字条 @enter:fall
+ *   0-B 请求登场（p0-07..09）：RequestCard 首现〔M-001〕+ 三错法空槽位 @stagger
+ *   0-C 失效卡①（p0-10..13）：fm2-def 锚 p0-10 → hold 11/12/13；前景两份口径卡对推
+ *       + 应答气泡左右摆 + $14.2M/$12.8M 翻牌 @impulse + 虚线徽（Snowflake 案例）
+ *   0-D 失效卡②（p0-14..16）：表清单错连线（橙描画）+ 10.1% 翻牌 + 语法对勾常亮
+ *       + 实线徽（Spider 2.0）+ 角标「错在选表与连表」
+ *   0-E 失效卡③（p0-17..20）：窗口内容列 + 手机号行明文滑入 + 橙边呼吸
+ *       + RequestCard 缩于左上 + 「凭证继承」小标闪
+ *   0-F 三错共性（p0-21..23）：三缩略卡收拢 + 判词条 + 97/4 比例条（RatioBars）+ 虚线徽
+ *   0-G 登记成表（p0-24..27）：fm2-open 锚 p0-24 → hold 25/26/27；前景「九类四十二行」
+ *       计数上翻 + 三卡飞落弧线 + 「逐层拆开」五轴导航条
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {useEnter, useProgress, usePushIn, useReveal, useSpring, useStagger} from '../motion';
+import {progress, useBreathe, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
-import {WorkCard} from '../components/WorkCard';
-
-const hash = (i: number, salt = 1): number =>
-  Math.abs(Math.sin(i * 127.1 + salt * 311.7)) % 1;
+import {RequestCard} from '../components/RequestCard';
 
 export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
@@ -30,391 +31,558 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   // 各镜窗口（from 为幕内帧）。镜内 cue/装置锚点一律「at(句id) - 所在镜.from」——
   // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
-  const bB = w('p0-03', 'p0-07');
-  const bC = w('p0-08', 'p0-10');
-  const bD = w('p0-11', 'p0-12');
-  const bE = w('p0-13', 'p0-14');
-  const bF = w('p0-15', 'p0-18');
-  const bG = w('p0-19', 'p0-22');
-  const bH = w('p0-23', 'p0-24');
-  const bI = w('p0-25', 'p0-27');
-  // 0-G 比例条入场门（97/4 口播句；与条内弹簧同锚）
-  const ratioIn = useProgress(at('p0-22') - bG.from, 10);
+  const bA = w('p0-01', 'p0-06');
+  const bB = w('p0-07', 'p0-09');
+  const bC = w('p0-10', 'p0-13');
+  const bD = w('p0-14', 'p0-16');
+  const bE = w('p0-17', 'p0-20');
+  const bF = w('p0-21', 'p0-23');
+  const bG = w('p0-24', 'p0-27');
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
-      <SceneTag chapter="P0" tagline="三个自信的错" accent={theme.concept} />
+      <SceneTag chapter="P0" tagline="三种失效" accent={theme.concept} />
 
-      {/* 0-A 夜机坪：机位灯呼吸 + 「体检全绿」绿勾×3 + 工卡特写首现（首镜视听合力 RSI-039） */}
-      <Sequence from={0} durationInFrames={dur('p0-01', 'p0-02')} name="0-A">
-        <NightApron at01={at('p0-01')} />
-      </Sequence>
-
-      {/* 0-B 过期页：真装置（当版页特写推近，放大镜框 REV 差异） */}
-      <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="0-B">
-        <StalePage at03={at('p0-03') - bB.from} at05={at('p0-05') - bB.from} at07={at('p0-07') - bB.from} />
-      </Sequence>
-
-      {/* 0-C 两页打架：对峙卡片 + 引用计数天平 */}
-      <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="0-C">
-        <ClashPages at08={at('p0-08') - bC.from} at09={at('p0-09') - bC.from} at10={at('p0-10') - bC.from} />
-      </Sequence>
-
-      {/* 0-D 越权签字：无资格印章落下 + 闸门横杆抬起 */}
-      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="0-D">
-        <RogueStamp at11={at('p0-11') - bD.from} at12={at('p0-12') - bD.from} />
-      </Sequence>
-
-      {/* 0-E 三错共性：三缩略卡横排 + 判词条打字机 */}
-      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="0-E">
-        <ThreeRecap at13={at('p0-13') - bE.from} at14={at('p0-14') - bE.from} />
-      </Sequence>
-
-      {/* 0-F 换成 AI：fm2-open 铺 p0-15..16（rate≈1.01）；NumCrash+双徽挪 cue 窗后 p0-17 空窗句 */}
-      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="0-F">
-        <ArchifyRecap slug="failure-map" caption="失效九簇 · 总览" cues={[
-          {chapterId: 'fm2-open', at: at('p0-15') - bF.from, durationInFrames: dur('p0-15') + dur('p0-16')},
-        ]} />
-        <Sequence from={at('p0-17') - bF.from} name="0-F-dev">
-          <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30}}>
-            <NumCrash from={19} to={85} at={0} label="裸翻资料库 → 递对证据页" />
-            <div style={{display: 'flex', gap: 24}}>
-              <EvidenceBadge level="solid" at={6} note="FinanceBench" />
-              <EvidenceBadge level="solid" at={16} note="同模型对照" />
-            </div>
-          </AbsoluteFill>
-        </Sequence>
-      </Sequence>
-
-      {/* 0-G 崩崖 + 97/4 断层（比例条销账实装；口播 p0-22 才念 97/4，徽与条同句入场；
-          Sequence 默认 absolute-fill 不进文档流——上下分区改为同层 flex 列直挂） */}
-      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="0-G">
-        <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 26}}>
-          <CliffLine at={at('p0-19') - bG.from} markAt={at('p0-20') - bG.from} noteAt={at('p0-21') - bG.from} />
-          <div style={{opacity: ratioIn}}>
-            <RatioBars at={at('p0-22') - bG.from} />
-          </div>
-        </AbsoluteFill>
-        <div style={{position: 'absolute', bottom: 150, left: 80}}>
-          <EvidenceBadge level="solid" at={at('p0-20') - bG.from} note="Spider 2.0 · 86.6→10.1" />
-          <div style={{height: 12}} />
-          <EvidenceBadge level="dashed" at={at('p0-22') - bG.from} note="n=1000 · 方法论未公开" />
+      {/* 0-A 成绩对撞：19/85 双成绩条 + 同模型标签 + 标题字条（首镜视听合力） */}
+      <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="0-A">
+        <ScoreDuo
+          at={at('p0-01') - bA.from}
+          tick29At={at('p0-03') - bA.from}
+          pageTagAt={at('p0-04') - bA.from}
+          pulseAt={at('p0-05') - bA.from}
+        />
+        <EpisodeTitle at={at('p0-06') - bA.from} />
+        <div style={{position: 'absolute', bottom: 190, left: 80}}>
+          <EvidenceBadge level="solid" at={10} note="FinanceBench · 同一 GPT-4-Turbo" />
         </div>
       </Sequence>
 
-      {/* 0-H 案卷登记：fm2-open（trim）→ fm2-def（hold），镜内背靠背自动抑制换章弹入 */}
-      <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="0-H">
-        <ArchifyRecap slug="failure-map" caption="案卷 · 九族四十二行" cues={[
-          {chapterId: 'fm2-open', at: at('p0-23') - bH.from, durationInFrames: dur('p0-23')},
-          {chapterId: 'fm2-def', at: at('p0-24') - bH.from, durationInFrames: dur('p0-24')},
-        ]} />
+      {/* 0-B 请求登场：RequestCard 首现（恒定锚）+ 三错法空槽位 */}
+      <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="0-B">
+        <RequestIntro cardAt={at('p0-07') - bB.from} slotsAt={at('p0-09') - bB.from} />
       </Sequence>
 
-      {/* 0-I 发工卡：递卡 + 格子逐格亮起 + 「上下文层蓝图」标题角 */}
-      <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="0-I">
-        <IssueCard at25={at('p0-25') - bI.from} at26={at('p0-26') - bI.from} at27={at('p0-27') - bI.from} />
+      {/* 0-C 失效卡①：fm2-def 全章回放为底，前景口径卡叠加 */}
+      <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="0-C">
+        <ArchifyRecap slug="failure-map" caption="失效登记簿 · 定义执法簇" cues={[
+          {chapterId: 'fm2-def', at: at('p0-10') - bC.from, durationInFrames: dur('p0-10')},
+          {chapterId: 'fm2-def', at: at('p0-11') - bC.from, durationInFrames: dur('p0-11'), fit: 'hold'},
+          {chapterId: 'fm2-def', at: at('p0-12') - bC.from, durationInFrames: dur('p0-12'), fit: 'hold'},
+          {chapterId: 'fm2-def', at: at('p0-13') - bC.from, durationInFrames: dur('p0-13'), fit: 'hold'},
+        ]} />
+        <DualDefCard
+          at={at('p0-10') - bC.from + 8}
+          swingAt={at('p0-12') - bC.from}
+          flipAt={at('p0-13') - bC.from}
+        />
+        <div style={{position: 'absolute', bottom: 190, left: 80}}>
+          <EvidenceBadge level="dashed" at={at('p0-13') - bC.from} note="Snowflake 博客开场 · 同季收入两数" />
+        </div>
+      </Sequence>
+
+      {/* 0-D 失效卡②：选错表/连错关系 + 10.1% + 语法对勾常亮 */}
+      <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="0-D">
+        <WrongJoin
+          at={at('p0-14') - bD.from}
+          linkAt={at('p0-15') - bD.from}
+          crashAt={at('p0-15') - bD.from + 14}
+        />
+        <div style={{position: 'absolute', bottom: 190, left: 80}}>
+          <EvidenceBadge level="solid" at={at('p0-15') - bD.from} note="Spider 2.0 · 632 题 · 千列级库" />
+        </div>
+        <div style={{position: 'absolute', bottom: 190, right: 80}}>
+          <CornerNote at={at('p0-16') - bD.from} text="错在选表与连表 · 不在语法" accent={theme.conceptDeep} />
+        </div>
+      </Sequence>
+
+      {/* 0-E 失效卡③：窗口内容列 + 手机号行明文滑入 + RequestCard 缩于左上 */}
+      <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="0-E">
+        <WindowLeak
+          cardAt={at('p0-17') - bE.from}
+          credAt={at('p0-18') - bE.from}
+          leakAt={at('p0-19') - bE.from}
+        />
+      </Sequence>
+
+      {/* 0-F 三错共性：三缩略卡收拢 + 判词条 + 97/4 比例条 + 虚线徽 */}
+      <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="0-F">
+        <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 90}}>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 44}}>
+            <FailTrio at={at('p0-21') - bF.from} />
+            <JudgeStrip at={at('p0-22') - bF.from} />
+          </div>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 22, alignItems: 'flex-start'}}>
+            <RatioBars at={at('p0-23') - bF.from} />
+            <EvidenceBadge level="dashed" at={at('p0-23') - bF.from} note="Redis 调查 · n=1000 · 方法论未公开" />
+          </div>
+        </AbsoluteFill>
+      </Sequence>
+
+      {/* 0-G 登记成表：fm2-open 全章回放为底，前景计数 + 三卡飞落 + 五轴导航条 */}
+      <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="0-G">
+        <ArchifyRecap slug="failure-map" caption="失效登记簿 · 九簇总览" cues={[
+          {chapterId: 'fm2-open', at: at('p0-24') - bG.from, durationInFrames: dur('p0-24')},
+          {chapterId: 'fm2-open', at: at('p0-25') - bG.from, durationInFrames: dur('p0-25'), fit: 'hold'},
+          {chapterId: 'fm2-open', at: at('p0-26') - bG.from, durationInFrames: dur('p0-26'), fit: 'hold'},
+          {chapterId: 'fm2-open', at: at('p0-27') - bG.from, durationInFrames: dur('p0-27'), fit: 'hold'},
+        ]} />
+        <RegistryOverlay
+          countAt={at('p0-25') - bG.from}
+          dropAt={at('p0-26') - bG.from}
+          navAt={at('p0-27') - bG.from}
+        />
       </Sequence>
     </AbsoluteFill>
   );
 };
 
-/** 夜机坪：地平线 + 呼吸机位灯（〔M-002〕以静写闷）+ 登机桥「体检全绿」绿勾×3。 */
-const NightApron: React.FC<{at01: number}> = ({at01}) => {
-  const f = useCurrentFrame();
-  const push = usePushIn(at01, {scale: 1.06, dur: 90});
-  const lamps = useStagger(7, {stride: 6, at: 6});
-  const checks = useStagger(3, {stride: 14, at: at01 + 8});
+/** 可选锚关闭态：远未来帧 ⇒ 进度恒 0（hooks 不可条件调用）。 */
+const ANCHOR_OFF = 1e12;
+
+/** 0-A/8-L 共用：19 vs 85 双成绩条（同模型标签居中连接；NumCrash 迁移形态）。 */
+export const ScoreDuo: React.FC<{
+  at: number;
+  /** 「29/150 题」刻度帧 */
+  tick29At?: number;
+  /** 「证据页直给」角标帧 */
+  pageTagAt?: number;
+  /** 模型标签脉冲帧 */
+  pulseAt?: number;
+}> = ({at, tick29At, pageTagAt, pulseAt}) => {
+  const growL = useSpring('settle', {at: at + 4, dur: 40});
+  const growR = useSpring('settle', {at: at + 18, dur: 46});
+  const tick = useProgress(tick29At ?? ANCHOR_OFF, 12);
+  const tag = useProgress(pageTagAt ?? ANCHOR_OFF, 12);
+  const pulse = useImpulse({at: pulseAt ?? ANCHOR_OFF, dur: 26, peak: 1});
   return (
-    <AbsoluteFill style={{transform: push}}>
-      <div style={{position: 'absolute', bottom: 120, left: 0, right: 0, height: 2, background: theme.panelBorder}} />
-      {lamps.map((k, i) => (
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 56}}>
+      {/* 19%：裸库检索 */}
+      <div style={{width: 560}}>
+        <div style={{fontSize: 84, color: theme.dim, fontVariantNumeric: 'tabular-nums', textAlign: 'right'}}>
+          {Math.round(19 * growL)}%
+        </div>
+        <div style={{height: 44, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, background: theme.panel, marginTop: 8, position: 'relative', overflow: 'hidden'}}>
+          <div style={{width: `${19 * growL}%`, height: '100%', background: withAlpha(theme.dim, 0.75)}} />
+          <div
+            style={{
+              position: 'absolute',
+              left: 14,
+              top: 9,
+              fontSize: 18,
+              fontFamily: theme.mono,
+              color: theme.bg,
+              opacity: tick * growL,
+            }}
+          >
+            29/150 题
+          </div>
+        </div>
+        <div style={{fontSize: 20, color: theme.dim, marginTop: 10, textAlign: 'right'}}>所有文档混一个库 · 检索</div>
+      </div>
+      {/* 同模型连接标签 */}
+      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8}}>
+        <div style={{width: 2, height: 44, background: theme.panelBorder}} />
         <div
-          key={i}
           style={{
-            position: 'absolute',
-            bottom: 124 + hash(i) * 60,
-            left: `${10 + i * 13}%`,
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            background: theme.concept,
-            opacity: (k * 0.5 + 0.25) * (0.7 + 0.3 * Math.sin(f / 40 + i)),
+            padding: '8px 18px',
+            border: `2px solid ${pulse > 0.05 ? theme.ok : theme.panelBorder}`,
+            borderRadius: 999,
+            fontSize: 19,
+            fontFamily: theme.mono,
+            color: pulse > 0.05 ? theme.ok : theme.dim,
+            whiteSpace: 'nowrap',
           }}
-        />
-      ))}
-      {/* 登机桥显示屏：体检全绿（视觉钩子：全绿 vs 三隐患的反差） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: '12%',
-          top: '20%',
-          width: 240,
-          padding: '14px 20px',
-          background: theme.panel,
-          border: `1.5px solid ${theme.panelBorder}`,
-          borderRadius: 10,
-        }}
-      >
-        <div style={{fontSize: 17, color: theme.dim, marginBottom: 8}}>登机桥 · 例行体检</div>
-        {['液压', '电气', '结构'].map((t, i) => (
-          <div key={t} style={{display: 'flex', alignItems: 'center', gap: 10, opacity: checks[i], fontSize: 20, color: theme.ok}}>
-            <span style={{width: 20, height: 20, borderRadius: 10, border: `2px solid ${theme.ok}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14}}>✓</span>
+        >
+          同一 GPT-4-Turbo · 参数未改
+        </div>
+        <div style={{width: 2, height: 44, background: theme.panelBorder}} />
+      </div>
+      {/* 85%：证据页直给 */}
+      <div style={{width: 560}}>
+        <div style={{fontSize: 84, color: theme.ok, fontVariantNumeric: 'tabular-nums'}}>
+          {Math.round(85 * growR)}%
+        </div>
+        <div style={{height: 44, border: `1.5px solid ${theme.ok}`, borderRadius: 8, background: theme.panel, marginTop: 8, position: 'relative', overflow: 'hidden'}}>
+          <div style={{width: `${85 * growR}%`, height: '100%', background: withAlpha(theme.ok, 0.8)}} />
+          <div
+            style={{
+              position: 'absolute',
+              right: 14,
+              top: 9,
+              fontSize: 18,
+              fontFamily: theme.mono,
+              color: theme.ok,
+              opacity: tag,
+            }}
+          >
+            证据页直给
+          </div>
+        </div>
+        <div style={{fontSize: 20, color: theme.dim, marginTop: 10}}>正确的证据页直接进窗口</div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 0-A 尾：本集标题字条 @enter:fall。 */
+const EpisodeTitle: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('fall', {at, dur: 20});
+  return (
+    <div style={{position: 'absolute', top: 130, left: 0, right: 0, display: 'flex', justifyContent: 'center', opacity: enter.opacity, transform: enter.transform}}>
+      <div style={{padding: '12px 34px', border: `2px solid ${theme.concept}`, borderRadius: 10, background: withAlpha(theme.bg, 0.92)}}>
+        <span style={{fontSize: 32, color: theme.concept, letterSpacing: 2}}>拆解 Agent Context Layer</span>
+      </div>
+    </div>
+  );
+};
+
+/** 0-B：RequestCard 首现 + 三错法空槽位。 */
+const RequestIntro: React.FC<{cardAt: number; slotsAt: number}> = ({cardAt, slotsAt}) => {
+  const slots = useStagger(3, {stride: 12, at: slotsAt});
+  return (
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 56}}>
+      <RequestCard at={cardAt} />
+      <div style={{display: 'flex', gap: 34}}>
+        {['错法一', '错法二', '错法三'].map((t, i) => (
+          <div
+            key={t}
+            style={{
+              width: 236,
+              height: 92,
+              border: `2px dashed ${theme.panelBorder}`,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 22,
+              color: theme.dim,
+              opacity: slots[i] * 0.95,
+              transform: `scale(${0.9 + slots[i] * 0.1})`,
+            }}
+          >
             {t}
           </div>
         ))}
       </div>
-      <div style={{position: 'absolute', right: '16%', top: '30%', width: 320}}>
-        <WorkCard stamps={0} totalSlots={9} w={320} label="WORKCARD No.013" />
-      </div>
     </AbsoluteFill>
   );
 };
 
-/** 0-B 过期页特写：页脚修订号推近 + 放大镜框 REV 差异 + 机械师拧螺栓剪影（以静写闷）。 */
-const StalePage: React.FC<{at03: number; at05: number; at07: number}> = ({at03, at05, at07}) => {
-  const enter = useEnter('rise', {at: at03, dur: 18});
-  const push = usePushIn(at05, {scale: 0.14, dur: 40});
-  const diff = useProgress(at07, 14);
-  const zoom = useProgress(at05, 40);
-  const wrench = useCurrentFrame();
+/** 0-C 前景：两份「重复购买率」口径卡对推 + 应答气泡摆动 + $ 双数翻牌。 */
+const DualDefCard: React.FC<{at: number; swingAt: number; flipAt: number}> = ({at, swingAt, flipAt}) => {
+  const f = useCurrentFrame();
+  const inL = useEnter('slideR', {at, dur: 24});
+  const inR = useEnter('slideL', {at: at + 6, dur: 24});
+  const flip = useImpulse({at: flipAt, dur: 24, peak: 1});
+  // 应答气泡：p0-12 起在两份定义之间往复（帧驱动正弦，确定性）
+  const swing = f >= swingAt ? Math.sin((f - swingAt) / 14) : 0;
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 90}}>
-      {/* 机械师剪影：匀速拧螺栓（以静写闷——不加强调动效） */}
-      <svg width={190} height={300} style={{opacity: 0.8}}>
-        <circle cx={95} cy={54} r={26} fill="none" stroke={theme.dim} strokeWidth={2.5} />
-        <line x1={95} y1={80} x2={95} y2={180} stroke={theme.dim} strokeWidth={2.5} />
-        <line x1={95} y1={180} x2={60} y2={250} stroke={theme.dim} strokeWidth={2.5} />
-        <line x1={95} y1={180} x2={130} y2={250} stroke={theme.dim} strokeWidth={2.5} />
-        <line x1={95} y1={104} x2={58} y2={150} stroke={theme.dim} strokeWidth={2.5} />
-        <line x1={95} y1={104} x2={132} y2={150} stroke={theme.dim} strokeWidth={2.5} />
-        <g transform={`rotate(${Math.sin(wrench / 26) * 24} 150 150)`}>
-          <line x1={132} y1={150} x2={168} y2={150} stroke={theme.concept} strokeWidth={3} strokeLinecap="round" />
-        </g>
-      </svg>
-      {/* 当版页：页脚修订号是唯一差异点 */}
-      <div style={{...enter, transform: push, position: 'relative', width: 380, height: 460, background: theme.paper, borderRadius: 8, padding: 24, color: theme.paperInk, boxSizing: 'border-box'}}>
-        <div style={{fontSize: 20, fontFamily: theme.mono}}>AMM 32-11-00</div>
-        <div style={{fontSize: 16, color: theme.paperInkDim, marginTop: 8}}>主起落架螺栓 · 力矩</div>
-        <div style={{fontSize: 34, fontWeight: 700, marginTop: 18}}>45 N·m</div>
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} style={{height: 8, background: theme.paperInkDim, opacity: 0.25, borderRadius: 4, marginTop: 22, width: `${70 + (i % 3) * 10}%`}} />
-        ))}
-        <div style={{position: 'absolute', bottom: 18, left: 24, right: 24, display: 'flex', justifyContent: 'space-between', fontSize: 15, color: theme.paperInkDim, fontFamily: theme.mono}}>
-          <span>REV.2024-08</span>
-          <span>印发同样清晰</span>
+    <div
+      style={{
+        position: 'absolute',
+        left: '50%',
+        top: 400,
+        transform: `translateX(-50%) translateY(${flip * 6}px)`,
+        width: 1010,
+        padding: '24px 30px',
+        background: withAlpha(theme.bg, 0.9),
+        border: `2px solid ${theme.panelBorder}`,
+        borderRadius: 14,
+      }}
+    >
+      <div style={{display: 'flex', justifyContent: 'center', gap: 44}}>
+        <div style={{...inL, width: 300, padding: '16px 20px', background: theme.panel, border: `2px solid ${theme.concept}`, borderRadius: 10}}>
+          <div style={{fontSize: 22, color: theme.concept}}>重复购买率 · 定义 A</div>
+          <div style={{fontSize: 19, color: theme.dim, marginTop: 8, fontFamily: theme.mono}}>口径 = 按客户数</div>
         </div>
-        {/* 放大镜框：聚焦页脚修订号，reveals 母本现行版 */}
+        <div style={{...inR, width: 300, padding: '16px 20px', background: theme.panel, border: `2px solid ${theme.conceptDeep}`, borderRadius: 10}}>
+          <div style={{fontSize: 22, color: theme.conceptDeep}}>重复购买率 · 定义 B</div>
+          <div style={{fontSize: 19, color: theme.dim, marginTop: 8, fontFamily: theme.mono}}>口径 = 按订单数</div>
+        </div>
+      </div>
+      {/* 应答气泡：碰哪份定义报哪个数 */}
+      <div style={{display: 'flex', justifyContent: 'center', marginTop: 22}}>
         <div
           style={{
-            position: 'absolute',
-            left: -30 + zoom * 8,
-            bottom: -6,
-            width: 210,
-            height: 84,
-            borderRadius: 42,
-            border: `3px solid ${theme.conceptDeep}`,
-            opacity: zoom,
-            background: withAlpha(theme.bg, 0.55),
+            padding: '10px 26px',
+            border: `1.5px solid ${theme.panelBorder}`,
+            borderRadius: 999,
+            background: theme.terminalBg,
+            fontSize: 21,
+            fontFamily: theme.mono,
+            color: theme.text,
+            transform: `translateX(${swing * 150}px)`,
           }}
         >
-          <div style={{position: 'absolute', left: 14, top: 12, fontSize: 15, fontFamily: theme.mono, color: theme.paperInk}}>
-            手里这页 REV.2024-08
-          </div>
-          <div style={{position: 'absolute', left: 14, top: 40, fontSize: 17, fontFamily: theme.mono, color: diff > 0.2 ? theme.conceptDeep : theme.paperInkDim, fontWeight: diff > 0.2 ? 700 : 400}}>
-            母本已是 REV.2026-03
-          </div>
+          代理应答 · 取当前命中定义
+        </div>
+      </div>
+      {/* $ 双数翻牌（Snowflake 案例） */}
+      <div style={{display: 'flex', justifyContent: 'center', gap: 40, marginTop: 22, opacity: flip > 0.02 ? 1 : 0.001}}>
+        <span style={{fontSize: 46, color: theme.conceptDeep, fontFamily: theme.mono, fontVariantNumeric: 'tabular-nums', transform: `scale(${1 + flip * 0.12})`}}>$14.2M</span>
+        <span style={{fontSize: 24, color: theme.dim, alignSelf: 'center'}}>同季收入</span>
+        <span style={{fontSize: 46, color: theme.concept, fontFamily: theme.mono, fontVariantNumeric: 'tabular-nums', transform: `scale(${1 + flip * 0.12})`}}>$12.8M</span>
+      </div>
+    </div>
+  );
+};
+
+/** 0-D：表清单 + 错连线（选错表/连错关系）+ 10.1% 翻牌 + 语法对勾常亮。 */
+const WrongJoin: React.FC<{at: number; linkAt: number; crashAt: number}> = ({at, linkAt, crashAt}) => {
+  const nodes = useStagger(4, {stride: 10, at});
+  const line = useProgress(linkAt, 18);
+  const crash = useSpring('settle', {at: crashAt, dur: 22});
+  const val = Math.max(10.1, 100 - 89.9 * crash);
+  const names = ['orders', 'customers', 'sessions', 'order_items'];
+  const nx = [0, 230, 460, 230];
+  const ny = [40, 40, 40, 170];
+  return (
+    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 90}}>
+      <svg width={620} height={280}>
+        {/* 正确连线（暗）：orders × customers */}
+        <line x1={115} y1={78} x2={345} y2={78} stroke={theme.panelBorder} strokeWidth={2} opacity={nodes[1]} />
+        {/* 错连线：orders × sessions（橙红描画） */}
+        <line
+          x1={115}
+          y1={70}
+          x2={575}
+          y2={70}
+          stroke={theme.conceptDeep}
+          strokeWidth={3}
+          strokeDasharray="8 7"
+          opacity={line}
+        />
+        {names.map((n, i) => (
+          <g key={n} opacity={nodes[i]}>
+            <rect
+              x={nx[i]}
+              y={ny[i]}
+              width={230}
+              height={76}
+              rx={8}
+              fill={theme.panel}
+              stroke={i === 2 ? theme.conceptDeep : theme.panelBorder}
+              strokeWidth={i === 2 ? 2.5 : 1.5}
+            />
+            <text x={nx[i] + 115} y={ny[i] + 46} textAnchor="middle" fill={i === 2 ? theme.conceptDeep : theme.dim} fontSize={22} fontFamily={theme.mono}>
+              {n}
+            </text>
+          </g>
+        ))}
+        <text x={345} y={58} textAnchor="middle" fill={theme.conceptDeep} fontSize={17} fontFamily={theme.mono} opacity={line}>
+          选错表 · 连错关系
+        </text>
+      </svg>
+      <div style={{textAlign: 'center'}}>
+        <div style={{fontSize: 104, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums'}}>{val.toFixed(1)}%</div>
+        <div style={{fontSize: 21, color: theme.dim, marginTop: 4}}>强模型裸答企业级评测</div>
+        {/* 语法对勾常亮 */}
+        <div style={{display: 'inline-flex', alignItems: 'center', gap: 10, marginTop: 22, padding: '8px 18px', border: `2px solid ${theme.ok}`, borderRadius: 8}}>
+          <span style={{color: theme.ok, fontSize: 22}}>✓</span>
+          <span style={{fontSize: 19, color: theme.ok, fontFamily: theme.mono}}>SQL 语法合法</span>
         </div>
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 0-C 两页打架：同一力矩值两页两个数 + 引用计数天平倾斜（错侧压倒）。 */
-const ClashPages: React.FC<{at08: number; at09: number; at10: number}> = ({at08, at09, at10}) => {
-  const enter = useStagger(2, {stride: 16, at: at08});
-  const tilt = useSpring('settle', {at: at09, dur: 26});
-  const wrong = useProgress(at10, 12);
+/** 0-E：模型窗口内容列 + 手机号行明文滑入 + 橙边呼吸 + RequestCard 缩于左上。 */
+const WindowLeak: React.FC<{cardAt: number; credAt: number; leakAt: number}> = ({cardAt, credAt, leakAt}) => {
+  const rows = useStagger(3, {stride: 10, at: cardAt + 10});
+  const leak = useSpring('settle', {at: leakAt, dur: 26});
+  const breathe = useBreathe({period: 100, amp: 0.3, base: 0.7});
+  const cred = useImpulse({at: credAt + 6, dur: 30, peak: 1});
   return (
-    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 46}}>
-      <svg width={620} height={300}>
-        {/* 天平梁：倾斜向引用多的一侧（X-001 核对：多数侧=错侧在画面下方压倒） */}
-        <g transform={`rotate(${-tilt * 13} 310 86)`}>
-          <line x1={90} y1={86} x2={530} y2={86} stroke={theme.concept} strokeWidth={4} strokeLinecap="round" />
-          <line x1={90} y1={86} x2={90} y2={128} stroke={theme.panelBorder} strokeWidth={2} />
-          <line x1={530} y1={86} x2={530} y2={128} stroke={theme.panelBorder} strokeWidth={2} />
-        </g>
-        <line x1={310} y1={86} x2={310} y2={214} stroke={theme.panelBorder} strokeWidth={3} />
-        <line x1={250} y1={214} x2={370} y2={214} stroke={theme.panelBorder} strokeWidth={3} />
-        <text x={90} y={66} textAnchor="middle" fill={theme.dim} fontSize={19}>引用 ×200</text>
-        <text x={530} y={66} textAnchor="middle" fill={theme.dim} fontSize={19}>引用 ×5</text>
-      </svg>
-      <div style={{display: 'flex', gap: 40}}>
-        {[
-          {v: '60 N·m', rev: 'AMM rev.C', cite: '×200', bad: true},
-          {v: '45 N·m', rev: 'AMM rev.D', cite: '×5', bad: false},
-        ].map((p, i) => (
+    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+      {/* RequestCard 缩于左上（恒定锚持续在场） */}
+      <div style={{position: 'absolute', left: 96, top: 132, transform: 'scale(0.52)', transformOrigin: 'top left'}}>
+        <RequestCard at={cardAt} />
+      </div>
+      {/* 凭证继承小标 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 110,
+          top: 350,
+          padding: '7px 16px',
+          border: `2px solid ${cred > 0.05 ? theme.conceptDeep : theme.panelBorder}`,
+          borderRadius: 8,
+          fontSize: 18,
+          fontFamily: theme.mono,
+          color: theme.conceptDeep,
+          opacity: 0.5 + cred * 0.5,
+        }}
+      >
+        凭证继承 · 用户权限全集
+      </div>
+      {/* 窗口内容列 */}
+      <div
+        style={{
+          width: 760,
+          border: `2.5px solid ${theme.conceptDeep}`,
+          borderColor: `rgba(245, 166, 35, ${0.45 + breathe * 0.55})`,
+          borderRadius: 12,
+          background: theme.panel,
+          padding: '22px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+        }}
+      >
+        <div style={{fontSize: 18, color: theme.dim, fontFamily: theme.mono}}>本轮窗口 · 全部内容</div>
+        {['系统指令', '指标说明文档', '会话历史'].map((t, i) => (
+          <div key={t} style={{opacity: rows[i], display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, fontSize: 21, color: theme.text}}>
+            <span style={{width: 8, height: 8, borderRadius: 4, background: theme.concept}} />
+            {t}
+          </div>
+        ))}
+        {/* 手机号行：明文滑入（脱敏样式 + 橙警示） */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: '12px 16px',
+            border: `2px solid ${theme.conceptDeep}`,
+            background: withAlpha(theme.conceptDeep, 0.08),
+            borderRadius: 8,
+            fontSize: 22,
+            color: theme.conceptDeep,
+            fontFamily: theme.mono,
+            transform: `translateY(${(1 - leak) * 46}px)`,
+            opacity: leak,
+          }}
+        >
+          <span style={{width: 8, height: 8, borderRadius: 4, background: theme.conceptDeep}} />
+          customers · phone 138****5678
+          <span style={{fontSize: 17, border: `1.5px solid ${theme.conceptDeep}`, borderRadius: 6, padding: '2px 10px'}}>明文入窗</span>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/** 0-F：三失效缩略卡收拢对齐。 */
+const FailTrio: React.FC<{at: number}> = ({at}) => {
+  const cards = useStagger(3, {stride: 10, at});
+  const items = [
+    {t: '失效①', s: '口径两数', accent: theme.concept},
+    {t: '失效②', s: '选错表', accent: theme.conceptDeep},
+    {t: '失效③', s: '越权入窗', accent: theme.conceptDeep},
+  ];
+  return (
+    <div style={{display: 'flex', gap: 30}}>
+      {items.map((c, i) => (
+        <div
+          key={c.t}
+          style={{
+            width: 230,
+            padding: '18px 0',
+            border: `2px solid ${c.accent}`,
+            borderRadius: 10,
+            background: theme.panel,
+            textAlign: 'center',
+            opacity: cards[i],
+            transform: `translateX(${(1 - cards[i]) * (i - 1) * 70}px)`,
+          }}
+        >
+          <div style={{fontSize: 21, color: c.accent, fontFamily: theme.mono}}>{c.t}</div>
+          <div style={{fontSize: 24, color: theme.text, marginTop: 8}}>{c.s}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** 0-F 判词条。 */
+const JudgeStrip: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('rise', {at, dur: 18});
+  return (
+    <div style={{...enter, padding: '14px 38px', border: `2.5px solid ${theme.conceptDeep}`, borderRadius: 12, fontSize: 32, color: theme.conceptDeep, letterSpacing: 2}}>
+      exit=0 · 数字错
+    </div>
+  );
+};
+
+/** 0-G 前景：九类四十二行计数上翻 + 三卡飞落弧线 + 逐层拆开导航条。 */
+const RegistryOverlay: React.FC<{countAt: number; dropAt: number; navAt: number}> = ({countAt, dropAt, navAt}) => {
+  const f = useCurrentFrame();
+  const count = useSpring('settle', {at: countAt, dur: 30});
+  const nav = useEnter('rise', {at: navAt, dur: 16});
+  // 三卡错峰飞落：map 内用纯函数 progress（运动层铁律①）
+  const drops = [0, 14, 28].map((d) => progress(f, dropAt + d, 40));
+  // 三卡落点：口径(c1)/验证(c4)/访问控制(c3) 三簇近似位置（画布绝对坐标，回放框内）
+  const targets = [
+    {x: 520, y: 300, t: '失效①', s: '口径'},
+    {x: 960, y: 430, t: '失效③', s: '访问控制'},
+    {x: 1380, y: 330, t: '失效②', s: '验证'},
+  ];
+  return (
+    <>
+      {/* 计数上翻 */}
+      <div style={{position: 'absolute', top: 168, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+        <div style={{padding: '10px 28px', border: `2px solid ${theme.concept}`, borderRadius: 10, background: withAlpha(theme.bg, 0.9), fontSize: 26, fontFamily: theme.mono, color: theme.concept}}>
+          九类 · {Math.round(42 * Math.min(1, count))} 行 · 每行四件事
+        </div>
+      </div>
+      {/* 三卡飞落（二次贝塞尔弧线） */}
+      {targets.map((tg, i) => {
+        const p = Math.min(1, Math.max(0, drops[i]));
+        const sx = 960;
+        const sy = 1010;
+        const cx = (sx + tg.x) / 2;
+        const cy = 720;
+        const x = (1 - p) * (1 - p) * sx + 2 * (1 - p) * p * cx + p * p * tg.x;
+        const y = (1 - p) * (1 - p) * sy + 2 * (1 - p) * p * cy + p * p * tg.y;
+        return (
           <div
-            key={p.rev}
+            key={tg.t}
             style={{
-              opacity: enter[i],
-              width: 250,
-              padding: '18px 22px',
-              background: theme.paper,
+              position: 'absolute',
+              left: x - 80,
+              top: y - 30,
+              width: 160,
+              padding: '8px 0',
+              border: `2px solid ${theme.conceptDeep}`,
               borderRadius: 8,
-              color: theme.paperInk,
-              outline: p.bad && wrong > 0.3 ? `3px solid ${theme.conceptDeep}` : 'none',
-              transform: `translateY(${p.bad ? tilt * 16 : -tilt * 8}px)`,
+              background: withAlpha(theme.bg, 0.92),
+              textAlign: 'center',
+              opacity: p,
             }}
           >
-            <div style={{fontSize: 15, color: theme.paperInkDim, fontFamily: theme.mono}}>{p.rev} · 同一力矩值</div>
-            <div style={{fontSize: 44, fontWeight: 700, marginTop: 6, color: p.bad && wrong > 0.3 ? theme.conceptDeep : theme.paperInk}}>{p.v}</div>
-            <div style={{fontSize: 15, color: theme.paperInkDim, marginTop: 4}}>被引用 {p.cite}</div>
+            <div style={{fontSize: 17, color: theme.conceptDeep, fontFamily: theme.mono}}>{tg.t}</div>
+            <div style={{fontSize: 19, color: theme.text}}>{tg.s}</div>
           </div>
-        ))}
+        );
+      })}
+      {/* 逐层拆开 · 五轴导航条 */}
+      <div style={{position: 'absolute', bottom: 172, left: 0, right: 0, display: 'flex', justifyContent: 'center', opacity: nav.opacity, transform: nav.transform}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, padding: '10px 26px', border: `2px solid ${theme.concept}`, borderRadius: 999, background: withAlpha(theme.bg, 0.9)}}>
+          <span style={{fontSize: 20, color: theme.concept}}>逐层拆开</span>
+          {['资产', '权威', '装配', '检索', '沉淀'].map((t) => (
+            <span key={t} style={{fontSize: 19, color: theme.dim, fontFamily: theme.mono}}>{t}</span>
+          ))}
+        </div>
       </div>
-    </AbsoluteFill>
+    </>
   );
 };
 
-/** 0-D 越权签字：会签栏末格无资格印章落下 + 闸门横杆抬起放行（警示）。 */
-const RogueStamp: React.FC<{at11: number; at12: number}> = ({at11, at12}) => {
-  const fall = useSpring('settle', {at: at11 + 6, dur: 14});
-  const blink = useProgress(at11 + 20, 30);
-  const arm = useSpring('settle', {at: at12, dur: 20});
-  return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 110}}>
-      <div style={{display: 'flex', gap: 18}}>
-        {['执照', '机型', '必检', '关盖'].map((t, i) => {
-          const last = i === 3;
-          return (
-            <div key={t} style={{width: 150, height: 190, border: `2px solid ${theme.panelBorder}`, borderRadius: 10, background: theme.panel, position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 12}}>
-              <span style={{position: 'absolute', top: 12, left: 0, right: 0, textAlign: 'center', fontSize: 19, color: theme.dim}}>{t}</span>
-              {last ? (
-                <div
-                  style={{
-                    width: 92,
-                    height: 92,
-                    borderRadius: 8,
-                    border: `3px solid ${theme.conceptDeep}`,
-                    color: theme.conceptDeep,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 19,
-                    transform: `scale(${fall}) rotate(-8deg) translateY(${(1 - fall) * -90}px)`,
-                    opacity: fall * (1 - blink * 0.4 * (Math.sin(blink * Math.PI * 6) > 0 ? 1 : 0)),
-                  }}
-                >
-                  无资格
-                </div>
-              ) : (
-                <div style={{width: 60, height: 60, borderRadius: 30, border: `2.5px solid ${theme.ok}`, color: theme.ok, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18}}>已签</div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      {/* 闸门横杆：抬起 = 形同虚设 */}
-      <svg width={260} height={240}>
-        <line x1={40} y1={190} x2={220} y2={190} stroke={theme.panelBorder} strokeWidth={4} />
-        <circle cx={130} cy={190} r={10} fill={theme.panelBorder} />
-        <g transform={`rotate(${-arm * 62} 130 178)`}>
-          <line x1={30} y1={178} x2={230} y2={178} stroke={theme.conceptDeep} strokeWidth={7} strokeLinecap="round" />
-        </g>
-        <text x={130} y={228} textAnchor="middle" fill={theme.conceptDeep} fontSize={19} opacity={arm}>
-          横杆抬起 · 放行
-        </text>
-      </svg>
-    </AbsoluteFill>
-  );
-};
-
-/** 0-E 三错快闪回放：页/天平/印章三缩略卡 + 「零报错·全自信」判词条打字机。 */
-const ThreeRecap: React.FC<{at13: number; at14: number}> = ({at13, at14}) => {
-  const cards = useStagger(3, {stride: 12, at: at13});
-  const strip = useReveal('零报错 · 全自信', {at: at14, cps: 6});
-  return (
-    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 60}}>
-      <div style={{display: 'flex', gap: 34}}>
-        {[
-          {glyph: 'REV', cap: '过期页'},
-          {glyph: '⚖', cap: '两页打架'},
-          {glyph: '✕', cap: '越权签字'},
-        ].map((c, i) => (
-          <div key={c.cap} style={{opacity: cards[i], width: 200, padding: '20px 0', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 10, background: theme.panel, textAlign: 'center'}}>
-            <div style={{fontSize: 44, color: theme.conceptDeep, fontFamily: theme.mono}}>{c.glyph}</div>
-            <div style={{fontSize: 20, color: theme.dim, marginTop: 10}}>{c.cap}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{padding: '12px 34px', border: `2px solid ${theme.conceptDeep}`, borderRadius: 10, fontSize: 34, color: theme.conceptDeep, letterSpacing: 3}}>
-        {strip}
-        <span style={{opacity: strip.length >= 8 ? 1 : 0}}>▍</span>
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 19→85 数字对撞（口播只念数，画面翻牌）。 */
-export const NumCrash: React.FC<{from: number; to: number; at: number; label: string}> = ({from, to, at, label}) => {
-  const prog = useSpring('settle', {at, dur: 45});
-  const val = Math.round(from + (to - from) * prog);
-  return (
-    <div style={{textAlign: 'center'}}>
-      <div style={{fontSize: 120, fontWeight: 700, color: theme.ok, fontVariantNumeric: 'tabular-nums'}}>{val}%</div>
-      <div style={{fontSize: 20, color: theme.dim}}>{label}</div>
-    </div>
-  );
-};
-
-/** 崩崖折线：87 → 10 下坠（draw 描线 + 终点标注）。块级元素，参与父级 flex 列。 */
-const CliffLine: React.FC<{at: number; markAt: number; noteAt: number}> = ({at, markAt, noteAt}) => {
-  const enter = useEnter('fade', {at, dur: 10});
-  const draw = useProgress(at + 6, 40);
-  const mark = useProgress(markAt, 12);
-  const note = useProgress(noteAt, 12);
-  const pts = [0, 1, 2, 3, 4, 5];
-  const lx = (i: number) => 40 + i * 52;
-  const ly = (i: number) => 70 + Math.min(150, i * i * 10);
-  const total = 5;
-  const drawn = draw * total;
-  const segs = pts.slice(0, Math.max(2, Math.ceil(drawn) + 1));
-  const partial = Math.min(1, drawn - Math.floor(drawn));
-  const last = segs[segs.length - 1];
-  const prev = segs[segs.length - 2];
-  const hx = lx(prev) + (lx(last) - lx(prev)) * partial;
-  const hy = ly(prev) + (ly(last) - ly(prev)) * partial;
-  const pathPts = segs.slice(0, -1).map((i) => `${lx(i)},${ly(i)}`).join(' ') + ` ${hx},${hy}`;
-  return (
-    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-      <svg width={340} height={250} style={enter}>
-        <line x1={30} y1={230} x2={320} y2={230} stroke={theme.panelBorder} strokeWidth={1.5} />
-        <polyline points={pathPts} fill="none" stroke={theme.conceptDeep} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={hx} cy={hy} r={5} fill={theme.conceptDeep} />
-        <text x={40} y={54} fill={theme.dim} fontSize={19}>87%</text>
-        <text x={lx(5) - 34} y={ly(5) - 14} fill={theme.conceptDeep} fontSize={19} opacity={mark}>10%</text>
-      </svg>
-      <div style={{fontSize: 21, color: theme.dim, opacity: note, marginTop: 4}}>学术考卷 → 企业考卷</div>
-      <div style={{fontSize: 20, color: theme.conceptDeep, opacity: note, marginTop: 10}}>对象从头搞错 · 非语法错</div>
-    </div>
-  );
-};
-
-/** 97/4 比例条（v2 销账实装）：相信的长条 vs 建成的短刺。 */
+/** 97/4 比例条（0-F / 8-L 复用）：相信的长条 vs 建成的短刺。 */
 export const RatioBars: React.FC<{at: number}> = ({at}) => {
   const grow97 = useSpring('settle', {at: at + 4, dur: 30});
   const grow4 = useSpring('settle', {at: at + 30, dur: 14});
   return (
-    <div style={{display: 'flex', flexDirection: 'column', gap: 26, width: 640}}>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 26, width: 560}}>
       <div>
-        <div style={{fontSize: 21, color: theme.concept, marginBottom: 8}}>九成七 · 相信上下文决定成败</div>
-        <div style={{width: 640, height: 30, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, overflow: 'hidden'}}>
+        <div style={{fontSize: 20, color: theme.concept, marginBottom: 8}}>97% · 相信上下文决定成败</div>
+        <div style={{width: 560, height: 28, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, overflow: 'hidden'}}>
           <div style={{width: `${97 * grow97}%`, height: '100%', background: theme.concept, opacity: 0.85}} />
         </div>
       </div>
       <div>
-        <div style={{fontSize: 21, color: theme.conceptDeep, marginBottom: 8}}>百分之四 · 真正建成</div>
-        <div style={{width: 640, height: 30, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center'}}>
+        <div style={{fontSize: 20, color: theme.conceptDeep, marginBottom: 8}}>4% · 真正建成</div>
+        <div style={{width: 560, height: 28, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center'}}>
           <div style={{width: `${4 * grow4}%`, height: 16, background: theme.conceptDeep, borderRadius: 3}} />
         </div>
       </div>
@@ -422,59 +590,12 @@ export const RatioBars: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 0-I 发工卡：递卡横移 + 格子逐格亮起 + 「上下文层蓝图」标题角浮起。 */
-const IssueCard: React.FC<{at25: number; at26: number; at27: number}> = ({at25, at26, at27}) => {
-  const slide = useSpring('settle', {at: at25, dur: 26});
-  const cells = useStagger(9, {stride: 9, at: at26, dur: 5});
-  const title = useEnter('rise', {at: at27, dur: 16});
-  const x = (1 - slide) * -260;
+/** 角标注（0-D/通用）：短句 chip，不复述口播。 */
+const CornerNote: React.FC<{at: number; text: string; accent: string}> = ({at, text, accent}) => {
+  const enter = useEnter('rise', {at, dur: 14});
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <div style={{position: 'relative', transform: `translateX(${x}px)`}}>
-        {/* 与 WorkCard 同形（M-001 恒定锚：钢蓝描边 2px）；格子逐格亮起为其口播槽位专属动效 */}
-        <div style={{width: 460, height: 300, background: theme.panel, border: `2px solid ${theme.concept}`, borderRadius: 10, padding: 20, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10}}>
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
-            <span style={{fontSize: 24, color: theme.concept, letterSpacing: 2}}>给 AI 的工卡</span>
-            <span style={{fontSize: 18, color: theme.dim, fontFamily: theme.mono}}>WORKCARD</span>
-          </div>
-          <div style={{flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8}}>
-            {cells.map((k, i) => (
-              <div
-                key={i}
-                style={{
-                  borderRadius: 6,
-                  border: `1.5px solid ${k > 0.4 ? withAlpha(theme.concept, 0.9) : theme.panelBorder}`,
-                  background: k > 0.4 ? withAlpha(theme.concept, 0.08) : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 19,
-                  color: k > 0.4 ? theme.concept : theme.panelBorder,
-                  opacity: 0.4 + k * 0.6,
-                }}
-              >
-                {i + 1}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div
-          style={{
-            ...title,
-            position: 'absolute',
-            top: -34,
-            right: -24,
-            padding: '8px 20px',
-            border: `2px solid ${theme.concept}`,
-            borderRadius: 8,
-            fontSize: 24,
-            color: theme.concept,
-            background: withAlpha(theme.bg, 0.9),
-          }}
-        >
-          上下文层蓝图
-        </div>
-      </div>
-    </AbsoluteFill>
+    <span style={{...enter, display: 'inline-block', padding: '8px 20px', border: `2px solid ${accent}`, borderRadius: 999, fontSize: 20, color: accent, background: withAlpha(theme.bg, 0.85)}}>
+      {text}
+    </span>
   );
 };

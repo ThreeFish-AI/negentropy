@@ -1,8 +1,8 @@
-/** 韦恩交集收缩 + 工牌碎裂（P3·3-D 权限回收装置，v2 销账项实装）。
+/** 韦恩交集收缩 + 快照凭证失效（P3·3-D/E 权限交集装置；v4 文案改过期凭证口径）。
  *
- *  三拍：双圆求交（at）→ 权限回收：任务圆右移、交集收窄（shrinkAt）→
- *  旧工牌裂纹扩展碎裂（crackAt，红叉禁例「上次办的工牌还能用」）。
- *  交集高亮用 clipPath 实现：用户圆裁任务圆，任务圆一移交集自动收窄。
+ *  三拍：双圆求交（at）→ 权限回收：会话圆右移、交集收窄（shrinkAt）→
+ *  快照式旧凭证裂纹扩展失效（crackAt，红叉禁例「撤权后旧凭证还能用」）。
+ *  交集高亮用 clipPath 实现：用户圆裁会话圆，会话圆一移交集自动收窄。
  */
 import React from 'react';
 import {AbsoluteFill} from 'remotion';
@@ -64,10 +64,17 @@ export const VennShrink: React.FC<{
         <circle cx={USER_CX} cy={186} r={R} fill="none" stroke={theme.concept} strokeWidth={2.5} />
         <circle cx={taskCx} cy={186} r={R} fill="none" stroke={theme.conceptDeep} strokeWidth={2.5} />
         <text x={USER_CX - R - 8} y={64} textAnchor="end" fill={theme.concept} fontSize={22}>
-          用户有的
+          用户 RBAC
+        </text>
+        {/* RBAC 圆内两小项：能看的 / 不能看的 */}
+        <text x={USER_CX - 62} y={158} textAnchor="middle" fill={theme.ok} fontSize={16} fontFamily={theme.mono} opacity={0.9}>
+          orders ✓
+        </text>
+        <text x={USER_CX - 62} y={188} textAnchor="middle" fill={theme.conceptDeep} fontSize={16} fontFamily={theme.mono} opacity={0.9}>
+          phone ✗
         </text>
         <text x={taskCx + R + 8} y={64} textAnchor="start" fill={theme.conceptDeep} fontSize={22}>
-          任务允许的
+          会话范围 RSS
         </text>
         <text
           x={(USER_CX + taskCx) / 2}
@@ -81,17 +88,17 @@ export const VennShrink: React.FC<{
           交集
         </text>
         <text x={330} y={372} textAnchor="middle" fill={theme.dim} fontSize={20}>
-          缺一不可 · 只减不增 · 实时求值
+          交集 = 代理本次会话权限 · 只减不增 · 实时求值
         </text>
-        {/* 旧工牌：裂纹 → 碎裂分离（红叉禁例） */}
+        {/* 旧凭证：裂纹 → 失效分离（红叉禁例「撤权后快照式旧凭证还能用」） */}
         <g transform={`translate(560, 292)`}>
           <g transform={`rotate(${crack * 7})`} opacity={1 - crack * 0.25}>
             <rect x={-96} y={-36} width={192} height={72} rx={8} fill={theme.panel} stroke={theme.panelBorder} strokeWidth={1.5} />
             <text x={0} y={-6} textAnchor="middle" fill={theme.dim} fontSize={17}>
-              上次办的工牌
+              撤权前快照凭证
             </text>
-            <text x={0} y={22} textAnchor="middle" fill={theme.text} fontSize={19}>
-              TEMP-0412
+            <text x={0} y={22} textAnchor="middle" fill={theme.text} fontSize={19} fontFamily={theme.mono}>
+              select:orders · 仍持有
             </text>
             <Crack at={crackAt} />
           </g>
