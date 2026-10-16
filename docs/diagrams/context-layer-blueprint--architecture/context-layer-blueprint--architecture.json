@@ -3,7 +3,7 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "三面蓝图总览：验收面 × 结构面 × 时间面",
-    "subtitle": "三面各自独立——机制落在多轴组合上，G 法则绑定段间转换；登记簿九簇 × 五轴 × 六段两环",
+    "subtitle": "三面各自独立——机制落在多轴组合上，G 法则绑定段间转换；登记簿十簇 × 五轴 × 六段两环",
     "locale": "zh-CN",
     "quality_profile": "showcase",
     "output": "docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html"
@@ -13,7 +13,7 @@
       "id": "registry",
       "type": "database",
       "label": "失效登记簿",
-      "sublabel": "§1 · 九簇 × 42 行 × 四列",
+      "sublabel": "§1 · 十簇 × 49 行 × 四列",
       "pos": [
         44,
         316
@@ -439,9 +439,9 @@
   "cards": [
     {
       "dot": "rose",
-      "title": "验收面 · 登记簿九簇",
+      "title": "验收面 · 登记簿十簇",
       "items": [
-        "九簇：口径／执行／访问控制／验证／供给／运行时／接线／记忆安全／组织运营——42 行，每行失效形态×证据锚×拦截机制×验收判据四列",
+        "十簇：口径／执行／访问控制／验证／供给／运行时／接线／记忆安全／组织运营／协作——49 行，每行失效形态×证据锚×拦截机制×验收判据四列",
         "登记簿跨结构换代长期存活：本版重构即是先例——失效登记延续、结构轴换代",
         "指不回登记簿某行的设计不独立成立（§1 入账协议：无锚不入账）"
       ]

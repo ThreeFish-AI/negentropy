@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "上下文失效登记簿九簇：失效形态总览",
+    "title": "上下文失效登记簿十簇：失效形态总览",
     "locale": "zh-CN",
     "animation": "trace",
     "quality_profile": "showcase",
@@ -16,7 +16,7 @@
           "label": "人工核验→供给→运行→接入：答案谁担保、上下文从哪来"
         },
         "external": {
-          "label": "记忆安全→组织落地：两端防注入与 owner 缺位"
+          "label": "记忆安全→组织落地→协作：防注入、owner 缺位与多代理共享"
         }
       }
     }
@@ -101,8 +101,8 @@
       "id": "c6_yunhangshi",
       "type": "messagebus",
       "label": "§1.6 运行时簇",
-      "sublabel": "工具饱和／分片迷失／信息丢失 · 5 行",
-      "tag": "拦截：预算带＋压缩分级＋会话策略",
+      "sublabel": "工具饱和／分片迷失／缓存前缀失效 · 6 行",
+      "tag": "拦截：预算带＋压缩分级＋缓存感知分段",
       "pos": [
         342,
         334
@@ -131,8 +131,8 @@
       "id": "c8_jiyi",
       "type": "external",
       "label": "§1.8 记忆安全簇",
-      "sublabel": "intent legitimation／投毒／持久化注入 · 3 行",
-      "tag": "拦截：写入端扫描先于巩固",
+      "sublabel": "intent legitimation／投毒／注入／认证失效 · 6 行",
+      "tag": "拦截：写入端扫描先于巩固＋受众绑定凭据",
       "pos": [
         60,
         558
@@ -150,6 +150,21 @@
       "tag": "拦截：shared ownership＋执法点前置",
       "pos": [
         445,
+        558
+      ],
+      "size": [
+        280,
+        86
+      ]
+    },
+    {
+      "id": "c10_xiezuo",
+      "type": "external",
+      "label": "§1.10 协作簇",
+      "sublabel": "上下文割裂／认领竞态／协商不可追踪 · 3 行",
+      "tag": "拦截：任务契约全量交接＋认领临界区＋结构化协议",
+      "pos": [
+        830,
         558
       ],
       "size": [
@@ -180,10 +195,11 @@
     },
     {
       "kind": "region",
-      "label": "记忆安全 → 组织落地 · 两端防注入与 owner 缺位",
+      "label": "记忆安全 → 组织落地 → 协作 · 防注入、owner 缺位与多代理共享",
       "wraps": [
         "c8_jiyi",
-        "c9_zuzhi"
+        "c9_zuzhi",
+        "c10_xiezuo"
       ]
     }
   ],
@@ -235,12 +251,18 @@
       "to": "c9_zuzhi",
       "fromSide": "right",
       "toSide": "left"
+    },
+    {
+      "from": "c9_zuzhi",
+      "to": "c10_xiezuo",
+      "fromSide": "right",
+      "toSide": "left"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "九簇与五轴对位",
+      "title": "十簇与五轴对位",
       "items": [
         "口径／执行簇由资产轴＋装配轴承接：M1 口径单点与查询期重算，D1/D2/D3/D7 反事实实验可复跑",
         "访问控制簇由权威轴承接：策略挂数据本体、执行点求值，D5/D9/D10 反事实与 M6 会话权限上界",
