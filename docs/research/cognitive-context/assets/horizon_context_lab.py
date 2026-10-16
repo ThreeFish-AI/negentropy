@@ -6,12 +6,12 @@
   M1 语义视图：口径单点 × 查询期重算 —— 五段式声明 + 同义词 + 验证问答 + 可见性 + 结构校验门
                                 + agg-before-join / distinct / derived 先聚后除 / 半可加末快照 / USING 消歧
   M2 查询期行列级访问策略 —— 执行层 RBAC/PRIVATE 拒绝（玩具形态）+ IS_AGENT_ACTIVATED 严拒面
-  M3 语义级治理执行       —— resolve（检索层过滤=体验）与 compile（执行层拒绝=底线）双层防线
+  M3 语义级治理执行       —— resolve（检索层过滤=体验）与 compile（执行层拒绝=强制）两层拦截
   M4 应答层验证锚定       —— verified query 短路重放 + 引擎重算对账 + 溯源元数据
   M5 端到端列级血缘       —— 引擎执行自动沉淀列级边 + OpenLineage 外部摄取完整事件门
-  M6 Agent Identity       —— 会话权限天花板（只减不增）+ agent_type 审计 + 代理严拒面
+  M6 Agent Identity       —— 会话权限上界（只减不增）+ agent_type 审计 + 代理严拒面
   M7 分类与标签驱动策略传播 —— 自动分类 + 一次性映射（系统标签→用户标签）+ 新列自动纳入
-  降级保留（教学价值不随降级消失）：富化双轨/冲突浮出人工/eval 自纠环（原 M4）、四因子排序（原 M6）
+  降级保留（教学价值不随降级消失）：富化两条供给路径/冲突浮出人工/eval 自纠环（原 M4）、四因子排序（原 M6）
 
 本原型只回答「机制是否自洽」，不回答「模型是否聪明」——材料里的 LLM 角色
 （CoCo/Cortex Analyst 生成 SQL）全部用确定性 mock 替代，agent 产出 QueryPlan
@@ -79,7 +79,7 @@ ORDERS = Table(
 EVENTS = Table(
     "events", ("id", "order_id"), ("id",),
     _rows(("id", "order_id"), [
-        ("e1", "o1"), ("e2", "o1"), ("e3", "o1"),   # o1 × 3 次事件 → fan trap 引信
+        ("e1", "o1"), ("e2", "o1"), ("e3", "o1"),   # o1 × 3 次事件 → 触发 fan trap
         ("e4", "o2"), ("e5", "o2"),                  # o2 × 2
         ("e6", "o3"), ("e7", "o4"), ("e8", "o5"), ("e9", "o6"),
     ]))
@@ -252,7 +252,7 @@ def validate_view(view: SemanticView, tables: dict) -> list:
             if c not in tables[rel.from_table].columns:
                 errors.append(f"relationship {rel.name}: no such column "
                               f"{rel.from_table}.{c}")
-        # FK 必须命中引用表的 PK/UNIQUE —— 非键列上的 join 是行数失控的注册期引信
+        # FK 必须命中引用表的 PK/UNIQUE —— 非键列上的 join 会让结果行数失控，须在注册期拦下
         for c in rel.to_cols:
             if c not in pks.get(rel.to_table, set()):
                 errors.append(f"relationship {rel.name}: referenced column "
@@ -712,7 +712,7 @@ class LineageIngestError(Exception):
 
 def ingest_external_lineage(event, *, has_ingest_privilege=True, tables=TABLES,
                             strict_resolve=True):
-    """对标 External Lineage REST 端点：OpenLineage 事件进门三道闸。
+    """对标 External Lineage REST 端点：OpenLineage 事件入账前的三项校验。
 
     ①调用方须持账户级 INGEST LINEAGE 权限；②只接受 COMPLETE 事件；
     ③snowflake:// 命名空间引用的对象必须全部可解析——任一不满足，整事件拒绝。
@@ -744,7 +744,7 @@ def ingest_external_lineage(event, *, has_ingest_privilege=True, tables=TABLES,
     return n
 
 
-# ---- M6 · Agent Identity：代理身份与会话权限天花板 ----
+# ---- M6 · Agent Identity：代理身份与会话权限上界 ----
 
 USER_PERMS = {                          # 用户直接权限（统一 RBAC 现状）
     "data_governance": {"use:sales_sv", "select:orders", "select:customers"},
@@ -760,7 +760,7 @@ class AgentSession:
     agent: str
     perms: frozenset
     agent_type: str = "assistant"       # 对标 QUERY_HISTORY.agent_type 审计列
-    ceiling: bool = True                # 天花板会话：判定时实时求值，非冻结快照
+    ceiling: bool = True                # 上界会话：判定时实时求值，非冻结快照
 
 
 QUERY_LOG: list = []                    # 对标 QUERY_HISTORY / ACCESS_HISTORY.agents_info
@@ -769,7 +769,7 @@ QUERY_LOG: list = []                    # 对标 QUERY_HISTORY / ACCESS_HISTORY.
 def agent_session(user, agent="cortex-agent", *, ceiling=True):
     """Restricted Session Scope：会话实际权限 = 用户权限 ∩ 代理允许面（只减不增）。
 
-    天花板会话（ceiling=True）不冻结权限快照——session_allows 每次判定时实时
+    上界会话（ceiling=True）不冻结权限快照——session_allows 每次判定时实时
     重求交，用户权限被回收即刻生效（E2b/D9 的实时性断言即测试此语义）。
     ceiling=False 模拟退化实现：创建时拿用户全量并冻结快照——用户后续回收
     权限不影响既有会话（D9 的越权窗口）。
@@ -786,10 +786,10 @@ def audit_log(session: AgentSession, action: str):
 
 
 def session_allows(session: AgentSession, perm: str) -> bool:
-    """代理会话权限判定：天花板 ∩ 代理严拒面（身份语义归 M6，谓词消费面见 M2）。
+    """代理会话权限判定：上界 ∩ 代理严拒面（身份语义归 M6，谓词消费面见 M2）。
 
-    天花板会话在判定时实时求值 USER_PERMS[user] ∩ AGENT_SERVICE_ALLOWED——
-    权限天花板是查询期语义而非登录期快照（对标 RSS "privileges that are
+    上界会话在判定时实时求值 USER_PERMS[user] ∩ AGENT_SERVICE_ALLOWED——
+    权限上界是查询期语义而非登录期快照（对标 RSS "privileges that are
     revoked ... take effect immediately"，无缓存过期窗口）。
     """
     if session.agent_type and perm in AGENT_STRICT_DENY:
@@ -967,7 +967,7 @@ def scenario_C():
            and any(w.startswith("dim_filtered") for w in pkg2.warnings)
            and got2["path"] == "compile" and got2["result"] == {(): 650},
            f"RBAC 双层: 检索层对 intern 过滤 plan 建议（{[w for w in pkg2.warnings]}，"
-           f"降级总量 {got2['result']}）；直闯执行层 → {denied}（引擎是最后防线）")
+           f"降级总量 {got2['result']}）；直闯执行层 → {denied}（引擎是最后一道拦截）")
     conflicts = CATALOG.detect_conflicts()
     pkg3 = resolve(CATALOG, VIEWS, "活跃用户数", "analyst")
     got3 = mock_agent(CATALOG, pkg3, "活跃用户数", "analyst", VIEWS)
@@ -1051,9 +1051,9 @@ def scenario_E():
         except LineageIngestError:
             rejected.append("rejected")
     expect("E1b", rejected == ["rejected"] * 3 and len(LINEAGE_LEDGER) == n_before,
-           f"摄取三道闸: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝"
+           f"摄取三项校验: 非 COMPLETE / 对象不可解析 / 无 INGEST 权限 → 整事件拒绝"
            f" {rejected}（账本零污染）")
-    # E2 Agent Identity：天花板只减不增 + agent_type 审计 + 代理严拒面
+    # E2 Agent Identity：权限上界只减不增 + agent_type 审计 + 代理严拒面
     sess = agent_session("data_governance")
     agent_entry = audit_log(sess, "compile: revenue by month")
     expect("E2", sess.perms == frozenset({"use:sales_sv", "select:orders"})
@@ -1066,7 +1066,7 @@ def scenario_E():
     USER_PERMS["data_governance"].discard("select:orders")
     expect("E2b", not session_allows(sess, "select:orders")
            and session_allows(sess, "use:sales_sv"),
-           "天花板实时性: 回收 select:orders 后，既有会话判定即刻失去、其余权限"
+           "权限上界实时性: 回收 select:orders 后，既有会话判定即刻失去、其余权限"
            "不受牵连（查询期实时求值，无快照过期窗口）")
     USER_PERMS["data_governance"].add("select:orders")            # 还原
     # E3 分类与标签驱动策略传播：自动分类 + 一次性映射 + 新列自动纳入 + 缺口如实
@@ -1136,10 +1136,10 @@ def destructive():
     errs = validate_view(bad, TABLES)
     expect("D6", bool(errs) and any("not PRIMARY KEY/UNIQUE" in e for e in errs),
            f"拆结构校验（relationship 指向非键列）→ {'; '.join(errs)}"
-           f"—— 无门则垃圾定义静默入库（行数失控的注册期引信）")
+           f"—— 无门则垃圾定义静默入库（非键列 join 未在注册期拦下）")
     d7 = compile_query(SALES, "aov", dims=[], derived_post_agg=False)
     expect("D7", d7 == {(): 122.22}, "拆 derived 先聚后除 → 122.22（对照 108.33）")
-    # D8：拆血缘摄取的「对象可解析」闸 → 虚构对象边静默入账本
+    # D8：拆血缘摄取的「对象可解析」校验 → 虚构对象边静默入账本
     n0 = len(LINEAGE_LEDGER)
     ingest_external_lineage(
         {"eventType": "COMPLETE",
@@ -1149,26 +1149,26 @@ def destructive():
         strict_resolve=False)
     ghost = [e for e in LINEAGE_LEDGER if e.dst_table == "ghost"]
     expect("D8", len(ghost) == 1 and len(LINEAGE_LEDGER) == n0 + 1,
-           f"拆血缘解析闸 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流"
+           f"拆血缘解析校验 → 虚构对象入账（raw.y→ghost.x）——账本与真实数据流"
            f"脱钩，事后对账从此不可信")
     LINEAGE_LEDGER.remove(ghost[0])      # 还原账本，不污染后续
-    # D9：拆会话权限天花板 → 用户回收后，快照式旧会话仍持权（两会话均在回收前创建，
+    # D9：拆会话权限上界 → 用户回收后，快照式旧会话仍持权（两会话均在回收前创建，
     # 唯一差异 = ceiling 快照/实时——对照 D 系列单变量纪律）
     stale = agent_session("data_governance", ceiling=False)     # 全量快照（回收前）
-    live = agent_session("data_governance")                     # 天花板会话（回收前）
+    live = agent_session("data_governance")                     # 上界会话（回收前）
     USER_PERMS["data_governance"].discard("select:orders")      # 回收时刻
     leaky = session_allows(stale, "select:orders")
     live_ok = session_allows(live, "select:orders")
     USER_PERMS["data_governance"].add("select:orders")          # 还原
     expect("D9", leaky and not live_ok,
-           "拆权限天花板（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；"
-           "对照：同时创建的天花板会话判定时实时求值，同一时刻立即失去——不存在"
-           "「上次办的工牌还能用」的窗口")
-    # D10：拆「系统标签→用户标签」一次性映射 → 已分类敏感列明文出楼
+           "拆权限上界（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；"
+           "对照：同时创建的上界会话判定时实时求值，同一时刻立即失去——不存在"
+           "「回收前签发的会话凭证仍可用」的窗口")
+    # D10：拆「系统标签→用户标签」一次性映射 → 已分类敏感列以明文返回
     tags = classify(CUSTOMERS)
     leaked = project_cell("13800000000", "customers", "phone", tags, mapping={})
     expect("D10", leaked == "13800000000",
-           "拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍明文出楼"
+           "拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍以明文返回"
            "——发现→标记→执行 链条断在最后一环")
 
 
