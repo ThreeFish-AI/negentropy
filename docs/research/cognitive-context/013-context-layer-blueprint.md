@@ -1,7 +1,7 @@
 ---
 sidebar_position: 6
 title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
-description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（失效登记簿九簇 × 资产/权威/装配/检索/沉淀五轴 × 生命周期六段两环 G1–G7）× 机制=多轴组合 × 四范本矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes·Jev）× 供给面威胁模型 × negentropy 16+4 映射总装 × 修复序×轴依赖序路线"
+description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（失效登记簿十簇 × 资产/权威/装配/检索/沉淀五轴 × 生命周期六段两环 G1–G7）× 机制=多轴组合 × 四范本矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes·Jev）× 供给面威胁模型 × negentropy 16+4 映射总装 × 修复序×轴依赖序路线"
 ---
 
 > **定位**：Agents 系统 Context Layer 的设计蓝图 SSOT
@@ -24,11 +24,11 @@ description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（失效登
 > - 五轴名为本文键
 > - ADR-1/2/3/5/6
 
-## 1. 失效模式登记簿：九类失效汇总
+## 1. 失效模式登记簿：十类失效汇总
 
 Agent 的上下文系统出错，失效形态五花八门：同一个指标在两处各写了一份，同一个问题就答出两个数（「Q3 收入」$14.2M 对 $12.8M）；SQL 先连表后聚合，一个 $100 的订单对应三条事件记录，被重复算了三遍，成了 $300；数据在 BI 报表里打了码，导出来就是明文。这些失效各不相同，不集中登记，就没法逐条防住，也没法逐条验证。
 
-本章的登记簿把已知的失效形态穷举成一张表：一行一个具体失效，共 42 行，分九簇（同类失效归一簇）。后面 §2–§12 的每项设计，都要能指回登记簿的某一行，说清自己防住了哪种失效；指不回去的设计缺乏依据，因为说不清它在防什么。
+本章的登记簿把已知的失效形态穷举成一张表：一行一个具体失效，共 49 行，分十簇（同类失效归一簇）。后面 §2–§12 的每项设计，都要能指回登记簿的某一行，说清自己防住了哪种失效；指不回去的设计缺乏依据，因为说不清它在防什么。
 
 登记簿按三条规矩验收。
 
@@ -55,7 +55,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 170–175 | [Claude Code 精读](../agent-harness/170-claude-code-harness-overview.md) |
 | `file:line` | 代码事实的行内锚；行里说到代码现状时，以它指向的代码为准 |
 
-下面九簇依次展开：读每一行，先看要解决什么问题，再看怎么解决、怎么验证真的解决了。
+下面十簇依次展开：读每一行，先看要解决什么问题，再看怎么解决、怎么验证真的解决了。
 
 ### 1.1 口径簇：上下文定义
 
@@ -130,6 +130,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 无界记忆增长→agent 丢失上下文：窗口超限后近期消息被静默截断 | arXiv 2603.13110（40,000+ GitHub issues 六框架实证；240-msg 多主题细分：无管理关键信息保留 54.3% vs 生命周期管理 99.6%，论文头条 100/65.1 为单主题口径；模拟工作负载） | 上下文生命周期管理＋四步压缩「便宜的先跑贵的后跑」（落盘→裁中段→缩旧→才模型摘要，步名对齐 §6.4；配对不拆；可恢复占位，170–175）（映射 #18） | 压缩后 tool_use/tool_result 配对完整＋关键信息保留用例（机器门） |
 | 调度失效→上下文截断：阻塞/僵尸进程/限流级联 | arXiv 2603.13110（OpenClaw #24031：会话远超 contextTokens 限→近期消息意外截断） | 资源管理面：调度（僵尸回收/限流感知准入）＋压缩触发阈值契约；本仓现状：调度器模块在场 engine/schedulers，限流感知准入未验 | 上下文限违约时显式降级而非静默截断（机器门） |
 | 窗口过载倒 U：填充率过高同样降质 | Context Engineering 2.0 §6.3 引述 Osmani（窗口填充约超 50% 后编码性能常降）；011 §6 护栏表[14]（整视图 ~100K token guideline，超限触发 prune） | 预算带状指标（区间＋上限，非越大越好）＋常驻/检索两级预算（§6 装配轴） | 常驻块预算硬帽＋截断留痕（机器门） |
+| 缓存前缀失效：易变内容（时间戳、当轮检索结果）置入前缀，KV-cache 每请求全量重写——同样的正确性，数倍的成本与延迟 | Anthropic prompt caching 官方文档（命中省 90–95%、层级失效表、时间戳置顶即每请求全额重写反例）；Manus（agent 循环 input:output≈100:1、cache hit rate 为 "single most important metric"，原文引号）；[172 §6/§10 争议二](../agent-harness/172-claude-code-planning-coordination.md)（静态/动态段边界、隔离粒度与缓存效率的连续谱选址，转锚） | 缓存感知静/动分段：稳定内容进前缀、易变内容后置（§6.3 既有设计，本行为其登记簿对位行；MCP 2026-07-28 deterministic `tools/list` 同判——缓存确定性是接口契约） | 静态前缀占比下限＋缓存命中率断言（机器门） |
 
 ### 1.7 接线簇：上下文激活
 
@@ -144,13 +145,16 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 ### 1.8 记忆安全簇：上下文意图与安全
 
-良性记忆也会改变模型的行为边界；供给面同时有投毒与注入两条独立攻击路径。
+良性记忆也会改变模型的行为边界；供给面同时有投毒、注入与认证三条独立攻击路径。
 
 | 失效形态 | 证据锚 | 防护机制 | 验收判据 |
 | :-- | :-- | :-- | :-- |
 | intent legitimation：良性记忆偏置意图推断，把固有有害请求合法化 | arXiv 2601.17887 v2（PS-Bench base：个性化使攻击成功率相对无状态基线 +15.8%–243.7%；5 框架×5 基座） | 记忆面安全审查（检测-反思式降险＋记忆供给的意图审计）＋「记忆不是中立组件」进供给约束（§5） | 个性化前后有害响应率对照可测（机器门，需先建评测集） |
 | 供给面投毒：工具/技能描述成为攻击面 | USENIX（98,380 技能扫描出 157 恶意、632 漏洞，arXiv 2602.06547；样本为两大 registry）；Snyk 抽样（3,984 个、36.82% 有任意级安全问题、13.4% 达 CRITICAL） | 供给面威胁模型（§5）：元数据按不可信输入处理（MCP 2026-07-28「annotations untrusted」）＋注册期评审＋激活工具枚举约束；本仓现状：无外部下载面＝无传输完整性攻击面（幸运非设计），验签面缺 | 注册期清洗断言＋工具枚举白名单（机器门） |
 | 间接注入持久化：记忆/摘要成为常驻注入载体 | 供给面安全纪律旁证：MCP 规范 2026-07-28 凭据不跨源复用等禁令与 SEP-2640（「digest 匹配不得当作安全边界」）——规范管传输与供给面，不提供注入检测机制——SEP-2640 明文把技能内容列为注入面（"Skill content is instructional text delivered to a model, which makes it a prompt-injection surface"）、要求 host 按不可信输入施以既有防御，但记忆/摘要的持久化注入面须本侧自建扫描 | 写入端威胁扫描先于巩固上线（时序约束，本文设计决策：否则注入内容经巩固获得常驻位）＋注入信任边界段（「资料非指令」声明随注入配套）（映射 #20） | 巩固上线前写入端扫描在场（机器门：时序断言） |
+| 认证失效·confused deputy：Agent 被诱导以自身权限为第三方目的行事 | MCP 规范 2026-07-28 授权硬化纪律；§5.4 威胁表（拦截位：每客户端同意＋精确 redirect 匹配＋动作点风险分级强确认） | 同意粒度绑定到客户端与动作点，不以「Agent 已获授权」默认放行后续请求 | 同意记录含客户端标识与动作指纹（机器门） |
+| 认证失效·token 透传/窃取：凭据跨源复用扩大爆破面 | MCP 规范 2026-07-28 受众绑定纪律（每个上下文源独立受众绑定凭据，RFC 8707；令牌不跨源复用）；§5.4 威胁表 | 受众绑定凭据供给：按源隔离的凭据面，禁全局共享令牌 | 凭据-源绑定断言：任一凭据不可用于第二源（机器门） |
+| 认证失效·状态句柄冒充：持有句柄被当作持有身份 | MCP 规范 2026-07-28 无状态核心（SEP-2575）派生判定；§5.4 威胁表（拦截位：句柄绑 verified-token 主体＋HMAC/AEAD） | 「持有句柄 ≠ 认证」：句柄与验证过的主体绑定后可用，裸句柄不构成认证 | 句柄使用须通过主体绑定校验（机器门） |
 
 ### 1.9 组织运营簇：上下文认领
 
@@ -162,11 +166,21 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 信念-实践脱节：人人说重要、极少建成 | Redis SoCE 2026 落地页（97% 认为上下文决定 AI 成败、仅 4% 建成相应系统；81% 处于五级成熟度最早两级） | 登记簿本身：把「建成」拆为可逐项验收的对账项而非信念（n=1000 页内零披露，口径仅见官方社媒） | —（外部基线，用于定位，不作设计依据） |
 | 成熟组织仍喂陈旧数据、治理工具是最大单一障碍 | Redis SoCE 2026 落地页（69% 最成熟组织仍用陈旧数据喂关键决策；37% 认为治理工具是投产就绪最大单一障碍；n 限定同上、厂商利害：Redis 售上下文产品） | 新鲜度信号＋治理执法点前置（§5/§9 的直接动机） | —（外部基线） |
 
-横读一簇看同类失效的各种形态，竖读「防护机制」列看 M 键、ISSUE、G 键的分布，九簇之中访问控制簇行数最多（9 行），执行、供给两簇各 6 行。
+### 1.10 协作簇：上下文共享
 
-九簇失效形态分布总览：
+单 Agent 的供给都对了，并行化仍会引入一族新失效：上下文随任务分片被割裂，而决策与约定不会随分片自动传播。本簇是 Context Engineering 2.0 八算子第 7（跨代理/系统共享，§2.2）的登记簿落位——此前该算子与多模态并列「跨轴未单列」，本轮补齐前者。
 
-![失效模式登记簿九簇四十二行总览：口径、执行、访问控制、验证、供给、运行时、接线、记忆安全、组织运营九簇的失效形态分布](../../assets/architecture/cognitive-context/context-layer--failure-map-dark.png)
+| 失效形态 | 证据锚 | 防护机制 | 验收判据 |
+| :-- | :-- | :-- | :-- |
+| 上下文割裂：并行分片后隐性决策不随任务描述传播，子 Agent 按缺失上下文各行其是 | Cognition 两原则（"share full agent traces" / "actions carry implicit decisions"，一手页在引）；[175 §3–§8](../agent-harness/175-claude-code-multi-agent-platform.md) E1–E5 破坏实验（上下文分叉即产出分叉，转锚） | 任务契约全量交接：发起方决策轨迹随任务下发，不发裸任务摘要；本仓纪律：并行子代理禁 git 写、产出经主 Agent 组装（[170–175](../agent-harness/170-claude-code-harness-overview.md)） | 任务下发物含决策上下文断言（人审＋机器门） |
+| 认领竞态（TOCTOU）：检查与写入不在同一临界区，两个 Agent 认领同一工作 | 175 多代理平台认领机制（检查＋写入同临界区、账本单点路由，转锚） | 认领临界区＋账本单点路由：可认领性判定与写入原子化 | 并发认领不双占（机器门） |
+| 协商不可追踪：「AI 答应过」不构成可追踪的状态变更，口头约定无协议记录 | 175 结构化协议（编号/类型校验/防重，转锚） | 带编号、类型校验与防重的结构化协议：状态变更必经协议消息 | 状态变更必有协议记录（机器门） |
+
+横读一簇看同类失效的各种形态，竖读「防护机制」列看 M 键、ISSUE、G 键的分布，十簇之中访问控制簇行数最多（9 行），执行、供给、运行时、记忆安全四簇各 6 行。
+
+十簇失效形态分布总览：
+
+![失效模式登记簿十簇四十九行总览：口径、执行、访问控制、验证、供给、运行时、接线、记忆安全、组织运营、协作十簇的失效形态分布](../../assets/architecture/cognitive-context/context-layer--failure-map-dark.png)
 
 > 图源（可 diff 文本）：[`context-layer--failure-map.mmd`](../../assets/mermaid/cognitive-context/context-layer--failure-map.mmd) · 交互版（下载到本地打开）：[`context-layer--failure-map.html`](../../assets/architecture/cognitive-context/context-layer--failure-map.html)
 
@@ -174,11 +188,11 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 ## 2. 第一性对象与理论锚
 
-§1 的登记簿列全了失效形态；本章往回追一步，回答这些失效为什么集中爆发：它们共享同一个第一性对象，Agent 运行时上下文。先给这个对象的问题定义（三类失效现象与三个根因），再给形式定义（Context Engineering 2.0 论文，arXiv 2510.26493）与产品侧定义（a16z 的定名文与 Atlan 的五层框架），随后立起分析单元（每轮装配事务），以研究范围收束。§3 的三面蓝图在这个对象之上展开。
+§1 的登记簿列全了失效形态；本章往回追一步，回答这些失效为什么集中爆发：它们共享同一个第一性对象，Agent 运行时上下文。先给这个对象的问题定义（四类失效现象与四个根因：数据侧三类承 011 口径，模型侧一类为本篇补充），再给形式定义（Context Engineering 2.0 论文，arXiv 2510.26493）与产品侧定义（a16z 的定名文与 Atlan 的五层框架），随后立起分析单元（每轮装配事务），以研究范围收束。§3 的三面蓝图在这个对象之上展开。
 
-### 2.1 为什么需要：三类失效现象与三个根因
+### 2.1 为什么需要：四类失效现象与四个根因
 
-（现象与根因为 [011](./011-horizon-context.md) §1 口径。）
+（现象一至三与根因①–③为 [011](./011-horizon-context.md) §1 口径；现象四与根因④为本篇补充——模型/harness 侧，承接 §1.6 运行时簇与 [170–175](../agent-harness/170-claude-code-harness-overview.md)。）
 
 **现象一：同一个问题，两个数。** 销售负责人问 AI「Q3 收入」，答 $14.2M；CFO 同一天问同一份数据，答 $12.8M（Snowflake 官方博客开场案例）。指标定义散落在 BI 模型、报表公式、甚至手写进 prompt 的 instruction 里；各团队各抄一份、各改各的。
 
@@ -186,7 +200,9 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 **现象三：访问控制管不住新的提问者。** 访问策略按「人来查」设计；Agent 拿着用户的全权凭证进来，默认继承一切，包括生产库写权限和 ACCOUNTADMIN 级角色（Snowflake 官方文档）。
 
-三类现象往下挖是三个**不会自行消失的根因**。口径散落：「收入是什么」没有唯一权威定义处，每个消费者自带一份副本，漂移只是时间问题。执行算错：join 顺序、聚合方式、粒度对齐任何一环走样，合法 SQL 照样产出业务上的错数（fan trap、平均的平均、distinct 双计、半可加跨天相加）。访问控制被绕过：策略实现在应用层或 BI 层，绕开这个应用就等于绕开策略，数据一导出、口径一复制，保护即失效。§1 登记簿的九簇是这三个根因在供给、运行时、接线等更多失效面上的展开；本蓝图全部结构都按「哪条轴、哪一段防住哪条失效」组织。
+**现象四：任务一长、会话一换，Agent 自己先坏。** 上面三类坏在「喂错了什么」，这一类坏在模型的认知资源本身。长任务多轮推进：窗口超限后近期消息被静默截断（OpenClaw #24031，arXiv 2603.13110 转述）；240 条消息的多主题会话，无上下文生命周期管理时关键信息保留 54.3%、有管理 99.6%（同一论文，登记簿 §1.6 已录）；任务不变、只往窗口加内容，18 个 2025 旗舰模型准确率单调下滑，且劣化发生在各自标称窗口之内（Chroma《Context Rot》一手实测）——不是窗口不够大，是注意力随长度摊薄；窗口填充约超 50% 后编码性能常降（倒 U，§1.6 已录）；工具全量挂载则选错工具，46 件减到 19 件即选对（§1.6 已录）。换个会话：从零开始，上一个会话学到的一切都不在场（CoALA：「Language models are stateless」）。Anthropic 把这两端统称为信息稀缺与信息过载（info scarcity / info excess）——上下文过少与过多同样降质。
+
+四类现象往下挖是四个**不会自行消失的根因**。口径散落：「收入是什么」没有唯一权威定义处，每个消费者自带一份副本，漂移只是时间问题。执行算错：join 顺序、聚合方式、粒度对齐任何一环走样，合法 SQL 照样产出业务上的错数（fan trap、平均的平均、distinct 双计、半可加跨天相加）。访问控制被绕过：策略实现在应用层或 BI 层，绕开这个应用就等于绕开策略，数据一导出、口径一复制，保护即失效。模型认知资源结构性不足：注意力随长度摊薄（n 个 token 产生 n² 两两注意力关系，Anthropic 口径）、窗口是硬额度、单次调用无跨轮状态——三条都是架构属性，模型换代不消除、窗口免费也不消除，「等模型升级」不是出路。§1 登记簿的十簇由两组根因展开：1.1–1.3 直接承接数据侧三根因；1.6 行 1/2/5 承接根因④；其余行承接正交根因面——验证缺失（治理≠验证）、检索与装配工程、存在≠接线≠在线、记忆与供给安全、供给人力与组织认领、多 Agent 共享（1.10）。本蓝图全部结构都按「哪条轴、哪一段防住哪条失效」组织。
 
 失效不全是技术问题，组织面早有佐证：MIT《State of AI in Business 2025》的结论——「most fail due to brittle workflows, lack of contextual learning, and misalignment with day-to-day operations」——经 a16z 转述（MIT 中立机构，引文以 a16z 页为准）；Redis 调查口径：97% 认为上下文决定 AI 成败、只有 4% 建成了相应系统（n=1000 在报告落地页与公开文本零披露、方法论未公开）。ownership 缺位与组织运营失效的完整簇见 §11。
 
@@ -198,7 +214,7 @@ Context Engineering 2.0 给出一组可用符号推演的定义。定义 1（实
 
 论文对 Context Engineering 2.0 的操作集给出 may-include 清单（原文自标非穷举枚举）：①采集 ②存储管理 ③一致可互操作表示 ④多模态处理 ⑤整合复用过去上下文（"self-baking"，原文引号）⑥选取最相关元素 ⑦跨代理/系统共享 ⑧依反馈动态适配。
 
-这组定义给本蓝图三样东西。其一，式 2 把 instruction、memory、knowledge、tools+skills、session 装进同一个定义域：它们都是某类实体（用户、应用、环境、工具、记忆模块）的表征，不必按「数据类型」另立顶层分类。其二，𝒯 进入定义使「上下文的好坏」成为任务相对量：同一段内容对 A 任务是信号、对 B 任务是噪声（本蓝图读法）。这是 §6 预算纪律的形式化出处。其三，八算子是覆盖度核对表：§3.5 的投影表覆盖其中六项（存储/表示→资产、选取/压缩→装配、采集候选面→检索、self-baking/适配→沉淀），多模态与跨系统共享两项跨轴未单列；核对结论是「主类操作有落位」，非完备证明（清单原文自标 may-include 非穷举）。工程侧口径（Anthropic 官方定义）与形式化定义说的是同一件事：上下文＝「从 LLM 采样时所纳入的 token 集合」，上下文工程＝「在推理期间策划并维护最优 token 集合的一组策略」。形式化的 C 在工程口径里就是「当轮窗口内容」，这正是下一节的分析单元。
+这组定义给本蓝图三样东西。其一，式 2 把 instruction、memory、knowledge、tools+skills、session 装进同一个定义域：它们都是某类实体（用户、应用、环境、工具、记忆模块）的表征，不必按「数据类型」另立顶层分类。其二，𝒯 进入定义使「上下文的好坏」成为任务相对量：同一段内容对 A 任务是信号、对 B 任务是噪声（本蓝图读法）。这是 §6 预算纪律的形式化出处。其三，八算子是覆盖度核对表：§3.5 的投影表覆盖其中七项（存储/表示→资产、选取/压缩→装配、采集候选面→检索、self-baking/适配→沉淀、跨代理/系统共享→协作簇 §1.10），多模态一项跨轴未单列；核对结论是「主类操作有落位」，非完备证明（清单原文自标 may-include 非穷举）。工程侧口径（Anthropic 官方定义）与形式化定义说的是同一件事：上下文＝「从 LLM 采样时所纳入的 token 集合」，上下文工程＝「在推理期间策划并维护最优 token 集合的一组策略」。形式化的 C 在工程口径里就是「当轮窗口内容」，这正是下一节的分析单元。
 
 ### 2.3 产品侧定义：a16z 三动词与 Atlan 五层
 
@@ -224,9 +240,9 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 - Claude Code 每轮重装配：工具面取自注册表、记忆段按运行时事实铺设、静/动分段与缓存前缀每轮重算。模型每轮「看见什么」由装配过程决定，不是模型自己说了算（170–175 转锚）。
 - 本仓实况：记忆注入的真实通道是 NegentropyPreloadMemoryTool，每轮以用户消息为检索词执行记忆检索并注入，挂载于 root agent 工具面（[`agents/tools/memory.py`](../../../apps/negentropy/src/negentropy/agents/tools/memory.py) :127、[`agents/agent.py`](../../../apps/negentropy/src/negentropy/agents/agent.py) :248）；设计上更完整的 ContextAssembler.assemble() 生产调用为 0。分析单元必须取实际发生的装配事务，不取设计文档里的装配函数。
 
-由此得出三条推论：三类现象全部发生在装配事务内部（错口径被装配进窗口、错证据被装配进窗口、越权数据被装配进窗口）；D1–D10 破坏实验（011 §6）大多是对装配事务的单点干预（D8 在 L1 摄取门、D6/D4/D10 落 L2 校验与裁决段，段位对账见 §9.2）；§12 映射表以装配事务为对账口径。装配面实况的完整对账（负发现＋正锚五挂点）由 §6 承载。
+由此得出三条推论：四类现象全部发生在装配事务内部（错口径被装配进窗口、错证据被装配进窗口、越权数据被装配进窗口；过量内容与缺失记忆同样是装配面事件——装了不该装的、没装该装的）；D1–D10 破坏实验（011 §6）大多是对装配事务的单点干预（D8 在 L1 摄取门、D6/D4/D10 落 L2 校验与裁决段，段位对账见 §9.2）；§12 映射表以装配事务为对账口径。装配面实况的完整对账（负发现＋正锚五挂点）由 §6 承载。
 
-![第一性对象与分析单元：实体空间 ℰ 的相关子集 E_rel 经 Char 映射取并集得到原始上下文 C（式 2）；式 4 的 f_context 每被实调用一次＝一次装配事务——三类现象发生在事务内部，验收以事务为最小单位](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object-dark.png)
+![第一性对象与分析单元：实体空间 ℰ 的相关子集 E_rel 经 Char 映射取并集得到原始上下文 C（式 2）；式 4 的 f_context 每被实调用一次＝一次装配事务——四类现象发生在事务内部，验收以事务为最小单位](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object-dark.png)
 
 > 图源（可 diff 文本）：[`context-layer-blueprint--first-class-object.mmd`](../../assets/mermaid/cognitive-context/context-layer-blueprint--first-class-object.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--first-class-object.html`](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html)
 
@@ -248,13 +264,13 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 | 面 | 回答的问题 | 承载 | 组织方式 |
 | :-- | :-- | :-- | :-- |
-| 验收面 | 防住了哪些失效 | §1 登记簿 | 失效形态×证据锚×防护机制×验收判据四列，九簇组织 |
+| 验收面 | 防住了哪些失效 | §1 登记簿 | 失效形态×证据锚×防护机制×验收判据四列，十簇组织 |
 | 结构面 | 设计沿哪几条独立维度组织 | §4–§8 五轴 | 每条轴有专属失效与专属设计参数 |
 | 时间面 | 对象从注册到退役怎么流动 | §9 六段两环＋G 法则 | 段＝单对象流转阶段；环＝错答案回流路径 |
 
 读法：设计先问「防什么」、再问「怎么实现」。验收独立成面的直接收益，是登记簿可以跨结构修订长期沿用：失效登记延续、结构轴可换，登记簿本身不动。结构与时间分成两面，因为它们是两种分解：轴是设计参数的稳态分类（换检索算法时五轴定义不变），段是单个对象的流转时序（一条 verified 问答对从沉淀到重验走完六段）；把两者压进同一套名词（用一套「层」同时当结构和流程），每个概念就得同时承担两种变化，§3.5 投影表里 Atlan 五层正是败在这里。
 
-![三面蓝图总览：验收面（登记簿九簇）×结构面（资产/权威/装配/检索/沉淀五轴）×时间面（L1–L6 六段＋验证环/进化环两环）——三面相互独立：机制落在多轴组合上、G 法则绑定在段间转换](../../assets/architecture/cognitive-context/context-layer-blueprint--architecture-dark.png)
+![三面蓝图总览：验收面（登记簿十簇）×结构面（资产/权威/装配/检索/沉淀五轴）×时间面（L1–L6 六段＋验证环/进化环两环）——三面相互独立：机制落在多轴组合上、G 法则绑定在段间转换](../../assets/architecture/cognitive-context/context-layer-blueprint--architecture-dark.png)
 
 > 图源（可 diff 文本）：[`context-layer-blueprint--architecture.mmd`](../../assets/mermaid/cognitive-context/context-layer-blueprint--architecture.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--architecture.html`](../../assets/architecture/cognitive-context/context-layer-blueprint--architecture.html)
 
@@ -324,7 +340,7 @@ Horizon 七个机制（M1–M7 的内容与实验键 D1–D10 定义于 [011](./
 | Horizon 四信号（Structural/Operational/Semantic/Behavioral） | [011](./011-horizon-context.md) §2 | 资产轴分类 facet（§4） | 信号刻画资产属性，不含执法点与流转 |
 | Atlan 五层（system/session/memory/artifacts/on-demand） | Atlan guide（厂商） | 装配轴时序投影（§6）：system≈常驻、session/memory≈常驻＋渐进、artifacts≈仅引用、on-demand≈JIT | 名词与副词并列、权威与沉淀缺位——非正交（§3.1） |
 | a16z 三动词（tie together / add / package） | a16z 定名文（投资人） | 时间面流程投影：≈L1 采集 / L2 校验与裁决 / L3 供给 | 流程叙事（冷启动次序）非结构；且自认只写 data context 半边（§2.3） |
-| CE2 三支柱 / 八算子（Collection / Management / Usage） | arXiv:2510.26493 | 覆盖度核对表：资产＝存储＋表示、装配＝选取＋压缩、检索＝采集之候选面、沉淀＝self-baking＋适配（多模态/共享两项未单列，定性见 §2.2） | 时间切片的流水线阶段——作顶层结构会让每章重复同一批动词 |
+| CE2 三支柱 / 八算子（Collection / Management / Usage） | arXiv:2510.26493 | 覆盖度核对表：资产＝存储＋表示、装配＝选取＋压缩、检索＝采集之候选面、沉淀＝self-baking＋适配、跨代理共享＝协作簇（§1.10；多模态一项未单列，定性见 §2.2） | 时间切片的流水线阶段——作顶层结构会让每章重复同一批动词 |
 | CC 装配五个设计参数（预算/披露/JIT/缓存/压缩） | 170–175 | 装配轴细节组（§6 整组承接，ADR-6） | 局部参数面，非全局结构 |
 
 ### 3.6 ADR 台账
@@ -1206,6 +1222,12 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 - B. Evelson, "The Next Evolution of AI Will Rely on Context Layers," Forrester Blog, Aug. 20, 2026. https://www.forrester.com/blogs/the-next-evolution-of-ai-will-rely-on-context-layers/
 - Colrows (H. Chouhan), "MCP Is Not Enough: Why AI Agents Need a Semantic Layer," 2026-08-30 修订. https://colrows.com/blogs/mcp-governed-semantic-layer/
 - Redis, "The State of Context Engineering," 2026（n=1,000，方法论未公开）. https://redis.io/resources/state-of-context-engineering-2026/
+- Chroma, "Context Rot: The Challenge of Long Contexts," Chroma Research, Jul. 2025（技术报告，无 arXiv 编号，一手页为准：18 个 2025 旗舰模型实测）. https://www.trychroma.com/research/context-rot
+- Anthropic, "Effective Context Engineering for AI Agents," Anthropic Engineering Blog, Sep. 2025（info scarcity / info excess、attention budget、compaction 与 sub-agent 架构口径）. https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+- Anthropic, "Prompt Caching," Documentation（缓存命中省 90–95%、层级失效表、时间戳置顶反例）. https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+- Manus, "Context Engineering for AI Agents: Lessons from Building Manus," 2025（cache hit rate 为 single most important metric、input:output≈100:1）. https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+- Cognition, "Don't Build Multi-Agents," 2025（两原则：share full agent traces / actions carry implicit decisions）. https://cognition.com/blog/dont-build-multi-agents
+- T. R. Sumers, S. Yao, K. Narasimhan, and T. L. Griffiths, "Cognitive Architectures for Language Agents," arXiv:2309.02427, 2023（"Language models are stateless" 原文）. https://arxiv.org/abs/2309.02427
 - V. Paramanayakam, A. Karatzas, I. Anagnostopoulos, and D. Stamoulis, "Less is More: Optimizing Function Calling for LLM Execution on Edge Devices," arXiv:2411.15399, 2024. https://arxiv.org/abs/2411.15399
 - P. Laban, H. Hayashi, Y. Zhou, and J. Neville, "LLMs Get Lost in Multi-Turn Conversation," arXiv:2505.06120, 2025. https://arxiv.org/abs/2505.06120
 - J. She, "AgentRM: An OS-Inspired Resource Manager for LLM Agent Systems," arXiv:2603.13110, 2026. https://arxiv.org/abs/2603.13110
