@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-09T16:34:53.866Z",
+  "startedAt": "2026-10-16T05:01:10.004Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--layer-mechanism-map-20261010-003427/candidate.json",
-    "sha256": "8dfe703223e78f063b79e063859258b5f95b1f8a108fec14b78e26db2b1cbfa0",
-    "bytes": 6305
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
+    "sha256": "77c66b02cff469fb8d147004f3dd2106a313844295c3de85cbd47572242d183d",
+    "bytes": 8083
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
-    "sha256": "3e699927892756db977883e1014317d76f199e78d86721c8b650a60301ebc993",
-    "bytes": 775201
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+    "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+    "bytes": 775390
   },
   "stages": {
     "validate": {
@@ -27,8 +27,8 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--layer-mechanism-map-20261010-003427/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "--quality",
         "showcase",
         "--json"
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "8dfe703223e78f063b79e063859258b5f95b1f8a108fec14b78e26db2b1cbfa0",
-          "bytes": 6305
+          "sha256": "77c66b02cff469fb8d147004f3dd2106a313844295c3de85cbd47572242d183d",
+          "bytes": 8083
         },
         "validation": {
           "checksPassed": 9,
@@ -54,33 +54,33 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 691,
+      "durationMs": 405,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--layer-mechanism-map-20261010-003427/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "--quality",
         "showcase",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "6d38b72b-cffb-43c6-88ca-9d12fa7418d7",
+        "receiptId": "3363b5a7-278a-4ab4-8128-40745d4c2142",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--layer-mechanism-map-20261010-003427/candidate.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "specification": {
-          "sha256": "8dfe703223e78f063b79e063859258b5f95b1f8a108fec14b78e26db2b1cbfa0",
-          "bytes": 6305
+          "sha256": "77c66b02cff469fb8d147004f3dd2106a313844295c3de85cbd47572242d183d",
+          "bytes": 8083
         },
         "artifact": {
-          "sha256": "3e699927892756db977883e1014317d76f199e78d86721c8b650a60301ebc993",
-          "bytes": 775201
+          "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+          "bytes": 775390
         },
         "validation": {
           "checksPassed": 9,
@@ -95,20 +95,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 91,
+      "durationMs": 87,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "artifact": {
-          "sha256": "3e699927892756db977883e1014317d76f199e78d86721c8b650a60301ebc993",
-          "bytes": 775201
+          "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+          "bytes": 775390
         },
         "checks": [
           {
@@ -178,7 +178,7 @@
             "minLabelRouteClearance": 9.7,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 6.2521008403361344,
+            "minProjectedNodeTextPx": 6.017647058823529,
             "maxBends": 2,
             "routesOverSuggestedBends": 0,
             "maxStretch": 1,
@@ -223,14 +223,14 @@
                 "left": {
                   "from": "m3_semantic_gov",
                   "to": "axis_authority",
-                  "label": "引擎执法·底线",
+                  "label": "引擎执法·强制层",
                   "collectionIndex": 12,
                   "artifactIndex": 13
                 },
                 "right": {
                   "from": "m7_tagging",
                   "to": "axis_authority",
-                  "label": "映射闸显式分开",
+                  "label": "映射校验门显式分开",
                   "collectionIndex": 15,
                   "artifactIndex": 16
                 },
@@ -244,14 +244,14 @@
                 "left": {
                   "from": "m3_semantic_gov",
                   "to": "axis_retrieval",
-                  "label": "候选层过滤·体验",
+                  "label": "候选层过滤·体验层",
                   "collectionIndex": 13,
                   "artifactIndex": 14
                 },
                 "right": {
                   "from": "m7_tagging",
                   "to": "axis_authority",
-                  "label": "映射闸显式分开",
+                  "label": "映射校验门显式分开",
                   "collectionIndex": 15,
                   "artifactIndex": 16
                 },
@@ -284,30 +284,28 @@
             "hardFloorPx": 6,
             "hardFloorMet": true,
             "minimumOwner": {
-              "kind": "edge",
-              "id": null,
-              "from": "m1_semantic_view",
-              "to": "axis_asset"
+              "kind": "node",
+              "id": "m1_semantic_view"
             },
-            "minimumSourceTextPx": 8,
-            "minimumProjectedTextPx": 6.2521008403361344,
+            "minimumSourceTextPx": 7.7,
+            "minimumProjectedTextPx": 6.017647058823529,
             "semanticTextCount": 37
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "6d38b72b-cffb-43c6-88ca-9d12fa7418d7"
+        "deliveryReceiptId": "3363b5a7-278a-4ab4-8128-40745d4c2142"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1088,
+      "durationMs": 1027,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
         "--json",
         "--require-provenance"
       ],
@@ -320,11 +318,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "6d38b72b-cffb-43c6-88ca-9d12fa7418d7",
+        "deliveryReceiptId": "3363b5a7-278a-4ab4-8128-40745d4c2142",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
-          "sha256": "3e699927892756db977883e1014317d76f199e78d86721c8b650a60301ebc993",
-          "bytes": 775201
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+          "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+          "bytes": 775390
         },
         "state": {
           "detail": "read",
@@ -346,7 +344,7 @@
               "innerWidth": 1440,
               "innerHeight": 900,
               "scrollWidth": 1440,
-              "scrollHeight": 952,
+              "scrollHeight": 995,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -355,27 +353,25 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1132,
-              "diagramWidth": 1102,
+              "readerWidth": 1190,
+              "diagramWidth": 1160,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
                 "diagramChromePx": 78,
-                "svgPx": 809,
+                "svgPx": 852,
                 "cardsPx": 0,
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.408403361344538,
-              "minimumProjectedNonEdgeTextPx": 7.501008403361345,
-              "minimumProjectedEdgeTextPx": 7.408403361344538,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextPx": 7.5058823529411764,
+              "minimumProjectedNonEdgeTextPx": 7.5058823529411764,
+              "minimumProjectedEdgeTextPx": 7.798319327731092,
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -398,7 +394,7 @@
               "innerWidth": 1600,
               "innerHeight": 1000,
               "scrollWidth": 1600,
-              "scrollHeight": 1018,
+              "scrollHeight": 1061,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -407,27 +403,25 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1132,
-              "diagramWidth": 1102,
+              "readerWidth": 1190,
+              "diagramWidth": 1160,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 809,
+                "svgPx": 852,
                 "cardsPx": 0,
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.408403361344538,
-              "minimumProjectedNonEdgeTextPx": 7.501008403361345,
-              "minimumProjectedEdgeTextPx": 7.408403361344538,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextPx": 7.5058823529411764,
+              "minimumProjectedNonEdgeTextPx": 7.5058823529411764,
+              "minimumProjectedEdgeTextPx": 7.798319327731092,
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -470,16 +464,14 @@
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.872268907563025,
-              "minimumProjectedNonEdgeTextPx": 7.970672268907562,
+              "minimumProjectedNodeTextPx": 7.577058823529412,
+              "minimumProjectedNonEdgeTextPx": 7.577058823529412,
               "minimumProjectedEdgeTextPx": 7.872268907563025,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -522,16 +514,14 @@
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8.1,
+              "minimumProjectedNodeTextPx": 7.7,
+              "minimumProjectedNonEdgeTextPx": 7.7,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -607,7 +597,7 @@
               "innerWidth": 1440,
               "innerHeight": 900,
               "scrollWidth": 1440,
-              "scrollHeight": 952,
+              "scrollHeight": 995,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -616,27 +606,25 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1132,
-              "diagramWidth": 1102,
+              "readerWidth": 1190,
+              "diagramWidth": 1160,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
                 "diagramChromePx": 78,
-                "svgPx": 809,
+                "svgPx": 852,
                 "cardsPx": 0,
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.408403361344538,
-              "minimumProjectedNonEdgeTextPx": 7.501008403361345,
-              "minimumProjectedEdgeTextPx": 7.408403361344538,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextPx": 7.5058823529411764,
+              "minimumProjectedNonEdgeTextPx": 7.5058823529411764,
+              "minimumProjectedEdgeTextPx": 7.798319327731092,
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -659,7 +647,7 @@
               "innerWidth": 1600,
               "innerHeight": 1000,
               "scrollWidth": 1600,
-              "scrollHeight": 1018,
+              "scrollHeight": 1061,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -668,27 +656,25 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1132,
-              "diagramWidth": 1102,
+              "readerWidth": 1190,
+              "diagramWidth": 1160,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 809,
+                "svgPx": 852,
                 "cardsPx": 0,
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.408403361344538,
-              "minimumProjectedNonEdgeTextPx": 7.501008403361345,
-              "minimumProjectedEdgeTextPx": 7.408403361344538,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextPx": 7.5058823529411764,
+              "minimumProjectedNonEdgeTextPx": 7.5058823529411764,
+              "minimumProjectedEdgeTextPx": 7.798319327731092,
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -731,16 +717,14 @@
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.872268907563025,
-              "minimumProjectedNonEdgeTextPx": 7.970672268907562,
+              "minimumProjectedNodeTextPx": 7.577058823529412,
+              "minimumProjectedNonEdgeTextPx": 7.577058823529412,
               "minimumProjectedEdgeTextPx": 7.872268907563025,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -783,16 +767,14 @@
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8.1,
+              "minimumProjectedNodeTextPx": 7.7,
+              "minimumProjectedNonEdgeTextPx": 7.7,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -820,7 +802,7 @@
               "innerWidth": 1440,
               "innerHeight": 900,
               "scrollWidth": 1440,
-              "scrollHeight": 952,
+              "scrollHeight": 995,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -829,27 +811,25 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1132,
-              "diagramWidth": 1102,
+              "readerWidth": 1190,
+              "diagramWidth": 1160,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
                 "diagramChromePx": 78,
-                "svgPx": 809,
+                "svgPx": 852,
                 "cardsPx": 0,
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.408403361344538,
-              "minimumProjectedNonEdgeTextPx": 7.501008403361345,
-              "minimumProjectedEdgeTextPx": 7.408403361344538,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextPx": 7.5058823529411764,
+              "minimumProjectedNonEdgeTextPx": 7.5058823529411764,
+              "minimumProjectedEdgeTextPx": 7.798319327731092,
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -872,7 +852,7 @@
               "innerWidth": 1600,
               "innerHeight": 1000,
               "scrollWidth": 1600,
-              "scrollHeight": 1018,
+              "scrollHeight": 1061,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -881,27 +861,25 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1132,
-              "diagramWidth": 1102,
+              "readerWidth": 1190,
+              "diagramWidth": 1160,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 809,
+                "svgPx": 852,
                 "cardsPx": 0,
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.408403361344538,
-              "minimumProjectedNonEdgeTextPx": 7.501008403361345,
-              "minimumProjectedEdgeTextPx": 7.408403361344538,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextPx": 7.5058823529411764,
+              "minimumProjectedNonEdgeTextPx": 7.5058823529411764,
+              "minimumProjectedEdgeTextPx": 7.798319327731092,
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -944,16 +922,14 @@
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 7.872268907563025,
-              "minimumProjectedNonEdgeTextPx": 7.970672268907562,
+              "minimumProjectedNodeTextPx": 7.577058823529412,
+              "minimumProjectedNonEdgeTextPx": 7.577058823529412,
               "minimumProjectedEdgeTextPx": 7.872268907563025,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -996,16 +972,14 @@
                 "viewBoxHeight": 874
               },
               "viewBoxWidth": 1190,
-              "minimumProjectedNodeTextPx": 8,
-              "minimumProjectedNonEdgeTextPx": 8.1,
+              "minimumProjectedNodeTextPx": 7.7,
+              "minimumProjectedNonEdgeTextPx": 7.7,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "五段式对象",
-              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeText": "资产×权威×装配 · 口径与执行两类根因",
+              "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
-                "kind": "edge",
-                "id": null,
-                "from": "m1_semantic_view",
-                "to": "axis_asset"
+                "kind": "node",
+                "id": "m1_semantic_view"
               },
               "minimumRequiredNodeTextPx": 6,
               "readabilityOk": true,
@@ -1037,11 +1011,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-09T16:34:55.987Z",
-  "durationMs": 2120
+  "finishedAt": "2026-10-16T05:01:11.945Z",
+  "durationMs": 1940
 }

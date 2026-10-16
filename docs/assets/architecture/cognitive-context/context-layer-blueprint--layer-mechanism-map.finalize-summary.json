@@ -6,14 +6,14 @@
   "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--layer-mechanism-map-20261010-003427/candidate.json",
-    "sha256": "8dfe703223e78f063b79e063859258b5f95b1f8a108fec14b78e26db2b1cbfa0",
-    "bytes": 6305
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
+    "sha256": "77c66b02cff469fb8d147004f3dd2106a313844295c3de85cbd47572242d183d",
+    "bytes": 8083
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
-    "sha256": "3e699927892756db977883e1014317d76f199e78d86721c8b650a60301ebc993",
-    "bytes": 775201
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+    "sha256": "e148b6938a094ae4f047803152e43517852fd73e165f8c059dd756c30190441e",
+    "bytes": 775390
   },
   "gates": {
     "validate": "pass",
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2120,
+  "durationMs": 1940,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {
@@ -67,14 +67,14 @@
           "left": {
             "from": "m3_semantic_gov",
             "to": "axis_authority",
-            "label": "引擎执法·底线",
+            "label": "引擎执法·强制层",
             "collectionIndex": 12,
             "artifactIndex": 13
           },
           "right": {
             "from": "m7_tagging",
             "to": "axis_authority",
-            "label": "映射闸显式分开",
+            "label": "映射校验门显式分开",
             "collectionIndex": 15,
             "artifactIndex": 16
           },
@@ -88,14 +88,14 @@
           "left": {
             "from": "m3_semantic_gov",
             "to": "axis_retrieval",
-            "label": "候选层过滤·体验",
+            "label": "候选层过滤·体验层",
             "collectionIndex": 13,
             "artifactIndex": 14
           },
           "right": {
             "from": "m7_tagging",
             "to": "axis_authority",
-            "label": "映射闸显式分开",
+            "label": "映射校验门显式分开",
             "collectionIndex": 15,
             "artifactIndex": 16
           },

@@ -2980,7 +2980,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       body { background: #ffffff !important; padding: 0; }
       .container { max-width: none; }
       .toolbar, .diagram-nav, .focus-chip, .archify-toast, .no-print { display: none !important; }
-
+      
       .diagram-container, .card { box-shadow: none; border-color: #e2e8f0; }
       .diagram-container { --archify-nav-reserve: 0px !important; }
       html[data-preset="signal-flow"] .diagram-container,
@@ -3902,24 +3902,24 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .route-journey-controls button { min-height: 2.75rem; }
       .route-probe-status { padding: 0.05rem 0.48rem 0.38rem; }
       .route-probe-node { max-width: 7.5rem; }
-
-
-
-
-
-
-
-
-
-
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       html[data-embed="true"][data-share-playback="true"] .diagram-container {
         padding-top: 4.25rem;
       }
       html[data-embed="true"][data-share-moment="true"] .diagram-container {
         padding-top: 4.25rem;
       }
-
+      
       .cards {
         grid-template-columns: 1fr;
         margin-top: 1rem;
@@ -3962,7 +3962,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-
+      
       html[data-present="true"]:not([data-embed="true"]) .diagram-container { padding: 0.5rem 0.5rem 3.75rem; }
       html[data-present="true"]:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] > svg {
         width: 720px;
@@ -4842,7 +4842,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .semantic-lens,
       .diagram-guide,
       .overview-map-live { animation: none !important; }
-
+      
       .intent-trace-flow {
         animation: none !important;
         stroke-dasharray: none;
@@ -4980,7 +4980,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <div class="pulse-dot"></div>
         <h1>三面蓝图总览：验收面 × 结构面 × 时间面</h1>
       </div>
-      <p class="subtitle">三面独立承重——机制落在轴的接缝，G 法则绑定段间转换；登记簿九簇 × 五轴 × 六段两环</p>
+      <p class="subtitle">三面各自独立——机制落在多轴组合上，G 法则绑定段间转换；登记簿九簇 × 五轴 × 六段两环</p>
     </div>
 
 
@@ -4988,9 +4988,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1200 742" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
+      <svg viewBox="0 0 1205 742" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
         <title id="archify-diagram-title">三面蓝图总览：验收面 × 结构面 × 时间面</title>
-        <desc id="archify-diagram-description">三面独立承重——机制落在轴的接缝，G 法则绑定段间转换；登记簿九簇 × 五轴 × 六段两环</desc>
+        <desc id="archify-diagram-description">三面各自独立——机制落在多轴组合上，G 法则绑定段间转换；登记簿九簇 × 五轴 × 六段两环</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5014,11 +5014,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Boundaries (behind everything) -->
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="验收面 · 防住什么坏法（§1）" x="14" y="286" width="240" height="186" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="0" data-composition-frame-label="验收面 · 拦截哪些失效（§1）" x="14" y="286" width="240" height="186" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="结构面 · 五轴正交，机制挂接缝（§4–§8）" x="270" y="90" width="628" height="548" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="1" data-composition-frame-label="结构面 · 五轴正交，机制跨轴组合（§4–§8）" x="270" y="90" width="628" height="548" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="时间面 · 六段两环，G1–G7 钉段间转换（§9）" x="950" y="86" width="210" height="588" rx="12" class="c-region" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="2" data-composition-frame-label="时间面 · 六段两环，G1–G7 绑定段间转换（§9）" x="945.7128903258065" y="86" width="218.57421934838706" height="588" rx="12" class="c-region" stroke-width="1"/>
 
         <!-- Connection paths (before components for correct z-order) -->
         <g data-graph-role="automatic-crossover" style="--step:0">
@@ -5081,8 +5081,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="stageL5" data-edge-to="stageL2" data-edge-label="进化环" data-edge-key="15" data-edge-id="loopEvolve" data-composition-points="1130,532;1148,532;1148,238;1130,238" d="M 1130 532 L 1140 532 Q 1148 532 1148 524 L 1148 246 Q 1148 238 1140 238 L 1130 238" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
 
         <!-- Components -->
-        <g id="node-registry" data-node-id="registry" data-node-label="失效登记簿" tabindex="0" role="button" aria-label="聚焦失效登记簿，§1 · 九簇 × 42 行 × 四列, 验收面 · 防住什么坏法（§1）" aria-pressed="false" data-node-kind="database" data-node-sublabel="§1 · 九簇 × 42 行 × 四列" data-node-context="验收面 · 防住什么坏法（§1）">
-          <title>失效登记簿 · §1 · 九簇 × 42 行 × 四列 · 验收面 · 防住什么坏法（§1）</title>
+        <g id="node-registry" data-node-id="registry" data-node-label="失效登记簿" tabindex="0" role="button" aria-label="聚焦失效登记簿，§1 · 九簇 × 42 行 × 四列, 验收面 · 拦截哪些失效（§1）" aria-pressed="false" data-node-kind="database" data-node-sublabel="§1 · 九簇 × 42 行 × 四列" data-node-context="验收面 · 拦截哪些失效（§1）">
+          <title>失效登记簿 · §1 · 九簇 × 42 行 × 四列 · 验收面 · 拦截哪些失效（§1）</title>
           <rect x="44" y="316" width="180" height="136" rx="6" class="c-mask"/>
           <rect x="44" y="316" width="180" height="136" rx="6" class="c-database" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(50 322) scale(0.6875)">
@@ -5093,8 +5093,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="134" y="398" class="t-muted" font-size="9" text-anchor="middle">§1 · 九簇 × 42 行 × 四列</text>
         </g>
 
-        <g id="node-axisAsset" data-node-id="axisAsset" data-node-label="资产 Asset" tabindex="0" role="button" aria-label="聚焦资产 Asset，§4 经营什么, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="database" data-node-sublabel="§4 经营什么" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>资产 Asset · §4 经营什么 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-axisAsset" data-node-id="axisAsset" data-node-label="资产 Asset" tabindex="0" role="button" aria-label="聚焦资产 Asset，§4 经营什么, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="database" data-node-sublabel="§4 经营什么" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>资产 Asset · §4 经营什么 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="480" y="120" width="170" height="54" rx="6" class="c-mask"/>
           <rect x="480" y="120" width="170" height="54" rx="6" class="c-database" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(486 126) scale(0.6875)">
@@ -5105,8 +5105,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="565" y="161" class="t-muted" font-size="9" text-anchor="middle">§4 经营什么</text>
         </g>
 
-        <g id="node-axisAuth" data-node-id="axisAuth" data-node-label="权威 Authority" tabindex="0" role="button" aria-label="聚焦权威 Authority，§5 真值在哪·执法点, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="security" data-node-sublabel="§5 真值在哪·执法点" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>权威 Authority · §5 真值在哪·执法点 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-axisAuth" data-node-id="axisAuth" data-node-label="权威 Authority" tabindex="0" role="button" aria-label="聚焦权威 Authority，§5 真值在哪·执法点, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="security" data-node-sublabel="§5 真值在哪·执法点" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>权威 Authority · §5 真值在哪·执法点 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="480" y="224" width="170" height="72" rx="6" class="c-mask"/>
           <rect x="480" y="224" width="170" height="72" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(486 230) scale(0.6875)">
@@ -5117,8 +5117,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="565" y="274" class="t-muted" font-size="9" text-anchor="middle">§5 真值在哪·执法点</text>
         </g>
 
-        <g id="node-axisAssembly" data-node-id="axisAssembly" data-node-label="装配 Assembly" tabindex="0" role="button" aria-label="聚焦装配 Assembly，§6 这轮进窗什么, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="§6 这轮进窗什么" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>装配 Assembly · §6 这轮进窗什么 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-axisAssembly" data-node-id="axisAssembly" data-node-label="装配 Assembly" tabindex="0" role="button" aria-label="聚焦装配 Assembly，§6 这轮进窗什么, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="§6 这轮进窗什么" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>装配 Assembly · §6 这轮进窗什么 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="480" y="344" width="170" height="54" rx="6" class="c-mask"/>
           <rect x="480" y="344" width="170" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(486 350) scale(0.6875)">
@@ -5128,8 +5128,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="565" y="385" class="t-muted" font-size="9" text-anchor="middle">§6 这轮进窗什么</text>
         </g>
 
-        <g id="node-axisRetrieval" data-node-id="axisRetrieval" data-node-label="检索 Retrieval" tabindex="0" role="button" aria-label="聚焦检索 Retrieval，§7 候选怎么来, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="§7 候选怎么来" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>检索 Retrieval · §7 候选怎么来 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-axisRetrieval" data-node-id="axisRetrieval" data-node-label="检索 Retrieval" tabindex="0" role="button" aria-label="聚焦检索 Retrieval，§7 候选怎么来, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="§7 候选怎么来" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>检索 Retrieval · §7 候选怎么来 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="480" y="454" width="170" height="54" rx="6" class="c-mask"/>
           <rect x="480" y="454" width="170" height="54" rx="6" class="c-messagebus" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(486 460) scale(0.6875)">
@@ -5142,19 +5142,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="565" y="495" class="t-muted" font-size="9" text-anchor="middle">§7 候选怎么来</text>
         </g>
 
-        <g id="node-axisCompounding" data-node-id="axisCompounding" data-node-label="复利 Compounding" tabindex="0" role="button" aria-label="聚焦复利 Compounding，§8 怎么越用越好, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="§8 怎么越用越好" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>复利 Compounding · §8 怎么越用越好 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-axisCompounding" data-node-id="axisCompounding" data-node-label="沉淀 Consolidation" tabindex="0" role="button" aria-label="聚焦沉淀 Consolidation，§8 怎么随使用变好, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="§8 怎么随使用变好" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>沉淀 Consolidation · §8 怎么随使用变好 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="480" y="564" width="170" height="54" rx="6" class="c-mask"/>
           <rect x="480" y="564" width="170" height="54" rx="6" class="c-cloud" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(486 570) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="565" y="589" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">复利 Compounding</text>
-        <text data-detail="context" x="565" y="605" class="t-muted" font-size="9" text-anchor="middle">§8 怎么越用越好</text>
+          <text data-node-label="" data-detail-anchor="" x="565" y="589" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">沉淀 Consolidation</text>
+        <text data-detail="context" x="565" y="605" class="t-muted" font-size="9" text-anchor="middle">§8 怎么随使用变好</text>
         </g>
 
-        <g id="node-chipM1M5" data-node-id="chipM1M5" data-node-label="M1 语义视图·M5 血缘" tabindex="0" role="button" aria-label="聚焦M1 语义视图·M5 血缘，资产×权威×装配, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="资产×权威×装配" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>M1 语义视图·M5 血缘 · 资产×权威×装配 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-chipM1M5" data-node-id="chipM1M5" data-node-label="M1 语义视图·M5 血缘" tabindex="0" role="button" aria-label="聚焦M1 语义视图·M5 血缘，资产×权威×装配, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="资产×权威×装配" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>M1 语义视图·M5 血缘 · 资产×权威×装配 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="720" y="168" width="148" height="42" rx="6" class="c-mask"/>
           <rect x="720" y="168" width="148" height="42" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(726 174) scale(0.6875)">
@@ -5164,8 +5164,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="794" y="203" class="t-muted" font-size="9" text-anchor="middle">资产×权威×装配</text>
         </g>
 
-        <g id="node-chipM2M6" data-node-id="chipM2M6" data-node-label="M2 行列级策略·M6 身份" tabindex="0" role="button" aria-label="聚焦M2 行列级策略·M6 身份，单轴全落权威, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="单轴全落权威" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>M2 行列级策略·M6 身份 · 单轴全落权威 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-chipM2M6" data-node-id="chipM2M6" data-node-label="M2 行列级策略·M6 身份" tabindex="0" role="button" aria-label="聚焦M2 行列级策略·M6 身份，单轴全落权威, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="单轴全落权威" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>M2 行列级策略·M6 身份 · 单轴全落权威 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="720" y="239" width="148" height="42" rx="6" class="c-mask"/>
           <rect x="720" y="239" width="148" height="42" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(726 245) scale(0.6875)">
@@ -5175,8 +5175,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="794" y="274" class="t-muted" font-size="9" text-anchor="middle">单轴全落权威</text>
         </g>
 
-        <g id="node-chipM3" data-node-id="chipM3" data-node-label="M3 语义级治理" tabindex="0" role="button" aria-label="聚焦M3 语义级治理，权威×检索, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="权威×检索" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>M3 语义级治理 · 权威×检索 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-chipM3" data-node-id="chipM3" data-node-label="M3 语义级治理" tabindex="0" role="button" aria-label="聚焦M3 语义级治理，权威×检索, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="权威×检索" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>M3 语义级治理 · 权威×检索 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="720" y="351" width="148" height="42" rx="6" class="c-mask"/>
           <rect x="720" y="351" width="148" height="42" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(726 357) scale(0.6875)">
@@ -5186,30 +5186,30 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="794" y="386" class="t-muted" font-size="9" text-anchor="middle">权威×检索</text>
         </g>
 
-        <g id="node-chipM4" data-node-id="chipM4" data-node-label="M4 VQR 验证锚定" tabindex="0" role="button" aria-label="聚焦M4 VQR 验证锚定，检索×复利, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="检索×复利" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>M4 VQR 验证锚定 · 检索×复利 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-chipM4" data-node-id="chipM4" data-node-label="M4 VQR 验证锚定" tabindex="0" role="button" aria-label="聚焦M4 VQR 验证锚定，检索×沉淀, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="检索×沉淀" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>M4 VQR 验证锚定 · 检索×沉淀 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="720" y="464" width="148" height="42" rx="6" class="c-mask"/>
           <rect x="720" y="464" width="148" height="42" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(726 470) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="794" y="483" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">M4 VQR 验证锚定</text>
-        <text data-detail="context" x="794" y="499" class="t-muted" font-size="9" text-anchor="middle">检索×复利</text>
+        <text data-detail="context" x="794" y="499" class="t-muted" font-size="9" text-anchor="middle">检索×沉淀</text>
         </g>
 
-        <g id="node-chipM7" data-node-id="chipM7" data-node-label="M7 分类标签" tabindex="0" role="button" aria-label="聚焦M7 分类标签，复利×权威, 结构面 · 五轴正交，机制挂接缝（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="复利×权威" data-node-context="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <title>M7 分类标签 · 复利×权威 · 结构面 · 五轴正交，机制挂接缝（§4–§8）</title>
+        <g id="node-chipM7" data-node-id="chipM7" data-node-label="M7 分类标签" tabindex="0" role="button" aria-label="聚焦M7 分类标签，沉淀×权威, 结构面 · 五轴正交，机制跨轴组合（§4–§8）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="沉淀×权威" data-node-context="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <title>M7 分类标签 · 沉淀×权威 · 结构面 · 五轴正交，机制跨轴组合（§4–§8）</title>
           <rect x="300" y="570" width="148" height="42" rx="6" class="c-mask"/>
           <rect x="300" y="570" width="148" height="42" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(306 576) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="374" y="589" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">M7 分类标签</text>
-        <text data-detail="context" x="374" y="605" class="t-muted" font-size="9" text-anchor="middle">复利×权威</text>
+        <text data-detail="context" x="374" y="605" class="t-muted" font-size="9" text-anchor="middle">沉淀×权威</text>
         </g>
 
-        <g id="node-stageL1" data-node-id="stageL1" data-node-label="L1 采集纳管" tabindex="0" role="button" aria-label="聚焦L1 采集纳管，出身有出处, 时间面 · 六段两环，G1–G7 钉段间转换（§9）" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="出身有出处" data-node-context="时间面 · 六段两环，G1–G7 钉段间转换（§9）">
-          <title>L1 采集纳管 · 出身有出处 · 时间面 · 六段两环，G1–G7 钉段间转换（§9）</title>
+        <g id="node-stageL1" data-node-id="stageL1" data-node-label="L1 采集登记" tabindex="0" role="button" aria-label="聚焦L1 采集登记，每条记录带来源, 时间面 · 六段两环，G1–G7 绑定段间转换（§9）" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="每条记录带来源" data-node-context="时间面 · 六段两环，G1–G7 绑定段间转换（§9）">
+          <title>L1 采集登记 · 每条记录带来源 · 时间面 · 六段两环，G1–G7 绑定段间转换（§9）</title>
           <rect x="980" y="116" width="150" height="48" rx="6" class="c-mask"/>
           <rect x="980" y="116" width="150" height="48" rx="6" class="c-messagebus" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="messagebus" class="semantic-sigil s-messagebus" transform="translate(986 122) scale(0.6875)">
@@ -5218,24 +5218,24 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <circle cx="10.5" cy="8" r="1" class="sigil-fill"/>
             <circle cx="7" cy="11.5" r="1" class="sigil-fill"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1055" y="138" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L1 采集纳管</text>
-        <text data-detail="context" x="1055" y="154" class="t-muted" font-size="9" text-anchor="middle">出身有出处</text>
+          <text data-node-label="" data-detail-anchor="" x="1055" y="138" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L1 采集登记</text>
+        <text data-detail="context" x="1055" y="154" class="t-muted" font-size="9" text-anchor="middle">每条记录带来源</text>
         </g>
 
-        <g id="node-stageL2" data-node-id="stageL2" data-node-label="L2 铸形裁决" tabindex="0" role="button" aria-label="聚焦L2 铸形裁决，人类定规, 时间面 · 六段两环，G1–G7 钉段间转换（§9）" aria-pressed="false" data-node-kind="security" data-node-sublabel="人类定规" data-node-context="时间面 · 六段两环，G1–G7 钉段间转换（§9）">
-          <title>L2 铸形裁决 · 人类定规 · 时间面 · 六段两环，G1–G7 钉段间转换（§9）</title>
+        <g id="node-stageL2" data-node-id="stageL2" data-node-label="L2 校验与裁决" tabindex="0" role="button" aria-label="聚焦L2 校验与裁决，人类定规, 时间面 · 六段两环，G1–G7 绑定段间转换（§9）" aria-pressed="false" data-node-kind="security" data-node-sublabel="人类定规" data-node-context="时间面 · 六段两环，G1–G7 绑定段间转换（§9）">
+          <title>L2 校验与裁决 · 人类定规 · 时间面 · 六段两环，G1–G7 绑定段间转换（§9）</title>
           <rect x="980" y="214" width="150" height="48" rx="6" class="c-mask"/>
           <rect x="980" y="214" width="150" height="48" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(986 220) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1055" y="236" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L2 铸形裁决</text>
+          <text data-node-label="" data-detail-anchor="" x="1055" y="236" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L2 校验与裁决</text>
         <text data-detail="context" x="1055" y="252" class="t-muted" font-size="9" text-anchor="middle">人类定规</text>
         </g>
 
-        <g id="node-stageL3" data-node-id="stageL3" data-node-label="L3 装配执法" tabindex="0" role="button" aria-label="聚焦L3 装配执法，每轮重装, 时间面 · 六段两环，G1–G7 钉段间转换（§9）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="每轮重装" data-node-context="时间面 · 六段两环，G1–G7 钉段间转换（§9）">
-          <title>L3 装配执法 · 每轮重装 · 时间面 · 六段两环，G1–G7 钉段间转换（§9）</title>
+        <g id="node-stageL3" data-node-id="stageL3" data-node-label="L3 装配执法" tabindex="0" role="button" aria-label="聚焦L3 装配执法，每轮重装, 时间面 · 六段两环，G1–G7 绑定段间转换（§9）" aria-pressed="false" data-node-kind="backend" data-node-sublabel="每轮重装" data-node-context="时间面 · 六段两环，G1–G7 绑定段间转换（§9）">
+          <title>L3 装配执法 · 每轮重装 · 时间面 · 六段两环，G1–G7 绑定段间转换（§9）</title>
           <rect x="980" y="312" width="150" height="48" rx="6" class="c-mask"/>
           <rect x="980" y="312" width="150" height="48" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(986 318) scale(0.6875)">
@@ -5245,8 +5245,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="1055" y="350" class="t-muted" font-size="9" text-anchor="middle">每轮重装</text>
         </g>
 
-        <g id="node-stageL4" data-node-id="stageL4" data-node-label="L4 应答锚定" tabindex="0" role="button" aria-label="聚焦L4 应答锚定，三条出路, 时间面 · 六段两环，G1–G7 钉段间转换（§9）" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="三条出路" data-node-context="时间面 · 六段两环，G1–G7 钉段间转换（§9）">
-          <title>L4 应答锚定 · 三条出路 · 时间面 · 六段两环，G1–G7 钉段间转换（§9）</title>
+        <g id="node-stageL4" data-node-id="stageL4" data-node-label="L4 应答锚定" tabindex="0" role="button" aria-label="聚焦L4 应答锚定，三条出路, 时间面 · 六段两环，G1–G7 绑定段间转换（§9）" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="三条出路" data-node-context="时间面 · 六段两环，G1–G7 绑定段间转换（§9）">
+          <title>L4 应答锚定 · 三条出路 · 时间面 · 六段两环，G1–G7 绑定段间转换（§9）</title>
           <rect x="980" y="410" width="150" height="48" rx="6" class="c-mask"/>
           <rect x="980" y="410" width="150" height="48" rx="6" class="c-frontend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(986 416) scale(0.6875)">
@@ -5259,20 +5259,20 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="1055" y="448" class="t-muted" font-size="9" text-anchor="middle">三条出路</text>
         </g>
 
-        <g id="node-stageL5" data-node-id="stageL5" data-node-label="L5 沉淀回灌" tabindex="0" role="button" aria-label="聚焦L5 沉淀回灌，短期→长期, 时间面 · 六段两环，G1–G7 钉段间转换（§9）" aria-pressed="false" data-node-kind="database" data-node-sublabel="短期→长期" data-node-context="时间面 · 六段两环，G1–G7 钉段间转换（§9）">
-          <title>L5 沉淀回灌 · 短期→长期 · 时间面 · 六段两环，G1–G7 钉段间转换（§9）</title>
+        <g id="node-stageL5" data-node-id="stageL5" data-node-label="L5 沉淀与回写" tabindex="0" role="button" aria-label="聚焦L5 沉淀与回写，短期→长期, 时间面 · 六段两环，G1–G7 绑定段间转换（§9）" aria-pressed="false" data-node-kind="database" data-node-sublabel="短期→长期" data-node-context="时间面 · 六段两环，G1–G7 绑定段间转换（§9）">
+          <title>L5 沉淀与回写 · 短期→长期 · 时间面 · 六段两环，G1–G7 绑定段间转换（§9）</title>
           <rect x="980" y="508" width="150" height="48" rx="6" class="c-mask"/>
           <rect x="980" y="508" width="150" height="48" rx="6" class="c-database" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(986 514) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="1055" y="530" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L5 沉淀回灌</text>
+          <text data-node-label="" data-detail-anchor="" x="1055" y="530" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L5 沉淀与回写</text>
         <text data-detail="context" x="1055" y="546" class="t-muted" font-size="9" text-anchor="middle">短期→长期</text>
         </g>
 
-        <g id="node-stageL6" data-node-id="stageL6" data-node-label="L6 衰减退役" tabindex="0" role="button" aria-label="聚焦L6 衰减退役，死要有葬礼, 时间面 · 六段两环，G1–G7 钉段间转换（§9）" aria-pressed="false" data-node-kind="external" data-node-sublabel="死要有葬礼" data-node-context="时间面 · 六段两环，G1–G7 钉段间转换（§9）">
-          <title>L6 衰减退役 · 死要有葬礼 · 时间面 · 六段两环，G1–G7 钉段间转换（§9）</title>
+        <g id="node-stageL6" data-node-id="stageL6" data-node-label="L6 衰减退役" tabindex="0" role="button" aria-label="聚焦L6 衰减退役，退役路径必备, 时间面 · 六段两环，G1–G7 绑定段间转换（§9）" aria-pressed="false" data-node-kind="external" data-node-sublabel="退役路径必备" data-node-context="时间面 · 六段两环，G1–G7 绑定段间转换（§9）">
+          <title>L6 衰减退役 · 退役路径必备 · 时间面 · 六段两环，G1–G7 绑定段间转换（§9）</title>
           <rect x="980" y="606" width="150" height="48" rx="6" class="c-mask"/>
           <rect x="980" y="606" width="150" height="48" rx="6" class="c-external" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(986 612) scale(0.6875)">
@@ -5280,7 +5280,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="1055" y="628" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L6 衰减退役</text>
-        <text data-detail="context" x="1055" y="644" class="t-muted" font-size="9" text-anchor="middle">死要有葬礼</text>
+        <text data-detail="context" x="1055" y="644" class="t-muted" font-size="9" text-anchor="middle">退役路径必备</text>
         </g>
 
         <!-- Connection labels -->
@@ -5308,19 +5308,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </g>
 
         <!-- Boundary labels (foreground masks keep routes out of titles) -->
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="验收面 · 防住什么坏法（§1）">
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="0" data-composition-frame-kind="region" data-composition-frame-label="验收面 · 拦截哪些失效（§1）">
           <rect data-graph-role="structural-frame-label-mask" x="18" y="296" width="155.79999999999998" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="22" y="309" class="t-cloud" font-size="9" font-weight="600">验收面 · 防住什么坏法（§1）</text>
+          <text data-boundary-label="" x="22" y="309" class="t-cloud" font-size="9" font-weight="600">验收面 · 拦截哪些失效（§1）</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="结构面 · 五轴正交，机制挂接缝（§4–§8）">
-          <rect data-graph-role="structural-frame-label-mask" x="274" y="100" width="215.2" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="278" y="113" class="t-cloud" font-size="9" font-weight="600">结构面 · 五轴正交，机制挂接缝（§4–§8）</text>
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="1" data-composition-frame-kind="region" data-composition-frame-label="结构面 · 五轴正交，机制跨轴组合（§4–§8）">
+          <rect data-graph-role="structural-frame-label-mask" x="274" y="100" width="226" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="278" y="113" class="t-cloud" font-size="9" font-weight="600">结构面 · 五轴正交，机制跨轴组合（§4–§8）</text>
         </g>
 
-        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="时间面 · 六段两环，G1–G7 钉段间转换（§9）">
-          <rect data-graph-role="structural-frame-label-mask" x="954" y="96" width="202" height="16" rx="3" class="c-mask"/>
-          <text data-boundary-label="" x="958" y="107.8048780487805" class="t-cloud" font-size="7.8048780487804885" font-weight="600">时间面 · 六段两环，G1–G7 钉段间转换（§9）</text>
+        <g data-graph-role="structural-frame-label" data-composition-frame-id="2" data-composition-frame-kind="region" data-composition-frame-label="时间面 · 六段两环，G1–G7 绑定段间转换（§9）">
+          <rect data-graph-role="structural-frame-label-mask" x="949.7128903258065" y="96" width="210.57421934838706" height="16" rx="3" class="c-mask"/>
+          <text data-boundary-label="" x="953.7128903258065" y="107.7741945483871" class="t-cloud" font-size="7.774194548387096" font-weight="600">时间面 · 六段两环，G1–G7 绑定段间转换（§9）</text>
         </g>
 
         <!-- Legend -->
@@ -5537,19 +5537,19 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>验收面 · 登记簿九簇</h3>
         </div>
         <ul>
-          <li>九簇：口径／执行／门禁／验证／供给／运行时／接线／记忆安全／组织运营——42 行，每行失效形态×证据锚×堵住机制×验收判据四列</li>
-          <li>登记簿跨结构换代长期存活：本版重铸即是先例——失效登记延续、结构轴换代</li>
-          <li>指不回登记簿某行的设计不承重（§1 入账协议：无锚不入账）</li>
+          <li>九簇：口径／执行／访问控制／验证／供给／运行时／接线／记忆安全／组织运营——42 行，每行失效形态×证据锚×拦截机制×验收判据四列</li>
+          <li>登记簿跨结构换代长期存活：本版重构即是先例——失效登记延续、结构轴换代</li>
+          <li>指不回登记簿某行的设计不独立成立（§1 入账协议：无锚不入账）</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot amber"></div>
-          <h3>结构面 · 机制＝接缝</h3>
+          <h3>结构面 · 机制＝多轴组合</h3>
         </div>
         <ul>
-          <li>M1 语义视图＝资产×权威×装配（声明半边＋现算半边）；M5 列级血缘＝资产×权威；M3 语义级治理＝权威×检索；M4 VQR 验证锚定＝检索×复利；M7 分类标签＝复利×权威</li>
+          <li>M1 语义视图＝资产×权威×装配（声明半边＋现算半边）；M5 列级血缘＝资产×权威；M3 语义级治理＝权威×检索；M4 VQR 验证锚定＝检索×沉淀；M7 分类标签＝沉淀×权威</li>
           <li>M2 行列级策略与 M6 Agent Identity 单轴全落权威——治理执法不依赖其余四轴即可成立</li>
           <li>无「全轴机制」；落不进任何轴组合的功能是解释装置而非机制（旧治理层四机构命名已退役）</li>
         </ul>
@@ -5561,9 +5561,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>时间面 · 六段两环与 G 法则</h3>
         </div>
         <ul>
-          <li>L1 采集纳管→L2 铸形裁决→L3 装配执法→L4 应答锚定→L5 沉淀回灌→L6 衰减退役——按单对象的一生组织</li>
-          <li>两环一等化：验证环 L4→L2 修定义、L4→L6 检腐化（对账不一致即告警）；进化环 L5→L2 回写——验证环断则错误静默积累，进化环断则系统停在初始定义质量</li>
-          <li>G1–G7 钉在段间转换：执法点绑定／两道独立保险／裁决权不自动化／治理-验证分落位／指针不副本／死要有葬礼／闭环可观测（判据句 §9.5）</li>
+          <li>L1 采集登记→L2 校验与裁决→L3 装配执法→L4 应答锚定→L5 沉淀与回写→L6 衰减退役——按单对象从注册到退役组织</li>
+          <li>两环与主流程同级：验证环 L4→L2 修定义、L4→L6 检腐化（对账不一致即告警）；进化环 L5→L2 回写——验证环缺失则错误静默积累，进化环缺失则系统停在初始定义质量</li>
+          <li>G1–G7 绑定在段间转换：执法点绑定／注册期校验与运行期校验互不替代／裁决权不自动化／治理-验证分落位／指针不副本／退役路径必备／闭环可观测（判据句 §9.5）</li>
         </ul>
       </div>
     </div>

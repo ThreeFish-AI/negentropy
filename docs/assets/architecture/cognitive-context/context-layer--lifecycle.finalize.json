@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "lifecycle",
   "quality": "showcase",
-  "startedAt": "2026-10-09T16:32:08.238Z",
+  "startedAt": "2026-10-16T04:59:56.174Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/lifecycle-context-layer--lifecycle-20261010-003106/candidate.json",
-    "sha256": "8e9e59c48241e642c4cfee93e5720ca1474907d88f43effbeadad9585d6e1c70",
-    "bytes": 3873
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json",
+    "sha256": "db29e703d894fff81e643452017d04faaa4381fb2fa6386dd259d060fcf81341",
+    "bytes": 4950
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
-    "sha256": "f5c5b11db33d9749eeb4780ffdfe7edca399d18e1f3b1a1619de6d0e9cef18bc",
-    "bytes": 759046
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+    "sha256": "fb4a64a676cdb3a1d9ff960555f9ea8d414320dff177bcdf471dea16c6bea53f",
+    "bytes": 759250
   },
   "stages": {
     "validate": {
@@ -27,8 +27,8 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "lifecycle",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/lifecycle-context-layer--lifecycle-20261010-003106/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
         "--quality",
         "showcase",
         "--json"
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "8e9e59c48241e642c4cfee93e5720ca1474907d88f43effbeadad9585d6e1c70",
-          "bytes": 3873
+          "sha256": "db29e703d894fff81e643452017d04faaa4381fb2fa6386dd259d060fcf81341",
+          "bytes": 4950
         },
         "validation": {
           "checksPassed": 9,
@@ -54,33 +54,33 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 415,
+      "durationMs": 305,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "lifecycle",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/lifecycle-context-layer--lifecycle-20261010-003106/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
         "--quality",
         "showcase",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "cd79349b-4951-4660-9d21-a12c1eefba2d",
+        "receiptId": "10d51d48-4d63-4b8c-a5a7-ef903d2d0368",
         "ok": true,
         "command": "deliver",
         "type": "lifecycle",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/lifecycle-context-layer--lifecycle-20261010-003106/candidate.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
         "specification": {
-          "sha256": "8e9e59c48241e642c4cfee93e5720ca1474907d88f43effbeadad9585d6e1c70",
-          "bytes": 3873
+          "sha256": "db29e703d894fff81e643452017d04faaa4381fb2fa6386dd259d060fcf81341",
+          "bytes": 4950
         },
         "artifact": {
-          "sha256": "f5c5b11db33d9749eeb4780ffdfe7edca399d18e1f3b1a1619de6d0e9cef18bc",
-          "bytes": 759046
+          "sha256": "fb4a64a676cdb3a1d9ff960555f9ea8d414320dff177bcdf471dea16c6bea53f",
+          "bytes": 759250
         },
         "validation": {
           "checksPassed": 9,
@@ -95,20 +95,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 93,
+      "durationMs": 97,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
         "artifact": {
-          "sha256": "f5c5b11db33d9749eeb4780ffdfe7edca399d18e1f3b1a1619de6d0e9cef18bc",
-          "bytes": 759046
+          "sha256": "fb4a64a676cdb3a1d9ff960555f9ea8d414320dff177bcdf471dea16c6bea53f",
+          "bytes": 759250
         },
         "checks": [
           {
@@ -250,18 +250,18 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "cd79349b-4951-4660-9d21-a12c1eefba2d"
+        "deliveryReceiptId": "10d51d48-4d63-4b8c-a5a7-ef903d2d0368"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 887,
+      "durationMs": 1900,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
         "--json",
         "--require-provenance"
       ],
@@ -274,11 +274,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "cd79349b-4951-4660-9d21-a12c1eefba2d",
+        "deliveryReceiptId": "10d51d48-4d63-4b8c-a5a7-ef903d2d0368",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
-          "sha256": "f5c5b11db33d9749eeb4780ffdfe7edca399d18e1f3b1a1619de6d0e9cef18bc",
-          "bytes": 759046
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+          "sha256": "fb4a64a676cdb3a1d9ff960555f9ea8d414320dff177bcdf471dea16c6bea53f",
+          "bytes": 759250
         },
         "state": {
           "detail": "read",
@@ -323,7 +323,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -373,7 +373,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -423,7 +423,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -473,7 +473,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -576,7 +576,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -626,7 +626,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -676,7 +676,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -726,7 +726,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -781,7 +781,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -831,7 +831,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -881,7 +881,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -931,7 +931,7 @@
               "minimumProjectedNodeTextPx": 8,
               "minimumProjectedNonEdgeTextPx": 8,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "出身有出处 · 过闸入账",
+              "minimumProjectedNodeText": "每条记录带来源 · 过校验入账",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -967,11 +967,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--lifecycle.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-09T16:32:10.202Z",
-  "durationMs": 1963
+  "finishedAt": "2026-10-16T04:59:58.780Z",
+  "durationMs": 2605
 }

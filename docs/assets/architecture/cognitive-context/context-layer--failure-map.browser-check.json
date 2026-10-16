@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
+  "deliveryReceiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5",
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-    "bytes": 765362
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+    "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
+    "bytes": 765707
   },
   "state": {
     "detail": "read",
@@ -52,10 +52,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -102,10 +102,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -152,10 +152,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -202,10 +202,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -305,10 +305,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -355,10 +355,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -405,10 +405,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -455,10 +455,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -510,10 +510,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -560,10 +560,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -610,10 +610,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",
@@ -660,10 +660,10 @@
           "viewBoxHeight": 732
         },
         "viewBoxWidth": 1161,
-        "minimumProjectedNodeTextPx": 8.4,
-        "minimumProjectedNonEdgeTextPx": 8.4,
+        "minimumProjectedNodeTextPx": 6,
+        "minimumProjectedNonEdgeTextPx": 6,
         "minimumProjectedEdgeTextPx": null,
-        "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+        "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
           "kind": "node",

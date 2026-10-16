@@ -1,0 +1,177 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "上下文层生命周期：六段两环",
+    "locale": "zh-CN",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer--lifecycle.html"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主轴 · 对象主流程（L1–L5）"
+    },
+    {
+      "id": "terminal",
+      "label": "终态 · 退役段（L6）"
+    }
+  ],
+  "states": [
+    {
+      "id": "l1",
+      "type": "start",
+      "label": "L1 采集登记",
+      "sublabel": "每条记录带来源 · 过校验入账",
+      "tag": "注册时校验",
+      "step": "01",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "l2",
+      "type": "decision",
+      "label": "L2 校验与裁决",
+      "sublabel": "机器发现 · 人类定规",
+      "tag": "G3 裁决不自动化",
+      "step": "02",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "l3",
+      "type": "active",
+      "label": "L3 装配执法",
+      "sublabel": "每轮重装 · 实时求值",
+      "tag": "G1 执法点绑定",
+      "step": "03",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "l4",
+      "type": "decision",
+      "label": "L4 应答锚定",
+      "sublabel": "三条出路 · 无静默瞎猜",
+      "tag": "G4 治理≠验证",
+      "step": "04",
+      "lane": "main",
+      "col": 3
+    },
+    {
+      "id": "l5",
+      "type": "active",
+      "label": "L5 沉淀与回写",
+      "sublabel": "短期→长期 · 三件在线",
+      "tag": "G7 三件在线",
+      "step": "05",
+      "lane": "main",
+      "col": 4
+    },
+    {
+      "id": "l6",
+      "type": "success",
+      "label": "L6 衰减退役",
+      "sublabel": "显式退役留记录 · 降权不清退",
+      "tag": "G6 退役路径必备",
+      "step": "06",
+      "lane": "terminal",
+      "col": 4
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t-l1-l2",
+      "from": "l1",
+      "to": "l2",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-l2-l3",
+      "from": "l2",
+      "to": "l3",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-l3-l4",
+      "from": "l3",
+      "to": "l4",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-l4-l5",
+      "from": "l4",
+      "to": "l5",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-l5-l6",
+      "from": "l5",
+      "to": "l6",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "t-verify-fix",
+      "from": "l4",
+      "to": "l2",
+      "label": "验证环 · 修定义",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "t-verify-rot",
+      "from": "l4",
+      "to": "l6",
+      "label": "验证环 · 检出腐化",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-evolve",
+      "from": "l5",
+      "to": "l2",
+      "label": "进化环 · 回写",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "两条主流程同级回流路径（缺失即退化）",
+      "items": [
+        "验证环 L4→L2/L6：答案错误回流——回 L2 修定义（题库反推语义层缺口），回 L6 检出腐化（重算与验证答案对账不一致即告警）",
+        "进化环 L5→L2：用法沉淀成新受治理对象——查询历史作为 Autopilot 草稿输入、eval 错一题修一处",
+        "验证环缺失→错误静默积累；进化环缺失→系统永远停在初始定义的质量水平"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "G 法则绑定在段间转换（优先三条）",
+      "items": [
+        "G1 执法点绑定：强制力来自求值点而非定义点——绕开求值点什么都拦不住的是未接入执行路径的治理（L1 三项入账校验 · L3 执行点 · L5 消费者）",
+        "G3 裁决不自动化：机器判断→组织规则的转换必有人工检查点，冲突浮出、不按热度自动裁决（L2 冲突裁决与映射校验门）",
+        "G6 退役路径必备：无退役机制的目录必然腐化，降权只延缓、不清退（L6 全段）"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "嵌套时间尺度：四层各有删除方式",
+      "items": [
+        "轮内 ⊂ 会话内 ⊂ 跨会话 ⊂ 组织级：六段是对象从注册到退役的阶段，同一套段结构在四个尺度上嵌套出现",
+        "删除方式分层：轮内降级为占位、可恢复；跨会话显式替代、有前后继记录；组织级目录级删除（L6）",
+        "跨层套用即失效——拿轮内占位机制充当目录级删除，就是反事实表第六行的坏法"
+      ]
+    }
+  ]
+}

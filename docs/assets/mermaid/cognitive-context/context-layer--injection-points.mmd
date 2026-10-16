@@ -20,7 +20,7 @@ flowchart TB
         H2["② before_model_callback<br/>model/thinking/corpus/hint 注入"]
         H3["③ tools=[log_activity,<br/>preload_memory_tool]"]
         H4["④ before/after_tool_callback<br/>遥测"]
-        H5["⑤ sub_agents 五翼+流水线"]
+        H5["⑤ sub_agents 五个 sub_agent+流水线"]
     end
     subgraph ASSEMBLER["ContextAssembler.assemble()<br/>token 预算参考实现（生产调用=0，仅单测）"]
         A0["Core Block → Reflection → 记忆窗口<br/>30/50/20 预算 · 60s TTL 家族"]

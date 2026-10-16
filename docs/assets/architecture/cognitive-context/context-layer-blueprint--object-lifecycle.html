@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 3.0.0">
   <meta name="archify-reader-contract" content="declared-wide-v1">
-  <title>语境对象生死流转：出生过门 · 死亡有账</title>
+  <title>语境对象状态流转：注册时校验 · 退役有记录</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -2980,7 +2980,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       body { background: #ffffff !important; padding: 0; }
       .container { max-width: none; }
       .toolbar, .diagram-nav, .focus-chip, .archify-toast, .no-print { display: none !important; }
-
+      
       .diagram-container, .card { box-shadow: none; border-color: #e2e8f0; }
       .diagram-container { --archify-nav-reserve: 0px !important; }
       html[data-preset="signal-flow"] .diagram-container,
@@ -3902,24 +3902,24 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .route-journey-controls button { min-height: 2.75rem; }
       .route-probe-status { padding: 0.05rem 0.48rem 0.38rem; }
       .route-probe-node { max-width: 7.5rem; }
-
-
-
-
-
-
-
-
-
-
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       html[data-embed="true"][data-share-playback="true"] .diagram-container {
         padding-top: 4.25rem;
       }
       html[data-embed="true"][data-share-moment="true"] .diagram-container {
         padding-top: 4.25rem;
       }
-
+      
       .cards {
         grid-template-columns: 1fr;
         margin-top: 1rem;
@@ -3962,7 +3962,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-
+      
       html[data-present="true"]:not([data-embed="true"]) .diagram-container { padding: 0.5rem 0.5rem 3.75rem; }
       html[data-present="true"]:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] > svg {
         width: 720px;
@@ -4842,7 +4842,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .semantic-lens,
       .diagram-guide,
       .overview-map-live { animation: none !important; }
-
+      
       .intent-trace-flow {
         animation: none !important;
         stroke-dasharray: none;
@@ -4978,7 +4978,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
            data-preset-badge-blueprint="蓝图 / 修订 01"
            data-preset-badge-editorial="编辑风格 / 现场笔记">
         <div class="pulse-dot"></div>
-        <h1>语境对象生死流转：出生过门 · 死亡有账</h1>
+        <h1>语境对象状态流转：注册时校验 · 退役有记录</h1>
       </div>
     </div>
 
@@ -4988,7 +4988,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
       <svg viewBox="0 0 928 584" data-reader-fit="intrinsic-height" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase">
-        <title id="archify-diagram-title">语境对象生死流转：出生过门 · 死亡有账</title>
+        <title id="archify-diagram-title">语境对象状态流转：注册时校验 · 退役有记录</title>
         <desc id="archify-diagram-description">由 Archify 生成的生命周期图。</desc>
         <!-- Definitions -->
         <defs>
@@ -5013,9 +5013,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Lifecycle bands -->
-        <text x="18" y="88" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">主链 · 出生到受治理</text>
-        <text x="18" y="272" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">冲突裁决（人工关口）</text>
-        <text x="18" y="456" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">终态 · 出局与退役</text>
+        <text x="18" y="88" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">主链 · 注册到受治理</text>
+        <text x="18" y="272" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">冲突裁决（人工检查点）</text>
+        <text x="18" y="456" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">终态 · 拒绝与退役</text>
 
         <!-- Primary lifecycle rail -->
 
@@ -5051,8 +5051,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </g>
 
         <!-- States -->
-        <g id="node-draft" data-node-id="draft" data-node-label="draft 草稿" tabindex="0" role="button" aria-label="聚焦draft 草稿，作者创建 · Autopilot 起草, 主链 · 出生到受治理" aria-pressed="false" data-node-kind="start" data-node-sublabel="作者创建 · Autopilot 起草" data-node-tag="出生" data-node-context="主链 · 出生到受治理">
-          <title>draft 草稿 · 作者创建 · Autopilot 起草 · 主链 · 出生到受治理 · 出生</title>
+        <g id="node-draft" data-node-id="draft" data-node-label="draft 草稿" tabindex="0" role="button" aria-label="聚焦draft 草稿，作者创建 · Autopilot 起草, 主链 · 注册到受治理" aria-pressed="false" data-node-kind="start" data-node-sublabel="作者创建 · Autopilot 起草" data-node-tag="注册" data-node-context="主链 · 注册到受治理">
+          <title>draft 草稿 · 作者创建 · Autopilot 起草 · 主链 · 注册到受治理 · 注册</title>
           <rect x="60" y="56" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="60" y="56" width="140" height="64" rx="7" class="c-frontend" data-animate="node" style="--step:0" stroke-width="1.5"/>
           <g aria-hidden="true" data-lifecycle-initial-marker="">
@@ -5065,11 +5065,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="83" y="70" class="t-frontend" font-size="8" font-weight="700">01</text>
           <text data-node-label="" data-detail-anchor="" x="130" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">draft 草稿</text>
           <text data-detail="context" x="130" y="96" class="t-muted" font-size="8" text-anchor="middle">作者创建 · Autopilot 起草</text>
-        <text data-detail="fine" x="130" y="108" class="t-frontend" font-size="8" text-anchor="middle">出生</text>
+        <text data-detail="fine" x="130" y="108" class="t-frontend" font-size="8" text-anchor="middle">注册</text>
         </g>
 
-        <g id="node-governed" data-node-id="governed" data-node-label="governed 受治理" tabindex="0" role="button" aria-label="聚焦governed 受治理，注册门放行 · 目录内可装配, 主链 · 出生到受治理" aria-pressed="false" data-node-kind="active" data-node-sublabel="注册门放行 · 目录内可装配" data-node-tag="SSOT" data-node-context="主链 · 出生到受治理">
-          <title>governed 受治理 · 注册门放行 · 目录内可装配 · 主链 · 出生到受治理 · SSOT</title>
+        <g id="node-governed" data-node-id="governed" data-node-label="governed 受治理" tabindex="0" role="button" aria-label="聚焦governed 受治理，注册门放行 · 目录内可装配, 主链 · 注册到受治理" aria-pressed="false" data-node-kind="active" data-node-sublabel="注册门放行 · 目录内可装配" data-node-tag="SSOT" data-node-context="主链 · 注册到受治理">
+          <title>governed 受治理 · 注册门放行 · 目录内可装配 · 主链 · 注册到受治理 · SSOT</title>
           <rect x="320" y="56" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="320" y="56" width="140" height="64" rx="7" class="c-frontend" data-animate="node" style="--step:1" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="active" class="semantic-sigil s-frontend" transform="translate(326 62) scale(0.6875)">
@@ -5081,8 +5081,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="390" y="108" class="t-frontend" font-size="8" text-anchor="middle">SSOT</text>
         </g>
 
-        <g id="node-conflict" data-node-id="conflict" data-node-label="conflict 冲突浮出" tabindex="0" role="button" aria-label="聚焦conflict 冲突浮出，同名异义 · 等人工裁决, 冲突裁决（人工关口）" aria-pressed="false" data-node-kind="waiting" data-node-sublabel="同名异义 · 等人工裁决" data-node-tag="G3 不投票" data-node-context="冲突裁决（人工关口）">
-          <title>conflict 冲突浮出 · 同名异义 · 等人工裁决 · 冲突裁决（人工关口） · G3 不投票</title>
+        <g id="node-conflict" data-node-id="conflict" data-node-label="conflict 冲突浮出" tabindex="0" role="button" aria-label="聚焦conflict 冲突浮出，同名异义 · 等人工裁决, 冲突裁决（人工检查点）" aria-pressed="false" data-node-kind="waiting" data-node-sublabel="同名异义 · 等人工裁决" data-node-tag="G3 不自动裁决" data-node-context="冲突裁决（人工检查点）">
+          <title>conflict 冲突浮出 · 同名异义 · 等人工裁决 · 冲突裁决（人工检查点） · G3 不自动裁决</title>
           <rect x="320" y="240" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="320" y="240" width="140" height="64" rx="7" class="c-cloud" data-animate="node" style="--step:3" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="waiting" class="semantic-sigil s-cloud" transform="translate(326 246) scale(0.6875)">
@@ -5090,11 +5090,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
           <text data-node-label="" data-detail-anchor="" x="395.1" y="263" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">conflict 冲突浮出</text>
           <text data-detail="context" x="390" y="280" class="t-muted" font-size="8" text-anchor="middle">同名异义 · 等人工裁决</text>
-        <text data-detail="fine" x="390" y="292" class="t-cloud" font-size="8" text-anchor="middle">G3 不投票</text>
+        <text data-detail="fine" x="390" y="292" class="t-cloud" font-size="8" text-anchor="middle">G3 不自动裁决</text>
         </g>
 
-        <g id="node-rejected" data-node-id="rejected" data-node-label="rejected 拒绝" tabindex="0" role="button" aria-label="聚焦rejected 拒绝，校验失败 · 422 拒入库, 终态 · 出局与退役" aria-pressed="false" data-node-kind="failure" data-node-sublabel="校验失败 · 422 拒入库" data-node-tag="终态" data-node-context="终态 · 出局与退役">
-          <title>rejected 拒绝 · 校验失败 · 422 拒入库 · 终态 · 出局与退役 · 终态</title>
+        <g id="node-rejected" data-node-id="rejected" data-node-label="rejected 拒绝" tabindex="0" role="button" aria-label="聚焦rejected 拒绝，校验失败 · 422 拒入库, 终态 · 拒绝与退役" aria-pressed="false" data-node-kind="failure" data-node-sublabel="校验失败 · 422 拒入库" data-node-tag="终态" data-node-context="终态 · 拒绝与退役">
+          <title>rejected 拒绝 · 校验失败 · 422 拒入库 · 终态 · 拒绝与退役 · 终态</title>
           <rect x="60" y="424" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="60" y="424" width="140" height="64" rx="7" class="c-security" data-animate="node" style="--step:2" stroke-width="1.5"/>
           <rect x="63" y="427" width="134" height="58" rx="4" class="c-security" style="fill: none" stroke-width="1"/>
@@ -5107,8 +5107,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="130" y="476" class="t-security" font-size="8" text-anchor="middle">终态</text>
         </g>
 
-        <g id="node-superseded" data-node-id="superseded" data-node-label="superseded 已替代" tabindex="0" role="button" aria-label="聚焦superseded 已替代，留目录参与排序 · freshness 衰减, 终态 · 出局与退役" aria-pressed="false" data-node-kind="neutral" data-node-sublabel="留目录参与排序 · freshness 衰减" data-node-tag="前后继有账" data-node-context="终态 · 出局与退役">
-          <title>superseded 已替代 · 留目录参与排序 · freshness 衰减 · 终态 · 出局与退役 · 前后继有账</title>
+        <g id="node-superseded" data-node-id="superseded" data-node-label="superseded 已替代" tabindex="0" role="button" aria-label="聚焦superseded 已替代，留目录参与排序 · freshness 衰减, 终态 · 拒绝与退役" aria-pressed="false" data-node-kind="neutral" data-node-sublabel="留目录参与排序 · freshness 衰减" data-node-tag="前后继有记录" data-node-context="终态 · 拒绝与退役">
+          <title>superseded 已替代 · 留目录参与排序 · freshness 衰减 · 终态 · 拒绝与退役 · 前后继有记录</title>
           <rect x="524" y="424" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="524" y="424" width="140" height="64" rx="7" class="c-external" data-animate="node" style="--step:6" stroke-width="1.5"/>
           <rect x="527" y="427" width="134" height="58" rx="4" class="c-external" style="fill: none" stroke-width="1"/>
@@ -5118,11 +5118,11 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
           <text data-node-label="" data-detail-anchor="" x="599.1" y="447" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">superseded 已替代</text>
           <text data-detail="context" x="594" y="464" class="t-muted" font-size="7" text-anchor="middle">留目录参与排序 · freshness 衰减</text>
-        <text data-detail="fine" x="594" y="476" class="t-muted" font-size="8" text-anchor="middle">前后继有账</text>
+        <text data-detail="fine" x="594" y="476" class="t-muted" font-size="8" text-anchor="middle">前后继有记录</text>
         </g>
 
-        <g id="node-retired" data-node-id="retired" data-node-label="retired 显式退役" tabindex="0" role="button" aria-label="聚焦retired 显式退役，禁用/清理有账 · 重验触发, 终态 · 出局与退役" aria-pressed="false" data-node-kind="neutral" data-node-sublabel="禁用/清理有账 · 重验触发" data-node-tag="G6 有葬礼" data-node-context="终态 · 出局与退役">
-          <title>retired 显式退役 · 禁用/清理有账 · 重验触发 · 终态 · 出局与退役 · G6 有葬礼</title>
+        <g id="node-retired" data-node-id="retired" data-node-label="retired 显式退役" tabindex="0" role="button" aria-label="聚焦retired 显式退役，禁用/清理有记录 · 重验触发, 终态 · 拒绝与退役" aria-pressed="false" data-node-kind="neutral" data-node-sublabel="禁用/清理有记录 · 重验触发" data-node-tag="G6 退役路径必备" data-node-context="终态 · 拒绝与退役">
+          <title>retired 显式退役 · 禁用/清理有记录 · 重验触发 · 终态 · 拒绝与退役 · G6 退役路径必备</title>
           <rect x="728" y="424" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="728" y="424" width="140" height="64" rx="7" class="c-external" data-animate="node" style="--step:7" stroke-width="1.5"/>
           <rect x="731" y="427" width="134" height="58" rx="4" class="c-external" style="fill: none" stroke-width="1"/>
@@ -5131,8 +5131,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <circle cx="8" cy="8" r="1.2" class="sigil-fill"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="799.8" y="447" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">retired 显式退役</text>
-          <text data-detail="context" x="798" y="464" class="t-muted" font-size="8" text-anchor="middle">禁用/清理有账 · 重验触发</text>
-        <text data-detail="fine" x="798" y="476" class="t-muted" font-size="8" text-anchor="middle">G6 有葬礼</text>
+          <text data-detail="context" x="798" y="464" class="t-muted" font-size="8" text-anchor="middle">禁用/清理有记录 · 重验触发</text>
+        <text data-detail="fine" x="798" y="476" class="t-muted" font-size="8" text-anchor="middle">G6 退役路径必备</text>
         </g>
 
         <!-- Transition labels -->
@@ -5372,24 +5372,24 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot amber"></div>
-          <h3>两级死亡 · 两种口径，不能混</h3>
+          <h3>两级删除 · 两种方式，不能混</h3>
         </div>
         <ul>
-          <li>轮内死亡是可恢复的：四步压缩把窗口内容降级为占位、配对不拆、需要时可复活——窗口治理，不产生任何目录级退役记录</li>
-          <li>目录级死亡必须显式且有账：superseded 登记前后继、物化清理带生成标记安全删除、口径变更触发题库重验</li>
-          <li>跨层套用即失效：把「压缩很健康」读成「死亡段已就位」，恰好漏掉物化只写不删、挂载收回双向悬空、题库重验无触发三个缺口</li>
+          <li>轮内删除是可恢复的：四步压缩把窗口内容降级为占位、配对不拆、需要时可恢复——窗口治理，不产生任何目录级退役记录</li>
+          <li>目录级删除必须显式且有记录：superseded 登记前后继、物化清理带生成标记安全删除、口径变更触发题库重验</li>
+          <li>跨层套用即失效：把「压缩很健康」读成「退役段已就位」，恰好漏掉物化只写不删、挂载收回双向悬空、题库重验无触发三个缺口</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>出生过门 · 裁决留人 · 死亡有记录</h3>
+          <h3>注册时校验 · 裁决留人 · 删除有记录</h3>
         </div>
         <ul>
-          <li>出生：注册期 422 门（create/update 双路）拒非法结构入库——无门则垃圾定义静默入库（D6）</li>
-          <li>裁决：冲突浮出人工、不按热度投票（G3）——机器判断→组织规则之间唯一的人工关口</li>
-          <li>死亡：目录只进不出必然腐化（G6）——降权只延缓、不清退，退役路径与出生登记成对出现</li>
+          <li>注册：注册期 422 门（create/update 双路）拒非法结构入库——无门则垃圾定义静默入库（D6）</li>
+          <li>裁决：冲突浮出人工、不按热度自动裁决（G3）——机器判断→组织规则之间唯一的人工检查点</li>
+          <li>删除：目录只进不出必然腐化（G6）——降权只延缓、不清退，退役路径与注册登记成对出现</li>
         </ul>
       </div>
     </div>

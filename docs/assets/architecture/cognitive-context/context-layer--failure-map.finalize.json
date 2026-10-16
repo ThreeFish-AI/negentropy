@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-13T06:55:40.486Z",
+  "startedAt": "2026-10-16T05:00:58.749Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-    "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
-    "bytes": 6486
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+    "sha256": "8014c02b9e186877f72941d93af58025dd7a76206bd7b8606b5d4d4511b82b00",
+    "bytes": 6674
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-    "bytes": 765362
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+    "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
+    "bytes": 765707
   },
   "stages": {
     "validate": {
@@ -27,8 +27,8 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--quality",
         "showcase",
         "--json"
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
-          "bytes": 6486
+          "sha256": "8014c02b9e186877f72941d93af58025dd7a76206bd7b8606b5d4d4511b82b00",
+          "bytes": 6674
         },
         "validation": {
           "checksPassed": 9,
@@ -54,33 +54,33 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 372,
+      "durationMs": 446,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--quality",
         "showcase",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
+        "receiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "specification": {
-          "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
-          "bytes": 6486
+          "sha256": "8014c02b9e186877f72941d93af58025dd7a76206bd7b8606b5d4d4511b82b00",
+          "bytes": 6674
         },
         "artifact": {
-          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-          "bytes": 765362
+          "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
+          "bytes": 765707
         },
         "validation": {
           "checksPassed": 9,
@@ -95,20 +95,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 85,
+      "durationMs": 80,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "artifact": {
-          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-          "bytes": 765362
+          "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
+          "bytes": 765707
         },
         "checks": [
           {
@@ -178,7 +178,7 @@
             "minLabelRouteClearance": null,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 7.500000000000001,
+            "minProjectedNodeTextPx": 6,
             "maxBends": 0,
             "routesOverSuggestedBends": 0,
             "maxStretch": 1,
@@ -213,39 +213,39 @@
           "desktopReadability": {
             "budgetBasis": "recognized-declared-wide",
             "readerContract": "declared-wide-v1",
-            "availableDiagramWidth": 1036.607142857143,
-            "actualBudgetPx": 1036.607142857143,
-            "actualReaderWidth": 1066.607142857143,
-            "desiredReaderWidth": 1066.607142857143,
+            "availableDiagramWidth": 1161,
+            "actualBudgetPx": 1161,
+            "actualReaderWidth": 1191,
+            "desiredReaderWidth": 1191,
             "viewportCap": 1376,
             "limit": "source-size",
             "requestedTargetPx": 7.5,
-            "requestedTargetMet": true,
+            "requestedTargetMet": false,
             "hardFloorPx": 6,
             "hardFloorMet": true,
             "minimumOwner": {
               "kind": "node",
               "id": "c7_jiexian"
             },
-            "minimumSourceTextPx": 8.4,
-            "minimumProjectedTextPx": 7.500000000000001,
+            "minimumSourceTextPx": 6,
+            "minimumProjectedTextPx": 6,
             "semanticTextCount": 21
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a"
+        "deliveryReceiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1202,
+      "durationMs": 1245,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--json",
         "--require-provenance"
       ],
@@ -258,11 +258,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
+        "deliveryReceiptId": "524bbc68-eaaa-4e10-bb6f-4d157c72c5d5",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-          "bytes": 765362
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+          "sha256": "bd215ae16bf00d66ef5e4e07093891f5d59c778e6842165657eac8373dc1c393",
+          "bytes": 765707
         },
         "state": {
           "detail": "read",
@@ -304,10 +304,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -354,10 +354,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -404,10 +404,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -454,10 +454,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -557,10 +557,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -607,10 +607,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -657,10 +657,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -707,10 +707,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -762,10 +762,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -812,10 +812,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -862,10 +862,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -912,10 +912,10 @@
                 "viewBoxHeight": 732
               },
               "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -951,11 +951,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-13T06:55:42.527Z",
-  "durationMs": 2040
+  "finishedAt": "2026-10-16T05:01:00.888Z",
+  "durationMs": 2138
 }

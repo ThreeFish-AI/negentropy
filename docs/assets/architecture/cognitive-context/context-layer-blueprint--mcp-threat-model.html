@@ -2980,7 +2980,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       body { background: #ffffff !important; padding: 0; }
       .container { max-width: none; }
       .toolbar, .diagram-nav, .focus-chip, .archify-toast, .no-print { display: none !important; }
-
+      
       .diagram-container, .card { box-shadow: none; border-color: #e2e8f0; }
       .diagram-container { --archify-nav-reserve: 0px !important; }
       html[data-preset="signal-flow"] .diagram-container,
@@ -3902,24 +3902,24 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .route-journey-controls button { min-height: 2.75rem; }
       .route-probe-status { padding: 0.05rem 0.48rem 0.38rem; }
       .route-probe-node { max-width: 7.5rem; }
-
-
-
-
-
-
-
-
-
-
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       html[data-embed="true"][data-share-playback="true"] .diagram-container {
         padding-top: 4.25rem;
       }
       html[data-embed="true"][data-share-moment="true"] .diagram-container {
         padding-top: 4.25rem;
       }
-
+      
       .cards {
         grid-template-columns: 1fr;
         margin-top: 1rem;
@@ -3962,7 +3962,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-
+      
       html[data-present="true"]:not([data-embed="true"]) .diagram-container { padding: 0.5rem 0.5rem 3.75rem; }
       html[data-present="true"]:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] > svg {
         width: 720px;
@@ -4842,7 +4842,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .semantic-lens,
       .diagram-guide,
       .overview-map-live { animation: none !important; }
-
+      
       .intent-trace-flow {
         animation: none !important;
         stroke-dasharray: none;
@@ -5114,8 +5114,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="118" y="110" class="t-muted" font-size="7.4" text-anchor="middle">受众绑定 RFC 8707 · 令牌不跨源复用</text>
         </g>
 
-        <g id="node-desc-poison" data-node-id="desc-poison" data-node-label="描述投毒" tabindex="0" role="button" aria-label="聚焦描述投毒，自述不可信输入 · 哈希钉住＋注册期评审, 架构组件" aria-pressed="false" data-node-kind="security" data-node-sublabel="自述不可信输入 · 哈希钉住＋注册期评审" data-node-context="架构组件">
-          <title>描述投毒 · 自述不可信输入 · 哈希钉住＋注册期评审 · 架构组件</title>
+        <g id="node-desc-poison" data-node-id="desc-poison" data-node-label="描述投毒" tabindex="0" role="button" aria-label="聚焦描述投毒，自述不可信输入 · 哈希 pinning＋注册期评审, 架构组件" aria-pressed="false" data-node-kind="security" data-node-sublabel="自述不可信输入 · 哈希 pinning＋注册期评审" data-node-context="架构组件">
+          <title>描述投毒 · 自述不可信输入 · 哈希 pinning＋注册期评审 · 架构组件</title>
           <rect x="300" y="64" width="178" height="64" rx="6" class="c-mask"/>
           <rect x="300" y="64" width="178" height="64" rx="6" class="c-security" data-animate="node" style="--step:5" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(306 70) scale(0.6875)">
@@ -5123,7 +5123,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="389" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">描述投毒</text>
-        <text data-detail="context" x="389" y="110" class="t-muted" font-size="7.6" text-anchor="middle">自述不可信输入 · 哈希钉住＋注册期评审</text>
+        <text data-detail="context" x="389" y="110" class="t-muted" font-size="6.9" text-anchor="middle">自述不可信输入 · 哈希 pinning＋注册期评审</text>
         </g>
 
         <g id="node-deputy" data-node-id="deputy" data-node-label="confused deputy" tabindex="0" role="button" aria-label="聚焦confused deputy，每客户端同意 · redirect 匹配＋强确认, 架构组件" aria-pressed="false" data-node-kind="security" data-node-sublabel="每客户端同意 · redirect 匹配＋强确认" data-node-context="架构组件">
@@ -5442,7 +5442,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <ul>
           <li>写入端威胁模式扫描必须先于会话巩固上线——扫描与巩固必须同批落地</li>
           <li>巩固单独先行＝在无扫描的写入面上开放常驻注入面</li>
-          <li>本仓现状（as-of b2fbb51f5）：add_session_to_memory 生产调用为 0、consolidation_jobs 只入队无消费者（ISSUE-195 开放），约束尚有兑现窗口</li>
+          <li>本仓现状（as-of b2fbb51f5）：add_session_to_memory 生产调用为 0、consolidation_jobs 只入队无消费者（ISSUE-195 开放），约束尚有落实窗口</li>
         </ul>
       </div>
     </div>

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0918e730-39ea-408f-b4e6-a88ee30a2c38",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--evolution-levers/context-layer--evolution-levers.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--evolution-levers.html",
+  "specification": {
+    "sha256": "b7c8ae5af8a859d45772f5b434e0c250c3f501d7bb85b4238ff2bb2a457c7988",
+    "bytes": 9889
+  },
+  "artifact": {
+    "sha256": "60b7cea486fb971411273cdce6cbf0fd400678ed9003f47c193bb4d87717c9e7",
+    "bytes": 766842
+  }
+}
