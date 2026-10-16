@@ -1,7 +1,7 @@
 {
   "name": "context-layer-video",
   "private": true,
-  "description": "《给 AI 发一张工卡：Agent 上下文层蓝图》科普视频 Remotion 工程",
+  "description": "《拆解 Agent Context Layer：上下文怎么供给、治理、装配》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "typecheck": "tsc --noEmit",

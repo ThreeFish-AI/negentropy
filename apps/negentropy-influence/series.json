@@ -102,7 +102,8 @@
       "id": "claude-code-explained",
       "title": "Claude Code Harness Engineering",
       "sourceKind": "course",
-      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/gl-notes.md 冻结登记（ep5 例外：其 gl-notes 为 2026-10-07 换代前 175 的冻结快照——成片 v2 取证口径）。",      "episodes": [
+      "rule": "与自进化系列完全独立：两个系列的口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约各自独立（规则 2/3/4 按系列内判定）。信源为官方文档 + Anthropic 工程博客 + 开源课程仓库（站点 20 章/5 阶段只作组织骨架，观众层匿名化——规则 7），故 episode 用 source 字段（含 pinnedRef 与访问日期）而非 paper 字段——证据等级分层见各集 research/gl-notes.md 冻结登记（ep5 例外：其 gl-notes 为 2026-10-07 换代前 175 的冻结快照——成片 v2 取证口径）。",
+      "episodes": [
         {
           "episode": 1,
           "slug": "claude-code-explained-video",
@@ -214,7 +215,8 @@
           },
           "status": "final-review",
           "statusNote": "**v2 交付**（2026-10-03 评审修复轮重渲：9 commits 80 项修复全入片——P0 金句卡衬底/楼顶小檐成形/KeyCard 退场/慢活走查空窗/P2 Footnote 归属入片/P4 循环轨道净空/footer 贴口播/P6 回流环净空/P5 工具数口径/P3 章名统一/P1 sin 收敛/归档分叉终收口等，交付物对齐 HEAD（md5 复核）；v1 同日初渲=修复前构建）：14:17.8 = 857.8s @1080p30（25734 帧复算=mdls 857.812s 双源一致，纯视觉零时序变更）；147 句 4015 字（278 口径直写）；edge 终声（zh-CN-YunxiNeural @+12%，实测 4015÷14.3=280.8 字/分校准偏差 1%）；archify 14 图（12 新绘+collab-panorama/five-layer 复用）49 章逐章回放（49 cue · 锚定 33.3% · 3.4/分 · 5 型 · lead 49/49 实测）；六组破坏实验全入片（B1/B2+B2v/B3/B4/B5/t5race 红绿消融）；机器门全绿：check_series/build/check --check-scenes --check-motion/覆盖门/check_archify/tsc/motion 15:15/qa 五项（草渲+全分辨率终渲双遍）/WCAG/末帧渐黑零亮残留；归档 v2 + _captions（v1 原样保留，v2 已按 17:37 三轮重建构建覆盖重归档（md5 556d253d 与渲染产物字节一致））；C 型=175 冻结快照 @0ecf6527c；indextts me-bright 重配待用户人工触发（cues 台本已预置）；2026-10-08 合并主干：175 已换代（本片仍以换代前快照取证）；series-intro 副本入库未挂载（孪生门过、leadIn 仍 0.6s），挂载与 [13.0,15.5] 含片头口径留待下轮重制",
-          "voice": "edge + zh-CN-YunxiNeural（+12%）"        }
+          "voice": "edge + zh-CN-YunxiNeural（+12%）"
+        }
       ]
     },
     {
@@ -250,8 +252,8 @@
           "episode": 2,
           "slug": "context-layer-video",
           "path": "episodes/context-layer-video",
-          "title": "给 AI 发一张工卡：Agent 上下文层蓝图",
-          "topic": "Context Layer：蓝图怎么复刻（2026-09-28 完全重制）",
+          "title": "拆解 Agent Context Layer：上下文怎么供给、治理、装配",
+          "topic": "Context Layer：三面蓝图怎么拆（2026-10-16 v4 零类比重制）",
           "cardSub": "上下文层 · 蓝图",
           "accents": [
             "#5B8DC9",
@@ -259,15 +261,15 @@
             "#7ED321"
           ],
           "source": {
-            "title": "Context Layer 技术蓝图：Agent 系统的上下文供给与治理（docs/research/cognitive-context/013 完全重铸版）",
+            "title": "Context Layer 技术蓝图：Agent 系统的上下文供给与治理（013 去比喻版：三面×五轴〔资产/权威/装配/检索/沉淀〕×六段两环+读/纳管双管线）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "a77c65822",
+            "pinnedRef": "1f8642348",
             "license": "本仓内部文档",
-            "accessed": "2026-09-28"
+            "accessed": "2026-10-16"
           },
           "status": "final-review",
-          "statusNote": "v2 终渲待审（2026-09-29，013 完全重铸版信源·机务工卡 MRO 剧场，第 4 轮评审修复 21 条后重渲）：14:02.1 = 25263 帧 @30fps / 1920×1080（ffprobe 842.10s 与帧复算逐位一致）；193 句 4109 字 story 段落演绎；archify 13 图 76 章 71 cue · 锚定 36.8% · 密度 5.1/分 · 图型 4；C2 三人格全 pass；覆盖门/check_series/主题门 FAIL 0（七幕+尾幕 qa、全片 5s 亮度带扫描零暗段、11 帧改动镜 still 目视）；交付 ~/Documents/video/context-layer/给 AI 发一张工卡：Agent 上下文层蓝图 v2.mp4 + _captions/",
-          "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
+          "statusNote": "v4 零类比重制·edge 草渲待审（2026-10-16，用户裁决弃 MRO 剧场全量直讲：组件名+白话+贯穿请求「上季度华东区重复购买率」三步法）：293 句·TTS 重配 25.23 分纯语音；九幕 97 镜·archify 12 图 116 cue·锚定 39.6%·40/63 章落镜；④ 真实性 3 路+易懂性（含零类比门）清零·⑤ REWRITE=0；恒定锚 RequestCard/Map-First FiveAxisMap/双管线真名走查（Resolve..Emit/Ingest..Tag·Index）",
+          "voice": "edge 云希（zh-CN-YunxiNeural +4%，草渲档）"
         },
         {
           "episode": 3,
