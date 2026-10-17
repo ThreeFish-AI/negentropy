@@ -367,7 +367,7 @@ const SupplyPaths: React.FC<{at: number; titleAt: number; mineAt: number}> = ({a
             {i < 1 ? <span style={{fontSize: 22, color: theme.dim}}>→</span> : null}
           </span>
         ))}
-        <span style={{marginLeft: 'auto', fontSize: 17, color: theme.dim, fontFamily: theme.mono}}>只碰元数据 · 不碰数据行</span>
+        <span style={{marginLeft: 'auto', fontSize: 17, color: theme.dim, fontFamily: theme.mono}}>只涉元数据 · 不涉数据行</span>
       </div>
     </AbsoluteFill>
   );

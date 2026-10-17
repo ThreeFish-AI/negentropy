@@ -1,9 +1,9 @@
 /** 宽进严出三段流水线（P5·5-B 检索装置，v3 新增）。
  *
  *  三拍对三句：宽进抱回一摞候选（carryAt，150 角标）→ 台面重排（rerankAt，
- *  散堆收拢成有序两列）→ 闸口截断只放行一小撮（gateAt，前 20 角标）。
+ *  散堆收拢成有序两列）→ 闸口截断只放行少数（gateAt，前 20 角标）。
  *  漏掉的卡淡出不删（透明度压到 0.22，禁 display:none——「截断=信噪比控制」）。
- *  底部信噪比标尺：左密右疏，示意喂进多、进窗少。
+ *  底部信噪比标尺：左密右疏，示意输入多、进窗少。
  */
 import React from 'react';
 import {AbsoluteFill} from 'remotion';
@@ -135,7 +135,7 @@ export const WideFunnel: React.FC<{
       >
         {zone(ZONE.carry, '① 宽进 · 抱回来', '150 条候选', theme.concept)}
         {zone(ZONE.rerank, '② 重排 · 细看一遍')}
-        {zone(ZONE.gate, '③ 截断 · 只放一小撮', '前 20', theme.ok)}
+        {zone(ZONE.gate, '③ 截断 · 只保留少数', '前 20', theme.ok)}
         {/* 三段地面 */}
         <div style={{position: 'absolute', left: 24, right: 24, top: 316, height: 2, background: theme.panelBorder}} />
         {/* 闸口横杆：落下后开启放行 */}
@@ -177,7 +177,7 @@ export const WideFunnel: React.FC<{
               />
             ) : null;
           })}
-          <span style={{position: 'absolute', left: 0, top: -8, fontSize: 16, color: theme.dim}}>噪 · 喂进多</span>
+          <span style={{position: 'absolute', left: 0, top: -8, fontSize: 16, color: theme.dim}}>噪 · 输入多</span>
           <span style={{position: 'absolute', right: 0, top: -8, fontSize: 16, color: theme.ok}}>信 · 进窗少</span>
         </div>
       </div>
