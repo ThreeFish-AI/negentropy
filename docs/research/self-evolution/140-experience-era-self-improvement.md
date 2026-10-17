@@ -37,7 +37,7 @@ title: "经验时代的自驱迭代进化智能体：综述研读与系统改进
 
 ### 2.1 断点一：Judge 无历史锚点评分
 
-`evaluator.py:37-67` 的 `_JUDGE_PROMPT` 要求 Judge 判定 verdict「较上轮有实质推进 / 退步」，**但 prompt 从未提供任何上轮信息**——Judge 每轮仅看本轮 summary 独立重打分。机理后果：±20 天然振荡（修一处感知缺陷压低另一处总分等聚合任务尤甚），触发 `_is_no_progress` / `_is_oscillating` 误杀收敛中任务（ISSUE-128 容差带只是治标）。对应综述 §8 纵向评估缺失与 §10.3 弱反馈信用分配。
+`evaluator.py:37-67` 的 `_JUDGE_PROMPT` 要求 Judge 判定 verdict「较上轮有实质推进 / 退步」，**但 prompt 从未提供任何上轮信息**——Judge 每轮仅看本轮 summary 独立重打分。机理后果：±20 天然振荡（修一处感知缺陷压低另一处总分等聚合任务尤甚），触发 `_is_no_progress` / `_is_oscillating` 误杀收敛中任务（I-128 容差带只是治标）。对应综述 §8 纵向评估缺失与 §10.3 弱反馈信用分配。
 
 ### 2.2 断点二：经验记忆约 7-8 天全灭 + 反馈链断裂
 
@@ -54,7 +54,7 @@ title: "经验时代的自驱迭代进化智能体：综述研读与系统改进
 | **trajectory 纯函数模块** | `score_trajectory`（trend/振幅/flips/direction）/ `format_anchor_context`（中文锚点段）/ `build_anchor_audit`（metrics 摘要）。遵循 `decision.py` 纯函数 + frozen dataclass + Protocol 范式 |
 | **Judge 模板锚定版** | 在「客观验证结果」与「评审要求」之间插 `{anchor_section}`（近 K 轮 `第N轮[phase]：score(verdict)` + 历史最优 + 上轮反思）；追加两条要求——`progress_evidence`（先于评分完成，≤150 字）与评分锚定一致性（无实质退步不得低于上轮 10 分以上、无实质新进展不得高于上轮 10 分以上；**锚点非地板 / 天花板**）；JSON 输出行 `progress_evidence` 置首强制「证据先于给分」生成顺序 |
 | **orchestrator 接线** | `_do_evaluate` ①段只读查 floored history 快照注入 evaluator（①段查询天然不含本轮=正确语义，③段那次含本轮供 decide 用、不可复用）；③段 `latest.metrics["judge_anchor"]` 审计写入；`_persist_eval_events` payload 增 `progress_evidence` |
-| **量化振荡 opt-in** | `decide(oscillation_min_amplitude=0)`；`_is_oscillating` 追加与 verdict 无关的量化分支（n≥6、net_gain≤0、amplitude≥阈值、flips≥3）。⚠️ 与 ISSUE-128 容差带存在张力（真实振荡轨迹会被任何合理阈值命中）——故**默认关闭、巡检不启用**，定位为锚定降振荡后的兜底护栏 |
+| **量化振荡 opt-in** | `decide(oscillation_min_amplitude=0)`；`_is_oscillating` 追加与 verdict 无关的量化分支（n≥6、net_gain≤0、amplitude≥阈值、flips≥3）。⚠️ 与 I-128 容差带存在张力（真实振荡轨迹会被任何合理阈值命中）——故**默认关闭、巡检不启用**，定位为锚定降振荡后的兜底护栏 |
 | **关键不变量** | 锚点「历史最优」取 floored history max(score)，**不用** `routine.best_score`（跨 restart 不复位会泄漏旧高分）；「上轮 reflection」取 `history[-1].reflection`（iteration 列，非 routine.reflections 全生命周期流）；faculty_bridge 与 litellm 两路接收同一 prompt 字符串，锚点注入对二者逐字节一致 |
 | **默认值** | `judge_anchor_enabled=True` / `judge_anchor_window=5`。首轮 / 无历史 prompt 逐字节等价原版；属信息注入而非决定性改分（与 acceptance cap 区分），env / per-routine config 可秒关 |
 

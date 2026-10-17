@@ -1,6 +1,6 @@
 """单元测试：``DoclingEngine._extract_formulas`` 优先 iterate_items 获取 bbox。
 
-ISSUE-094 R8：mineru 公式 stage 在 28 页学术论文超时降级 docling 后，原
+I-094 R8：mineru 公式 stage 在 28 页学术论文超时降级 docling 后，原
 ``_extract_formulas`` 仅从 markdown 正则抽取公式（无 bbox），导致 assembly
 五级稳定排序键 ``(page, col, y0, x0, reading_order)`` 中 y0 退化为
 ``1_000_000 + reading_order``（无 bbox 公式按 enumerate 顺序而非视觉顺序），

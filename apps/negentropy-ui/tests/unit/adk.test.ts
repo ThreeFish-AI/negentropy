@@ -394,7 +394,7 @@ describe("adk event mapping", () => {
     });
   });
 
-  // ISSUE-040 H1: 推理 / 思考 Part 不可进入 TEXT_MESSAGE_*
+  // I-040 H1: 推理 / 思考 Part 不可进入 TEXT_MESSAGE_*
   it("过滤 thought=true 的 Part，仅把正文进入 TEXT_MESSAGE_CONTENT", () => {
     const payload = {
       id: "evt_thought_1",
@@ -488,7 +488,7 @@ describe("adk event mapping", () => {
     expect(thoughtCustom).toBeTruthy();
   });
 
-  // ISSUE-040 H2: STEP_FINISHED 必须携带与 STEP_STARTED 配对的 stepName，否则
+  // I-040 H2: STEP_FINISHED 必须携带与 STEP_STARTED 配对的 stepName，否则
   // ag-ui v0.0.47 client 会抛 "Cannot send 'STEP_FINISHED' for step \"undefined\""
   // 中断 run，导致推理头永驻 started 状态。
   it("synth step 在 flushRun 时 STEP_FINISHED 携带 stepName 与 STEP_STARTED 配对", () => {

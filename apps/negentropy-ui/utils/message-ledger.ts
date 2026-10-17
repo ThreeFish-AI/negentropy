@@ -38,7 +38,7 @@ type SnapshotMessage = {
 const DEFAULT_THREAD_ID = "default";
 const DEFAULT_RUN_ID = "default-run";
 
-// ISSUE-041: 后端 ADK Web `/sessions/{id}` 不透传 runId 时，前端
+// I-041: 后端 ADK Web `/sessions/{id}` 不透传 runId 时，前端
 // `session-hydration.ts::fallbackRunId` 会回退到 threadId 或 sessionId，导致
 // 同一逻辑消息在 realtime（真 runId）与 hydrated（合成 runId）两路下身份割裂，
 // 进而在 conversation-tree 产出两个独立 turn → UI 双气泡。
@@ -85,7 +85,7 @@ export function isSemanticEquivalentEntry(
   const leftRun = left.runId || DEFAULT_RUN_ID;
   const rightRun = right.runId || DEFAULT_RUN_ID;
   if (leftRun !== rightRun) {
-    // ISSUE-041: 当一侧来自 hydration 的合成 runId（runId === threadId 或
+    // I-041: 当一侧来自 hydration 的合成 runId（runId === threadId 或
     // 等同 DEFAULT_RUN_ID），不应阻断与 realtime 真 runId 的语义合并。
     // threadId + role + 内容前缀 + origin 多元 已构成充分身份约束。
     const leftIsSynthetic = isSyntheticRunId({ runId: left.runId, threadId: left.threadId });
@@ -112,7 +112,7 @@ export function isSemanticEquivalentEntry(
   if (!leftContent || !rightContent) {
     return false;
   }
-  // ISSUE-060 根因层：放宽严格前缀检查为"前缀 ∨ 高门槛 multiset 互含"。
+  // I-060 根因层：放宽严格前缀检查为"前缀 ∨ 高门槛 multiset 互含"。
   //
   // 旧实现要求 left/right 必须互为前缀，但 LLM 流式 chunk 与 final hydration
   // 在以下两种主路径下会**字符级不一致**却同源：
@@ -147,7 +147,7 @@ export function isSemanticEquivalentEntry(
   // 长耗时回复（如多段落 / 列表型答复）下，realtime 取首个 partial 时间戳、
   // hydration 取终态时间戳，两者跨度可能大于 8s。当 trim 后内容严格相等且
   // threadId+runId+role 已收敛时，可视为同一逻辑消息，跳过时间窗硬拒绝。
-  // ISSUE-060：multiset 兜底命中（同源残缺版 + final 改写版）的时间跨度也可能
+  // I-060：multiset 兜底命中（同源残缺版 + final 改写版）的时间跨度也可能
   // 远大于 8s（LLM 长回复 + hydration 延迟），同样跳过时间窗硬拒绝。
   const strictlyEqualContent = leftContent === rightContent;
   if (
@@ -171,7 +171,7 @@ export function isSemanticEquivalentEntry(
   const historicalEntry = realtimeEntry === left ? right : left;
   const realtimeContent = realtimeEntry.content.trim();
   const historicalContent = historicalEntry.content.trim();
-  // ISSUE-060：``historicalCompletesClosedRealtime`` 的前缀检查同样需要放宽到
+  // I-060：``historicalCompletesClosedRealtime`` 的前缀检查同样需要放宽到
   // multiset 覆盖。否则即使前面的二次判据让函数继续往下走，本判定仍会因前缀关系
   // 不成立而把"realtime closed + historical 完整改写版"误判为 false。
   const historicalCoversRealtime =
@@ -383,7 +383,7 @@ export function buildMessageLedger(input: {
     });
   };
 
-  // ISSUE-042 补丁：message-ledger 的 sort tiebreaker 曾用 localeCompare
+  // I-042 补丁：message-ledger 的 sort tiebreaker 曾用 localeCompare
   // （TEXT_MESSAGE_CONTENT(C) < TEXT_MESSAGE_END(E) < TEXT_MESSAGE_START(S)），
   // 导致同时间戳下 CONTENT 在 START 之前被处理，破坏消息生命周期顺序。
   // session-hydration.ts 已改用 emitOrder，但此处遗漏。
@@ -504,7 +504,7 @@ export function buildMessageLedger(input: {
     .sort(compareLedgerEntriesByTime);
 }
 
-// ISSUE-070：角色优先级 —— 同时间戳时 user 必排在 assistant / developer / tool
+// I-070：角色优先级 —— 同时间戳时 user 必排在 assistant / developer / tool
 // 之前。修复刷新后用户消息漂移到 assistant 回复之后的乱序问题。原因：
 // 1. realtime 路径 user 消息时间戳取自 send 时刻（client clock），assistant
 //    首个 TEXT_MESSAGE_START 时间戳取自服务端 RUN_STARTED（server clock），

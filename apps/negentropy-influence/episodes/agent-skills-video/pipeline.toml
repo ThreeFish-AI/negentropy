@@ -1,4 +1,4 @@
-# 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
+# 本集可执行参数的**唯一来源**（I-161：可执行参数不落散文文档，README 只引用配置）。
 # 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 vibe-video skill 的 references/PIPELINE.md）
 #
 # 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
@@ -34,7 +34,7 @@ forbid_inset = true
 # exempt_scenes：P0 钩子幕 / P6 收束幕无 archify 锚为设计口径（RSI-039 首镜定式 +
 # 〔M-001〕终态回扣），按门要求显式登记；max_unanchored_run 20（实测最长 18，
 # p3-04..p4-03 为 X1 消融/16.9× 标尺/预算门等装置密集段，句句有非字幕可见元素，
-# ISSUE-188 覆盖自检按镜目检保证）。
+# I-188 覆盖自检按镜目检保证）。
 exempt_scenes = ["P0", "P6"]
 min_diagrams = 2
 min_cues = 10

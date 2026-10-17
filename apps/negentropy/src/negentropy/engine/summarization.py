@@ -23,7 +23,7 @@ logger = get_logger("negentropy.engine.summarization")
 # 历史值 20 在面向 reasoning 模型（gpt-5-mini / o1 / o3 等默认配置）时会被
 # 内部 reasoning tokens 全数消耗，``response.content.parts`` 为空导致
 # ``generate_title`` 返回 None。提升到 256 既能为 reasoning 留预算，又因后处理
-# 截断保证 UI 不会被长标题撑破——这是 ISSUE-082 同源根因在 Session 标题路径
+# 截断保证 UI 不会被长标题撑破——这是 I-082 同源根因在 Session 标题路径
 # 的呼应修复。
 _TITLE_MAX_TOKENS = 256
 

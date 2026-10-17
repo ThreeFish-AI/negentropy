@@ -248,7 +248,7 @@ async def test_remove_worktree_idempotent(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# checkpoint_commit —— ISSUE-114 引擎确定性 auto-commit 回归锁定
+# checkpoint_commit —— I-114 引擎确定性 auto-commit 回归锁定
 # ---------------------------------------------------------------------------
 
 

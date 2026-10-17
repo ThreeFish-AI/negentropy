@@ -6,7 +6,7 @@
 
 让 [`negentropy-perceives.parse_pdf_to_markdown`](../../apps/negentropy-perceives/src/negentropy/perceives/tools/pdf.py) 与 [`negentropy-ui` Document View](../../apps/negentropy-ui/app/knowledge/documents/[corpusId]/[documentId]/page.tsx) 联合，把学术 PDF（双栏、含图表、公式、代码、目录、参考文献）转换为 Markdown 后达到一比一还原 — 段落顺序、字号层级、图片尺寸、表格列对齐、公式 LaTeX、代码块、引用列表都与源 PDF 对应。
 
-回归基线 PDF 与对照 PDF 见 [issue.md ISSUE-094](./issue.md)。
+回归基线 PDF 与对照 PDF 见 [issue.md I-094](./issue.md)。
 
 ## 2. Pipeline 现状（修复后）
 

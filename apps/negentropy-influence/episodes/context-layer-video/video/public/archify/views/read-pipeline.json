@@ -1,0 +1,71 @@
+[
+ {
+  "id": "rp-open",
+  "label": "总览",
+  "focus": [
+   "req",
+   "bundle",
+   "dropped"
+  ],
+  "note": "请求进·Bundle 出·治理旁路"
+ },
+ {
+  "id": "rp-resolve",
+  "label": "Resolve 主体",
+  "focus": [
+   "req",
+   "resolve"
+  ],
+  "note": "主体与可见性·权限天花板实时求值"
+ },
+ {
+  "id": "rp-plan",
+  "label": "Plan 计划",
+  "focus": [
+   "plan"
+  ],
+  "note": "意图判定·各域预算分配"
+ },
+ {
+  "id": "rp-retrieve",
+  "label": "Retrieve 双范式",
+  "focus": [
+   "retrieve_exact",
+   "retrieve_recall"
+  ],
+  "note": "精确查询+召回范式并行取用"
+ },
+ {
+  "id": "rp-fuse",
+  "label": "Fuse 融合",
+  "focus": [
+   "fuse"
+  ],
+  "note": "RRF 融合·归一信任重排"
+ },
+ {
+  "id": "rp-guard",
+  "label": "Guard 检查",
+  "focus": [
+   "guard",
+   "dropped"
+  ],
+  "note": "五项引擎级检查·越界入 dropped/overrides"
+ },
+ {
+  "id": "rp-compose",
+  "label": "Compose 裁剪",
+  "focus": [
+   "compose"
+  ],
+  "note": "token 预算裁剪·倒 U 纪律"
+ },
+ {
+  "id": "rp-emit",
+  "label": "Emit 交付",
+  "focus": [
+   "bundle"
+  ],
+  "note": "ContextBundle·uri@version"
+ }
+]

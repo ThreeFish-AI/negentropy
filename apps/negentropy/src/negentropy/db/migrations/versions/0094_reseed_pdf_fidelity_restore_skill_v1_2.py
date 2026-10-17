@@ -86,7 +86,7 @@ Markdown，并通过浏览器逐页对比将差异修复至完全一致。
 - **1:1 验收必须走到浏览器渲染态**：figure 过度捕获、KaTeX ParseError、公式双份等缺陷在 DB markdown 层不可见，仅浏览器渲染后暴露。
 - **figure 图注双源风险**：多数图注已烘入 figure region PNG 像素，故 wiki/ui **不得**再从 `alt` 渲染 `figcaption`（会双图注）；caption 语义由 `alt` 承载（无障碍 + 去重指纹），视觉由图内像素承载。
 - **三套渲染栈系统性差异**：旧 `_fidelity_render`（Python-Markdown 近似）/ wiki（react-markdown + remark/rehype）/ ui（另一套 react-markdown + sanitize）三栈不同——公式/Mermaid/figure/figcaption/图片尺寸/代码高亮会假阳性/假阴性。对照须用**真实 wiki 渲染栈**（巡检经 `patrol_wiki_env` 起 `next dev` 真页截图，非模拟渲染）。
-- **全绿率评分口径**：`score = round(pass_pages/total_pages×100)`（逐页校验清单全绿率），替代主观「100-Σ扣分」——CC 自评与 Judge 复核锁同一份程序化预筛 + defects，根治 ±20 振荡（ISSUE-128）。
+- **全绿率评分口径**：`score = round(pass_pages/total_pages×100)`（逐页校验清单全绿率），替代主观「100-Σ扣分」——CC 自评与 Judge 复核锁同一份程序化预筛 + defects，根治 ±20 振荡（I-128）。
 - **双源验证防误归因**：渲染层缺陷（候选 MD 正确、渲染器渲染错）会被误归到 perceives；归因前必走「候选 MD 源码层 vs 渲染层」双源决策树（见步骤 7）。
 
 ## 反模式（严禁）

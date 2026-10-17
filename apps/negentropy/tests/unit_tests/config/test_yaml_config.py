@@ -219,7 +219,7 @@ class TestSettingsIntegration:
     def test_file_pdf_extractor_timeout_defaults(self):
         """file_pdf 抽取路由默认超时须为 1h/2h(大 PDF auto_batch 多切片串行 + checkpoint 续传)。
 
-        回归护栏(ISSUE-133 follow-up):旧值 300_000/600_000 会令后端 MCP 在大 PDF 单本
+        回归护栏(I-133 follow-up):旧值 300_000/600_000 会令后端 MCP 在大 PDF 单本
         未跑完前即超时。SSOT = config.default.yaml 的 timeout_long_ms / timeout_xlong_ms。
         """
         from negentropy.config import Settings

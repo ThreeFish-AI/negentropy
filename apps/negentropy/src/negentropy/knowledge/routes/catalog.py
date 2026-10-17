@@ -359,7 +359,7 @@ async def get_catalog_documents(
     灰出（见 AddDocumentsDialog.tsx / DocumentAssignmentSection.tsx）。
 
     跨 app 不可见：与 catalog_service.assign_document 的 app_name 同源断言对齐
-    （ISSUE-011 Phase 3 不变量）。
+    （I-011 Phase 3 不变量）。
 
     markdown_status：UI 默认传 ``completed``——仅已成功转换为 Markdown 的文档才可
     渲染为 Wiki 节点，故候选集限定于此；None 时回退到「全部 active 文档」语义。

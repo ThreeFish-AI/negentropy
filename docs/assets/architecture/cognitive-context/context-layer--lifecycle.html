@@ -2980,7 +2980,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       body { background: #ffffff !important; padding: 0; }
       .container { max-width: none; }
       .toolbar, .diagram-nav, .focus-chip, .archify-toast, .no-print { display: none !important; }
-
+      
       .diagram-container, .card { box-shadow: none; border-color: #e2e8f0; }
       .diagram-container { --archify-nav-reserve: 0px !important; }
       html[data-preset="signal-flow"] .diagram-container,
@@ -3902,24 +3902,24 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .route-journey-controls button { min-height: 2.75rem; }
       .route-probe-status { padding: 0.05rem 0.48rem 0.38rem; }
       .route-probe-node { max-width: 7.5rem; }
-
-
-
-
-
-
-
-
-
-
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       html[data-embed="true"][data-share-playback="true"] .diagram-container {
         padding-top: 4.25rem;
       }
       html[data-embed="true"][data-share-moment="true"] .diagram-container {
         padding-top: 4.25rem;
       }
-
+      
       .cards {
         grid-template-columns: 1fr;
         margin-top: 1rem;
@@ -3962,7 +3962,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-
+      
       html[data-present="true"]:not([data-embed="true"]) .diagram-container { padding: 0.5rem 0.5rem 3.75rem; }
       html[data-present="true"]:not([data-embed="true"]) .diagram-container[data-wide-diagram="true"] > svg {
         width: 720px;
@@ -4842,7 +4842,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       .semantic-lens,
       .diagram-guide,
       .overview-map-live { animation: none !important; }
-
+      
       .intent-trace-flow {
         animation: none !important;
         stroke-dasharray: none;
@@ -5013,8 +5013,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Lifecycle bands -->
-        <text x="18" y="88" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">主轴 · 对象的一生（L1–L5）</text>
-        <text x="18" y="272" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">终局 · 死亡段（L6）</text>
+        <text x="18" y="88" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">主轴 · 对象主流程（L1–L5）</text>
+        <text x="18" y="272" class="t-dim" font-size="10" font-weight="600" writing-mode="vertical-rl" text-anchor="middle">终态 · 退役段（L6）</text>
 
         <!-- Primary lifecycle rail -->
 
@@ -5050,12 +5050,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </g>
         <g data-graph-role="automatic-crossover" style="--step:7">
           <path data-graph-role="automatic-crossover-underlay" d="M 946 56 L 946 40 Q 946 32 938 32 L 342 32 Q 334 32 334 40 L 334 56" fill="none" stroke="var(--mask)" stroke-width="5.6" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="l5" data-edge-to="l2" data-edge-label="进化环 · 回灌" data-edge-key="7" data-edge-id="t-evolve" data-composition-points="946,56;946,32;334,32;334,56" data-composition-crossover="halo" d="M 946 56 L 946 40 Q 946 32 938 32 L 342 32 Q 334 32 334 40 L 334 56" class="a-emphasis" data-animate="edge" style="--step:7" stroke-width="1.6" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-edge-from="l5" data-edge-to="l2" data-edge-label="进化环 · 回写" data-edge-key="7" data-edge-id="t-evolve" data-composition-points="946,56;946,32;334,32;334,56" data-composition-crossover="halo" d="M 946 56 L 946 40 Q 946 32 938 32 L 342 32 Q 334 32 334 40 L 334 56" class="a-emphasis" data-animate="edge" style="--step:7" stroke-width="1.6" marker-end="url(#arrowhead-emphasis)"/>
         </g>
 
         <!-- States -->
-        <g id="node-l1" data-node-id="l1" data-node-label="L1 采集纳管" tabindex="0" role="button" aria-label="聚焦L1 采集纳管，出身有出处 · 过闸入账, 主轴 · 对象的一生（L1–L5）" aria-pressed="false" data-node-kind="start" data-node-sublabel="出身有出处 · 过闸入账" data-node-tag="出生过门" data-node-context="主轴 · 对象的一生（L1–L5）">
-          <title>L1 采集纳管 · 出身有出处 · 过闸入账 · 主轴 · 对象的一生（L1–L5） · 出生过门</title>
+        <g id="node-l1" data-node-id="l1" data-node-label="L1 采集登记" tabindex="0" role="button" aria-label="聚焦L1 采集登记，每条记录带来源 · 过校验入账, 主轴 · 对象主流程（L1–L5）" aria-pressed="false" data-node-kind="start" data-node-sublabel="每条记录带来源 · 过校验入账" data-node-tag="注册时校验" data-node-context="主轴 · 对象主流程（L1–L5）">
+          <title>L1 采集登记 · 每条记录带来源 · 过校验入账 · 主轴 · 对象主流程（L1–L5） · 注册时校验</title>
           <rect x="60" y="56" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="60" y="56" width="140" height="64" rx="7" class="c-frontend" data-animate="node" style="--step:0" stroke-width="1.5"/>
           <g aria-hidden="true" data-lifecycle-initial-marker="">
@@ -5066,13 +5066,13 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="m7 5.4 3.6 2.6L7 10.6Z" class="sigil-fill"/>
           </g>
         <text data-detail="fine" x="83" y="70" class="t-frontend" font-size="8" font-weight="700">01</text>
-          <text data-node-label="" data-detail-anchor="" x="131.9" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L1 采集纳管</text>
-          <text data-detail="context" x="130" y="96" class="t-muted" font-size="8" text-anchor="middle">出身有出处 · 过闸入账</text>
-        <text data-detail="fine" x="130" y="108" class="t-frontend" font-size="8" text-anchor="middle">出生过门</text>
+          <text data-node-label="" data-detail-anchor="" x="131.9" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L1 采集登记</text>
+          <text data-detail="context" x="130" y="96" class="t-muted" font-size="8" text-anchor="middle">每条记录带来源 · 过校验入账</text>
+        <text data-detail="fine" x="130" y="108" class="t-frontend" font-size="8" text-anchor="middle">注册时校验</text>
         </g>
 
-        <g id="node-l2" data-node-id="l2" data-node-label="L2 铸形裁决" tabindex="0" role="button" aria-label="聚焦L2 铸形裁决，机器发现 · 人类定规, 主轴 · 对象的一生（L1–L5）" aria-pressed="false" data-node-kind="decision" data-node-sublabel="机器发现 · 人类定规" data-node-tag="G3 裁决不自动化" data-node-context="主轴 · 对象的一生（L1–L5）">
-          <title>L2 铸形裁决 · 机器发现 · 人类定规 · 主轴 · 对象的一生（L1–L5） · G3 裁决不自动化</title>
+        <g id="node-l2" data-node-id="l2" data-node-label="L2 校验与裁决" tabindex="0" role="button" aria-label="聚焦L2 校验与裁决，机器发现 · 人类定规, 主轴 · 对象主流程（L1–L5）" aria-pressed="false" data-node-kind="decision" data-node-sublabel="机器发现 · 人类定规" data-node-tag="G3 裁决不自动化" data-node-context="主轴 · 对象主流程（L1–L5）">
+          <title>L2 校验与裁决 · 机器发现 · 人类定规 · 主轴 · 对象主流程（L1–L5） · G3 裁决不自动化</title>
           <rect x="264" y="56" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="264" y="56" width="140" height="64" rx="7" class="c-database" data-animate="node" style="--step:1" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="neutral" class="semantic-sigil s-database" transform="translate(270 62) scale(0.6875)">
@@ -5080,13 +5080,13 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <circle cx="8" cy="8" r="1.2" class="sigil-fill"/>
           </g>
         <text data-detail="fine" x="287" y="70" class="t-database" font-size="8" font-weight="700">02</text>
-          <text data-node-label="" data-detail-anchor="" x="335.9" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L2 铸形裁决</text>
+          <text data-node-label="" data-detail-anchor="" x="342.5" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L2 校验与裁决</text>
           <text data-detail="context" x="334" y="96" class="t-muted" font-size="8" text-anchor="middle">机器发现 · 人类定规</text>
         <text data-detail="fine" x="334" y="108" class="t-database" font-size="8" text-anchor="middle">G3 裁决不自动化</text>
         </g>
 
-        <g id="node-l3" data-node-id="l3" data-node-label="L3 装配执法" tabindex="0" role="button" aria-label="聚焦L3 装配执法，每轮重装 · 实时求值, 主轴 · 对象的一生（L1–L5）" aria-pressed="false" data-node-kind="active" data-node-sublabel="每轮重装 · 实时求值" data-node-tag="G1 执法点绑定" data-node-context="主轴 · 对象的一生（L1–L5）">
-          <title>L3 装配执法 · 每轮重装 · 实时求值 · 主轴 · 对象的一生（L1–L5） · G1 执法点绑定</title>
+        <g id="node-l3" data-node-id="l3" data-node-label="L3 装配执法" tabindex="0" role="button" aria-label="聚焦L3 装配执法，每轮重装 · 实时求值, 主轴 · 对象主流程（L1–L5）" aria-pressed="false" data-node-kind="active" data-node-sublabel="每轮重装 · 实时求值" data-node-tag="G1 执法点绑定" data-node-context="主轴 · 对象主流程（L1–L5）">
+          <title>L3 装配执法 · 每轮重装 · 实时求值 · 主轴 · 对象主流程（L1–L5） · G1 执法点绑定</title>
           <rect x="468" y="56" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="468" y="56" width="140" height="64" rx="7" class="c-frontend" data-animate="node" style="--step:2" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="active" class="semantic-sigil s-frontend" transform="translate(474 62) scale(0.6875)">
@@ -5098,8 +5098,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="538" y="108" class="t-frontend" font-size="8" text-anchor="middle">G1 执法点绑定</text>
         </g>
 
-        <g id="node-l4" data-node-id="l4" data-node-label="L4 应答锚定" tabindex="0" role="button" aria-label="聚焦L4 应答锚定，三条出路 · 无静默瞎猜, 主轴 · 对象的一生（L1–L5）" aria-pressed="false" data-node-kind="decision" data-node-sublabel="三条出路 · 无静默瞎猜" data-node-tag="G4 治理≠验证" data-node-context="主轴 · 对象的一生（L1–L5）">
-          <title>L4 应答锚定 · 三条出路 · 无静默瞎猜 · 主轴 · 对象的一生（L1–L5） · G4 治理≠验证</title>
+        <g id="node-l4" data-node-id="l4" data-node-label="L4 应答锚定" tabindex="0" role="button" aria-label="聚焦L4 应答锚定，三条出路 · 无静默臆测, 主轴 · 对象主流程（L1–L5）" aria-pressed="false" data-node-kind="decision" data-node-sublabel="三条出路 · 无静默臆测" data-node-tag="G4 治理≠验证" data-node-context="主轴 · 对象主流程（L1–L5）">
+          <title>L4 应答锚定 · 三条出路 · 无静默臆测 · 主轴 · 对象主流程（L1–L5） · G4 治理≠验证</title>
           <rect x="672" y="56" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="672" y="56" width="140" height="64" rx="7" class="c-database" data-animate="node" style="--step:3" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="neutral" class="semantic-sigil s-database" transform="translate(678 62) scale(0.6875)">
@@ -5108,25 +5108,25 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
         <text data-detail="fine" x="695" y="70" class="t-database" font-size="8" font-weight="700">04</text>
           <text data-node-label="" data-detail-anchor="" x="743.9" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L4 应答锚定</text>
-          <text data-detail="context" x="742" y="96" class="t-muted" font-size="8" text-anchor="middle">三条出路 · 无静默瞎猜</text>
+          <text data-detail="context" x="742" y="96" class="t-muted" font-size="8" text-anchor="middle">三条出路 · 无静默臆测</text>
         <text data-detail="fine" x="742" y="108" class="t-database" font-size="8" text-anchor="middle">G4 治理≠验证</text>
         </g>
 
-        <g id="node-l5" data-node-id="l5" data-node-label="L5 沉淀回灌" tabindex="0" role="button" aria-label="聚焦L5 沉淀回灌，短期→长期 · 三件在线, 主轴 · 对象的一生（L1–L5）" aria-pressed="false" data-node-kind="active" data-node-sublabel="短期→长期 · 三件在线" data-node-tag="G7 三件在线" data-node-context="主轴 · 对象的一生（L1–L5）">
-          <title>L5 沉淀回灌 · 短期→长期 · 三件在线 · 主轴 · 对象的一生（L1–L5） · G7 三件在线</title>
+        <g id="node-l5" data-node-id="l5" data-node-label="L5 沉淀与回写" tabindex="0" role="button" aria-label="聚焦L5 沉淀与回写，短期→长期 · 三件在线, 主轴 · 对象主流程（L1–L5）" aria-pressed="false" data-node-kind="active" data-node-sublabel="短期→长期 · 三件在线" data-node-tag="G7 三件在线" data-node-context="主轴 · 对象主流程（L1–L5）">
+          <title>L5 沉淀与回写 · 短期→长期 · 三件在线 · 主轴 · 对象主流程（L1–L5） · G7 三件在线</title>
           <rect x="876" y="56" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="876" y="56" width="140" height="64" rx="7" class="c-frontend" data-animate="node" style="--step:4" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="active" class="semantic-sigil s-frontend" transform="translate(882 62) scale(0.6875)">
             <path d="M2 8h3l1.5-3.5L9 12l1.6-4H14"/>
           </g>
         <text data-detail="fine" x="899" y="70" class="t-frontend" font-size="8" font-weight="700">05</text>
-          <text data-node-label="" data-detail-anchor="" x="947.9" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L5 沉淀回灌</text>
+          <text data-node-label="" data-detail-anchor="" x="954.5" y="79" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L5 沉淀与回写</text>
           <text data-detail="context" x="946" y="96" class="t-muted" font-size="8" text-anchor="middle">短期→长期 · 三件在线</text>
         <text data-detail="fine" x="946" y="108" class="t-frontend" font-size="8" text-anchor="middle">G7 三件在线</text>
         </g>
 
-        <g id="node-l6" data-node-id="l6" data-node-label="L6 衰减退役" tabindex="0" role="button" aria-label="聚焦L6 衰减退役，显式退役有账 · 降权不清退, 终局 · 死亡段（L6）" aria-pressed="false" data-node-kind="success" data-node-sublabel="显式退役有账 · 降权不清退" data-node-tag="G6 死要有葬礼" data-node-context="终局 · 死亡段（L6）">
-          <title>L6 衰减退役 · 显式退役有账 · 降权不清退 · 终局 · 死亡段（L6） · G6 死要有葬礼</title>
+        <g id="node-l6" data-node-id="l6" data-node-label="L6 衰减退役" tabindex="0" role="button" aria-label="聚焦L6 衰减退役，显式退役留记录 · 降权不清退, 终态 · 退役段（L6）" aria-pressed="false" data-node-kind="success" data-node-sublabel="显式退役留记录 · 降权不清退" data-node-tag="G6 退役路径必备" data-node-context="终态 · 退役段（L6）">
+          <title>L6 衰减退役 · 显式退役留记录 · 降权不清退 · 终态 · 退役段（L6） · G6 退役路径必备</title>
           <rect x="876" y="240" width="140" height="64" rx="7" class="c-mask"/>
           <rect x="876" y="240" width="140" height="64" rx="7" class="c-backend" data-animate="node" style="--step:5" stroke-width="1.5"/>
           <rect x="879" y="243" width="134" height="58" rx="4" class="c-backend" style="fill: none" stroke-width="1"/>
@@ -5136,8 +5136,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
         <text data-detail="fine" x="899" y="254" class="t-backend" font-size="8" font-weight="700">06</text>
           <text data-node-label="" data-detail-anchor="" x="947.9" y="263" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">L6 衰减退役</text>
-          <text data-detail="context" x="946" y="280" class="t-muted" font-size="8" text-anchor="middle">显式退役有账 · 降权不清退</text>
-        <text data-detail="fine" x="946" y="292" class="t-backend" font-size="8" text-anchor="middle">G6 死要有葬礼</text>
+          <text data-detail="context" x="946" y="280" class="t-muted" font-size="8" text-anchor="middle">显式退役留记录 · 降权不清退</text>
+        <text data-detail="fine" x="946" y="292" class="t-backend" font-size="8" text-anchor="middle">G6 退役路径必备</text>
         </g>
 
         <!-- Transition labels -->
@@ -5154,9 +5154,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="742.7" y="175.5" width="95.30000000000001" height="16" rx="4" class="c-mask"/>
           <text x="790.35" y="186.5" class="t-edge-security" font-size="8" text-anchor="middle">验证环 · 检出腐化</text>
         </g>
-        <g data-detail="context" data-edge-from="l5" data-edge-to="l2" data-edge-label="进化环 · 回灌" data-edge-key="7" data-edge-id="t-evolve">
+        <g data-detail="context" data-edge-from="l5" data-edge-to="l2" data-edge-label="进化环 · 回写" data-edge-key="7" data-edge-id="t-evolve">
           <rect x="602.15" y="11" width="75.7" height="16" rx="4" class="c-mask"/>
-          <text x="640" y="22" class="t-edge-emphasis" font-size="8" text-anchor="middle">进化环 · 回灌</text>
+          <text x="640" y="22" class="t-edge-emphasis" font-size="8" text-anchor="middle">进化环 · 回写</text>
         </g>
 
         <!-- Legend -->
@@ -5362,36 +5362,36 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
       <div class="card">
         <div class="card-header">
           <div class="card-dot violet"></div>
-          <h3>两条一等环（断了就退化）</h3>
+          <h3>两条主流程同级回流路径（缺失即退化）</h3>
         </div>
         <ul>
-          <li>验证环 L4→L2/L6：答案错误反哺——回 L2 修定义（题库反推语义层缺口），回 L6 检出腐化（重算与验证答案对账不一致即告警）</li>
-          <li>进化环 L5→L2：用法沉淀成新受治理对象——查询历史喂 Autopilot 草稿、eval 错一道修一处</li>
-          <li>验证环断→错误静默积累；进化环断→系统永远停在初始定义的质量水平</li>
+          <li>验证环 L4→L2/L6：答案错误回流——回 L2 修定义（题库反推语义层缺口），回 L6 检出腐化（重算与验证答案对账不一致即告警）</li>
+          <li>进化环 L5→L2：用法沉淀成新受治理对象——查询历史作为 Autopilot 草稿输入、eval 错一题修一处</li>
+          <li>验证环缺失→错误静默积累；进化环缺失→系统永远停在初始定义的质量水平</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot amber"></div>
-          <h3>G 法则钉在段间转换（优先三条）</h3>
+          <h3>G 法则绑定在段间转换（优先三条）</h3>
         </div>
         <ul>
-          <li>G1 执法点绑定：强制力来自求值点而非定义点——绕开求值点什么都拦不住的就是装饰性治理（L1 三道闸 · L3 执行点 · L5 消费者）</li>
-          <li>G3 裁决不自动化：机器判断→组织规则的转换必有人工关口，冲突浮出不按热度投票（L2 冲突裁决与映射闸）</li>
-          <li>G6 死要有葬礼：无退役机制的目录必然腐化，降权只延缓、不清退（L6 全段）</li>
+          <li>G1 执法点绑定：强制力来自求值点而非定义点——绕开求值点什么都拦不住的是未接入执行路径的治理（L1 三项入账校验 · L3 执行点 · L5 消费者）</li>
+          <li>G3 裁决不自动化：机器判断→组织规则的转换必有人工检查点，冲突浮出、不按热度自动裁决（L2 冲突裁决与映射校验门）</li>
+          <li>G6 退役路径必备：无退役机制的目录必然腐化，降权只延缓、不清退（L6 全段）</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>嵌套时间尺度：四层各有死亡口径</h3>
+          <h3>嵌套时间尺度：四层各有删除方式</h3>
         </div>
         <ul>
-          <li>轮内 ⊂ 会话内 ⊂ 跨会话 ⊂ 组织级：六段是对象的一生，同一套段结构在四个尺度上嵌套出现</li>
-          <li>死亡口径分层：轮内占位可复活；跨会话显式替代有前后继账；组织级目录级退役（L6）</li>
-          <li>跨层套用即失效——拿轮内占位机制充当目录级退役，就是反事实表第六行的坏法</li>
+          <li>轮内 ⊂ 会话内 ⊂ 跨会话 ⊂ 组织级：六段是对象从注册到退役的阶段，同一套段结构在四个尺度上嵌套出现</li>
+          <li>删除方式分层：轮内降级为占位、可恢复；跨会话显式替代、有前后继记录；组织级目录级删除（L6）</li>
+          <li>跨层套用即失效——拿轮内占位机制充当目录级删除，就是反事实表第六行的失效</li>
         </ul>
       </div>
     </div>

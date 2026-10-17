@@ -10,7 +10,7 @@
 #     s16_team_protocols/s17_autonomous_agents/s18_worktree_isolation 并入 s13_agent_teams，
 #     s20_comprehensive 对应（扩写为）s15_integrated_harness，另新增
 #     s16_workflow_runtime/s17_goal_loop（本系列不覆盖）。
-# 这是 ISSUE-165「站点 LOC 复算不出」的真正根因：站点整站是课程的旧修订。
+# 这是 I-165「站点 LOC 复算不出」的真正根因：站点整站是课程的旧修订。
 # 故双钉（[[pin]]）：ep1 钉 main（其记忆点「看内容块别信停止标记」正依赖 main 比站点新），
 # ep2–ep5 钉站点同源修订（用户 5 分组只在该修订下成立）。
 #

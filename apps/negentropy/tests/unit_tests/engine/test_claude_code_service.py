@@ -370,7 +370,7 @@ async def test_interactive_feeds_prompt_via_stdin_and_closes_on_result(monkeypat
 
 
 # ---------------------------------------------------------------------------
-# 干净成功 result 优先于「拆解退出码」—— ISSUE-113 PLAN 迭代 SIGTERM(143) 误标 error 回归锁定
+# 干净成功 result 优先于「拆解退出码」—— I-113 PLAN 迭代 SIGTERM(143) 误标 error 回归锁定
 #
 # 根因（实测）：stream-json 输入模式下 CLI 产出 result(success) 后不自退、等更多 stdin；我方主动
 # 闭合 stdin 后若 CLI 未在优雅窗口内退出，finally 会 SIGTERM 之（rc=143/-15）。该退出码是我方
@@ -412,7 +412,7 @@ async def test_interactive_clean_result_success_survives_teardown_sigterm(monkey
 
 async def test_interactive_is_error_result_not_masked_as_success(monkeypatch):
     """守卫：result 即便 subtype=success，但 is_error=True（如上下文耗尽事件）时绝不判 success——
-    否则会破坏会话/上下文死亡螺旋自愈（ISSUE-109/729bfe54）。"""
+    否则会破坏会话/上下文死亡螺旋自愈（I-109/729bfe54）。"""
     events = [
         {"type": "system", "subtype": "init", "session_id": "s2"},
         # 上下文窗口耗尽：subtype 误导性为 success，但 is_error=True

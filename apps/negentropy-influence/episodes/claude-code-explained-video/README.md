@@ -64,7 +64,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 
 ## 进⑦（TTS）鲜度门（2026-10-09 登记）
 
-> 冻结口径「截至 2026-10-07」随审校期推进须复核；录音后改口播成本剧增（ISSUE-162 前科）。**⑥→⑦ 之间必跑**：
+> 冻结口径「截至 2026-10-07」随审校期推进须复核；录音后改口播成本剧增（I-162 前科）。**⑥→⑦ 之间必跑**：
 
 1. `doc-hooks`：hook 不变式句「Deny and ask rules are still evaluated regardless of what the hook returns」在场；事件计数与口播口径对账——2026-10-09 抽验：事件清单已明显超过 33 个快照口径（InstructionsLoaded / UserPromptExpansion / MessageDisplay / PostToolUseFailure / PermissionRequest 等新增），「三十三个」趋势化（「三十多个」）待②审校拍板。
 2. `doc-permissions`：「Permission rules are enforced by Claude Code, not by the model」句在场（2026-10-09 微调形态，原「not the model」）；六种权限模式齐。

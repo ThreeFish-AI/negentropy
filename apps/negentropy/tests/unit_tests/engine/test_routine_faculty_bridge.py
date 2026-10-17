@@ -103,7 +103,7 @@ async def test_run_with_fallback_degrades_when_faculty_none(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_drive_injects_approval_policy_never(monkeypatch):
-    """_drive 预创建 session 时注入 approval_policy=never（自治 faculty 免审批门，ISSUE-156 续）。
+    """_drive 预创建 session 时注入 approval_policy=never（自治 faculty 免审批门，I-156 续）。
 
     断言 create_session 收到 state={"approval_policy":{"mode":"never"}}，且 user_id/session_id
     透传正确；预创建失败不阻断主流程（runner 仍被调用）。

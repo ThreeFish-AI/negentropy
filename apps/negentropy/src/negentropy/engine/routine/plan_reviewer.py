@@ -233,7 +233,7 @@ class PlanReviewer:
     @staticmethod
     def _parse(content: str | None) -> tuple[int, str, list[ModuleReview], str, str, str]:
         """解析审阅 JSON。"""
-        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（ISSUE-127）。
+        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（I-127）。
         data: dict[str, Any] = loads_lenient(content)
 
         raw_score = data.get("score", 0)

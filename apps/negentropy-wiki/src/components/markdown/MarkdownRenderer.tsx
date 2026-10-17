@@ -39,7 +39,7 @@ const wikiSanitizeSchema: typeof defaultSchema = {
       "height",
       "loading",
       "decoding",
-      // ISSUE-094 R8：后端 _image_to_markdown 输出形如
+      // I-094 R8：后端 _image_to_markdown 输出形如
       // <img ... style="max-width:100%;height:auto;" />，确保前端渲染时
       // 图片在窄屏下自适应不超出容器。rehype-sanitize 内置 CSS 白名单
       // 已防 expression() / url(javascript:) 等 XSS。

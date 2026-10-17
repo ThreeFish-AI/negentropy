@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "业界格局：治理落位四类路线与语义层争议焦点",
+    "locale": "zh-CN",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html"
+  },
+  "components": [
+    {
+      "id": "route-platform",
+      "type": "external",
+      "label": "平台内嵌",
+      "sublabel": "治理在引擎内——Databricks UC+Genie · Fabric IQ · Looker · AWS Context",
+      "pos": [
+        40,
+        64
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "route-code",
+      "type": "external",
+      "label": "定义即代码",
+      "sublabel": "治理在转换层——dbt MetricFlow · YAML 版本化＋PR 评审（并入 Fivetran）",
+      "pos": [
+        40,
+        176
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "route-exec",
+      "type": "external",
+      "label": "独立可执行层",
+      "sublabel": "治理在 SQL 生成前——Cube · AtScale · Colrows 编译期固化（路线最右）",
+      "tag": "本蓝图落位",
+      "pos": [
+        40,
+        288
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "route-metadata",
+      "type": "external",
+      "label": "跨系统元数据平面",
+      "sublabel": "只描述不执行——Atlan · Alation · DataHub",
+      "pos": [
+        40,
+        400
+      ],
+      "size": [
+        270,
+        80
+      ]
+    },
+    {
+      "id": "palantir",
+      "type": "cloud",
+      "label": "Palantir Ontology（异类）",
+      "sublabel": "semantic 描述世界＋kinetic 做动作 · decision lineage 贯穿",
+      "pos": [
+        535,
+        88
+      ],
+      "size": [
+        250,
+        72
+      ]
+    },
+    {
+      "id": "convergence",
+      "type": "backend",
+      "label": "收敛：治理往 SQL 生成之前挪",
+      "sublabel": "四条路线与 Palantir 同向收敛 · 事后扫描可被子查询 / CTE 绕过",
+      "pos": [
+        500,
+        230
+      ],
+      "size": [
+        320,
+        88
+      ]
+    },
+    {
+      "id": "camp-platform",
+      "type": "cloud",
+      "label": "第一类厂商 · 平台厂商",
+      "sublabel": "平台 / 商业应用厂商＋超大规模云",
+      "pos": [
+        420,
+        460
+      ],
+      "size": [
+        240,
+        72
+      ]
+    },
+    {
+      "id": "camp-general",
+      "type": "external",
+      "label": "第二类厂商 · 通用目的厂商",
+      "sublabel": "图数据库 / 目录 / 元数据 / 语义层 / 湖池平台",
+      "pos": [
+        800,
+        460
+      ],
+      "size": [
+        240,
+        72
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "治理落位路线分类 · 执行点律：先问治理求值发生在哪一层",
+      "wraps": [
+        "route-platform",
+        "route-code",
+        "route-exec",
+        "route-metadata"
+      ],
+      "pad": 16
+    },
+    {
+      "kind": "region",
+      "label": "Forrester 两类厂商（2026-08-20 一手）",
+      "wraps": [
+        "camp-platform",
+        "camp-general"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "from": "route-platform",
+      "to": "convergence",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "route-code",
+      "to": "convergence",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "route-exec",
+      "to": "convergence",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "route-metadata",
+      "to": "convergence",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "palantir",
+      "to": "convergence",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "from": "camp-platform",
+      "to": "camp-general",
+      "label": "分歧点：语义层归属",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Gartner 60%：projection 口径注",
+      "items": [
+        "到 2028 年，仅依赖 MCP 的 agentic analytics 项目将有 60% 因缺乏一致语义层而失败（Gartner 2026-02 Market Guide 预测）",
+        "经 Colrows 二手转引、付费墙无法一手复核；原文自标 projection",
+        "不可当已发生事实引用——转述必须随行口径"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Forrester：市场未收敛到单一架构",
+      "items": [
+        "一手博客 2026-08-20：context layer 市场正围绕两个子类成形",
+        "landscape 报告计划 2026 Q4 末发布、随后跟进 Wave 评测（截至 2026-10-09 计划口径）",
+        "Forrester 给出 context layer 提案定义——自标 proposed definition、非定稿"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "论断：传输之战 vs 含义之战（Colrows）",
+      "items": [
+        "MCP 赢下的是传输之战——给了 Agent 触达数据的标准通道",
+        "生产环境 Agent 真正失败在含义这一层",
+        "dbt Labs 2026 基准（受覆盖题口径、虚线·品类卖方基准）：Claude Sonnet 4.6 裸写 90.0% → 语义层编译 98.2%；GPT-5.3-Codex 84.1% → 100.0%",
+        "论断出处利害已标：Colrows 销售 governed semantic layer"
+      ]
+    }
+  ]
+}

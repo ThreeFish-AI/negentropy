@@ -80,7 +80,7 @@ async def get_stats(user: AuthUser = Depends(get_current_user_with_db_roles)) ->
     """获取 Dashboard 统计数据。
 
     auth 依赖与 ``/auth/me`` 对齐到 ``get_current_user_with_db_roles``，避免
-    「DB 已提升 admin、JWT 仍 user」的状态闪烁（ISSUE-049）：前端通过
+    「DB 已提升 admin、JWT 仍 user」的状态闪烁（I-049）：前端通过
     ``/auth/me`` 拿到 DB-resolved roles 显示 Models 卡片，stats 端点必须用
     同一口径才能与子页面一致。
     """

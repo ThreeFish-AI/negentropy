@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 /**
  * 项目通用 ConfirmDialog — 替代浏览器原生确认/告警/输入弹窗（违反 AGENTS.md 视觉规范）。
  *
- * 设计参考 ISSUE-045 Skills 模块同款实现。从 app/interface/skills/_components 升格到 components/ui，
+ * 设计参考 I-045 Skills 模块同款实现。从 app/interface/skills/_components 升格到 components/ui，
  * 让 SessionList、Composer、Memory 等模块可复用。
  */
 export interface ConfirmDialogProps {

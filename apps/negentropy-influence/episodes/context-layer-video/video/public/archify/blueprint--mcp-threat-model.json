@@ -1,171 +1,98 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 31.74,
- "total_wall_sec": 149.88,
+ "lead_sec": 0.52,
+ "story_sec": 25.38,
+ "total_wall_sec": 87.8,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
-   "id": "tm-client",
-   "label": "客户端环境",
+   "id": "tm2-open",
+   "label": "供给面全景",
    "index": 0,
-   "file": "blueprint--mcp-threat-model--tm-client.mp4",
-   "end_still": "blueprint--mcp-threat-model--tm-client-end.png",
+   "file": "blueprint--mcp-threat-model--tm2-open.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-open-end.png",
+   "beats": 11,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 12.15,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "host-client",
+    "mcp-surface",
+    "compile-gate",
+    "governed-exec",
+    "data-plane",
+    "token-theft",
+    "desc-poison",
+    "deputy",
+    "handle-spoof",
+    "injection",
+    "legitimation"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "tm2-surface",
+   "label": "供给边界",
+   "index": 1,
+   "file": "blueprint--mcp-threat-model--tm2-surface.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-surface-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "host-client",
+    "mcp-surface",
+    "compile-gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "tm2-plane",
+   "label": "数据与执行",
+   "index": 2,
+   "file": "blueprint--mcp-threat-model--tm2-plane.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-plane-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.29,
-   "beat_offsets_sec": [
-    0.0,
-    1.61
-   ],
-   "beat_nodes": [
-    "con",
-    "agent"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "tm-poison",
-   "label": "描述投毒",
-   "index": 1,
-   "file": "blueprint--mcp-threat-model--tm-poison.mp4",
-   "end_still": "blueprint--mcp-threat-model--tm-poison-end.png",
-   "beats": 1,
-   "dwell_ms": 3200,
-   "lead_sec": 0.44,
+   "lead_sec": 0.52,
    "story_sec": 3.24,
-   "beat_offsets_sec": [
-    0.0
-   ],
+   "beat_offsets_sec": [],
    "beat_nodes": [
-    "tool-poison"
+    "governed-exec",
+    "data-plane"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
-   "id": "tm-inject",
-   "label": "间接注入",
-   "index": 2,
-   "file": "blueprint--mcp-threat-model--tm-inject.mp4",
-   "end_still": "blueprint--mcp-threat-model--tm-inject-end.png",
-   "beats": 1,
-   "dwell_ms": 3200,
-   "lead_sec": 0.44,
-   "story_sec": 3.23,
-   "beat_offsets_sec": [
-    0.0
-   ],
-   "beat_nodes": [
-    "response-injection"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "tm-deputy",
-   "label": "混淆代理",
+   "id": "tm2-threats",
+   "label": "六类威胁",
    "index": 3,
-   "file": "blueprint--mcp-threat-model--tm-deputy.mp4",
-   "end_still": "blueprint--mcp-threat-model--tm-deputy-end.png",
-   "beats": 1,
-   "dwell_ms": 3200,
-   "lead_sec": 0.48,
-   "story_sec": 3.25,
-   "beat_offsets_sec": [
-    0.0
-   ],
-   "beat_nodes": [
-    "confused-deputy"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "tm-token",
-   "label": "令牌透传",
-   "index": 4,
-   "file": "blueprint--mcp-threat-model--tm-token.mp4",
-   "end_still": "blueprint--mcp-threat-model--tm-token-end.png",
-   "beats": 1,
-   "dwell_ms": 3200,
-   "lead_sec": 0.48,
-   "story_sec": 3.23,
-   "beat_offsets_sec": [
-    0.0
-   ],
-   "beat_nodes": [
-    "token-theft"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "tm-gate",
-   "label": "治理门与执行",
-   "index": 5,
-   "file": "blueprint--mcp-threat-model--tm-gate.mp4",
-   "end_still": "blueprint--mcp-threat-model--tm-gate-end.png",
-   "beats": 4,
+   "file": "blueprint--mcp-threat-model--tm2-threats.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-threats-end.png",
+   "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 4.42,
-   "beat_offsets_sec": [
-    0.0,
-    1.104,
-    2.208,
-    3.311
-   ],
+   "lead_sec": 0.52,
+   "story_sec": 6.66,
+   "beat_offsets_sec": [],
    "beat_nodes": [
-    "mcp",
-    "gate",
-    "execution",
-    "data-plane"
-   ],
-   "measured_fps": 25.0,
-   "capture_fps": 26.0
-  },
-  {
-   "id": "tm-full",
-   "label": "供给面全景",
-   "index": 6,
-   "file": "blueprint--mcp-threat-model--tm-full.mp4",
-   "end_still": "blueprint--mcp-threat-model--tm-full-end.png",
-   "beats": 10,
-   "dwell_ms": 1100,
-   "lead_sec": 0.44,
-   "story_sec": 11.08,
-   "beat_offsets_sec": [
-    0.0,
-    1.102,
-    2.205,
-    3.31,
-    4.413,
-    5.517,
-    6.619,
-    7.724,
-    8.83,
-    9.933
-   ],
-   "beat_nodes": [
-    "con",
-    "agent",
-    "tool-poison",
-    "response-injection",
-    "confused-deputy",
     "token-theft",
-    "mcp",
-    "gate",
-    "execution",
-    "data-plane"
+    "desc-poison",
+    "deputy",
+    "handle-spoof",
+    "injection",
+    "legitimation"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   }
  ],
  "capture": {
@@ -176,7 +103,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer-blueprint--mcp-threat-model.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/blueprint--mcp-threat-model.html",
  "slug": "blueprint--mcp-threat-model",
  "type": "architecture"
 }

@@ -1,6 +1,6 @@
 """``_is_decorative_raster_bbox`` 单元测试。
 
-ISSUE-094 R9 D-1a 修订决策（2026-05-27）：保留 R8 既有「短边 ≤ 24pt」
+I-094 R9 D-1a 修订决策（2026-05-27）：保留 R8 既有「短边 ≤ 24pt」
 最小必要过滤；**不**新增 cover header zone 激进规则——实机验证发现该规则
 会误删 PDF 原版的机构 / 项目徽章（如 Context Engineering 2.0 PDF 封面顶部
 的 ASI + SII-GAIR 双徽章），与「1:1 还原 PDF 所有内容（含高清原图、图片

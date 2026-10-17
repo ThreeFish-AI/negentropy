@@ -39,7 +39,7 @@ title: "Home 对话 · 主模块特性手册"
 - 附件（C5 多模态）：拖拽文件到输入框 / 点 paperclip 图标；上限 20MB（`DEFAULT_ATTACHMENT_MAX_BYTES`，参见 `apps/negentropy-ui/components/ui/Composer.tsx`）。
 - 提示词模板：通过 [Skills](./skills-basics.md) 体系发起；论文场景见 [skills-paper-hunter.md](./skills-paper-hunter.md)。
 
-**注意事项**：附件以轻量 metadata（id/name/mime/size）透传，不在 message ledger 中存原文，避免双气泡风险（[issue.md ISSUE-031](../../.agents/issue.md)）。
+**注意事项**：附件以轻量 metadata（id/name/mime/size）透传，不在 message ledger 中存原文，避免双气泡风险（[issue.md I-031](../../.agents/issue.md)）。
 
 ## 3. 流式渲染与双气泡守卫
 

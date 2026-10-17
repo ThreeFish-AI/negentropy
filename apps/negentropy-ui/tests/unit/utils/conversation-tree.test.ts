@@ -856,7 +856,7 @@ describe("buildConversationTree", () => {
     expect(tree.roots[0].children[0].role).toBe("user");
   });
 
-  // ISSUE-040 H3：fallback 段创建的消息节点 sourceOrder 应来自 ledger（即对应
+  // I-040 H3：fallback 段创建的消息节点 sourceOrder 应来自 ledger（即对应
   // ledger 条目的 sourceOrder），而非每次按 events.length + fallbackIndex 重算。
   // 通过让「snapshot 数组顺序」与「ledger 时间序」错位，迫使两套公式给出不同
   // 的 sourceOrder，从而真正回归保护 H3 修复（旧实现按 fallbackIndex 重算会与
@@ -938,7 +938,7 @@ describe("buildConversationTree", () => {
     expect(nodeLate!.sourceOrder).not.toBe(4);
   });
 
-  describe("ISSUE-041: 跨 runId 双 turn 合成折叠", () => {
+  describe("I-041: 跨 runId 双 turn 合成折叠", () => {
     // 场景：realtime 事件 (runId=uuid-1) 与 hydration 事件 (runId=sessionId)
     // 同时进入 buildConversationTree，本组用例验证 collapseSyntheticTurnDuplicates
     // 能将 hydration 形成的合成 turn 正确并入 realtime 真 turn。
@@ -1133,7 +1133,7 @@ describe("buildConversationTree", () => {
     });
 
     it("D4 双 concrete turn 无 user-message 间隔时 Phase 3 允许折叠", () => {
-      // Phase 3 之前：双 concrete turn 一律拒绝折叠（ISSUE-041 保险）。
+      // Phase 3 之前：双 concrete turn 一律拒绝折叠（I-041 保险）。
       // Phase 3 新规则：双 concrete turn 若中间无 user-message 间隔，允许折叠。
       // 此用例验证：两个真 runId、时间重叠、内容相同的 turn，中间没有 user-message，
       // 应被折叠为 1 个。
@@ -1351,7 +1351,7 @@ describe("buildConversationTree", () => {
     });
 
     it("user-message 间隔的两个 concrete turn 不折叠", () => {
-      // ISSUE-041 回归：两个真 runId turn 中间有 user message → 必须保留 2 个 turn
+      // I-041 回归：两个真 runId turn 中间有 user message → 必须保留 2 个 turn
       const events: AgUiEvent[] = [
         // Run 1: Assistant 回复
         createTestEvent({

@@ -837,10 +837,10 @@ describe("buildChatDisplayBlocks", () => {
 });
 
 // =============================================================================
-// ISSUE-049：流式累积残缺版 + final 完整版双内容兜底防御
+// I-049：流式累积残缺版 + final 完整版双内容兜底防御
 // =============================================================================
 
-describe("isStreamingDuplicateOfLater (ISSUE-049 兜底)", () => {
+describe("isStreamingDuplicateOfLater (I-049 兜底)", () => {
   it("命中：残缺版（无空格）vs 完整版 → 视为同源冗余", () => {
     const earlier =
       `"Hello, test1234"\n` +
@@ -881,7 +881,7 @@ describe("isStreamingDuplicateOfLater (ISSUE-049 兜底)", () => {
 
   it("dedupe 集成：buildChatDisplayBlocks 在双 messageId 同源场景应只输出 1 个 text segment", () => {
     // 构造两个 messageId 不同但内容呈现"残缺版 + 完整版"的 events 流，
-    // 模拟 ISSUE-041 / 049 中 hydration 与 realtime 在 conversation-tree 产出
+    // 模拟 I-041 / 049 中 hydration 与 realtime 在 conversation-tree 产出
     // 两个独立 text node 的场景。
     const earlier = "好的，我会查询数据。 结果如下：项目A、项目B、项目C。";
     const later =
@@ -958,10 +958,10 @@ describe("isStreamingDuplicateOfLater (ISSUE-049 兜底)", () => {
 });
 
 // =============================================================================
-// ISSUE-065：partial 单段 vs final 多段聚合 multiset 兜底（Layer 6）
+// I-065：partial 单段 vs final 多段聚合 multiset 兜底（Layer 6）
 // =============================================================================
 
-describe("isStreamingDuplicateOfAggregate (ISSUE-065 Layer 6 兜底)", () => {
+describe("isStreamingDuplicateOfAggregate (I-065 Layer 6 兜底)", () => {
   it("命中：partial 单段被 final 多段聚合内容字符 multiset 高度覆盖", () => {
     // 真实场景（巡检 C2）：partial 混入了 reasoning first-line + 字符级碎片化的
     // 多段拼接，final 被切成 3 段独立短段。两两比较时 length-ratio 守卫不通过
@@ -1029,12 +1029,12 @@ describe("isStreamingDuplicateOfAggregate (ISSUE-065 Layer 6 兜底)", () => {
 });
 
 // =============================================================================
-// ISSUE-070 评审回归：时钟漂移容忍窗口收紧 + 仅修「漂移」不动「客观 follow-up」
+// I-070 评审回归：时钟漂移容忍窗口收紧 + 仅修「漂移」不动「客观 follow-up」
 // =============================================================================
 
 describe("buildChatDisplayBlocks - 时钟漂移窗口（评审回归）", () => {
   it("窗口内 user.timestamp 略晚于 assistant（漂移）：user 仍排到 assistant 之前", () => {
-    // 模拟原 ISSUE-070 漂移场景：user 时间戳因 client/server 时钟差比 assistant
+    // 模拟原 I-070 漂移场景：user 时间戳因 client/server 时钟差比 assistant
     // 晚 0.05s（窗口 0.2s 内），新策略仍把 user 提前。
     const events: AgUiEvent[] = [
       createTestEvent({

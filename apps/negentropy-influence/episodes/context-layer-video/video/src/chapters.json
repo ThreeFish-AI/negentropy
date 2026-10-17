@@ -1,30 +1,38 @@
 [
  {
   "scene": "P0",
-  "title": "三个自信的错"
+  "title": "三种失效"
  },
  {
   "scene": "P1",
-  "title": "机库全景：五源与三轴"
+  "title": "三面蓝图"
  },
  {
   "scene": "P2",
-  "title": "当版页制度：对象层"
+  "title": "资产轴"
  },
  {
   "scene": "P3",
-  "title": "影子板与老师傅：目录与富化"
+  "title": "权威轴"
  },
  {
   "scene": "P4",
-  "title": "会签与放行：治理层"
+  "title": "装配轴"
  },
  {
   "scene": "P5",
-  "title": "机位时间与工卡夹：激活层"
+  "title": "检索轴"
  },
  {
   "scene": "P6",
-  "title": "装配线真相与收口"
+  "title": "沉淀轴"
+ },
+ {
+  "scene": "P7",
+  "title": "读管线"
+ },
+ {
+  "scene": "P8",
+  "title": "现状对账"
  }
 ]

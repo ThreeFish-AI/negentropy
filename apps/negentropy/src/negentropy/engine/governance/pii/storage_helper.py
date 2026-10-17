@@ -1,6 +1,6 @@
 """写入路径 PII 检测助手 —— 经工厂选择的引擎检测，产出可落库的 flags + spans。
 
-设计动机（修复预存缺陷 ISSUE-099）：
+设计动机（修复预存缺陷 I-099）：
     Memory 写入路径（``memory_service`` 的 ``_simple_consolidate`` / ``add_memory_typed``）
     原先硬编码调用 legacy ``pii_detector.detect``（仅 RegexPIIDetector），完全绕过
     ``settings.memory.pii.engine`` 工厂选择，使 Presidio 引擎成为热路径死代码；且只落

@@ -1,6 +1,6 @@
 """ingest_to_corpus 工具单测。
 
-覆盖点（ISSUE-096 后续 / Ingest 智能识别闭环）：
+覆盖点（I-096 后续 / Ingest 智能识别闭环）：
 - 入参校验（corpus_id 空 / text 空 / UUID 非法）
 - 越权防御 fail-close（corpus_id 不在 state.corpus_ids）
 - Approval Gate（always 拦截 / denied / timeout / never 直通）
@@ -180,7 +180,7 @@ async def test_approval_timeout_returns_blocked(monkeypatch) -> None:
 async def test_approval_denial_cache_short_circuits_retry() -> None:
     """同请求被拒后，LLM 若重试 → 命中 denial 缓存，直接返回 blocked、不再弹审批。
 
-    ISSUE-156 续「断掉重试循环」的结构性兜底：不依赖 LLM 自觉。
+    I-156 续「断掉重试循环」的结构性兜底：不依赖 LLM 自觉。
     """
     from negentropy.agents.tools import ingest as ingest_mod
     from negentropy.agents.tools.ingest import ingest_to_corpus

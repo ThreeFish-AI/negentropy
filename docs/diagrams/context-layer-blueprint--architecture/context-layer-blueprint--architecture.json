@@ -1,0 +1,468 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "三面蓝图总览：验收面 × 结构面 × 时间面",
+    "subtitle": "三面各自独立——机制落在多轴组合上，G 法则绑定段间转换；登记簿十簇 × 五轴 × 六段两环",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html"
+  },
+  "components": [
+    {
+      "id": "registry",
+      "type": "database",
+      "label": "失效登记簿",
+      "sublabel": "§1 · 十簇 × 49 行 × 四列",
+      "pos": [
+        44,
+        316
+      ],
+      "size": [
+        180,
+        136
+      ]
+    },
+    {
+      "id": "axisAsset",
+      "type": "database",
+      "label": "资产 Asset",
+      "sublabel": "§4 经营什么",
+      "pos": [
+        480,
+        120
+      ],
+      "size": [
+        170,
+        54
+      ]
+    },
+    {
+      "id": "axisAuth",
+      "type": "security",
+      "label": "权威 Authority",
+      "sublabel": "§5 真值在哪·执法点",
+      "pos": [
+        480,
+        224
+      ],
+      "size": [
+        170,
+        72
+      ]
+    },
+    {
+      "id": "axisAssembly",
+      "type": "backend",
+      "label": "装配 Assembly",
+      "sublabel": "§6 这轮进窗什么",
+      "pos": [
+        480,
+        344
+      ],
+      "size": [
+        170,
+        54
+      ]
+    },
+    {
+      "id": "axisRetrieval",
+      "type": "messagebus",
+      "label": "检索 Retrieval",
+      "sublabel": "§7 候选怎么来",
+      "pos": [
+        480,
+        454
+      ],
+      "size": [
+        170,
+        54
+      ]
+    },
+    {
+      "id": "axisCompounding",
+      "type": "cloud",
+      "label": "沉淀 Consolidation",
+      "sublabel": "§8 怎么随使用变好",
+      "pos": [
+        480,
+        564
+      ],
+      "size": [
+        170,
+        54
+      ]
+    },
+    {
+      "id": "chipM1M5",
+      "type": "backend",
+      "label": "M1 语义视图·M5 血缘",
+      "sublabel": "资产×权威×装配",
+      "pos": [
+        720,
+        168
+      ],
+      "size": [
+        148,
+        42
+      ]
+    },
+    {
+      "id": "chipM2M6",
+      "type": "backend",
+      "label": "M2 行列级策略·M6 身份",
+      "sublabel": "单轴全落权威",
+      "pos": [
+        720,
+        239
+      ],
+      "size": [
+        148,
+        42
+      ]
+    },
+    {
+      "id": "chipM3",
+      "type": "backend",
+      "label": "M3 语义级治理",
+      "sublabel": "权威×检索",
+      "pos": [
+        720,
+        351
+      ],
+      "size": [
+        148,
+        42
+      ]
+    },
+    {
+      "id": "chipM4",
+      "type": "backend",
+      "label": "M4 VQR 验证锚定",
+      "sublabel": "检索×沉淀",
+      "pos": [
+        720,
+        464
+      ],
+      "size": [
+        148,
+        42
+      ]
+    },
+    {
+      "id": "chipM7",
+      "type": "backend",
+      "label": "M7 分类标签",
+      "sublabel": "沉淀×权威",
+      "pos": [
+        300,
+        570
+      ],
+      "size": [
+        148,
+        42
+      ]
+    },
+    {
+      "id": "stageL1",
+      "type": "messagebus",
+      "label": "L1 采集登记",
+      "sublabel": "每条记录带来源",
+      "pos": [
+        980,
+        116
+      ],
+      "size": [
+        150,
+        48
+      ]
+    },
+    {
+      "id": "stageL2",
+      "type": "security",
+      "label": "L2 校验与裁决",
+      "sublabel": "人类定规",
+      "pos": [
+        980,
+        214
+      ],
+      "size": [
+        150,
+        48
+      ]
+    },
+    {
+      "id": "stageL3",
+      "type": "backend",
+      "label": "L3 装配执法",
+      "sublabel": "每轮重装",
+      "pos": [
+        980,
+        312
+      ],
+      "size": [
+        150,
+        48
+      ]
+    },
+    {
+      "id": "stageL4",
+      "type": "frontend",
+      "label": "L4 应答锚定",
+      "sublabel": "三条出路",
+      "pos": [
+        980,
+        410
+      ],
+      "size": [
+        150,
+        48
+      ]
+    },
+    {
+      "id": "stageL5",
+      "type": "database",
+      "label": "L5 沉淀与回写",
+      "sublabel": "短期→长期",
+      "pos": [
+        980,
+        508
+      ],
+      "size": [
+        150,
+        48
+      ]
+    },
+    {
+      "id": "stageL6",
+      "type": "external",
+      "label": "L6 衰减退役",
+      "sublabel": "退役路径必备",
+      "pos": [
+        980,
+        606
+      ],
+      "size": [
+        150,
+        48
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "验收面 · 拦截哪些失效（§1）",
+      "wraps": [
+        "registry"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "结构面 · 五轴正交，机制跨轴组合（§4–§8）",
+      "wraps": [
+        "axisAsset",
+        "axisAuth",
+        "axisAssembly",
+        "axisRetrieval",
+        "axisCompounding",
+        "chipM1M5",
+        "chipM2M6",
+        "chipM3",
+        "chipM4",
+        "chipM7"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
+      "wraps": [
+        "stageL1",
+        "stageL2",
+        "stageL3",
+        "stageL4",
+        "stageL5",
+        "stageL6"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "seamM1Asset",
+      "from": "chipM1M5",
+      "to": "axisAsset",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "seamM1Auth",
+      "from": "chipM1M5",
+      "to": "axisAuth",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "seamM2M6Auth",
+      "from": "chipM2M6",
+      "to": "axisAuth",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "seamM3Auth",
+      "from": "chipM3",
+      "to": "axisAuth",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "seamM3Retr",
+      "from": "chipM3",
+      "to": "axisRetrieval",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "seamM4Retr",
+      "from": "chipM4",
+      "to": "axisRetrieval",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "seamM4Comp",
+      "from": "chipM4",
+      "to": "axisCompounding",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "seamM7Comp",
+      "from": "chipM7",
+      "to": "axisCompounding",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "seamM7Auth",
+      "from": "chipM7",
+      "to": "axisAuth",
+      "fromSide": "top",
+      "toSide": "left"
+    },
+    {
+      "id": "flowL1L2",
+      "from": "stageL1",
+      "to": "stageL2",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "flowL2L3",
+      "from": "stageL2",
+      "to": "stageL3",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "flowL3L4",
+      "from": "stageL3",
+      "to": "stageL4",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "flowL4L5",
+      "from": "stageL4",
+      "to": "stageL5",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "flowL5L6",
+      "from": "stageL5",
+      "to": "stageL6",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "loopVerify",
+      "from": "stageL4",
+      "to": "stageL2",
+      "label": "验证环",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          962,
+          434
+        ],
+        [
+          962,
+          238
+        ]
+      ],
+      "labelAt": [
+        1006,
+        381
+      ]
+    },
+    {
+      "id": "loopEvolve",
+      "from": "stageL5",
+      "to": "stageL2",
+      "label": "进化环",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          1148,
+          532
+        ],
+        [
+          1148,
+          238
+        ]
+      ],
+      "labelAt": [
+        1108,
+        479
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "验收面 · 登记簿十簇",
+      "items": [
+        "十簇：口径／执行／访问控制／验证／供给／运行时／接线／记忆安全／组织运营／协作——49 行，每行失效形态×证据锚×拦截机制×验收判据四列",
+        "登记簿跨结构换代长期存活：本版重构即是先例——失效登记延续、结构轴换代",
+        "指不回登记簿某行的设计不独立成立（§1 入账协议：无锚不入账）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "结构面 · 机制＝多轴组合",
+      "items": [
+        "M1 语义视图＝资产×权威×装配（声明半边＋现算半边）；M5 列级血缘＝资产×权威；M3 语义级治理＝权威×检索；M4 VQR 验证锚定＝检索×沉淀；M7 分类标签＝沉淀×权威",
+        "M2 行列级策略与 M6 Agent Identity 单轴全落权威——治理执法不依赖其余四轴即可成立",
+        "无「全轴机制」；落不进任何轴组合的功能是解释装置而非机制（旧治理层四机构命名已退役）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "时间面 · 六段两环与 G 法则",
+      "items": [
+        "L1 采集登记→L2 校验与裁决→L3 装配执法→L4 应答锚定→L5 沉淀与回写→L6 衰减退役——按单对象从注册到退役组织",
+        "两环与主流程同级：验证环 L4→L2 修定义、L4→L6 检腐化（对账不一致即告警）；进化环 L5→L2 回写——验证环缺失则错误静默积累，进化环缺失则系统停在初始定义质量",
+        "G1–G7 绑定在段间转换：执法点绑定／注册期校验与运行期校验互不替代／裁决权不自动化／治理-验证分落位／指针不副本／退役路径必备／闭环可观测（判据句 §9.5）"
+      ]
+    }
+  ]
+}

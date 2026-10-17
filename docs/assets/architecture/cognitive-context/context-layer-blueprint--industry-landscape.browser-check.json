@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "eb1c1109-ecb6-47f0-a2c6-215494654d1b",
+  "deliveryReceiptId": "22b602a1-4b7f-484b-8d67-797b95ee8f01",
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
-    "sha256": "4c1f539b5b0bb77210d0420e27a05d87caf4b51f78aae1080b3c981850df6980",
-    "bytes": 759885
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+    "sha256": "faf81a146fd436724268eccc38af88615a60a298bd9cd433e07f125e9378d541",
+    "bytes": 760113
   },
   "state": {
     "detail": "read",

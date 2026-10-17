@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-09T16:33:56.965Z",
+  "startedAt": "2026-10-16T05:01:12.061Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--industry-landscape-20261010-002916/candidate.json",
-    "sha256": "dc6e41468b98888a8d8167aeb50049f89a559d2f47762a04a4297de9813f59ce",
-    "bytes": 5420
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--industry-landscape/context-layer-blueprint--industry-landscape.json",
+    "sha256": "52cde77fbb13c72157ad05087679126f37b20c18e97432abab98fb15fc5f46dc",
+    "bytes": 5652
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
-    "sha256": "4c1f539b5b0bb77210d0420e27a05d87caf4b51f78aae1080b3c981850df6980",
-    "bytes": 759885
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+    "sha256": "faf81a146fd436724268eccc38af88615a60a298bd9cd433e07f125e9378d541",
+    "bytes": 760113
   },
   "stages": {
     "validate": {
@@ -27,8 +27,8 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--industry-landscape-20261010-002916/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--industry-landscape/context-layer-blueprint--industry-landscape.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
         "--quality",
         "showcase",
         "--json"
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "dc6e41468b98888a8d8167aeb50049f89a559d2f47762a04a4297de9813f59ce",
-          "bytes": 5420
+          "sha256": "52cde77fbb13c72157ad05087679126f37b20c18e97432abab98fb15fc5f46dc",
+          "bytes": 5652
         },
         "validation": {
           "checksPassed": 9,
@@ -54,33 +54,33 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 414,
+      "durationMs": 520,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--industry-landscape-20261010-002916/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--industry-landscape/context-layer-blueprint--industry-landscape.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
         "--quality",
         "showcase",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "eb1c1109-ecb6-47f0-a2c6-215494654d1b",
+        "receiptId": "22b602a1-4b7f-484b-8d67-797b95ee8f01",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--industry-landscape-20261010-002916/candidate.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--industry-landscape/context-layer-blueprint--industry-landscape.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
         "specification": {
-          "sha256": "dc6e41468b98888a8d8167aeb50049f89a559d2f47762a04a4297de9813f59ce",
-          "bytes": 5420
+          "sha256": "52cde77fbb13c72157ad05087679126f37b20c18e97432abab98fb15fc5f46dc",
+          "bytes": 5652
         },
         "artifact": {
-          "sha256": "4c1f539b5b0bb77210d0420e27a05d87caf4b51f78aae1080b3c981850df6980",
-          "bytes": 759885
+          "sha256": "faf81a146fd436724268eccc38af88615a60a298bd9cd433e07f125e9378d541",
+          "bytes": 760113
         },
         "validation": {
           "checksPassed": 9,
@@ -95,20 +95,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 154,
+      "durationMs": 87,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
         "artifact": {
-          "sha256": "4c1f539b5b0bb77210d0420e27a05d87caf4b51f78aae1080b3c981850df6980",
-          "bytes": 759885
+          "sha256": "faf81a146fd436724268eccc38af88615a60a298bd9cd433e07f125e9378d541",
+          "bytes": 760113
         },
         "checks": [
           {
@@ -175,7 +175,7 @@
             "containerBorderRuns": 0,
             "labelRouteClearanceIssues": 0,
             "labelCanvasOverflowIssues": 0,
-            "minLabelRouteClearance": 213.7,
+            "minLabelRouteClearance": 208.9,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
             "minProjectedNodeTextPx": 6.4,
@@ -234,18 +234,18 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "eb1c1109-ecb6-47f0-a2c6-215494654d1b"
+        "deliveryReceiptId": "22b602a1-4b7f-484b-8d67-797b95ee8f01"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1156,
+      "durationMs": 1110,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
         "--json",
         "--require-provenance"
       ],
@@ -258,11 +258,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "eb1c1109-ecb6-47f0-a2c6-215494654d1b",
+        "deliveryReceiptId": "22b602a1-4b7f-484b-8d67-797b95ee8f01",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
-          "sha256": "4c1f539b5b0bb77210d0420e27a05d87caf4b51f78aae1080b3c981850df6980",
-          "bytes": 759885
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.html",
+          "sha256": "faf81a146fd436724268eccc38af88615a60a298bd9cd433e07f125e9378d541",
+          "bytes": 760113
         },
         "state": {
           "detail": "read",
@@ -951,11 +951,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--industry-landscape.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-09T16:33:59.205Z",
-  "durationMs": 2240
+  "finishedAt": "2026-10-16T05:01:14.056Z",
+  "durationMs": 1995
 }

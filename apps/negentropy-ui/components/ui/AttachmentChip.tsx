@@ -9,7 +9,7 @@ import { FileText, ImageIcon, Paperclip, X } from "lucide-react";
  * - 非交互场景（消息气泡内）传 readOnly=true，仅展示图标 + 文件名 + 体积；
  * - Composer 场景传 onRemove，提供 X 按钮供撤回。
  *
- * 注意：本组件不进入 message-ledger 比对（dedup 仅看 text content），避免触发 ISSUE-031 双气泡时间窗。
+ * 注意：本组件不进入 message-ledger 比对（dedup 仅看 text content），避免触发 I-031 双气泡时间窗。
  */
 
 export type ComposerAttachment = {

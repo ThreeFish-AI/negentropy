@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-13T06:58:08.470Z",
+  "startedAt": "2026-10-16T15:59:14.955Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
-    "sha256": "c2305d74a95289706bb59b20cf4d62fd7a2b5b5483cc66fc2f2f807539d1e16b",
-    "bytes": 9902
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--architecture/context-layer-blueprint--architecture.json",
+    "sha256": "5d5284fee9779e3feab719ea8d7fd5ac6857b5a1ae9c2f9fc2864916715ebd76",
+    "bytes": 10022
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
-    "sha256": "9fc2072f574c3b64b04b129a0aa25f51551aa5268bd1e36b3c2c738570560371",
-    "bytes": 779254
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+    "sha256": "21e7e6738144a60d9dec97bf46ef693fbd35959ad2c7033f44cce8b36c9608b5",
+    "bytes": 779661
   },
   "stages": {
     "validate": {
@@ -27,10 +27,12 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--architecture/context-layer-blueprint--architecture.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau",
         "--json"
       ],
       "receipt": {
@@ -38,8 +40,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "c2305d74a95289706bb59b20cf4d62fd7a2b5b5483cc66fc2f2f807539d1e16b",
-          "bytes": 9902
+          "sha256": "5d5284fee9779e3feab719ea8d7fd5ac6857b5a1ae9c2f9fc2864916715ebd76",
+          "bytes": 10022
         },
         "validation": {
           "checksPassed": 9,
@@ -54,33 +56,35 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 413,
+      "durationMs": 454,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--architecture/context-layer-blueprint--architecture.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "3d73b14e-a1c0-4853-9329-c97a3b6d9bd7",
+        "receiptId": "f479a1ad-bc7f-4b06-a6c9-463c2a25b891",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer-blueprint--architecture-20261010-004348/candidate.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--architecture/context-layer-blueprint--architecture.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
         "specification": {
-          "sha256": "c2305d74a95289706bb59b20cf4d62fd7a2b5b5483cc66fc2f2f807539d1e16b",
-          "bytes": 9902
+          "sha256": "5d5284fee9779e3feab719ea8d7fd5ac6857b5a1ae9c2f9fc2864916715ebd76",
+          "bytes": 10022
         },
         "artifact": {
-          "sha256": "9fc2072f574c3b64b04b129a0aa25f51551aa5268bd1e36b3c2c738570560371",
-          "bytes": 779254
+          "sha256": "21e7e6738144a60d9dec97bf46ef693fbd35959ad2c7033f44cce8b36c9608b5",
+          "bytes": 779661
         },
         "validation": {
           "checksPassed": 9,
@@ -95,20 +99,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 161,
+      "durationMs": 92,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
         "artifact": {
-          "sha256": "9fc2072f574c3b64b04b129a0aa25f51551aa5268bd1e36b3c2c738570560371",
-          "bytes": 779254
+          "sha256": "21e7e6738144a60d9dec97bf46ef693fbd35959ad2c7033f44cce8b36c9608b5",
+          "bytes": 779661
         },
         "checks": [
           {
@@ -178,7 +182,7 @@
             "minLabelRouteClearance": 29.6,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 7.499999999999999,
+            "minProjectedNodeTextPx": 7.5,
             "maxBends": 4,
             "routesOverSuggestedBends": 3,
             "maxStretch": 3.76,
@@ -322,39 +326,39 @@
           "desktopReadability": {
             "budgetBasis": "recognized-declared-wide",
             "readerContract": "declared-wide-v1",
-            "availableDiagramWidth": 1153.1249999999998,
-            "actualBudgetPx": 1153.1249999999998,
-            "actualReaderWidth": 1183.1249999999998,
-            "desiredReaderWidth": 1183.1249999999998,
+            "availableDiagramWidth": 1162.4998504668242,
+            "actualBudgetPx": 1162.4998504668242,
+            "actualReaderWidth": 1192.4998504668242,
+            "desiredReaderWidth": 1192.4998504668242,
             "viewportCap": 1376,
             "limit": "source-size",
             "requestedTargetPx": 7.5,
-            "requestedTargetMet": false,
+            "requestedTargetMet": true,
             "hardFloorPx": 6,
             "hardFloorMet": true,
             "minimumOwner": {
               "kind": "boundary",
               "id": null
             },
-            "minimumSourceTextPx": 7.8048780487804885,
-            "minimumProjectedTextPx": 7.499999999999999,
+            "minimumSourceTextPx": 7.774194548387096,
+            "minimumProjectedTextPx": 7.5,
             "semanticTextCount": 39
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "3d73b14e-a1c0-4853-9329-c97a3b6d9bd7"
+        "deliveryReceiptId": "f479a1ad-bc7f-4b06-a6c9-463c2a25b891"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1253,
+      "durationMs": 1255,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
         "--json",
         "--require-provenance"
       ],
@@ -367,11 +371,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "3d73b14e-a1c0-4853-9329-c97a3b6d9bd7",
+        "deliveryReceiptId": "f479a1ad-bc7f-4b06-a6c9-463c2a25b891",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
-          "sha256": "9fc2072f574c3b64b04b129a0aa25f51551aa5268bd1e36b3c2c738570560371",
-          "bytes": 779254
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html",
+          "sha256": "21e7e6738144a60d9dec97bf46ef693fbd35959ad2c7033f44cce8b36c9608b5",
+          "bytes": 779661
         },
         "state": {
           "detail": "read",
@@ -402,8 +406,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1195,
-              "diagramWidth": 1165,
+              "readerWidth": 1200,
+              "diagramWidth": 1170,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
@@ -412,11 +416,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.577235772357724,
-              "minimumProjectedNonEdgeTextPx": 7.577235772357724,
-              "minimumProjectedEdgeTextPx": 7.766666666666667,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.54838806772855,
+              "minimumProjectedNonEdgeTextPx": 7.54838806772855,
+              "minimumProjectedEdgeTextPx": 7.767634854771784,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -452,8 +456,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1250,
-              "diagramWidth": 1220,
+              "readerWidth": 1255,
+              "diagramWidth": 1225,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
@@ -462,11 +466,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -502,8 +506,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1379,
-              "diagramWidth": 1349,
+              "readerWidth": 1385,
+              "diagramWidth": 1355,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
@@ -512,11 +516,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -552,8 +556,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1758,
-              "diagramWidth": 1708,
+              "readerWidth": 1765,
+              "diagramWidth": 1715,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
@@ -562,11 +566,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -655,8 +659,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1195,
-              "diagramWidth": 1165,
+              "readerWidth": 1200,
+              "diagramWidth": 1170,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
@@ -665,11 +669,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.577235772357724,
-              "minimumProjectedNonEdgeTextPx": 7.577235772357724,
-              "minimumProjectedEdgeTextPx": 7.766666666666667,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.54838806772855,
+              "minimumProjectedNonEdgeTextPx": 7.54838806772855,
+              "minimumProjectedEdgeTextPx": 7.767634854771784,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -705,8 +709,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1250,
-              "diagramWidth": 1220,
+              "readerWidth": 1255,
+              "diagramWidth": 1225,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
@@ -715,11 +719,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -755,8 +759,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1379,
-              "diagramWidth": 1349,
+              "readerWidth": 1385,
+              "diagramWidth": 1355,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
@@ -765,11 +769,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -805,8 +809,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1758,
-              "diagramWidth": 1708,
+              "readerWidth": 1765,
+              "diagramWidth": 1715,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
@@ -815,11 +819,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -860,8 +864,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1195,
-              "diagramWidth": 1165,
+              "readerWidth": 1200,
+              "diagramWidth": 1170,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 78,
@@ -870,11 +874,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.577235772357724,
-              "minimumProjectedNonEdgeTextPx": 7.577235772357724,
-              "minimumProjectedEdgeTextPx": 7.766666666666667,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.54838806772855,
+              "minimumProjectedNonEdgeTextPx": 7.54838806772855,
+              "minimumProjectedEdgeTextPx": 7.767634854771784,
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -910,8 +914,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1250,
-              "diagramWidth": 1220,
+              "readerWidth": 1255,
+              "diagramWidth": 1225,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
@@ -920,11 +924,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -960,8 +964,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1379,
-              "diagramWidth": 1349,
+              "readerWidth": 1385,
+              "diagramWidth": 1355,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 86,
@@ -970,11 +974,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -1010,8 +1014,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1758,
-              "diagramWidth": 1708,
+              "readerWidth": 1765,
+              "diagramWidth": 1715,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 94,
@@ -1020,11 +1024,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 742
               },
-              "viewBoxWidth": 1200,
-              "minimumProjectedNodeTextPx": 7.8048780487804885,
-              "minimumProjectedNonEdgeTextPx": 7.8048780487804885,
+              "viewBoxWidth": 1205,
+              "minimumProjectedNodeTextPx": 7.774194548387096,
+              "minimumProjectedNonEdgeTextPx": 7.774194548387096,
               "minimumProjectedEdgeTextPx": 8,
-              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 钉段间转换（§9）",
+              "minimumProjectedNodeText": "时间面 · 六段两环，G1–G7 绑定段间转换（§9）",
               "minimumProjectedNodeTextDetail": "boundary",
               "minimumProjectedNodeTextOwner": {
                 "kind": "boundary",
@@ -1060,11 +1064,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-13T06:58:10.687Z",
-  "durationMs": 2217
+  "finishedAt": "2026-10-16T15:59:17.166Z",
+  "durationMs": 2211
 }

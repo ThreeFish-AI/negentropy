@@ -41,7 +41,7 @@ async def _ensure_database(maint_url: str, test_db: str) -> None:
 def _isolate_test_database():
     """会话级强制隔离：所有测试在专用 ``<db>_test`` 库运行，**绝不触碰生产库**。
 
-    根因防护（ISSUE-111）：此前 ``db_engine`` 与 ``test_migrations.reset_database`` 直接读
+    根因防护（I-111）：此前 ``db_engine`` 与 ``test_migrations.reset_database`` 直接读
     ``settings.database_url``（生产 ``negentropy`` 库）——
 
       1. ``test_migrations`` 的 ``command.downgrade(base)`` 会**摧毁全部生产数据**

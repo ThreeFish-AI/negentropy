@@ -77,7 +77,7 @@ class CatalogNodeDao:
     所有方法为 ``@staticmethod``，保持与 Façade 调用习惯一致
     （``CatalogDao.create_node(...)`` 经多继承转发至此）。
 
-    async 懒加载契约（详见 ISSUE-010）：当前所有 handler 对 ``DocCatalogEntry``
+    async 懒加载契约（详见 I-010）：当前所有 handler 对 ``DocCatalogEntry``
     仅访问标量列、或通过 ``get_tree``（递归 CTE）返回 dict / 显式查询结果，
     避开关系遍历，避免 ``MissingGreenlet`` 异常。
     """

@@ -1,15 +1,15 @@
 %%source: docs/research/cognitive-context/013-context-layer-blueprint.md §9 时间面：生命周期六段两环（概览 §3.4；G1–G7 判据句 §9.5）
 %%slug: cognitive-context/context-layer--lifecycle
 %%type: lifecycle
-%%derived: archify lifecycle v1（首制 lifecycle 版式），由 dataflow v2 CGAVE 五段单程重绘为六段两环——验证环/进化环一等化、G 法则钉段间转换；旧图见 git 史
+%%derived: archify lifecycle v1（首制 lifecycle 版式），由 dataflow v2 CGAVE 五段单程重绘为六段两环——验证环/进化环与主流程同级、G 法则绑定段间转换；旧图见 git 史
 stateDiagram-v2
     direction LR
-    L1 : L1 采集纳管｜出身有出处 · 过闸入账
-    L2 : L2 铸形裁决｜机器发现 · 人类定规
+    L1 : L1 采集登记｜每条记录带来源 · 过校验入账
+    L2 : L2 校验与裁决｜机器发现 · 人类定规
     L3 : L3 装配执法｜每轮重装 · 实时求值
-    L4 : L4 应答锚定｜三条出路 · 无静默瞎猜
-    L5 : L5 沉淀回灌｜短期→长期 · 三件在线
-    L6 : L6 衰减退役｜显式退役有账 · 降权不清退
+    L4 : L4 应答锚定｜三条出路 · 无静默臆测
+    L5 : L5 沉淀与回写｜短期→长期 · 三件在线
+    L6 : L6 衰减退役｜显式退役留记录 · 降权不清退
     L1 --> L2
     L2 --> L3
     L3 --> L4
@@ -17,7 +17,7 @@ stateDiagram-v2
     L5 --> L6
     L4 --> L2 : 验证环 · 修定义
     L4 --> L6 : 验证环 · 检出腐化
-    L5 --> L2 : 进化环 · 回灌新对象
+    L5 --> L2 : 进化环 · 回写新对象
     note right of L3 : G1 执法点绑定
     note right of L2 : G3 裁决不自动化
-    note right of L6 : G6 死要有葬礼
+    note right of L6 : G6 退役路径必备

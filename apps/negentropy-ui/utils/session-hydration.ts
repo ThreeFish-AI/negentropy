@@ -40,7 +40,7 @@ function normalizeTimestamp(value: unknown): number {
     : Date.now() / 1000;
 }
 
-// ISSUE-041 契约：当后端 ADK Web /sessions/{id} 不透传 runId / threadId 时，
+// I-041 契约：当后端 ADK Web /sessions/{id} 不透传 runId / threadId 时，
 // 本函数必须回退到 sessionId 以让事件能进入 turn 桶；该回退会产生「合成 runId」
 // Phase 3 联动落地（2026-05-09）：PR-1 升级了 collapseOverlappingTurns 的双 concrete
 // turn 折叠规则（以 user-message 为回合边界，无 user-message 间隔的同 invocation
@@ -66,7 +66,7 @@ function eventKey(event: BaseEvent): string {
   const runId = getEventRunId(event) || "";
   const messageId = getEventMessageId(event) || "";
   const toolCallId = getEventToolCallId(event) || "";
-  // ISSUE-040 H4: 全部事件类型在涉及 timestamp 时统一走 toFixed(3)，避免浮点抖动
+  // I-040 H4: 全部事件类型在涉及 timestamp 时统一走 toFixed(3)，避免浮点抖动
   // 在不同 hydration 路径产出不一样的 key（如 1001.1 vs 1001.10000002384），
   // 进而触发同一逻辑事件被保留双份、刷新后排序漂移。
   const timestampKey = normalizeTimestamp(event.timestamp).toFixed(3);
@@ -157,7 +157,7 @@ function eventKey(event: BaseEvent): string {
 
 export function mergeEvents(baseEvents: BaseEvent[], incomingEvents: BaseEvent[]): BaseEvent[] {
   const merged = new Map<string, BaseEvent>();
-  // ISSUE-040 Q3 残留乱序：如果同 timestamp 时回退到 `eventKey().localeCompare`，
+  // I-040 Q3 残留乱序：如果同 timestamp 时回退到 `eventKey().localeCompare`，
   // 会把上游已正确排序的 lifecycle 序（START → CONTENT → END）按字典序打乱
   // 为 (CONTENT < END < START)。改为以「在 [...base, ...incoming] 中的最早出现
   // 索引」作为稳定 tiebreaker，保留调用方已建立的逻辑顺序。
@@ -378,7 +378,7 @@ export function hydrateSessionDetail(
   const runBuckets = new Map<string, BaseEvent[]>();
   const runNormalizers = new Map<string, AdkMessageStreamNormalizer>();
 
-  // ISSUE-040 Q3 残留乱序根因：normalizer 已按 lifecycle 顺序产出
+  // I-040 Q3 残留乱序根因：normalizer 已按 lifecycle 顺序产出
   // (START → CONTENT → END)，但下方的 sort 在 timestamp 相等时回退到
   // `eventKey().localeCompare` —— 字典序下 CONTENT < END < START，会把同一
   // 逻辑消息的 lifecycle 顺序打乱（如下方 repro 所示）；当多条消息共享同一秒

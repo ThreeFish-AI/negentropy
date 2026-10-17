@@ -174,7 +174,7 @@ class TestBatchSyncFromGraphBuild:
     async def test_batch_sync_counts(self):
         """batch_sync 应返回正确的同步计数。
 
-        修复后语义（ISSUE-032）：sync_entity SELECT 全空 → entities 全部 created；
+        修复后语义（I-032）：sync_entity SELECT 全空 → entities 全部 created；
         sync_relation 的 src/tgt SELECT 在此 mock 下也是 None → relation 端点缺失 →
         计入 relations_skipped 而非 relations_synced（修复前的 bug：虚高计入）。
         """

@@ -1,0 +1,311 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "上下文注入点现状：九路来源 × root_agent 五挂点",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer--injection-points.html"
+  },
+  "lanes": [
+    {
+      "id": "lane0",
+      "label": "身份与定义来源"
+    },
+    {
+      "id": "lane1",
+      "label": "root_agent 五挂点"
+    },
+    {
+      "id": "lane2",
+      "label": "运行时来源"
+    },
+    {
+      "id": "lane3",
+      "label": "参考实现 · 生产调用=0"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "r1_identity",
+      "lane": "lane0",
+      "col": 0,
+      "type": "backend",
+      "label": "身份",
+      "sublabel": "instruction provider",
+      "width": 140
+    },
+    {
+      "id": "r2_skills",
+      "lane": "lane0",
+      "col": 1,
+      "type": "external",
+      "label": "Skills",
+      "sublabel": "双路注入互斥",
+      "width": 130
+    },
+    {
+      "id": "r7_defs",
+      "lane": "lane0",
+      "col": 2,
+      "type": "database",
+      "label": "定义 SSOT",
+      "sublabel": "graph-from-DB",
+      "width": 130
+    },
+    {
+      "id": "r8_prefs",
+      "lane": "lane0",
+      "col": 3,
+      "type": "backend",
+      "label": "偏好 · 引用协议",
+      "width": 150
+    },
+    {
+      "id": "h1_instruction",
+      "lane": "lane1",
+      "col": 0,
+      "type": "backend",
+      "label": "① instruction=provider",
+      "sublabel": "DB system_prompt → 代码回退",
+      "width": 170
+    },
+    {
+      "id": "h2_before_model",
+      "lane": "lane1",
+      "col": 1,
+      "type": "backend",
+      "label": "② before_model_callback",
+      "sublabel": "model/thinking/corpus/hint 注入",
+      "width": 180
+    },
+    {
+      "id": "h3_tool_registry",
+      "lane": "lane1",
+      "col": 2,
+      "type": "backend",
+      "label": "③ tools 装配",
+      "sublabel": "log_activity · preload_memory_tool",
+      "width": 180
+    },
+    {
+      "id": "h4_tool_callbacks",
+      "lane": "lane1",
+      "col": 3,
+      "type": "backend",
+      "label": "④ tool callbacks",
+      "sublabel": "before/after_tool_callback 遥测",
+      "width": 175
+    },
+    {
+      "id": "h5_sub_agents",
+      "lane": "lane1",
+      "col": 4,
+      "type": "backend",
+      "label": "⑤ sub_agents",
+      "sublabel": "五个 sub_agent + 流水线",
+      "width": 140
+    },
+    {
+      "id": "out_llm",
+      "lane": "lane1",
+      "col": 5,
+      "type": "cloud",
+      "label": "LLM 请求",
+      "width": 120
+    },
+    {
+      "id": "r6_session",
+      "lane": "lane2",
+      "col": 0,
+      "type": "backend",
+      "label": "会话状态",
+      "sublabel": "state",
+      "width": 120
+    },
+    {
+      "id": "r4_model",
+      "lane": "lane2",
+      "col": 1,
+      "type": "backend",
+      "label": "Model",
+      "sublabel": "resolver + ContextVar",
+      "width": 150
+    },
+    {
+      "id": "r5_memory",
+      "lane": "lane2",
+      "col": 3,
+      "type": "database",
+      "label": "记忆",
+      "sublabel": "preload 工具",
+      "width": 120
+    },
+    {
+      "id": "r3_tools",
+      "lane": "lane2",
+      "col": 4,
+      "type": "messagebus",
+      "label": "Tools",
+      "sublabel": "toolset + schema",
+      "width": 140
+    },
+    {
+      "id": "ref_assembler",
+      "lane": "lane3",
+      "col": 2,
+      "type": "backend",
+      "label": "ContextAssembler",
+      "sublabel": "assemble() · 30/50/20 预算 · 60s TTL",
+      "tag": "仅单测",
+      "width": 200
+    }
+  ],
+  "edges": [
+    {
+      "id": "feed_defs",
+      "from": "r7_defs",
+      "to": "h1_instruction",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "via": [
+        [
+          544,
+          166
+        ],
+        [
+          226,
+          166
+        ],
+        [
+          226,
+          246
+        ]
+      ]
+    },
+    {
+      "id": "feed_memory",
+      "from": "r5_memory",
+      "to": "h3_tool_registry"
+    },
+    {
+      "id": "feed_model",
+      "from": "r4_model",
+      "to": "h2_before_model"
+    },
+    {
+      "id": "feed_prefs",
+      "from": "r8_prefs",
+      "to": "h1_instruction",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "via": [
+        [
+          749.5,
+          210
+        ],
+        [
+          234,
+          210
+        ],
+        [
+          234,
+          246
+        ]
+      ]
+    },
+    {
+      "id": "feed_session",
+      "from": "r6_session",
+      "to": "h2_before_model"
+    },
+    {
+      "id": "feed_skills",
+      "from": "r2_skills",
+      "to": "h1_instruction"
+    },
+    {
+      "id": "feed_toolset",
+      "from": "r3_tools",
+      "to": "h5_sub_agents"
+    },
+    {
+      "id": "main_identity",
+      "from": "r1_identity",
+      "to": "h1_instruction",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ref_not_wired",
+      "from": "ref_assembler",
+      "to": "h3_tool_registry",
+      "label": "设计存在 ≠ 已接线（D1 宿主更正）",
+      "variant": "dashed"
+    },
+    {
+      "id": "seq_1_2",
+      "from": "h1_instruction",
+      "to": "h2_before_model",
+      "variant": "emphasis"
+    },
+    {
+      "id": "seq_2_3",
+      "from": "h2_before_model",
+      "to": "h3_tool_registry",
+      "variant": "emphasis"
+    },
+    {
+      "id": "seq_3_4",
+      "from": "h3_tool_registry",
+      "to": "h4_tool_callbacks",
+      "variant": "emphasis"
+    },
+    {
+      "id": "seq_4_5",
+      "from": "h4_tool_callbacks",
+      "to": "h5_sub_agents",
+      "variant": "emphasis"
+    },
+    {
+      "id": "seq_5_out",
+      "from": "h5_sub_agents",
+      "to": "out_llm",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "五挂点真实装配面",
+      "items": [
+        "• root_agent 生产装配面 @b2fbb51f5：① instruction ② before_model_callback ③ tools ④ tool callbacks ⑤ sub_agents",
+        "• ① 挂点汇聚四路来源：身份 / Skills / 定义 SSOT / 偏好·引用协议"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "参考实现未接线",
+      "items": [
+        "• ContextAssembler.assemble() 设计存在 ≠ 已接线：生产调用=0，仅单测覆盖（D1 宿主更正）",
+        "• Core Block → Reflection → 记忆窗口，30/50/20 token 预算 · 60s TTL 家族"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "九路来源的计数口径",
+      "items": [
+        "• 8 个来源节点 = 9 路注入：Skills 双路注入互斥计 2 路，其余七路各计 1 路",
+        "• 运行时来源各自就近落挂点：Model/会话状态 → ②，记忆 → ③，Tools → ⑤"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "group0",
+      "label": "设计存在 ≠ 生产接线",
+      "lane": "lane3",
+      "fromCol": 2,
+      "toCol": 2
+    }
+  ]
+}

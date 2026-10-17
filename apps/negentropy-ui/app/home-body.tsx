@@ -358,7 +358,7 @@ export function HomeBody({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   // G3 审批门 · 本地「已决策/已延后」集合：
   // 用户点击批准/拒绝或 ESC/稍后后，先乐观地把该 action_id 从展示层剔除，让弹窗
-  // 立即关闭（消除 ISSUE-064 式 silent no-op），不等待后端回填 round-trip。
+  // 立即关闭（消除 I-064 式 silent no-op），不等待后端回填 round-trip。
   // 后端 pending_approvals 由 approval_response 端点权威清除，scheduleSessionHydration
   // 随后做持久对账。按 sessionId 隔离，切会话时重置（见下方 effect）。
   const [resolvedApprovalIds, setResolvedApprovalIds] = useState<Set<string>>(
@@ -562,7 +562,7 @@ export function HomeBody({
     toast.info("已暂时关闭审批请求，稍后可在刷新或切换会话后重新处理");
   }, []);
 
-  // 一键延后全部（ISSUE-157）：多条孤儿堆叠时，避免用户被迫逐条点 N 次（「点一个顶一个」
+  // 一键延后全部（I-157）：多条孤儿堆叠时，避免用户被迫逐条点 N 次（「点一个顶一个」
   // 体感「关不掉」）。一次性把所有 pendingApprovals 的 id 加入「已处理」集，弹窗彻底消失。
   const handleApprovalDismissAll = useCallback(() => {
     if (!pendingApprovals) return;
@@ -706,7 +706,7 @@ export function HomeBody({
    * - 不引入新协议事件（RUN_STOPPED）：最小干预原则，避免污染事件流。
    */
   const handleCancelRun = useCallback(() => {
-    // 一键破局（ISSUE-156 续）：Stop 同时「清空所有待决审批弹窗」，即便 run 已结束、
+    // 一键破局（I-156 续）：Stop 同时「清空所有待决审批弹窗」，即便 run 已结束、
     // agent 重建前等孤儿态，用户也能即时逃生，不被卡在「Send 禁用 + 无 Stop」的陷阱。
     if (pendingApprovals) {
       const ids = Object.keys(pendingApprovals);
@@ -986,7 +986,7 @@ export function HomeBody({
     if (!trimmed) {
       return;
     }
-    // 静默拒绝场景的"可见反馈"：避免 ISSUE-064 复发——
+    // 静默拒绝场景的"可见反馈"：避免 I-064 复发——
     // Send 按钮看似 enabled、点击却 no-op。早返时给出 toast，
     // 让用户立刻知道为什么没反应（而不是默默吞掉点击）。
     if (pendingConfirmations > 0) {
@@ -1035,7 +1035,7 @@ export function HomeBody({
       // router.replace 异步 flush 导致 threadId !== 当前 sessionId）：
       // 把指令缓存到 pendingSendRef，待 agent 重建完毕由「自动重发 pending」
       // Effect 接力发送（与 !sessionId 路径同源）。同时给用户可见反馈，
-      // 避免 silent no-op（ISSUE-064 根因）。
+      // 避免 silent no-op（I-064 根因）。
       //
       // 评审 #6：连续 Send 时若上一条尚未被自动重发 Effect 消费，新一条会覆盖
       // pendingSendRef。这是有意为之（用户更可能想让"最后一条"发出），但必须给
@@ -1273,7 +1273,7 @@ export function HomeBody({
 
   /**
    * Tool Progress 旁路提取（C3）— 从 snapshotForDisplay.tool_progress 提取 toolCallId → progress 映射，
-   * 不进入 conversationTree / message-ledger，规避 ISSUE-031 时间窗双气泡风险。
+   * 不进入 conversationTree / message-ledger，规避 I-031 时间窗双气泡风险。
    *
    * 后端 ADK 通过 state_delta 推送：state.tool_progress[tool_call_id] = { percent, eta?, stage? }
    * 前端 useSessionService → snapshotForDisplay 自动同步该字段（无需新协议事件）。

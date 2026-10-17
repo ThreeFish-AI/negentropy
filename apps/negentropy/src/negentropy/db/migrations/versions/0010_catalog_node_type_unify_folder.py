@@ -23,7 +23,7 @@ Create Date: 2026-04-26 00:00:00.000000+00:00
                             WHERE node_type IN ('CATEGORY','COLLECTION')``
                           + 调整 server_default
 
-  CATEGORY / COLLECTION 在枚举中作为"死值"保留（应用层禁止写入），与 ISSUE-013 的
+  CATEGORY / COLLECTION 在枚举中作为"死值"保留（应用层禁止写入），与 I-013 的
   enum cast 处理范式同构。
 
 Downgrade 策略：

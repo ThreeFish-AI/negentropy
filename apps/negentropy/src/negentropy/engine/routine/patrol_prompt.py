@@ -14,7 +14,7 @@ Markdown 形态拟合到与源 PDF 视觉一致（逐页校验全绿率达合格
    视觉聚焦 → 三杠杆归因 → 全绿率评分 → 一根因修复）+ Real-Render Gate（真 Rebuild
    ``refresh_markdown(resume=false)`` + 重发 wiki 作地面真值校准）。
 4. 评分从「100-Σ扣分」改为「逐页校验全绿率 pass_pages/total×100」——CC 自评与 Judge 复核
-   锁同一份 ``program-checks.json`` + defects，根治 ISSUE-128 ±20 振荡。
+   锁同一份 ``program-checks.json`` + defects，根治 I-128 ±20 振荡。
 
 正交分解（Orthogonal Decomposition）：
 - 本模块只产 prompt 文本（纯函数，零 IO），与 ``patrol_memory.py``（记忆）、
@@ -258,7 +258,7 @@ def build_acceptance_criteria(*, baseline_branch: str, qualified_threshold: int)
     合格阈值为 ``qualified_threshold``（默认 95）：全绿率达此即判合格 done。允许在仅剩 unfixable
     carve-out 时达成（carve-out 页不计 pass_pages），避免死循环。
     **评分口径 = 逐页校验全绿率** ``score = round(pass_pages/total_pages×100)``（非旧「100-Σ扣分」），
-    与 Judge 复核锁同一份 ``program-checks.json`` + defects，根治 ISSUE-128 ±20 振荡。
+    与 Judge 复核锁同一份 ``program-checks.json`` + defects，根治 I-128 ±20 振荡。
     """
     return (
         "该文档所有页面/模块（文字、段落顺序、高清原图及显示尺寸、目录锚点、表格、数学公式、"
@@ -307,7 +307,7 @@ def build_routine_config(
         # CC 自评与 Judge 评分一致，accept_verdict_pass 作收敛 carve-out 的第二成功通道（与阈值并列）。
         "accept_verdict_pass": True,
         # 停滞判定分数容差带（消费见 orchestrator.decide()）。全绿率口径理论上消振荡，但程序化预筛
-        # 阈值未校准前仍可能小幅波动；保留容差防假阳性 no_progress 误杀（ISSUE-128 教训）。
+        # 阈值未校准前仍可能小幅波动；保留容差防假阳性 no_progress 误杀（I-128 教训）。
         "no_progress_score_tolerance": 20,
         # Judge 历史锚定（消费见 orchestrator._do_evaluate / evaluator.evaluate）。全绿率 + 结构化
         # defects 喂 Judge 后，锚定使评分带 delta 证据、与轨迹一致。显式置 True 防全局默认翻转失锚。

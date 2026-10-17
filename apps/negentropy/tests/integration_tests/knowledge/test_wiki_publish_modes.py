@@ -392,7 +392,7 @@ class TestWikiPublicationCatalogBinding:
 
 
 class TestWikiPublicationEntriesEagerLoading:
-    """回归 ISSUE-010 三阶问题：async SQLAlchemy 中 pub.entries 必须 eager-load。
+    """回归 I-010 三阶问题：async SQLAlchemy 中 pub.entries 必须 eager-load。
 
     若 DAO 查询不挂 selectinload(WikiPublication.entries)，handler 在
     `len(pub.entries)` 处会以 sqlalchemy.exc.MissingGreenlet 失败 → 500。
@@ -570,7 +570,7 @@ async def isolated_wiki_catalog(db_engine):
 class TestCreateWikiPublicationApiConflict:
     """POST /knowledge/wiki/publications 409 路径回归
 
-    覆盖 ISSUE-024 修复：原本 `uq_wiki_pub_catalog_active` /
+    覆盖 I-024 修复：原本 `uq_wiki_pub_catalog_active` /
     `uq_wiki_pub_catalog_slug` 唯一约束触发后会以 500 InternalServerError 抛
     出（IntegrityError 漏出），现按业务前置检查 + IntegrityError 兜底改为
     `409 Conflict` + `{code, message, details}` 结构化响应。

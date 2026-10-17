@@ -1,0 +1,25 @@
+[
+ {
+  "id": "fco-objects",
+  "label": "研究对象",
+  "focus": [
+   "espace",
+   "erel",
+   "charfn",
+   "rawctx",
+   "taskdom"
+  ],
+  "note": "实体空间圈定 E_rel→表征函数 Char→⋃Char(e)=原始上下文 C，好坏是任务域 𝒯 的相对量"
+ },
+ {
+  "id": "fco-txn",
+  "label": "装配事务",
+  "focus": [
+   "operators",
+   "txn",
+   "answer",
+   "symptoms"
+  ],
+  "note": "八算子 φ₁…φ₈ 组成事务 f_context(C,𝒯)→窗口定型应答，四类失效是判据"
+ }
+]

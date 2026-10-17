@@ -1,0 +1,164 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "语境对象状态流转：注册时校验 · 退役有记录",
+    "locale": "zh-CN",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.html"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主链 · 注册到受治理"
+    },
+    {
+      "id": "lane1",
+      "label": "冲突裁决（人工检查点）"
+    },
+    {
+      "id": "terminal",
+      "label": "终态 · 拒绝与退役"
+    }
+  ],
+  "states": [
+    {
+      "id": "draft",
+      "type": "start",
+      "label": "draft 草稿",
+      "sublabel": "作者创建 · Autopilot 起草",
+      "tag": "注册",
+      "step": "01",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "governed",
+      "type": "active",
+      "label": "governed 受治理",
+      "sublabel": "注册门放行 · 目录内可装配",
+      "tag": "SSOT",
+      "step": "02",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "conflict",
+      "type": "waiting",
+      "label": "conflict 冲突浮出",
+      "sublabel": "同名异义 · 等人工裁决",
+      "tag": "G3 不自动裁决",
+      "lane": "lane1",
+      "col": 1
+    },
+    {
+      "id": "rejected",
+      "type": "failure",
+      "label": "rejected 拒绝",
+      "sublabel": "校验失败 · 422 拒入库",
+      "tag": "终态",
+      "lane": "terminal",
+      "col": 0
+    },
+    {
+      "id": "superseded",
+      "type": "neutral",
+      "label": "superseded 已替代",
+      "sublabel": "留目录参与排序 · freshness 衰减",
+      "tag": "前后继有记录",
+      "lane": "terminal",
+      "col": 2
+    },
+    {
+      "id": "retired",
+      "type": "neutral",
+      "label": "retired 显式退役",
+      "sublabel": "禁用/清理有记录 · 重验触发",
+      "tag": "G6 退役路径必备",
+      "lane": "terminal",
+      "col": 3
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t-draft-governed",
+      "from": "draft",
+      "to": "governed",
+      "label": "注册门 422 · 人审",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-draft-rejected",
+      "from": "draft",
+      "to": "rejected",
+      "label": "校验失败",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "t-governed-conflict",
+      "from": "governed",
+      "to": "conflict",
+      "label": "同名异义检出",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "t-conflict-governed",
+      "from": "conflict",
+      "to": "governed",
+      "label": "人工裁决 · 胜者",
+      "variant": "emphasis",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "t-conflict-rejected",
+      "from": "conflict",
+      "to": "rejected",
+      "label": "人工裁决 · 败者",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "t-governed-superseded",
+      "from": "governed",
+      "to": "superseded",
+      "label": "新版本取代",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "t-governed-retired",
+      "from": "governed",
+      "to": "retired",
+      "label": "禁用 / 清理",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "两级删除 · 两种方式，不能混",
+      "items": [
+        "轮内删除是可恢复的：四步压缩把窗口内容降级为占位、配对不拆、需要时可恢复——窗口治理，不产生任何目录级退役记录",
+        "目录级删除必须显式且有记录：superseded 登记前后继、物化清理带生成标记安全删除、口径变更触发题库重验",
+        "跨层套用即失效：把「压缩很健康」读成「退役段已就位」，恰好漏掉物化只写不删、挂载收回双向悬空、题库重验无触发三个缺口"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "注册时校验 · 裁决留人 · 删除有记录",
+      "items": [
+        "注册：注册期 422 门（create/update 双路）拒非法结构入库——无门则非法定义静默入库（D6）",
+        "裁决：冲突浮出人工、不按热度自动裁决（G3）——机器判断→组织规则之间唯一的人工检查点",
+        "删除：目录只进不出必然腐化（G6）——降权只延缓、不清退，退役路径与注册登记成对出现"
+      ]
+    }
+  ]
+}

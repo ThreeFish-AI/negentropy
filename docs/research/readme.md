@@ -11,7 +11,7 @@
 | [智能认知增强](./cognitive-context/000-cognitive-enhancement.md) | Agentic 认知增强总览与理论基线 |
 | [Context Engineering 通俗全解](./cognitive-context/010-context-engineering.md) | 上下文工程主流框架与论文精解 |
 | [Snowflake Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md) | 产业范本精读（2026-09-30 gen2 完全重写：新版 guided-learn 白话直讲教学法、零类比剧场、四维内生直讲）：三阶段演进全景（语义对象化→治理内嵌→生态开放，补 2026-09-30 实况）+ 七机制 M1–M7（语义视图口径单点×查询期重算 / 查询期行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播）+ §7 底层规律五条与核心争议三条（新章）+ 富化/检索/互操作三专章保留（§3.1–§3.3 降级挂靠、各带重评触发器）+ 实证数字纪律（自报/第三方分列、dbt 2026 双口径）+ 适用边界（成立条件+材料没有证明的事），含随笔记入库的 M1–M7 最小原型（十次破坏性实验）与 MCP 服务原型，M1–M7 各配一张 archify 动效工程图，§1 另配病因链与机制对位总览图、§4 另配组件全景与演进时间线两张总览图（共十五张，trace 动画） |
-| [Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md) | **设计蓝图 SSOT**：三面蓝图（失效登记簿九簇 × 资产/权威/装配/检索/复利五轴 × 生命周期六段两环 G1–G7）；机制＝接缝组合；四范本矩阵；16+4 映射 |
+| [Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md) | **设计蓝图 SSOT**：三面蓝图（失效登记簿十簇 × 资产/权威/装配/检索/复利五轴 × 生命周期六段两环 G1–G7）；机制＝接缝组合；四范本矩阵；16+4 映射 |
 | [OpenViking 精读笔记](./cognitive-context/014-openviking.md) | volcengine 上下文数据库精读（钉点 `14a7b81`，AGPL-3.0）：viking:// 文件系统范式统一资源/记忆/技能、目录级 L0/L1/L2 sidecar 自底向上生成与新鲜度冒泡（256/4000 字符、L0 从 L1 裁出零 LLM、10% 判据）、两档检索（find 固定平铺 / search+rerank 目录递归、α=1.0）、会话两阶段提交与确定性身份记忆提炼（`.done` 提交点、add_only 只增）；代码实值裁决文档旧口径 8 组、厂商基准证据分级（LoCoMo 24.20%→82.08% 全自报、单轮 RAG 66.87%<LightRAG 76.00% 反例、ClawWork 算术错）、五条底层规律与三个争议、双 Agent 费曼对抗实录；含编目/检索两相 archify 图与 clean-room 最小原型（`--selftest` + 六次破坏性实验） |
 
 > 本仓**内部**的实施入口（定位声明 + 章节指针 + 实施状态）原为 `docs/concepts/design/context-layer.md`：设计正文已于 2026-09-20 全量并入上方蓝图，该页于 2026-09-21 删除——013 自此为单一事实源。

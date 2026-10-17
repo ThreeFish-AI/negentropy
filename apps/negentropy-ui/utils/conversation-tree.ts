@@ -357,7 +357,7 @@ function getMessageTimestamp(message: Message): number {
 }
 
 /**
- * ISSUE-070：在指定 turn 子树中找到最近的 reasoning 节点。
+ * I-070：在指定 turn 子树中找到最近的 reasoning 节点。
  *
  * 选择规则（自上而下）：
  *   1. 同 runId 下最近的 reasoning 节点（按 sourceOrder 倒序，取最近一条）；
@@ -450,7 +450,7 @@ function findMatchingTextNodeId(
       continue;
     }
     if (node.payload.streaming !== true) {
-      // ISSUE-070 / ISSUE-058 加强：当 hydrated TEXT_MESSAGE_* 因 messageId 不同
+      // I-070 / I-058 加强：当 hydrated TEXT_MESSAGE_* 因 messageId 不同
       // 而到达此处、而 realtime 节点已收尾时，允许如下三种次级匹配以避免在已
       // closed 的同源节点旁新建第二个独立 text node（→ 渲染双内容）：
       //   M1 — 内容严格相等（旧实现，最严）；
@@ -622,7 +622,7 @@ function sortNodeChildren(node: MutableNode) {
     if (timeDiff !== 0) {
       return timeDiff;
     }
-    // ISSUE-070：同时间戳时，按节点 role 排序 —— text:user 必排在 text:assistant 之前，
+    // I-070：同时间戳时，按节点 role 排序 —— text:user 必排在 text:assistant 之前，
     // 避免刷新后用户消息漂移到 assistant 回复之后的乱序（时钟漂移导致毫秒级抖动）。
     const roleA = a.role || "";
     const roleB = b.role || "";
@@ -652,7 +652,7 @@ function sortNodeChildren(node: MutableNode) {
   node.children.forEach(sortNodeChildren);
 }
 
-// ISSUE-041: 用于 synthetic turn 折叠时的内容相似度阈值，与 chat-display
+// I-041: 用于 synthetic turn 折叠时的内容相似度阈值，与 chat-display
 // 的 dedupeRedundantTextSegments 保持一致（≥30 字 + Jaccard ≥ 0.5）。
 // 应对场景：realtime 流式捕获 partial（如 LLM 中途产出 `""` 占位）vs
 // hydration 最终态（如 `"pong"` 已填充），两者非 prefix 关系但同一逻辑。
@@ -682,7 +682,7 @@ function findSubsumingTextNode(
       ) {
         return true;
       }
-      // 2) ISSUE-041: 反向前缀（candidate 包含 child 作为前缀） —— 当 hydration
+      // 2) I-041: 反向前缀（candidate 包含 child 作为前缀） —— 当 hydration
       // 终态 candidate 比 realtime child 更完整时（长尾 partial 截断场景）。
       if (
         candidateContent.startsWith(childContent) &&
@@ -690,7 +690,7 @@ function findSubsumingTextNode(
       ) {
         return true;
       }
-      // 3) ISSUE-041: 子串包含 —— 当 realtime child 因双轮 LLM partial+final 拼接
+      // 3) I-041: 子串包含 —— 当 realtime child 因双轮 LLM partial+final 拼接
       // 而比 candidate 更长时（如 child = "partial...final" 而 candidate = "final"）。
       // 此处不要求长度比 0.8（与 isEquivalentMessageContent 的 includes 分支区分），
       // 仅要求短的一侧 ≥ 30 字以避免误折叠极短文本。
@@ -702,7 +702,7 @@ function findSubsumingTextNode(
       ) {
         return true;
       }
-      // 4) ISSUE-041: 字符二元组 Jaccard ≥ 0.5 + 双方 ≥ 30 字 —— 应对
+      // 4) I-041: 字符二元组 Jaccard ≥ 0.5 + 双方 ≥ 30 字 —— 应对
       // realtime partial（中间留空）与 hydration final（中间填充）非 prefix /
       // 非 includes 但语义同一的场景；与 dedupeRedundantTextSegments 第四层
       // 判定对齐，作为最后兜底。
@@ -723,13 +723,13 @@ function findSubsumingTextNode(
 function isSyntheticTurnNode(node: MutableNode): boolean {
   if (node.type !== "turn") return false;
   if (!node.runId || node.runId === DEFAULT_RUN_ID || node.runId === "default") return true;
-  // ISSUE-041: hydration 在后端 ADK Web 不透传 runId 时回退到 threadId / sessionId，
+  // I-041: hydration 在后端 ADK Web 不透传 runId 时回退到 threadId / sessionId，
   // 形成 `runId === threadId` 的合成 turn；这类 turn 没有独立 run 语义，可被
   // 同 threadId 的真 runId turn 兼并。
   return Boolean(node.threadId) && node.runId === node.threadId;
 }
 
-// ISSUE-041: 合成 turn 内可被「无条件吸收」的元数据节点类型集合 —— 这些类型
+// I-041: 合成 turn 内可被「无条件吸收」的元数据节点类型集合 —— 这些类型
 // 仅承载审计 / 状态信息，不在 walkTurnNode 渲染为独立可见块；当它们与同
 // threadId 的真 runId 已配对的同 stepId / toolCallId 重复时，合并丢弃即可。
 // 仅 text / tool-call / tool-result / error 才需要走更严格的 subsumption 检查。
@@ -862,8 +862,8 @@ function collapseOverlappingTurns(roots: MutableNode[]): MutableNode[] {
         const keeper = sorted[j];
         if (!turnsOverlapInTime(keeper, candidate, 120)) continue;
 
-        // ISSUE-041 / Phase 3：双 concrete turn 折叠闸门。
-        // 旧规则（ISSUE-041）：双 concrete turn 一律拒绝折叠——两个真 runId 的 turn
+        // I-041 / Phase 3：双 concrete turn 折叠闸门。
+        // 旧规则（I-041）：双 concrete turn 一律拒绝折叠——两个真 runId 的 turn
         // 可能是后端多 run 场景（如人工审批后重新启动），折叠会误丢合法 turn。
         //
         // Phase 3 新增：ADK 后端每条 event 有独立 invocationId，映射为 runId 后
@@ -1012,7 +1012,7 @@ export function buildConversationTree(
     });
   });
 
-  // ISSUE-042 补丁：conversation-tree 的 sort tiebreaker 同样曾用 localeCompare，
+  // I-042 补丁：conversation-tree 的 sort tiebreaker 同样曾用 localeCompare，
   // 与 message-ledger.ts 和 session-hydration.ts 的同类问题一致。此处改用事件类型权重。
   const EVENT_TYPE_ORDER: Record<string, number> = {
     [EventType.RUN_STARTED]: 0,
@@ -1506,7 +1506,7 @@ export function buildConversationTree(
           }
           return;
         }
-        // ISSUE-070：ne.a2ui.thought 承载 LLM 推理（thinking）的实际文本，需要把
+        // I-070：ne.a2ui.thought 承载 LLM 推理（thinking）的实际文本，需要把
         // text 注入到当前 turn 内最近的 reasoning 节点 payload.content，以便
         // ReasoningPanel 展开时显示推理过程；否则用户展开后只能看到「思考完成·
         // 推理阶段」标签而看不到推理内容（图 3）。
@@ -1649,7 +1649,7 @@ export function buildConversationTree(
       if (!contentMatches) return false;
       // user 消息跳过 runId 匹配：乐观消息用前端 UUID，AGUI 事件用后端 UUID，必然不同
       const existingRunId = node.runId || undefined;
-      // ISSUE-041: 任一侧为合成 runId（runId === threadId 或 DEFAULT_RUN_ID）时
+      // I-041: 任一侧为合成 runId（runId === threadId 或 DEFAULT_RUN_ID）时
       // 视为兼容，避免 hydrated fallback message 与 realtime text 节点身份割裂、
       // 走入 duplicateNode 不命中分支后再被新建为重复节点。
       const candidateNodeIsSynthetic = isSyntheticRunId({ runId: existingRunId, threadId: node.threadId });
@@ -1697,7 +1697,7 @@ export function buildConversationTree(
       return;
     }
 
-    // ISSUE-040 H3: 优先复用 ledger 中已有的 sourceOrder，避免把 snapshot-only
+    // I-040 H3: 优先复用 ledger 中已有的 sourceOrder，避免把 snapshot-only
      // 消息（仅靠 MESSAGES_SNAPSHOT 进入 ledger、未走 TEXT_MESSAGE_START）误推
      // 到事件流末尾，从而破坏 compareLedgerEntriesByTime 的 tiebreaker。
     const fallbackSourceOrder =

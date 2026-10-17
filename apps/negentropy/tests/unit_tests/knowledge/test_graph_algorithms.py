@@ -5,7 +5,7 @@ Graph Algorithms 单元测试
   - export_graph_to_networkx: 图导出
   - compute_pagerank: PageRank 计算
   - compute_communities: Leiden/Louvain 社区检测
-  - community_id 类型 CAST 正确性（ISSUE-082 regression）
+  - community_id 类型 CAST 正确性（I-082 regression）
 """
 
 from __future__ import annotations
@@ -128,7 +128,7 @@ class TestRunLeiden:
 
 
 class TestCommunityIdCast:
-    """ISSUE-082 regression: community_id INTEGER 类型 CAST 缺失"""
+    """I-082 regression: community_id INTEGER 类型 CAST 缺失"""
 
     def test_values_clause_uses_integer_cast(self):
         """VALUES 子句中 cid 参数必须 CAST 为 integer"""

@@ -85,7 +85,7 @@ async def me(user: AuthUser = Depends(get_current_user)) -> AuthMeResponse:
     """返回当前用户身份；roles 以 DB ``user_states`` 为权威覆盖 JWT 中的快照。
 
     与 admin 端点共享 ``resolve_user_with_db_roles``，避免“前端通过 /me 看到 admin、
-    后端 admin 端点用 JWT 旧 roles 仍 403”的视图割裂（ISSUE-049）。
+    后端 admin 端点用 JWT 旧 roles 仍 403”的视图割裂（I-049）。
     """
     resolved_user = await resolve_user_with_db_roles(user)
     return AuthMeResponse(

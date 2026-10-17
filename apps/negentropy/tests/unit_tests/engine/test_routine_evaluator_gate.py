@@ -62,7 +62,7 @@ def test_gate_cwd_missing_attr_defensive():
 
 
 # ---------------------------------------------------------------------------
-# _run_gate 超时/异常退出码语义 + per-routine 超时覆盖 —— ISSUE-115 回归锁定
+# _run_gate 超时/异常退出码语义 + per-routine 超时覆盖 —— I-115 回归锁定
 # 超时/异常须返回非零退出码（124/1），绝不返回 None——None 仅表示「未配置门控」，
 # 否则 decision 的 `gate_exit_code in (None,0)` 会把超时误判为门控通过。
 # ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ async def test_run_gate_passes_through_exit_code():
 
 
 # ---------------------------------------------------------------------------
-# 验收未达成确定性评分封顶（acceptance_unmet_score_cap）—— ISSUE-116 回归锁定
+# 验收未达成确定性评分封顶（acceptance_unmet_score_cap）—— I-116 回归锁定
 # 把「未满足 Acceptance 即封顶」由 acceptance_criteria 散文规则提升为引擎机制，
 # 不依赖小模型自觉；仅当 judge 明确 acceptance_met=False 且 cap>0 时生效。
 # ---------------------------------------------------------------------------
@@ -173,7 +173,7 @@ async def test_acceptance_cap_per_routine_overrides_instance(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# per-routine Judge 模型覆盖（config.evaluator_model）—— ISSUE-121 回归锁定
+# per-routine Judge 模型覆盖（config.evaluator_model）—— I-121 回归锁定
 # 弱模型（gpt-5-nano）易误判 acceptance_met=true 触发过早不可逆 SUCCESS+PR；
 # 高风险复刻类任务须能 per-routine 指定更强 Judge 模型。
 # ---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ async def test_evaluator_model_override_flows_to_judge(monkeypatch):
 async def test_explicit_model_resolves_credentials_via_by_name(monkeypatch):
     """resolve_model_config_async 的 explicit_model 须经 by_model_name 解析以携带代理凭证 kwargs。
 
-    端到端正确性根因（ISSUE-121 修复依赖）：裸 explicit_model + {} kwargs 会丢失 api_key/api_base
+    端到端正确性根因（I-121 修复依赖）：裸 explicit_model + {} kwargs 会丢失 api_key/api_base
     代理路由，致 Judge 的 litellm 调用因缺凭证失败。DB 命中时须返回带凭证的 kwargs。
     """
     import negentropy.config.model_resolver as mr
@@ -267,7 +267,7 @@ async def test_evaluator_model_falls_back_to_instance_default(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# 子进程环境净化（剥离引擎 venv/uv 激活变量）—— ISSUE-120 回归锁定
+# 子进程环境净化（剥离引擎 venv/uv 激活变量）—— I-120 回归锁定
 # worktree 子进程（gate + CC）不应继承引擎自身的 VIRTUAL_ENV / UV_RUN_RECURSION_DEPTH。
 # ---------------------------------------------------------------------------
 
@@ -289,7 +289,7 @@ def test_inherited_env_strips_engine_venv_vars(monkeypatch):
 
 
 async def test_run_gate_subprocess_does_not_inherit_engine_virtualenv(monkeypatch):
-    """端到端：gate 子进程实际环境不含引擎 VIRTUAL_ENV（剥离生效，ISSUE-120）。"""
+    """端到端：gate 子进程实际环境不含引擎 VIRTUAL_ENV（剥离生效，I-120）。"""
     monkeypatch.setenv("VIRTUAL_ENV", "/engine/.venv/SHOULD_NOT_LEAK")
     ev = RoutineEvaluator()
     # 门控命令打印 VIRTUAL_ENV：净化后应为空行。

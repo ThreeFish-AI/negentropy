@@ -5,7 +5,7 @@ Review #4 — ``_require_self_or_admin`` 应当：
 2. 普通用户只能操作自身 user_id；
 3. 用户 id 缺失或为空时拒绝。
 
-ISSUE-049 — admin 判断以 DB ``user_states`` 为权威而非 JWT roles，``_require_*``
+I-049 — admin 判断以 DB ``user_states`` 为权威而非 JWT roles，``_require_*``
 现在为 async 协程；本文件以 ``pytest.mark.asyncio`` + ``monkeypatch`` 替换 DB 解析
 helper 来覆盖两种 roles 来源（JWT 与 DB）的等价性。
 """
@@ -80,7 +80,7 @@ class TestRequireSelfOrAdmin:
 
     @pytest.mark.asyncio
     async def test_db_roles_promote_user_to_admin(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """ISSUE-049：JWT roles=["user"] 但 DB roles=["user", "admin"] → admin 通过。"""
+        """I-049：JWT roles=["user"] 但 DB roles=["user", "admin"] → admin 通过。"""
         jwt_user = _make_user(user_id="alice", roles=["user"])
 
         async def _db_promote(user: AuthUser) -> AuthUser:

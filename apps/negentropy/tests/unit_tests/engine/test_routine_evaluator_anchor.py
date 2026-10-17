@@ -67,7 +67,7 @@ async def test_evaluate_without_history_prompt_unchanged(monkeypatch):
 
 
 async def test_evaluate_with_history_injects_anchor(monkeypatch):
-    """注入 ISSUE-128 轨迹 → judge_prompt 含锚点段、progress_evidence 要求、轨迹分数 84。"""
+    """注入 I-128 轨迹 → judge_prompt 含锚点段、progress_evidence 要求、轨迹分数 84。"""
     _stub_judge(monkeypatch)
     ev = RoutineEvaluator()
     res = await ev.evaluate(_EvalRoutine(), _EvalIter(), history=_issue128_history())
