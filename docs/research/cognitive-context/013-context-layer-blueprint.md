@@ -188,9 +188,9 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 ## 2. 问题定义与分析单元
 
-§1 的登记簿列全了失效形态；本章往回追一步，回答这些失效为什么集中爆发：它们共享同一个研究对象，Agent 运行时上下文。先给这个对象的问题定义（四类失效现象与四个根因：数据侧三类承 011 口径，模型侧一类为本篇补充），再给形式定义（Context Engineering 2.0 论文，arXiv 2510.26493）与产品侧定义（a16z 的定名文与 Atlan 的五层框架），随后立起分析单元（每轮装配事务），以研究范围收束。§3 的三面蓝图在这个对象之上展开。
+§1 的登记簿列全了失效形态；本章往回追一步，回答这些失效为什么集中爆发：它们共享同一个研究对象，Agent 运行时上下文。先给这个对象的问题定义（四类失效现象与四个根因：数据侧三类承 011 口径，模型侧一类为本篇补充），再给学术定义（Context Engineering 2.0 论文，arXiv 2510.26493）与产品侧定义（a16z 的定名文与 Atlan 的五层框架），随后立起分析单元（每轮装配事务），以研究范围收束。§3 的三面蓝图在这个对象之上展开。
 
-### 2.1 为什么需要：四类失效现象与四个根因
+### 2.1 为什么需要：Agents 常遇到的四类问题
 
 （现象一至三与根因①–③为 [011](./011-horizon-context.md) §1 口径；现象四与根因④为本篇补充——模型/harness 侧，承接 §1.6 运行时簇与 [170–175](../agent-harness/170-claude-code-harness-overview.md)。）
 
@@ -206,15 +206,44 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 失效不全是技术问题，组织面早有佐证：MIT《State of AI in Business 2025》的结论——「most fail due to brittle workflows, lack of contextual learning, and misalignment with day-to-day operations」——经 a16z 转述（MIT 中立机构，引文以 a16z 页为准）；Redis 调查口径：97% 认为上下文决定 AI 成败、只有 4% 建成了相应系统（n=1000 在报告落地页与公开文本零披露、方法论未公开）。ownership 缺位与组织运营失效的完整簇见 §11。
 
-### 2.2 形式锚：上下文与上下文工程的定义
+### 2.2 上下文工程的学术定义
 
-（一手锚：arXiv:2510.26493 v1，2025-10-30 提交。010 的转述仅作对照，不入锚。）
+（一手锚：[arXiv:2510.26493](https://arxiv.org/abs/2510.26493) v1，2025-10-30 提交。[010](./010-context-engineering.md) 的转述仅作对照，不入锚。）
 
-Context Engineering 2.0 给出一组可用符号推演的定义。定义 1（实体与表征）：实体空间 ℰ、表征信息空间 ℱ，表征函数 Char: ℰ→𝒫(ℱ)（式 1），Char(e) 返回刻画实体 e 的信息集。定义 3（上下文）：对一次用户-应用交互，C = ⋃_{e∈E_rel} Char(e)（式 2），其中 E_rel⊆ℰ 是与该次交互被视为相关的实体集合；论文明确式 2 正是 Dey 2001 经典定义（「任何可用来刻画相关实体情况的信息」）的形式化。定义 4（上下文工程）：对上下文采集、存储、管理与使用的系统化设计与优化，以提升机器理解与任务表现；形式化为 CE: (C,𝒯)→f_context（式 3），f_context(C)=ℱ(φ₁,φ₂,…,φₙ)(C)（式 4）。𝒯 为目标任务域，ℱ 为算子 φᵢ 的组合函数。
+Context Engineering 2.0 给出一组可用符号推演的定义。
 
-论文对 Context Engineering 2.0 的操作集给出 may-include 清单（原文自标非穷举枚举）：①采集 ②存储管理 ③一致可互操作表示 ④多模态处理 ⑤整合复用过去上下文（"self-baking"，原文引号）⑥选取最相关元素 ⑦跨代理/系统共享 ⑧依反馈动态适配。
+**定义 1（实体与表征）**：实体空间 $\mathcal{E}$、表征信息空间 $\mathcal{F}$，表征函数 $\mathrm{Char}: \mathcal{E} \to \mathcal{P}(\mathcal{F})$（式 1），$\mathrm{Char}(e)$ 返回刻画实体 $e$ 的信息集。
 
-这组定义给本蓝图三样东西。其一，式 2 把 instruction、memory、knowledge、tools+skills、session 装进同一个定义域：它们都是某类实体（用户、应用、环境、工具、记忆模块）的表征，不必按「数据类型」另立顶层分类。其二，𝒯 进入定义使「上下文的好坏」成为任务相对量：同一段内容对 A 任务是信号、对 B 任务是噪声（本蓝图读法）。这是 §6 预算纪律的形式化出处。其三，八算子是覆盖度核对表：§3.5 的投影表覆盖其中七项（存储/表示→资产、选取/压缩→装配、采集候选面→检索、self-baking/适配→沉淀、跨代理/系统共享→协作簇 §1.10），多模态一项跨轴未单列；核对结论是「主类操作有落位」，非完备证明（清单原文自标 may-include 非穷举）。工程侧口径（Anthropic 官方定义）与形式化定义说的是同一件事：上下文＝「从 LLM 采样时所纳入的 token 集合」，上下文工程＝「在推理期间策划并维护最优 token 集合的一组策略」。形式化的 C 在工程口径里就是「当轮窗口内容」，这正是下一节的分析单元。
+**定义 3（上下文）**：对一次用户-应用交互，其上下文为（式 2）
+
+$$C = \bigcup_{e \in E_{\mathrm{rel}}} \mathrm{Char}(e)$$
+
+其中 $E_{\mathrm{rel}} \subseteq \mathcal{E}$ 是与该次交互被视为相关的实体集合。论文明确式 2 正是 [Dey 2001](https://doi.org/10.1007/s007790170019) 经典定义（「任何可用来刻画相关实体情况的信息」）的形式化。
+
+**定义 4（上下文工程）**：对上下文采集、存储、管理与使用的系统化设计与优化，以提升机器理解与任务表现。形式化为 $\mathrm{CE}: (C, \mathcal{T}) \to f_{\mathrm{context}}$（式 3）与式 4：
+
+$$f_{\mathrm{context}}(C) = \mathcal{F}(\varphi_1, \varphi_2, \dots, \varphi_n)(C)$$
+
+$\mathcal{T}$ 为目标任务域，$\mathcal{F}$ 为算子 $\varphi_i$ 的组合函数。
+
+论文对 Context Engineering 2.0 的操作集给出 may-include 清单（原文自标非穷举枚举）：
+
+1. 采集；
+2. 存储管理；
+3. 一致可互操作表示；
+4. 多模态处理；
+5. 整合复用过去上下文（"self-baking"，原文引号）；
+6. 选取最相关元素；
+7. 跨代理/系统共享；
+8. 依反馈动态适配。
+
+这组定义给本蓝图三样东西：
+
+- **其一，统一定义域**：式 2 把 instruction、memory、knowledge、tools+skills、session 装进同一个定义域——它们都是某类实体（用户、应用、环境、工具、记忆模块）的表征，不必按「数据类型」另立顶层分类。
+- **其二，任务相对量**：$\mathcal{T}$ 进入定义使「上下文的好坏」成为任务相对量——同一段内容对 A 任务是信号、对 B 任务是噪声（本蓝图读法），这是 §6 预算纪律的形式化出处。
+- **其三，覆盖度核对表**：八算子是覆盖度核对表，§3.5 的投影表覆盖其中七项（存储/表示→资产、选取/压缩→装配、采集候选面→检索、self-baking/适配→沉淀、跨代理/系统共享→协作簇 §1.10），多模态一项跨轴未单列；核对结论是「主类操作有落位」，非完备证明（清单原文自标 may-include 非穷举）。
+
+工程侧口径（[Anthropic 官方定义](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)）与形式化定义说的是同一件事：上下文＝「从 LLM 采样时所纳入的 token 集合」，上下文工程＝「在推理期间策划并维护最优 token 集合的一组策略」。形式化的 $C$ 在工程口径里就是「当轮窗口内容」，这正是下一节的分析单元。
 
 ### 2.3 产品侧定义：a16z 三动词与 Atlan 五层
 
@@ -232,7 +261,7 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 ### 2.4 分析单元：每轮装配事务
 
-把对象与定义落到可验收的单元，本蓝图取**每轮装配事务**：从「当轮输入到达」到「上下文窗口内容定型」之间发生的全部取数、过滤、排序、分段与预算分配。用 §2.2 的语言说：式 4 的 f_context(C)=ℱ(φ₁..φₙ)(C) 每被实调用一次，就是一次装配事务（式 3 的 CE:(C,𝒯)→f_context 是映射关系而非事件；「一次求值＝一个事务」是本文的分析单元约定）。
+把对象与定义落到可验收的单元，本蓝图取**每轮装配事务**：从「当轮输入到达」到「上下文窗口内容定型」之间发生的全部取数、过滤、排序、分段与预算分配。用 §2.2 的语言说：式 4 的 $f_{\mathrm{context}}(C) = \mathcal{F}(\varphi_1, \dots, \varphi_n)(C)$ 每被实调用一次，就是一次装配事务（式 3 的 $\mathrm{CE}: (C, \mathcal{T}) \to f_{\mathrm{context}}$ 是映射关系而非事件；「一次求值＝一个事务」是本文的分析单元约定）。
 
 三个互相独立的证据指向同一结论。正确性与安全性的最后一道拦截在每次装配时求值，而非入库时判定一次便长期有效（入库门管结构与身份、装配门管当下行为，两道独立生效，见 G2）：
 
@@ -1217,7 +1246,7 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 
 - J. Cui and J. Li, "Your Data Agents Need Context," a16z, Mar. 10, 2026. https://a16z.com/your-data-agents-need-context/
 - Q. Hua et al., "Context Engineering 2.0: The Context of Context Engineering," arXiv:2510.26493, 2025. https://arxiv.org/abs/2510.26493
-- A. K. Dey, "Understanding and Using Context," *Personal and Ubiquitous Computing*, vol. 5, no. 1, pp. 4–7, 2001.
+- A. K. Dey, "Understanding and Using Context," *Personal and Ubiquitous Computing*, vol. 5, no. 1, pp. 4–7, 2001. https://doi.org/10.1007/s007790170019
 - Atlan (E. Winks), "Context Architecture for AI Agents: A Complete 2026 Guide," Apr. 24, 2026. https://atlan.com/know/context-architecture-for-ai-agents/
 - B. Evelson, "The Next Evolution of AI Will Rely on Context Layers," Forrester Blog, Aug. 20, 2026. https://www.forrester.com/blogs/the-next-evolution-of-ai-will-rely-on-context-layers/
 - Colrows (H. Chouhan), "MCP Is Not Enough: Why AI Agents Need a Semantic Layer," 2026-08-30 修订. https://colrows.com/blogs/mcp-governed-semantic-layer/
