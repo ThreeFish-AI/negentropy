@@ -79,7 +79,7 @@ export const EXIT_FACTOR = 0.4;
 export const SAFE_TOP_Y = 920;
 
 /** 自下方入场的行程安全钳制：落位态底边 restBottom 之上才是可用的进场空间。
- *  ISSUE-170 的手工逐卡反算收敛于此——该缺陷类从「评审抽帧抓」变「构造不可能」。 */
+ *  I-170 的手工逐卡反算收敛于此——该缺陷类从「评审抽帧抓」变「构造不可能」。 */
 export const clampRiseDist = (
   dist: number,
   restBottom: number,

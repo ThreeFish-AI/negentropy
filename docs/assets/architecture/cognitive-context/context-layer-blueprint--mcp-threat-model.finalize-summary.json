@@ -7,13 +7,13 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--mcp-threat-model/context-layer-blueprint--mcp-threat-model.json",
-    "sha256": "b0aa8e89667b87115d11e52eeb98736008ca910bbb831c9f0d0524d7c69aa3c9",
-    "bytes": 7138
+    "sha256": "23db469b90fbaa273b6e88f49be6329899ba893363b63ccdb60f6e0cbb3d4948",
+    "bytes": 7134
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--mcp-threat-model.html",
-    "sha256": "c49a04673721822537c395f8cd0f9bcef1370c039afa5fa3ea5257dafa921687",
-    "bytes": 764511
+    "sha256": "ccf9658e5cadad0de401aaff671e43ef59f4cc5fb21f7f104cbb2ca495dcd60d",
+    "bytes": 764507
   },
   "gates": {
     "validate": "pass",
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--mcp-threat-model.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 1878
+  "durationMs": 1839
 }

@@ -47,7 +47,7 @@
 **系列片头《一个循环》**（2026-10-06 上线、2026-10-08 独立化并铺开五集）：约 23.5s 统一开场（口播
 为独立音轨不入各集 narration，逐集差异=本集 mech 授色与本集站定格，全数据驱动）；种子与同步纪律见
 [series-assets/claude-code-explained/intro/README.md](./series-assets/claude-code-explained/intro/README.md)，
-台账见 [ISSUE-209](../../docs/.agents/issue.md)。
+台账见 [I-209](../../docs/.agents/issue.md)。
 
 ## Context Layer · 上下文层系列（doc 型 · 3 集）
 

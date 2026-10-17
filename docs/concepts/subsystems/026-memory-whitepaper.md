@@ -176,7 +176,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 **默认状态翻转**（`config.default.yaml`）：F1 HippoRAG / F2 Reflexion / F4 Presidio / Rocchio 读侧 + Memify 6-step 全部 `enabled: true`；各自保留运行时安全闸（HippoRAG `min_kg_associations` 数据闸、Reflexion `max_inflight_tasks` 并发上限、Presidio `allow_engine_fallback` 缺模型降级），既开箱即用又自保护。
 
-**接线缺陷修复**（详见 [`issue.md`](../../.agents/issue.md) ISSUE-098~101）：
+**接线缺陷修复**（详见 [`issue.md`](../../.agents/issue.md) I-098~101）：
 
 | 缺陷 | 根因 | 修复 |
 | --- | --- | --- |

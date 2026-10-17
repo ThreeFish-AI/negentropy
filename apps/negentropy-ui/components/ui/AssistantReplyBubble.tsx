@@ -70,9 +70,9 @@ export function AssistantReplyBubble({
     return out;
   }, [block.segments]);
 
-  // ISSUE-070：检测「等待首个 token」的场景：所有 segments 都没有可见内容时，
+  // I-070：检测「等待首个 token」的场景：所有 segments 都没有可见内容时，
   // 渲染三点脉冲动画作为占位，避免 UI 空白。
-  // ISSUE-071：原实现把 `reasoning` 视为「立即可见」——但 `ne.a2ui.reasoning`
+  // I-071：原实现把 `reasoning` 视为「立即可见」——但 `ne.a2ui.reasoning`
   // started 事件在流式开始的 100ms 内即下发空 reasoning step（仅 stepId/title），
   // 此时 reasoning content 还未累积，整个回复气泡仍是空白；占位永远不会渲染。
   // 重新定义「可见」：

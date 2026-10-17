@@ -263,7 +263,7 @@ describe("buildChatMessagesFromEventsWithFallback - sorting", () => {
   });
 });
 
-describe("longestCommonSubsequenceRatio (ISSUE-070 LCS 兜底)", () => {
+describe("longestCommonSubsequenceRatio (I-070 LCS 兜底)", () => {
   it("完全相同的字符串 → 1.0", () => {
     expect(longestCommonSubsequenceRatio("hello world", "hello world")).toBe(1);
   });
@@ -307,7 +307,7 @@ describe("longestCommonSubsequenceRatio (ISSUE-070 LCS 兜底)", () => {
   });
 });
 
-describe("accumulateTextContent (ISSUE-071 改写覆盖检测)", () => {
+describe("accumulateTextContent (I-071 改写覆盖检测)", () => {
   it("追加场景：incoming 是 existing 的延续 → 拼接", () => {
     expect(accumulateTextContent("Hello ", "Hello world")).toBe("Hello world");
     expect(accumulateTextContent("Hello", " world")).toBe("Hello world");
@@ -322,7 +322,7 @@ describe("accumulateTextContent (ISSUE-071 改写覆盖检测)", () => {
     expect(accumulateTextContent("abc", "")).toBe("abc");
   });
 
-  it("ISSUE-071 根因：partial 残缺中文段 + final 完整改写版 → 仅保留 final（避免 UI 双内容）", () => {
+  it("I-071 根因：partial 残缺中文段 + final 完整改写版 → 仅保留 final（避免 UI 双内容）", () => {
     // 来自 verify-log-2026-05-07.md 实测复现
     const partial =
       "负熵（negentropy）是指系统通过输入能量或入化信息来抵抗熵增，从而降低无序度增加序性信息量的量度。\n\n完成：了一句概念定义。可能的续：举（热学/信息/生物学数学述通。建议下一：一个——A 给通化子比，B) 提供信息论/数学定义与公式或 (C)集学术资料与引用我将此相流程。采选项";

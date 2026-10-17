@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "cdfb5322-a181-4939-8bfc-3d518046bfbb",
+  "deliveryReceiptId": "ad60f037-e036-442a-98b5-6328f055f8e4",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "2e82d4d8c45998b9c13ee18f718b5d22fcb318fbbc1b5a45fc7c6fcbc35c76dc",
-    "bytes": 768641
+    "sha256": "01f9f999cf533eede94699d5e6598c98a9185afaedba80731c0f0ee23e2e41eb",
+    "bytes": 768625
   },
   "state": {
     "detail": "read",

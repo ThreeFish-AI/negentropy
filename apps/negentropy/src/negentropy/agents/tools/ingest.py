@@ -1,6 +1,6 @@
 """ingest_to_corpus — 用户 @ Corpus 场景下的「主动沉淀」工具。
 
-设计动机（ISSUE-096 后续）：
+设计动机（I-096 后续）：
     Composer @ 唤出框收敛为 2 Tab 后，沉淀入口由 UI 显式按钮迁移至 LLM 自主
     判断：用户在自然语言中表达「沉淀/入库/保存到 X」时，root LLM 依据
     ``state.action_intent_hint == "ingest"`` + ``state.corpus_ids`` 非空，
@@ -118,7 +118,7 @@ async def ingest_to_corpus(
 
     if should_request_approval("ingest_to_corpus", policy):
         # denial 缓存：同一 (corpus_id + 内容指纹) 近期被拒/超时过 → 直接返回 blocked、
-        # 不再弹审批，结构性掐断 LLM 重试循环（ISSUE-156 续）。
+        # 不再弹审批，结构性掐断 LLM 重试循环（I-156 续）。
         denial_key = f"{corpus_id}:{_stable_hash((text or '')[:256])}"
         if was_recently_denied(tool_context, "ingest_to_corpus", denial_key):
             logger.info("ingest_to_corpus_skipped_recently_denied", corpus_id=corpus_id)

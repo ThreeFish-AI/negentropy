@@ -18,7 +18,7 @@
  *  ★要点：
  *  - 红绿专属语义（C 型素材映射契约 3）：ok=「机制在位」基线 / danger=「拆掉后」
  *    崩溃态，只给实验对拍与判读；SceneTag 走 mech（机制实验室），计费条 accent 金
- *    （P0 计费母题在 e5 复燃）。零 Lottie（ISSUE-202）。
+ *    （P0 计费母题在 e5 复燃）。零 Lottie（I-202）。
  *  - 对拍面板主体由 ablation-panel / knock-walk-away 录制章承担（全屏独占 v4）；
  *    本文件在画框外缘挂仪器层——ArchifyClip 画框占 x311..1609 / y150..880，左缘
  *    311px 边距即 PillarHUD 同款常驻先例：右缘=实验台五开关（svg 拨杆件，本幕私有

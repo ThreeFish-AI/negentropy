@@ -1,6 +1,6 @@
 """单元测试：/interface/tools/{id} 与 /interface/tools/{id}:test 端点契约。
 
-覆盖 ISSUE-095 (Test Connection 抛 PLUGINS_UPSTREAM_ERROR / Internal Server Error)
+覆盖 I-095 (Test Connection 抛 PLUGINS_UPSTREAM_ERROR / Internal Server Error)
 的核心防回归点：
 
 1. **签名契约**：``permissions.check_plugin_access`` 必须保持 5 参数形态；任何调用
@@ -104,7 +104,7 @@ def _mock_async_session(fake_db) -> MagicMock:
 
 
 class TestCheckPluginAccessSignature:
-    """ISSUE-095：调用方实参数 < 形参数 即触发 TypeError → 500 → PLUGINS_UPSTREAM_ERROR.
+    """I-095：调用方实参数 < 形参数 即触发 TypeError → 500 → PLUGINS_UPSTREAM_ERROR.
 
     若 ``permissions.check_plugin_access`` 签名变更，调用方必须同步更新。
     """
@@ -135,7 +135,7 @@ class TestCheckPluginAccessSignature:
 
 
 class TestCallSiteContract:
-    """ISSUE-095 核心防回归：捕获实际 call_args，断言 5 参 + 最后一位 == "view"."""
+    """I-095 核心防回归：捕获实际 call_args，断言 5 参 + 最后一位 == "view"."""
 
     @pytest.mark.asyncio
     async def test_get_builtin_tool_passes_view_permission(self, _user) -> None:
@@ -291,7 +291,7 @@ class TestTestBuiltinToolGoogleSearch:
 
     @pytest.mark.asyncio
     async def test_missing_credentials_returns_business_error_not_500(self, _user) -> None:
-        """ISSUE-095 case B：凭证为空时返回业务错误而非 PLUGINS_UPSTREAM_ERROR.
+        """I-095 case B：凭证为空时返回业务错误而非 PLUGINS_UPSTREAM_ERROR.
 
         关键回归断言：函数返回 BuiltinToolTestResponse(success=False, ...) 而不是
         raise HTTPException — 这正是 Test Connection 在「凭证未配」场景下的预期

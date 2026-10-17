@@ -81,7 +81,7 @@ class BuiltinAssembler(PDFToolBase):
             elements: List[_ContentElement] = []
             # 无 bbox 公式（块级 + 行内）：通过文本块匹配回正文位置后升级为 LaTeX
             # （此前仅承接 ``formula_type == "block"`` 的孤儿，``inline`` 公式被静默丢弃，
-            # 详见 issue.md ISSUE-094 R5）。inline 与 block 共池统一兜底，
+            # 详见 issue.md I-094 R5）。inline 与 block 共池统一兜底，
             # ``_formula_to_markdown`` 内按 ``formula_type`` 决定 ``$...$`` 或 ``$$...$$`` 包裹。
             _orphan_formulas: List[ExtractedFormula] = []
 
@@ -138,7 +138,7 @@ class BuiltinAssembler(PDFToolBase):
             # （含位图 + 矢量标签 + 标题）。image_extraction 仅给出位图位图本身的
             # bbox，对"位图周围的矢量标签（如 Figure 1 的 'Context 1.0..4.0'、
             # 'Context Input / Intelligence Level' 行）" 无法覆盖，导致这些标签
-            # 作为独立 text block 落到 figure 下方破坏阅读流（ISSUE-094 R6）。
+            # 作为独立 text block 落到 figure 下方破坏阅读流（I-094 R6）。
             # 把 layout figure region 也纳入 special_regions，让上述矢量标签
             # 通过 ``_block_overlaps_special`` 自然抑制；Figure caption（``Figure
             # N:`` / ``Table N:`` 起手）由后续 _is_figure_or_table_caption 守卫
@@ -243,7 +243,7 @@ class BuiltinAssembler(PDFToolBase):
             # 常含多个框图/箭头短标签（如 ``Meta-Agent continuously optimizes the
             # Harness``、``Other External Updates``），它们含 ≥2 英文词故不被
             # ``_is_low_content_figure_label`` 捕获而泄漏。但逐条扩展会误伤被过大
-            # figure region 吞噬的单条 section 标题/导言（ISSUE-094）。改用簇判定：
+            # figure region 吞噬的单条 section 标题/导言（I-094）。改用簇判定：
             # 同一页 figure region 内 ≥3 个"短标签样"块（2-8 个 ≥3 字母英文词、无
             # 章节编号前缀、无句末标点）→ 框图内部标签，主循环中抑制。<3 个则保留。
             _figure_label_cluster_ids: set[int] = set()
@@ -444,7 +444,7 @@ class BuiltinAssembler(PDFToolBase):
                     elif formula.latex:
                         # 无 bbox 公式：块级与行内统一兜底
                         # （MinerU 对短公式如 ``CE: ( C, T ) → f_context (3)`` 常分类为 inline，
-                        # 此分支前曾仅承接 block，inline 公式被静默丢弃，参见 ISSUE-094 R5）
+                        # 此分支前曾仅承接 block，inline 公式被静默丢弃，参见 I-094 R5）
                         _orphan_formulas.append(formula)
 
             # 代码块（去重：对 Docling 提取的代码块，检查同页文本块中
@@ -867,7 +867,7 @@ class BuiltinAssembler(PDFToolBase):
                 # 与带编号 section heading 文本重复、污染目录锚点。降级为正文
                 # 段落（内容保留、脱离标题层级）。真实 section 标题极少完全落入
                 # figure region（中心点包含检测）；即便被过大 region 误吞而降级，
-                # 作为段落保留亦优于重复 heading 破坏目录（ISSUE-094 figure-region
+                # 作为段落保留亦优于重复 heading 破坏目录（I-094 figure-region
                 # trade-off，此处复用 _layout_figure_regions 的中心点+IoU 判定）。
                 elif elem.block and _block_overlaps_special(
                     elem.block, _layout_figure_regions, iou_threshold=0.3
@@ -1190,7 +1190,7 @@ class BuiltinAssembler(PDFToolBase):
                     continue
                 content = elem.content.strip()
                 # 块级 ``$$...$$`` 与 inline ``$...$`` 公式均纳入编号采集，
-                # 兼容 ISSUE-094 R5 中 inline 公式（如 ``$CE: (C,T) \\to f_{context} (3)$``）
+                # 兼容 I-094 R5 中 inline 公式（如 ``$CE: (C,T) \\to f_{context} (3)$``）
                 # 与同页 PyMuPDF 字符流文本（``CE: ( C, T ) → f context (3)``）的去重。
                 if not (content.startswith("$$") or content.startswith("$")):
                     continue
@@ -1340,7 +1340,7 @@ class BuiltinAssembler(PDFToolBase):
             # 主体重复出现却互相不命中签名兜底（残片字符不足 20 触发 ``_formula_text_signature``
             # 的最小长度阈值）。清理判据：text element 内容为公式残片形态 + 后续
             # （经空白 + 残片链）能扫到一个公式元素 → 视为公式残片剔除，避免视图中
-            # "残片 + 公式"并存（ISSUE-094 R8）。
+            # "残片 + 公式"并存（I-094 R8）。
             #
             # 残片形态（两种）：
             #   形态1（纯文本残片）：``<id> = <open-bracket>``，≤ 15 字符（如 ``C = [``）。
@@ -1510,7 +1510,7 @@ class BuiltinAssembler(PDFToolBase):
             if _run_remove:
                 elements = [e for _i, e in enumerate(elements) if _i not in _run_remove]
 
-            # 2.5.6 公式序号 gap-consistency 推断回填（ISSUE-094 R9 D-2/D-3/D-4）：
+            # 2.5.6 公式序号 gap-consistency 推断回填（I-094 R9 D-2/D-3/D-4）：
             # Docling ``iterate_items`` 路径下抽取的公式 LaTeX 主体常不带
             # ``\\tag{N}`` / ``\\quad (N)`` 编号，UI 视图等式编号缺失。
             # 利用学术论文连续编号习惯，按相邻有编号公式之间的 gap 是否
@@ -1549,7 +1549,7 @@ class BuiltinAssembler(PDFToolBase):
                         old_latex[:80],
                     )
 
-            # 2.5.7 图片 caption 邻接段注入（ISSUE-094 R9 D-6）：
+            # 2.5.7 图片 caption 邻接段注入（I-094 R9 D-6）：
             # 当 image_extraction 阶段未能从 PyMuPDF / Docling 关联到图片
             # caption（``image.caption`` 为空）、UI 显示 ``alt="<filename>"``
             # 退化为文件名，且文档顺序下一个 text element 是 ``Figure N:`` /
@@ -2421,7 +2421,7 @@ _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
     re.compile(r"^Permission\s+to\s+make\s+digital", re.IGNORECASE),
     # ACM Reference Format 行
     re.compile(r"^ACM\s+Reference\s+Format:", re.IGNORECASE),
-    # ISSUE-094 R9 D-1b: 封面 GitHub 链接锚 ``§ Github`` / ``§ Code`` /
+    # I-094 R9 D-1b: 封面 GitHub 链接锚 ``§ Github`` / ``§ Code`` /
     # ``§ Project`` / ``§ Repository`` / ``§ Site`` / ``§ Demo`` / ``§ Website``
     # —— PDF 中 GitHub 图标下方的锚文本，``§`` 是装饰符而非章节号；
     # 限定第二段为单个英文单词（``§ 2.1`` 章节引用因含数字被排除）。
@@ -2435,7 +2435,7 @@ _RUNNING_HEADER_FOOTER_PATTERNS: List[re.Pattern] = [
 
 # 封面专属（page_number == 0）banner 模式 —— 仅在 PDF 封面页应用：
 #
-# ISSUE-094 R9 D-1b：论文封面常出现 ``<ACRONYM> <ProjectDescriptor>``
+# I-094 R9 D-1b：论文封面常出现 ``<ACRONYM> <ProjectDescriptor>``
 # 项目/机构 banner（典型如 ``SII Context``、``MIT Lab``、``SII GenAI``）；
 # 限定首词为 2-5 ALL-CAPS 字母（``Federated``、``Quantum`` 等正常英文词
 # 不会命中），第二词收紧为项目专用描述词白名单。
@@ -2667,7 +2667,7 @@ def _figure_caption_to_inject(
     image_has_caption: bool,
     next_text_block_text: Optional[str],
 ) -> Optional[str]:
-    """判断 image 是否应从邻接文本接收 caption（ISSUE-094 R9 D-6）。
+    """判断 image 是否应从邻接文本接收 caption（I-094 R9 D-6）。
 
     image_extraction 偶尔未能从 PyMuPDF / Docling 正确关联图片下方的
     caption 文本，导致 Markdown ``<img alt="...">`` 退化为文件名（如
@@ -3141,7 +3141,7 @@ def _sanitize_latex(latex: str) -> str:
             len(latex),
         )
 
-    # 策略 4: 非对齐环境裸 ``&`` 分隔符剥离（ISSUE-094 R9 D-5）
+    # 策略 4: 非对齐环境裸 ``&`` 分隔符剥离（I-094 R9 D-5）
     # Docling / MinerU 在抽取 PDF 公式时偶尔把右对齐编号或竖排分列保留为
     # 裸 ``&``，但未包裹在 ``\begin{align}``/``aligned``/``array``/``matrix``/
     # ``cases``/``pmatrix``/``bmatrix`` 等对齐环境内。KaTeX 在普通 ``$$...$$``
@@ -3282,7 +3282,7 @@ def _extract_formula_eq_number(latex: str | None) -> str | None:
 def _infer_missing_formula_numbers(
     extracted_numbers: List[Optional[int]],
 ) -> Dict[int, int]:
-    """按公式 gap-consistency 推断缺失编号（ISSUE-094 R9 D-2/D-3/D-4）。
+    """按公式 gap-consistency 推断缺失编号（I-094 R9 D-2/D-3/D-4）。
 
     Docling ``iterate_items`` 路径下抽取的公式 LaTeX 主体常不带
     ``\\tag{N}`` / ``\\quad (N)`` 编号，UI 视图等式编号缺失。利用

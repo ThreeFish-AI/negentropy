@@ -91,7 +91,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 快照式权限的越权窗口：回收后旧会话仍持权 | 011 §6 D9（ceiling=False→回收后仍持 select:orders） | M6 会话权限上界每查询实时求值（无快照）（映射 #15） | D9 反事实开关：回收后既有会话判定即刻失效（机器门） |
 | 分类≠保护：已打敏感标签仍明文可读 | 011 §2 M7＋§6 D10（映射置空→phone 仍明文） | M7 一次性映射校验门：机器判断与组织规则显式分开，未映射＝显式缺口（映射 #16） | D10 反事实开关＋未映射系统标签显式报缺口（机器门） |
 | 多数派错误压过正确口径：popularity 自动裁决让错误胜出 | 011 §6 D4（auto_popularity 让错误口径胜出；热度 200:5 为 lab 源码实测——horizon_context_lab.py popularity 字面量）＋§8 第 5 条①（同构现实风险） | 冲突浮出人工裁决（CONFLICT 卡无数值、拒答待裁）＋authority 主导排序——裁决权不自动化（G3）（映射 #8） | D4 反事实开关；冲突时输出 CONFLICT 面而非数值（机器门） |
-| 审批门窄化：拦截点散落，高危工具未纳入审批 | ingest.py:119、paper.py:343（should_request_approval 非测试调用仅 2 处；能跑主机命令的 invoke_claude_code 不在清单） | ISSUE-197 待办：统一 before_tool_callback 拦截＋高危清单与实际工具面定期对账 | 高危工具调用 100% 过审批门（机器门：拦截覆盖率测试） |
+| 审批门窄化：拦截点散落，高危工具未纳入审批 | ingest.py:119、paper.py:343（should_request_approval 非测试调用仅 2 处；能跑主机命令的 invoke_claude_code 不在清单） | I-197 待办：统一 before_tool_callback 拦截＋高危清单与实际工具面定期对账 | 高危工具调用 100% 过审批门（机器门：拦截覆盖率测试） |
 | 元数据旁路：示例值（sample values）不走掩码 | 011 §2 M2 已知限制[14]（掩码作用于数据行不作用于元数据，官方仅建议慎开） | 机制面缺口如实登记：敏感列示例值开关进运营验收清单；本仓现状：无示例值面（缺口属对方平台） | 敏感列示例值开关状态可审计（人审） |
 | 多 Agent 委托链权限传播失效：RBAC/ABAC 在 delegation/aggregation/time 场景下不正确传播 | Colrows 引述两项研究：IBM 2025（97% 受 AI 数据泄露组织缺恰当 AI 访问控制）与多 Agent 授权传播研究（RBAC/ABAC 在 delegation/aggregation/time 下不正确携带权限——转述未具名，本行失效形态系后者） | 开放缺口：M6 只覆盖单会话权限上界，委托深度上的传播判据待设计（§5） | 多级委托下有效权限单调不增的可复现测试（待设计） |
 
@@ -115,7 +115,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 定义供给覆盖率上限：人工建定义追不上数据增长 | 011 §3.1[5]（Snowflake 自家 9,685 张表语义视图覆盖 <5%） | 两条供给路径（Autopilot 显式人审＋Sense 隐式挖掘）＋覆盖率作持续度量指标（映射 #7） | 目录覆盖率可观测且随时间上升（机器门） |
 | 定义供给腐化：stale 定义仍被装配（离职维护者、BI 已不用、缺新产品线） | a16z 定名文 worked example（投资人观点文构造例） | freshness 信号进信任归一＋人审发布门＋定义漂移检测；错答回流入层（映射 #11） | 定义年龄/上游指纹变更可观测，超龄定义降权或下线（机器门＋人审） |
 | 检索库粒度失配：共享单库＝检索实现最差档 | FinanceBench 论文（GPT-4-Turbo 共享单库 19%/每文档分库 50%/Oracle 证据页 85%；Llama2 41% vs 19% 同趋势；150 题专家核验） | 检索分域＋三段管线（高召回初检→重排→top-k 截断控信噪比，§7）；本仓现状：分域与候选集治理无专项 | 检索分支在目标语言/分域设置下非全空（机器门：中文子串用例单独断言——CJK 实况见下行） |
-| CJK 分词失效：english tsvector 把连续汉字切成单 token，中文关键词检索分支全空 | ISSUE-196（PG 16.14 实测单 token；知识库无回退） | ISSUE-196 待办：三候选——pg_trgm/pg_bigm 索引｜CJK bigram 预切分｜纯 CJK 查询路由 trigram/LIKE 回退（详解与锚归 §7.5） | 中文子串用例单独断言（机器门，详 §7.5） |
+| CJK 分词失效：english tsvector 把连续汉字切成单 token，中文关键词检索分支全空 | I-196（PG 16.14 实测单 token；知识库无回退） | I-196 待办：三候选——pg_trgm/pg_bigm 索引｜CJK bigram 预切分｜纯 CJK 查询路由 trigram/LIKE 回退（详解与锚归 §7.5） | 中文子串用例单独断言（机器门，详 §7.5） |
 | 上下文顺序失效：Context-Last 在长证据后丢失任务本身 | FinanceBench 论文（LongContext 下 Context-First 78% vs Context-Last 25%；Claude2 76% vs 37%；Oracle 短证据无此效应） | 装配面排序契约：任务规约前置＋静/动分段（「会随轮变化的状态」画在动态边界，170–175）；本仓现状：分段纪律未落码 | 长证据装配时任务规约仍居前位（结构断言＋人审） |
 | 生态出口执行语义丢失：定义可携带≠被验证（导出桥静默丢 ASOF/RANGE 非等值关系） | 011 §3.3[21]（Datus 竞对实测） | 出口约束不弱化声明＋丢关系类型显式清单化（静默丢弃不可接受）；跨引擎执行验收登记为开放缺口（映射 #12） | 导出物携带保真度清单，丢类型显式报出（人审） |
 
@@ -139,8 +139,8 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 失效形态 | 证据锚 | 防护机制 | 验收判据 |
 | :-- | :-- | :-- | :-- |
 | 装配面已定义、未接入生产路径：机制命名存在、运行时不存在 | assemble() 生产调用 0；ContextGuard 目录不存在；HybridPlanner memory 种子未接、memory_enabled 零命中；unified_search 自述简化无 RRF；context_strategy 全仓零代码命中 | 装机对账由 §12.4 承载，对账结论以负发现＋正锚并立（root_agent 五挂点、NegentropyPreloadMemoryTool 每轮注入、60s TTL fail-soft 机制及其治理旁路面代价，§6/§12） | 蓝图每个机制可指认生产路径或如实标未启（grep 对账，随蓝图修订重跑） |
-| 技能三级披露的 L2/L3 激活悬空：L1 目录指示调用的工具从未挂载，模型驱动激活不可达 | ISSUE-194；expand_skill 等三件不在 TOOL_REGISTRY、五翼零挂载、仅 __init__.py 导出 | ISSUE-194 待办（挂载/收回）＋挂载对账门：凡 prompt 写死工具名处须有「目录声明工具名 ∈ Agent 实际挂载工具名」同构集成测试 | 挂载对账同构测试进 CI（机器门） |
-| 会话巩固回路缺件：会话→长期记忆零转化 | ISSUE-195；add_session_to_memory 生产调用方 0；consolidation_jobs 只入队无消费者；水位列全仓零命中 | ISSUE-195 待办：三件套 trigger/consumer/watermark（复用 title_inspector 水位范式；提交点最后写水位） | 三件齐备且水位重放不重复（机器门）——回路「在线」判定标准 |
+| 技能三级披露的 L2/L3 激活悬空：L1 目录指示调用的工具从未挂载，模型驱动激活不可达 | I-194；expand_skill 等三件不在 TOOL_REGISTRY、五翼零挂载、仅 __init__.py 导出 | I-194 待办（挂载/收回）＋挂载对账门：凡 prompt 写死工具名处须有「目录声明工具名 ∈ Agent 实际挂载工具名」同构集成测试 | 挂载对账同构测试进 CI（机器门） |
+| 会话巩固回路缺件：会话→长期记忆零转化 | I-195；add_session_to_memory 生产调用方 0；consolidation_jobs 只入队无消费者；水位列全仓零命中 | I-195 待办：三件套 trigger/consumer/watermark（复用 title_inspector 水位范式；提交点最后写水位） | 三件齐备且水位重放不重复（机器门）——回路「在线」判定标准 |
 | 物化只写不删：定义禁用后盘上旧目录残留，无退役路径 | harness_materializer.py:114-134 只写；全文件无 unlink/rmtree/delete——SK-M22 缺口 | 退役段立规（§9 L6/G6「退役路径必备」）：物化回收与注册登记成对 | 定义禁用后盘上投影同步回收（机器门） |
 
 ### 1.8 记忆安全簇：上下文意图与安全
@@ -300,8 +300,8 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 | 资产 | 非法结构静默入库（非法定义进运行时） | D6（011 §6） |
 | 权威 | 拆执行层即泄露；快照式权限留越权窗口；虚构血缘边入账 | D5 / D9 / D8（011 §6） |
 | 装配 | tool_use/tool_result 配对拆裂；缓存边界画错（易失内容进稳定前缀） | 170–175 转锚（Anthropic 口径） |
-| 检索 | 中文关键词检索分支零召回（english tsvector 整段单 token） | ISSUE-196 本仓实测 |
-| 沉淀 | 供给链断在最后一环：已分类未绑策略仍以明文流出（D10）；巩固环零生产调用（违反回路在线三条件的实例） | D10（011 §6）；ISSUE-195 |
+| 检索 | 中文关键词检索分支零召回（english tsvector 整段单 token） | I-196 本仓实测 |
+| 沉淀 | 供给链断在最后一环：已分类未绑策略仍以明文流出（D10）；巩固环零生产调用（违反回路在线三条件的实例） | D10（011 §6）；I-195 |
 
 > [!WARNING] **正交不是无关**：「五轴独立定义」容易被读成「五轴互不相干」。预算是装配与检索共享的稀缺约束（同一枚 token 从进入候选到进窗消耗同一预算）；权威以过滤器形态组合进检索（检索面即治理面）与装配（enabled_tools 取自注册表）。轴的定义各自独立，跨轴组合正是机制所在（§3.3）——把正交读成孤立，会漏掉全部跨轴机制的验收位。
 
@@ -373,8 +373,8 @@ Horizon 七个机制（M1–M7 的内容与实验键 D1–D10 定义于 [011](./
 | :-- | :-- | :-- | :-- |
 | 定义对象（definitions 四类） | `skill_template` / `routine_preset` / `harness_skill` / `agent` 的声明式规格，整段源文本入库 | [011](./011-horizon-context.md) M1 声明半边（与语义视图五段式同构） | 单表 SSOT + 注册期 422 门（§4.4/§4.6） |
 | 记忆 | 画像 Core Block、事实、情景/程序性记忆（6 类 memory_type） | 短期/长期记忆形式化 M_s=f_short(·)、M_l=f_long(·) 与迁移 f_transfer（Context Engineering 2.0 式 5–7；资产×沉淀跨轴组合，§8 承接） | 存储与检索在；写入纪律与安全面见 §5.5 |
-| 技能目录 | 三级披露的目录层与正文/资源层 | CC 范本两级加载（[170–175](../agent-harness/170-claude-code-harness-overview.md)） | 目录注入在；L2/L3 激活工具悬空（ISSUE-194） |
-| 知识库（KB） | corpus 元数据与文档 chunks | —（检索面失效移交 §7） | 存储在；CJK 关键词检索分支失效（ISSUE-196，§7 承接） |
+| 技能目录 | 三级披露的目录层与正文/资源层 | CC 范本两级加载（[170–175](../agent-harness/170-claude-code-harness-overview.md)） | 目录注入在；L2/L3 激活工具悬空（I-194） |
+| 知识库（KB） | corpus 元数据与文档 chunks | —（检索面失效移交 §7） | 存储在；CJK 关键词检索分支失效（I-196，§7 承接） |
 | 血缘边 | 引擎沉淀 + 外部摄取的列级依赖边，两路汇入同一账本 | 011 M5 · 实验键 D8（三项入账校验：鉴权/只收 COMPLETE/对象可解析） | 执行史 ≠ 依赖图 |
 | verified 问答对 | question / sql / verified_by / verified_at 四要素 | 011 M4——字段登记在本轴（在册），命中出示在检索轴（§7） | 巡检 done 文档未沉淀问答对（§8） |
 | 标签与策略对象 | 系统标签 → 治理标签一次性映射 → tag-based 策略 | 011 M2/M7 · 实验键 D10 | 无分类策略链 |
@@ -464,7 +464,7 @@ version: 12
 | 执法点层级 | 强制发生在何时 | 机制锚与范本 | 本仓现状 |
 | :-- | :-- | :-- | :-- |
 | 注册期门 | 对象入库前，非法结构拒收 | 011 M1 声明半边 · 实验键 D6（§4.4） | definitions create/update 双路 422（registry.py `:129-144`：解析/格式 raise :129-140＋领域校验经 validator :144——与 §4.4 注册门同锚） |
-| 装配期注册表 | 每轮装配时，可达性由挂载面决定 | Claude Code system prompt 按真实状态组装：`enabled_tools` 取自实际注册的工具表（[172](../agent-harness/172-claude-code-planning-coordination.md) §6，课程固定提交实测）；本仓 `TOOL_REGISTRY` 白名单 | 挂载面真实（[registry.py](../../../apps/negentropy/src/negentropy/agents/tools/registry.py) `:105`、[agent.py](../../../apps/negentropy/src/negentropy/agents/agent.py) `:248`）；高风险审批门 `should_request_approval` 非测试调用仅 2 处（ingest.py `:119`、paper.py `:343`），root `before_tool_callback` 仅遥测（agent.py `:239-240`）——清单内 10 个高危工具仅 2 个有拦截调用、其余 8 个与清单外工具同样没有拦截（ISSUE-197 开放） |
+| 装配期注册表 | 每轮装配时，可达性由挂载面决定 | Claude Code system prompt 按真实状态组装：`enabled_tools` 取自实际注册的工具表（[172](../agent-harness/172-claude-code-planning-coordination.md) §6，课程固定提交实测）；本仓 `TOOL_REGISTRY` 白名单 | 挂载面真实（[registry.py](../../../apps/negentropy/src/negentropy/agents/tools/registry.py) `:105`、[agent.py](../../../apps/negentropy/src/negentropy/agents/agent.py) `:248`）；高风险审批门 `should_request_approval` 非测试调用仅 2 处（ingest.py `:119`、paper.py `:343`），root `before_tool_callback` 仅遥测（agent.py `:239-240`）——清单内 10 个高危工具仅 2 个有拦截调用、其余 8 个与清单外工具同样没有拦截（I-197 开放） |
 | 执行期引擎求值 | 查询/动作执行那一刻，引擎内生效 | 011 M2/M3 · 实验键 D5；M6 会话权限上界查询期实时求值 | 检索层过滤在场（scoped∩accessible 交集机制已实装——主锚 [`hybrid_planner.py`](../../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py) 模块头「权限红线」＋[`unified_search.py`](../../../apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py) 的 `accessible_corpus_ids`；集合来源的粗粒度限定见 §12.4 #5）；执行层出口守卫缺：`engine/context/` 目录不存在 |
 | 编译期极端形态 | 意图编译为执行计划时即失败 | Colrows：RBAC/ABAC/行列谓词在 compile time 求值——"unauthorized queries fail compilation, not in production"（Colrows 厂商博客，销售语义层产品） | 本仓非 SQL 编译栈，无对应物；路线之争（描述 vs 执行）入 §11 争议 1 |
 
@@ -486,7 +486,7 @@ M6 给出 Agent 身份的第二层：会话权限上界 = 用户 RBAC ∩ Restri
 
 正证（Claude Code 装配面，[172](../agent-harness/172-claude-code-planning-coordination.md) §6，课程实测）：system prompt 每轮调用模型前按当轮 context 重装配。`enabled_tools` 取自当前实际注册的工具表、memories 段看记忆文件当前是否存在且有内容；缓存只是状态键（`json.dumps(context, sort_keys=True)` 的序列化文本）命中时的复用，状态一变即失效并重装配。装配判定不落在任何历史时点的快照上。
 
-两个实例合起来是一句话：**权威判定必须落在使用时点的当前状态上**。快照式判定（D9）留下「状态已变、判定未变」的越权窗口；每轮重装配（172）把判定锚在当轮事实上，缓存只省计算、不固化判定。权限回收如此，工具挂载与记忆在场性如此（ISSUE-194 的教训同理：目录承诺的可达性必须以实际挂载为准）；§9 G1 与 §12 的现状判定共用这条法则。
+两个实例合起来是一句话：**权威判定必须落在使用时点的当前状态上**。快照式判定（D9）留下「状态已变、判定未变」的越权窗口；每轮重装配（172）把判定锚在当轮事实上，缓存只省计算、不固化判定。权限回收如此，工具挂载与记忆在场性如此（I-194 的教训同理：目录承诺的可达性必须以实际挂载为准）；§9 G1 与 §12 的现状判定共用这条法则。
 
 ### 5.4 供给面威胁模型：自述不可信与拦截位
 
@@ -519,7 +519,7 @@ M6 给出 Agent 身份的第二层：会话权限上界 = 用户 RBAC ∩ Restri
 
 类型边界必须划清：该失败模式不是提示注入、也不是记忆投毒。论文提出的失败模式是 intent legitimation：良性个人记忆偏置意图推断，使模型把固有有害查询合法化；检索到的记忆真实、来自日常交互的自然积累（原文："the retrieved memories are truthful and organically accumulated from everyday interactions"）。论文的对策是 detect-and-reflect：在记忆使用点识别可能使当前意图合法化的记忆——不删改、尽量保个性化——插入简短反思提醒，指示模型不得用个人信息为安全关键请求辩护、软化或正常化；平均 ASR 降约 27.4%、安全大体回到无状态水平（论文自测口径）。对蓝图的直接约束是论文开篇的论断：既往工作 "treating memory as a neutral component and largely overlooking its safety implications"，即**记忆不是中立组件**；沉淀轴（§8）的任何巩固/记忆增益评估必须双指标（效用 + ASR 退化），单看效用的巩固环会把安全退化当成本沉淀进长期资产。
 
-读取端的新威胁不取代写入端的旧约束，两者并存且拦截位不同（§5.4 表中间接注入行与 intent legitimation 行）：间接注入的拦截在写入端与信任边界段，intent legitimation 的缓解在读取端检测-反思。由此产生一条时序约束：写入端威胁模式扫描必须先于会话巩固上线。本仓回路缺件实况（三件缺两件，ISSUE-195 开放）见 §8.1 详解；时序约束因此仍来得及落实：扫描与巩固必须同批落地，巩固单独先行等于在无扫描的写入面上开放常驻注入面。
+读取端的新威胁不取代写入端的旧约束，两者并存且拦截位不同（§5.4 表中间接注入行与 intent legitimation 行）：间接注入的拦截在写入端与信任边界段，intent legitimation 的缓解在读取端检测-反思。由此产生一条时序约束：写入端威胁模式扫描必须先于会话巩固上线。本仓回路缺件实况（三件缺两件，I-195 开放）见 §8.1 详解；时序约束因此仍来得及落实：扫描与巩固必须同批落地，巩固单独先行等于在无扫描的写入面上开放常驻注入面。
 
 > [!WARNING] **类型边界：两套数字不可互换叙事**。intent legitimation 的 +15.8%–243.7% 出自良性记忆，写入端扫描与注入防护拦不住它；注入/投毒类数字（如技能生态 157 恶意）的拦截位在写入端与信任边界段。引用任一侧数字时必须携带类型限定。混用会同时误导对策选型（检测-反思 vs 写入扫描）与风险评估（谁在攻击、能不能防）。
 
@@ -585,7 +585,7 @@ JIT 与预取的决策边界要显式声明，不要默认：静态约定与规�
 
 ### 6.5 本仓装配面实况
 
-> [!WARNING] **装配面易错点**：不要把 `ContextAssembler.assemble()` 当「自动注入通道」，该函数生产调用为 0（全仓唯一命中是单测 `tests/unit_tests/engine/test_context_assembler_reflection.py:167`），生产请求期的真实装配面是 root_agent 五挂点。代码存在不等于在生产路径上生效：必须核到「经哪条生产路径生效」才算数（同类教训 ISSUE-194：核到 Agent `tools=` 层；两个缺口现状详 §12）。
+> [!WARNING] **装配面易错点**：不要把 `ContextAssembler.assemble()` 当「自动注入通道」，该函数生产调用为 0（全仓唯一命中是单测 `tests/unit_tests/engine/test_context_assembler_reflection.py:167`），生产请求期的真实装配面是 root_agent 五挂点。代码存在不等于在生产路径上生效：必须核到「经哪条生产路径生效」才算数（同类教训 I-194：核到 Agent `tools=` 层；两个缺口现状详 §12）。
 
 正锚是 root_agent 的五个挂点：
 
@@ -695,7 +695,7 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 
 ### 7.5 CJK 失效登记与三候选
 
-> [!WARNING] **CJK 分词口径（ISSUE-196，待办开放）**：本仓 memories 与知识库的 tsvector 均为 english 配置，PG 把连续汉字切成单个 token：`to_tsvector('english','用户偏好先给结论，少铺垫')` 产出 `'少铺垫':2 '用户偏好先给结论':1`，子串查询「先给结论」匹配 `f`（PG 16.14 实测）。后果：中文混合检索退化为纯向量、BM25 融合权重空转；记忆侧有 ILIKE 回退兜住子串，知识库无回退、关键词检索分支全量失效。修复候选三选一（另行评审）：① pg_trgm / pg_bigm 索引；② 入库 CJK bigram 预切分入 simple 配置独立列；③ 纯 CJK 查询路由 trigram / LIKE 回退（Hermes 三级回退同款）。修复零代码（pg_trgm / pg_bigm / simple 在 migrations / memory_service / knowledge 全零命中；ISSUE-196 待办开放）。锚：migration [`0047_memory_hybrid_search_function.py`](../../../apps/negentropy/src/negentropy/db/migrations/versions/0047_memory_hybrid_search_function.py):58/:89、KB `0001_init_schema.py`:914、`repository.py`:841/:848。
+> [!WARNING] **CJK 分词口径（I-196，待办开放）**：本仓 memories 与知识库的 tsvector 均为 english 配置，PG 把连续汉字切成单个 token：`to_tsvector('english','用户偏好先给结论，少铺垫')` 产出 `'少铺垫':2 '用户偏好先给结论':1`，子串查询「先给结论」匹配 `f`（PG 16.14 实测）。后果：中文混合检索退化为纯向量、BM25 融合权重空转；记忆侧有 ILIKE 回退兜住子串，知识库无回退、关键词检索分支全量失效。修复候选三选一（另行评审）：① pg_trgm / pg_bigm 索引；② 入库 CJK bigram 预切分入 simple 配置独立列；③ 纯 CJK 查询路由 trigram / LIKE 回退（Hermes 三级回退同款）。修复零代码（pg_trgm / pg_bigm / simple 在 migrations / memory_service / knowledge 全零命中；I-196 待办开放）。锚：migration [`0047_memory_hybrid_search_function.py`](../../../apps/negentropy/src/negentropy/db/migrations/versions/0047_memory_hybrid_search_function.py):58/:89、KB `0001_init_schema.py`:914、`repository.py`:841/:848。
 
 防范两条写进迁移检查单：从英文语料移植检索 schema 时，把「分词配置 × 目标语言」列为显式核对项；混合检索回归测试须含中文子串用例、并单独断言 tsvector 检索分支：融合总分断言通过不等于关键词检索分支在场。
 
@@ -709,7 +709,7 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 
 一个回路算数，当且仅当三件东西都在生产路径上：触发器（什么条件下启动）、消费者（谁真正执行）、水位线（做到哪了的记账）。**三件缺任何一件，回路不存在**。这条律不是实现细节，是判定口径：「代码里有这段逻辑」只证明第一态（存在）；被生产调用方引用是第二态（接线）；三件齐备跑在生产路径上是第三态（在线）。外部证据把这条律的代价标示得很直白：Redis State of Context Engineering 落地页口径，94% 的受访者称随使用持续累积的系统智能（Redis 原词 compounding system intelligence）对生产成熟度必不可少，只有 4% 做到了（厂商落地页口号，样本量 n=1000 在公开页面未披露）。想要与做到之间的落差，主要源于这些不在线的回路。
 
-本仓的主实例是会话巩固回路（ISSUE-195）：`add_session_to_memory` 在 [`memory_service.py:84`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) 有定义、有集成测试，但全仓生产调用方为零；`consolidation_jobs` 的唯一写路径是调度器入队（[`memory_automation.py:173-192`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py)），出队消费者不存在；水位列 `consolidated_at_event_seq` 在 migrations 与 models 中全仓零命中。三件缺两件，回路不存在：交互式会话的内容不会沉淀为长期记忆。16+4 映射表第 17 行（§12）承载这条判定。
+本仓的主实例是会话巩固回路（I-195）：`add_session_to_memory` 在 [`memory_service.py:84`](../../../apps/negentropy/src/negentropy/engine/adapters/postgres/memory_service.py) 有定义、有集成测试，但全仓生产调用方为零；`consolidation_jobs` 的唯一写路径是调度器入队（[`memory_automation.py:173-192`](../../../apps/negentropy/src/negentropy/engine/schedulers/handlers/memory_automation.py)），出队消费者不存在；水位列 `consolidated_at_event_seq` 在 migrations 与 models 中全仓零命中。三件缺两件，回路不存在：交互式会话的内容不会沉淀为长期记忆。16+4 映射表第 17 行（§12）承载这条判定。
 
 沉淀轴还有一个冷启动问题：回流的原料从哪来。Snowflake 自家数据团队给 9,685 张表建语义视图，覆盖不到 5%（[011](./011-horizon-context.md) §3.1 厂商自报）。人工起草审核路径（人写定义）追不上数据增长，这就是查询历史挖掘路径（从查询历史与使用模式里挖掘工作理解）的触发条件。本仓对应判定：显式定义的覆盖面停滞时，查询历史挖掘路径才值得投入，不是一开始就两条路径并行。查询历史挖掘路径启用时须带一条本文的合规边界承诺：**只摄取元数据与使用模式，不访问数据行**。挖掘对象是查询习惯与信号，不是数据本体。
 
@@ -724,7 +724,7 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 巩固 diff 落 `consolidation_jobs.result` 并接 UI 消费方，否则产出只写不读。二阶风险三条：每会话新增一次 embedding+LLM 提取，须用 Δ/T 封顶；本仓单 uvicorn worker，消费者必须是异步限流后台任务；巩固后 preload 检索噪声须观察 `memory_retrieval_logs`。配套修复一并做：OV-D3 的 `force_refresh=True` 因目标函数签名无此参数抛 TypeError 且被静默吞掉。把 24h TTL 换成源水位判据（OpenViking 新鲜度向上传播同构：子项 L0 digest 未变即 NOOP，pending 比例达阈值才刷新）。
 
 > [!WARNING] **「修复设计已给出」不是「回路已在线」**
-> ISSUE-195 的修复设计（回路缺件登记、三件套落位）已给出；待办（消费者、水位、UI 消费方）全部未动工。读 §8.2 不得把「设计已给出」读成「回路已闭合」；任何新回路上线前，按回路在线三条件逐件核到生产调用方那一层——「函数存在 ≠ 链路存在」是 ISSUE-194/195 共同的教训。
+> I-195 的修复设计（回路缺件登记、三件套落位）已给出；待办（消费者、水位、UI 消费方）全部未动工。读 §8.2 不得把「设计已给出」读成「回路已闭合」；任何新回路上线前，按回路在线三条件逐件核到生产调用方那一层——「函数存在 ≠ 链路存在」是 I-194/195 共同的教训。
 
 ### 8.3 沉淀什么、判「同一条」靠什么：迁移门控与身份判据
 
@@ -759,7 +759,7 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 
 进化提案无模板兜底：LLM 失败一律返回 None，宁可弃权，也不出无依据的提案（[`proposer.py`](../../../apps/negentropy/src/negentropy/engine/evolution/proposer.py)）。
 
-第 7 面 context_strategy 仅为提案、代码零命中（全仓代码无此面）。处置是**「移除或实装」二选一**：移除（承认设计收缩，从蓝图的进化面清单撤下）或实装（完成代码实现，插槽已备好：一个 handler 子类+一个 decide_* 纯函数+一个 config 子开关，零改 orchestrator）。裁决落地前，该面按提案口径记，16+4 表同口径。既有 6 面里也有一处在线门悬空：skill 面的 runtime canary 以 expand_skill 真实调用为样本，而该工具从未挂载（ISSUE-194），调用恒为 0、在线门恒被跳过，技能晋升实际只由离线复评裁决（ISSUE-194 二阶影响）。这是回路在线三条件在进化子系统内部的第二个实例。
+第 7 面 context_strategy 仅为提案、代码零命中（全仓代码无此面）。处置是**「移除或实装」二选一**：移除（承认设计收缩，从蓝图的进化面清单撤下）或实装（完成代码实现，插槽已备好：一个 handler 子类+一个 decide_* 纯函数+一个 config 子开关，零改 orchestrator）。裁决落地前，该面按提案口径记，16+4 表同口径。既有 6 面里也有一处在线门悬空：skill 面的 runtime canary 以 expand_skill 真实调用为样本，而该工具从未挂载（I-194），调用恒为 0、在线门恒被跳过，技能晋升实际只由离线复评裁决（I-194 二阶影响）。这是回路在线三条件在进化子系统内部的第二个实例。
 
 可进化参数（预算比、接地片段数、信任权重、Router 阈值）的每一步晋升都要经过审批（low+auto 档可跳过 pending_approval 直入灰度，其余人工审批，models/evolution.py:168 注释口径）。闭环是「采集→归一→激活→行为→进化」：行为面的在线信号（zero_hit_rate、helpful_ratio）回流为下一轮提案的依据。这正是 §9 进化环在本仓的实例。
 
@@ -795,8 +795,8 @@ Collect → Enrich → Activate（[011](./011-horizon-context.md) §3）是当�
 | L2 校验与裁决 | 结构合法：注册期校验门放行 | 受治理对象 + 冲突已裁决（或显式挂起） | 非法定义静默入库（D6）；多数派错误口径胜过正确口径（D4）；分类结果直绑策略、跳过人工映射（D10） | D6/D4/D10 |
 | L3 装配执法 | 合法对象在目录、调用者身份已知 | 当轮窗口合规且预算内：策略已求值、内容每轮重建 | 越权数据以明文返回（D5）；快照权限形成越权窗口（D9）；装配时固化成品、源变而窗口不知 | D5/D9 + M1 重算半边（011 M1） |
 | L4 应答锚定 | 装配完成的查询路径 | 三出路之一：题库短路/引擎现算/显式告警 | 静默臆测回归——错误答案以正常形态输出，无告警面 | A1/A1b、C1 |
-| L5 沉淀与回写 | 会话与行为信号已落账（事件水位） | 新受治理资产，或显式不沉淀 | 回路断在生产路径外：记忆供给停滞、会话价值不积累 | ISSUE-195 |
-| L6 衰减退役 | 对象不再适用（衰减/口径变更/禁用） | 显式退役有账（superseded/清理/重验） | 未退役对象：盘上残留、悬空挂载、题库锚定过时答案 | SK-M22/ISSUE-194 + 011 M4 已知限制 |
+| L5 沉淀与回写 | 会话与行为信号已落账（事件水位） | 新受治理资产，或显式不沉淀 | 回路断在生产路径外：记忆供给停滞、会话价值不积累 | I-195 |
+| L6 衰减退役 | 对象不再适用（衰减/口径变更/禁用） | 显式退役有账（superseded/清理/重验） | 未退役对象：盘上残留、悬空挂载、题库锚定过时答案 | SK-M22/I-194 + 011 M4 已知限制 |
 
 表后读法：六行反事实没有一行是「效果变差」级别的笼统描述，每行都是可复现的具体失效。这是反事实存在性律在段级的落地（机制级 D1–D10 见 [011](./011-horizon-context.md) §6）。逐段展开如下，各段只讲段级增量，机制细节回指 §4–§8。
 
@@ -824,7 +824,7 @@ Collect → Enrich → Activate（[011](./011-horizon-context.md) §3）是当�
 
 #### L5 沉淀与回写：f_transfer 的工程化
 
-CE2 式 5–7 的对偶选择（M_s 按时间权重高选、M_l 恰要求时间权重低，长期记忆收的是时效已过、重要性仍高的条目）与 self-baking 的「存储≠学习」（arXiv 2510.26493 :712）已在 §8.3 展开；本段只说明时间面的事实：迁移边必须显式存在且三件在线（trigger/consumer/watermark），否则它只是架构图上的一个箭头。ISSUE-195 是迁移边「定义了、从未被走过」的实证。进化环从这里开始：用法沉淀成新对象回写 L2（查询历史作为 Autopilot 起草的输入、eval 错一道修一处），本仓实例是 §8.5 的 6+1 进化面。
+CE2 式 5–7 的对偶选择（M_s 按时间权重高选、M_l 恰要求时间权重低，长期记忆收的是时效已过、重要性仍高的条目）与 self-baking 的「存储≠学习」（arXiv 2510.26493 :712）已在 §8.3 展开；本段只说明时间面的事实：迁移边必须显式存在且三件在线（trigger/consumer/watermark），否则它只是架构图上的一个箭头。I-195 是迁移边「定义了、从未被走过」的实证。进化环从这里开始：用法沉淀成新对象回写 L2（查询历史作为 Autopilot 起草的输入、eval 错一道修一处），本仓实例是 §8.5 的 6+1 进化面。
 
 #### L6 衰减退役：退役路径必备
 
@@ -833,7 +833,7 @@ CE2 式 5–7 的对偶选择（M_s 按时间权重高选、M_l 恰要求时间�
 | 失效 | 形态 | 锚 |
 | :-- | :-- | :-- |
 | 物化只写不删 | 定义禁用/删除后盘上旧目录残留；`_write_to_disk` 幂等写入（:129-131 跳过已存在），全文件无 unlink/rmtree/delete | [`harness_materializer.py:114-134`](../../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) · [机制映射汇总](../mapping-negentropy.md) SK-M22 |
-| 挂载收回双向悬空 | 目录末行指令承诺 expand_skill 激活路径，三件工具从未进 TOOL_REGISTRY、任何 Agent 未持有；(a) 挂载/(b) 收回承诺均未落地 | ISSUE-194 |
+| 挂载收回双向悬空 | 目录末行指令承诺 expand_skill 激活路径，三件工具从未进 TOOL_REGISTRY、任何 Agent 未持有；(a) 挂载/(b) 收回承诺均未落地 | I-194 |
 | 题库重验无触发 | 口径变更后 VQR 不重验，锚定住的是过时答案——有警示、无机制 | [011](./011-horizon-context.md) M4 已知限制（开放面） |
 
 表后读法：前两行是「对象已不再适用但未退役」，第三行是「对象在场但内容已过期」。两类都要显式的退役/重验路径；降权只延缓、不清退。
@@ -851,7 +851,7 @@ CE2 式 5–7 的对偶选择（M_s 按时间权重高选、M_l 恰要求时间�
 
 **验证环（L4 → L2/L6）**：答案错误回流到两处。回 L2 修定义（VQR 优化回路用题库反推语义层的缺失项，自动建议补过滤器与描述），回 L6 检出腐化（引擎重算与验证答案对账不一致即告警，A1b 的对账形态；口径变更触发题库重验）。注意这条环在 Snowflake 产品里只有厂商特性级别的实现，一般性计算正确性验证仍是开放面（011 §8 第 4 条）；本仓对应物是 patrol/Judge 自纠环（§8.4）与 §10 的 grain 契约验收位。
 
-**进化环（L5 → L2）**：用法沉淀成新的受治理对象。查询历史作为 Autopilot 起草的输入、eval 错题修信号、进化面在线信号回流为提案依据（§8.5）。这条环的成立条件仍是回路在线三条件；skill 面在线门悬空（ISSUE-194 二阶影响）说明环上单个采样点断开，整段灰度就退化为只由离线复评裁决。
+**进化环（L5 → L2）**：用法沉淀成新的受治理对象。查询历史作为 Autopilot 起草的输入、eval 错题修信号、进化面在线信号回流为提案依据（§8.5）。这条环的成立条件仍是回路在线三条件；skill 面在线门悬空（I-194 二阶影响）说明环上单个采样点断开，整段灰度就退化为只由离线复评裁决。
 
 两环与主流程同级的设计含义：验收一个 Context Layer，除了问六段每段的检查点，还要问两条环各自「断点在哪、如何恢复闭环」。验证环断则错误静默积累，进化环断则系统永远停在初始定义的质量水平。
 
@@ -876,13 +876,13 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 
 | 法则 | 一句话 | 判据句 | 落位 | 锚 |
 | :-- | :-- | :-- | :-- | :-- |
-| G1 执法点绑定 | 强制力来自求值点，而非定义点 | 绕开这个点会发生什么？答得出「什么都拦不住」的，就是未接入执行路径的治理 | L1 三项入账校验、L3 执行点、L5 消费者 | 011 规律 2 × D5/D9；ISSUE-197 审批门仅两处接入 |
+| G1 执法点绑定 | 强制力来自求值点，而非定义点 | 绕开这个点会发生什么？答得出「什么都拦不住」的，就是未接入执行路径的治理 | L1 三项入账校验、L3 执行点、L5 消费者 | 011 规律 2 × D5/D9；I-197 审批门仅两处接入 |
 | G2 注册期校验与运行期校验互不替代 | 注册期校验与运行期正确互不替代 | 拆的是哪一道校验？只修一道的系统，另一道失效时静默出错 | L1/L2 门 × L3/L4 求值 | 011 规律 3 × D6 × D1/D2/D7 |
 | G3 裁决权不自动化 | 冲突浮出人工裁决，不按热度自动裁决 | 谁裁决？凡「机器判断→组织规则」的转换，必须能指出人工检查点在哪 | L2 冲突裁决与 M7 映射校验门、§8.4 | 011 规律 4 × D4 热度 200:5 × D10 |
 | G4 治理-验证分落位 | 治理管定义对与执法到位，验证管结果对 | 验证锚挂哪段？没有独立验证面，477 vs 48 形态的错数无检出路径 | L4 锚定 + 验证环 | 477 vs 48（§10.1）+ 011 §8 第 4 条 |
 | G5 指针不副本 | 持久层存指针，装配每用重建 | 副本从哪产生？凡「复制到消费端缓存作答」即违例 | L3 装配、L1 载体（ADR-1） | M3 不复制不缓存（官方宣称）× Atlan artifacts 运行时引用 × CC 每轮重装配（170–175 课程实测） |
-| G6 退役路径必备 | 无退役机制的目录必然腐化，降权只延缓、不清退 | 退役路径在哪？注册登记与退役路径必须成对出现 | L6 全段 | arXiv 2510.26493 :830/:916 × SK-M22/ISSUE-194 × 011 M4 重验已知限制 |
-| G7 闭环可观测 | 回路可观测才可治理 | 回执在哪？触发器/消费者/水位三件 + 决策归因，缺一即不可判在线 | 两环全段、§8.1 回路在线三条件 | ISSUE-195 × evolution REASON 归因常量（decision.py:30-41） |
+| G6 退役路径必备 | 无退役机制的目录必然腐化，降权只延缓、不清退 | 退役路径在哪？注册登记与退役路径必须成对出现 | L6 全段 | arXiv 2510.26493 :830/:916 × SK-M22/I-194 × 011 M4 重验已知限制 |
+| G7 闭环可观测 | 回路可观测才可治理 | 回执在哪？触发器/消费者/水位三件 + 决策归因，缺一即不可判在线 | 两环全段、§8.1 回路在线三条件 | I-195 × evolution REASON 归因常量（decision.py:30-41） |
 
 表后读法：G1–G7 不是新发明的原则清单。每条都能对回 011 的规律、D 实验或本仓实证（锚列）。它们做的事，是把章末总结式的规律转化为作用于段间转换的横切不变量：段的验收判据（§9.2）答「拆掉这段转换导致什么失效」，法则的判据句答「整条转换链上检查点在哪、谁裁决、退役有没有账」。16+4 映射表（§12）为每行增「生命周期段+执行点」两列，就是按这套法则对账的表级落地。
 
@@ -1000,7 +1000,7 @@ Redis State of Context Engineering 2026 落地页（厂商调研页，n=1000 页
 ## 12. 本仓实例化总装：注入点、契约与 16+4 映射
 
 业界格局讲完，回到本仓代码逐行对账：M1–M7 与四范本增量落在哪条轴、哪一段、哪个执行点，接入现状如何。
-本仓不从零造上下文引擎。各系部的上下文信号已分散存在、各自组装，缺的不是原料，是统一的治理与编排层。六个系部加一层对象载体，在本仓的位置各是：Engine 是调度中枢；Perception 与 KB/KG 是最大的供源；Internalization 与 Memory 供记忆；Contemplation 是 eval 的消费方；Action 与 Tools 供工具信号；Influence 是出口端的消费方；definitions 与 Skills 则是对象层载体。四个待办 ISSUE-194/195/196/197 全部开放，见 §12.5。
+本仓不从零造上下文引擎。各系部的上下文信号已分散存在、各自组装，缺的不是原料，是统一的治理与编排层。六个系部加一层对象载体，在本仓的位置各是：Engine 是调度中枢；Perception 与 KB/KG 是最大的供源；Internalization 与 Memory 供记忆；Contemplation 是 eval 的消费方；Action 与 Tools 供工具信号；Influence 是出口端的消费方；definitions 与 Skills 则是对象层载体。四个待办 I-194/195/196/197 全部开放，见 §12.5。
 
 ### 12.1 五源注入点实况（九路装配 + 三缺口）
 
@@ -1034,14 +1034,14 @@ Redis State of Context Engineering 2026 落地页（厂商调研页，n=1000 页
 | [Memory](../../concepts/subsystems/025-the-memory-system.md) | 6 类记忆+Core Block | retention·importance·access | PII 检测·AGM 冲突消解（AGM 信念修正，[conflict_resolver.py](../../../apps/negentropy/src/negentropy/engine/governance/conflict_resolver.py):3）·衰减 | 无单一 staleness、非 bi-temporal |
 | KB | chunks+corpus 元数据 | quality·retrieval | accessible 过滤·feedback | 缺 last_accessed_at；quality 多 NULL；CJK 关键词检索分支失效（§7） |
 | KG | 实体/关系/canonical/社区 | confidence·PageRank | 评审·溯源·双时态 as_of | 未合成归一复合分；confidence 缺省方向反（§10.3） |
-| Tools | 工具定义 | 成功率/延迟/成本 | 白名单·HIGH_RISK·审批 | 低频工具 stats 稀疏；审批门仅 2/N 接入（ISSUE-197） |
-| Skills | 三级披露 | active_version·visibility | 沙箱校验·提升审批 | L2·L3 激活悬空（ISSUE-194）；有效性信号未回流 |
+| Tools | 工具定义 | 成功率/延迟/成本 | 白名单·HIGH_RISK·审批 | 低频工具 stats 稀疏；审批门仅 2/N 接入（I-197） |
+| Skills | 三级披露 | active_version·visibility | 沙箱校验·提升审批 | L2·L3 激活悬空（I-194）；有效性信号未回流 |
 
 读法：契约表是 shared ownership 的分工面（§11.5）。每个子系统交出「提供什么、带什么信任信号、受什么治理、认什么缺口」；缺口列与 §12.4 映射表中标注未落地或缺失的行一一对应，改一处须双向对账。
 
 ### 12.4 机制 ↔ 本仓 16+4 映射表
 
-下表把 M1–M7 与四范本增量逐条对应到代码，每行给出轴向量、生命周期段（L1–L6 键义见 §9）、执行点三列。执行点为空即只有存在、没有接线与在线（§12.3 契约表的缺口与下表未落地的行主要对应，ISSUE-197 审批门为已知缺口、无单独映射行）。机制键 M1–M7 定义见 [011 §2](./011-horizon-context.md)；#9 行落地口径：L1 已落地、L2/L3 随 ISSUE-194 开放。
+下表把 M1–M7 与四范本增量逐条对应到代码，每行给出轴向量、生命周期段（L1–L6 键义见 §9）、执行点三列。执行点为空即只有存在、没有接线与在线（§12.3 契约表的缺口与下表未落地的行主要对应，I-197 审批门为已知缺口、无单独映射行）。机制键 M1–M7 定义见 [011 §2](./011-horizon-context.md)；#9 行落地口径：L1 已落地、L2/L3 随 I-194 开放。
 
 | # | 机制 | 本仓对应 | 轴向量 | 生命周期段 | 执行点 |
 | :-- | :-- | :-- | :-- | :-- | :-- |
@@ -1053,7 +1053,7 @@ Redis State of Context Engineering 2026 落地页（厂商调研页，n=1000 页
 | 6 | M3 双层 | 检索过滤有；Guard 不存在 | 权威 | L3 | `engine/context/` 目录不存在 |
 | 7 | 011 §3.1 自纠环 | 已落地（同构）：patrol/Judge 全链（锚定版：证据先行+轨迹一致，与 011 自纠环同构） | 沉淀 | L5 沉淀与回写 | `routine/evaluator.py` · `handlers/pdf_fidelity_patrol.py` |
 | 8 | 011 §3.1 冲突裁决 | 胜者规则静默收敛、无显式裁决面 | 沉淀×权威（G3） | L2 校验与裁决 | `_reconcile_patrol_status` |
-| 9 | 011 §3.2 top-k | L1 已落地 / L2·L3 未落地（ISSUE-194：三件工具从未挂载、模型驱动激活不可达；显式注入三路可达） | 装配 | L3 装配执法 | L1 双注入点互斥 `skills_injector.py:474-478` · TOOL_REGISTRY `registry.py:64-92`（构建函数体；注册表定义 `:105`）不含三件工具 |
+| 9 | 011 §3.2 top-k | L1 已落地 / L2·L3 未落地（I-194：三件工具从未挂载、模型驱动激活不可达；显式注入三路可达） | 装配 | L3 装配执法 | L1 双注入点互斥 `skills_injector.py:474-478` · TOOL_REGISTRY `registry.py:64-92`（构建函数体；注册表定义 `:105`）不含三件工具 |
 | 10 | M4 验证问答 | done 文档未沉淀问答对 | 检索×沉淀 | L4 应答锚定 | patrol done 消费缺位 |
 | 11 | 011 §3.2 四因子 | 归一未实现；缺 staleness | 检索 | L3 | 迁移目录无三视图 CREATE VIEW |
 | 12 | 011 §3.3 Ossie | 无 | 资产（出口） | 出口 | — |
@@ -1061,9 +1061,9 @@ Redis State of Context Engineering 2026 落地页（厂商调研页，n=1000 页
 | 14 | M5 血缘 | 执行史≠依赖图 | 资产（账本） | L1/L5 | tool_invocations（无依赖边） |
 | 15 | M6 身份 | agent_type 有（preset 元数据）、会话权限上界无 | 权威 | L3 执行期 | `agent_factory.py`；permissions*.py 零 agent_type 引用 |
 | 16 | M7 标签 | 无分类策略链 | 沉淀×权威 | L1 | — |
-| 17 | 会话→记忆链路（本仓特有） | 回路缺件：生产调用 0、队列零消费者、水位列零命中（ISSUE-195） | 沉淀 | L5 沉淀与回写 | 定义 `memory_service.py:84` · 仅入队 `handlers/memory_automation.py:173-192` |
+| 17 | 会话→记忆链路（本仓特有） | 回路缺件：生产调用 0、队列零消费者、水位列零命中（I-195） | 沉淀 | L5 沉淀与回写 | 定义 `memory_service.py:84` · 仅入队 `handlers/memory_automation.py:173-192` |
 | 18 | 交互式对话压缩（本仓特有） | 零（num_recent_events 零调用方，HM-M11）；优先级口径见 §6.5/§12.5（修复序前三项未收录） | 装配 | L3（轮内时间尺度） | — |
-| 19 | CJK 检索分支（本仓特有） | 失效：english tsvector 单 token（ISSUE-196） | 检索 | L3 | migration 0047 · KB 0001 · `repository.py:841/:848` |
+| 19 | CJK 检索分支（本仓特有） | 失效：english tsvector 单 token（I-196） | 检索 | L3 | migration 0047 · KB 0001 · `repository.py:841/:848` |
 | 20 | 记忆两端防注入（本仓特有） | 缺：写入端零扫描+注入块头无数据声明（先于巩固上线） | 权威 | L1/L5 | — |
 
 读法：17–20 四行是本仓特有映射（非 Horizon 映射，源自 Hermes/OpenViking 映射增量）；三列新信息的用法：轴向量给该机制在 §3 投影与组合里的位置，生命周期段给它在六段两环中的执法位，执行点给「代码里真正求值或接线的地方」。凡执行点为「—」或标注「不存在/零命中」的行，按回路在线三条件读作只有存在、没有接线与在线。
@@ -1071,9 +1071,9 @@ Redis State of Context Engineering 2026 落地页（厂商调研页，n=1000 页
 ### 12.5 待办与四 ISSUE 现状
 
 - 待办（开放：代码落地，ISSUE 承载）：①会话巩固三件套＋OV-D3 修复（独立 PR 先行），且写入端防注入扫描先于其上线（时序约束，§5.5）；②ContextGuard；③验证问答绑 patrol done；④信任归一三纪律；⑤身份归因；⑥交互式对话压缩层（#18/HM-M11：num_recent_events 接生产调用方，引入时给技能内容同步加豁免标记，丢失即静默降级，§6.5）。
-- 暂缓（带触发）：M1 重算（非指标栈）、Ossie、隐式挖掘、M5 血缘图、M7 标签链、L2/L3 挂载（随 ISSUE-194 方案 (a)，前置先修 OV-D6 跨用户读取漏洞）。
+- 暂缓（带触发）：M1 重算（非指标栈）、Ossie、隐式挖掘、M5 血缘图、M7 标签链、L2/L3 挂载（随 I-194 方案 (a)，前置先修 OV-D6 跨用户读取漏洞）。
 
-四 ISSUE 现状（全开放）：ISSUE-194：三件工具从未进 TOOL_REGISTRY、五翼零持有，L1 目录末行仍写死 expand_skill 调用，挂载/收回双向承诺均未落地；ISSUE-195：add_session_to_memory 生产调用 0、consolidation_jobs 零消费者、水位列全仓零命中；ISSUE-196：english tsvector 配置原样（migration 0047/KB 0001/查询 `repository.py:841/:848`）、修复迁移零命中，三候选待评审；ISSUE-197：should_request_approval 非测试调用仍仅 2 处（`ingest.py:119`、`paper.py:343`）、invoke_claude_code 不在 HIGH_RISK_TOOLS，统一 before_tool_callback 拦截未落地。
+四 ISSUE 现状（全开放）：I-194：三件工具从未进 TOOL_REGISTRY、五翼零持有，L1 目录末行仍写死 expand_skill 调用，挂载/收回双向承诺均未落地；I-195：add_session_to_memory 生产调用 0、consolidation_jobs 零消费者、水位列全仓零命中；I-196：english tsvector 配置原样（migration 0047/KB 0001/查询 `repository.py:841/:848`）、修复迁移零命中，三候选待评审；I-197：should_request_approval 非测试调用仍仅 2 处（`ingest.py:119`、`paper.py:343`）、invoke_claude_code 不在 HIGH_RISK_TOOLS，统一 before_tool_callback 拦截未落地。
 
 ## 13. 动手实验室与官方护栏
 
@@ -1163,9 +1163,9 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 
 修复按「不修时持续产生的信任伤害」降序，不按价值排；三类失败形态各对应一步：
 
-1. 回路缺件先补（ISSUE-195）：给 consolidation_jobs 接消费者、补 threads.metadata 水位列（trigger/consumer/watermark 三件套＋OV-D3 修复，独立 PR 先行，且写入端防注入扫描先于其上线，时序约束见 §5.5/§14.3 WARNING；设计承载 §8）。伤害最大的是这种形态：回路不存在而系统表象正常，记忆供给停滞且不可观测（回路在线三条件缺其二）；每一段没有沉淀的会话都是静默丢失的供给。
-2. 执法点统一（ISSUE-197）：把审批收进单一 before_tool_callback 拦截位、收窄 HIGH_RISK 清单。审批门存在却未接入调用路径，比没有审批门更糟：「有审批」的记录制造虚假安全感，事后审计还无法分辨。
-3. 退役段立规（materializer 回收 + ISSUE-194 收回侧）：物化只写不删（`harness_materializer.py:114-134` 全文件无删除路径，SK-M22），与挂载的单向承诺属同一类问题。未退役对象让目录与磁盘持续漂移，对应 G6（退役路径必备）。
+1. 回路缺件先补（I-195）：给 consolidation_jobs 接消费者、补 threads.metadata 水位列（trigger/consumer/watermark 三件套＋OV-D3 修复，独立 PR 先行，且写入端防注入扫描先于其上线，时序约束见 §5.5/§14.3 WARNING；设计承载 §8）。伤害最大的是这种形态：回路不存在而系统表象正常，记忆供给停滞且不可观测（回路在线三条件缺其二）；每一段没有沉淀的会话都是静默丢失的供给。
+2. 执法点统一（I-197）：把审批收进单一 before_tool_callback 拦截位、收窄 HIGH_RISK 清单。审批门存在却未接入调用路径，比没有审批门更糟：「有审批」的记录制造虚假安全感，事后审计还无法分辨。
+3. 退役段立规（materializer 回收 + I-194 收回侧）：物化只写不删（`harness_materializer.py:114-134` 全文件无删除路径，SK-M22），与挂载的单向承诺属同一类问题。未退役对象让目录与磁盘持续漂移，对应 G6（退役路径必备）。
 
 三步的共同点是兑现已宣告的承诺、不新增能力，也因此排在一切新能力之前。
 
@@ -1193,11 +1193,11 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 | Memory 入 Planner（memory_enabled） | 默认关既有测试全过；开则返 memory+KB+KG 三源 |
 | 接地摘要 + ContextGuard + context_strategy 第 7 面 | 热路径开关渐进+fail-soft；Guard 阻断 PII 与越权 corpus |
 | verified QA + 冲突浮出 + 反馈 | done 沉淀问答对；命中短路与引擎重算对账一致；CONFLICT 卡无数值拒答 |
-| 审批执法点统一（ISSUE-197） | 单一 before_tool_callback 拦截；HIGH_RISK 清单收窄 |
+| 审批执法点统一（I-197） | 单一 before_tool_callback 拦截；HIGH_RISK 清单收窄 |
 | 身份归因（agent_type→审计） | Agent 访问可归因到调用链（待办⑤） |
 | 交互式对话压缩层（#18/HM-M11） | num_recent_events 接生产调用方；技能内容同步豁免标记（待办⑥） |
-| CJK 检索分支修复（ISSUE-196 三候选） | 中文子串用例单独断言（#19；候选见 §7.5） |
-| 退役段立规（materializer 回收 + ISSUE-194 收回） | 禁用定义后盘上目录回收；挂载/收回双向机器可验 |
+| CJK 检索分支修复（I-196 三候选） | 中文子串用例单独断言（#19；候选见 §7.5） |
+| 退役段立规（materializer 回收 + I-194 收回） | 禁用定义后盘上目录回收；挂载/收回双向机器可验 |
 | Universal Search + 溯源 + per-role（部分落地或暂缓） | opt-in 端点；async 不阻塞；chunks 补 last_accessed_at；溯源日志 append-only |
 | Ossie 导入导出 | 触发：跨组织供给需求 |
 
@@ -1206,7 +1206,7 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 ### 14.5 验收问答（3 道，先答后对）
 
 1. 三面（验收面 × 结构面 × 时间面）为什么必须独立？拆掉独立性会最先导致什么失效？
-2. 修复序为什么把 ISSUE-195 排在 ISSUE-197 与 materializer 之前，而不是先做检索或出口守卫？
+2. 修复序为什么把 I-195 排在 I-197 与 materializer 之前，而不是先做检索或出口守卫？
 3. 有人向你宣称「我们有语义层、治理不可绕过」，如何用失效登记簿三步审计这个宣称？
 
 答案要点：①三面回答三个不同问题：验收面给证伪判据（防住哪些失效）、结构面给五轴独立变化（换检索算法不动权限模型）、时间面给段与环的执法位（对象从注册到退役走哪段、错答案怎么回到定义层）；独立性可测（换 X 不动 Y），机制跨轴组合（M1=资产×权威×装配）不破坏它，每个轴仍可单独演进，拆掉独立性则机制组合无处登记、验收判据无从挂靠。②伤害降序：回路缺件是回路不存在而表象正常（回路在线三条件缺其二、静默丢失供给）；未接入调用路径的审批门制造有审批的虚假记录；未退役对象造成持续漂移。轴依赖上，巩固产物是检索与装配的未来供给，回路缺件不补、后续轴都只能在存量上优化；另有时序约束：接消费者前必须先修写入端防注入。③三步：把宣称翻译成失效形态、在登记簿（§1）找同形簇与已登记反例；逐条要「拆掉有什么具体失效」的可复现证据（反事实存在性律：答不出拆掉后会出什么错的机制不存在）；按回路在线三条件核到生产路径（存在/接线/在线：挂载点、调用方计数、消费者与水位），引擎外承诺按周界口径限缩。三步任一不过，登记为新条目。

@@ -68,7 +68,7 @@ class KgEntityService:
         Returns:
             ``True`` 表示创建了新的 kg_entities 行；``False`` 表示命中既有行做幂等更新。
             调用方据此区分 ``created`` / ``updated``，避免误把幂等更新当新增计入指标
-            （参 issue.md ISSUE-032）。
+            （参 issue.md I-032）。
         """
         from negentropy.models.perception import KgEntity, KgEntityMention
 
@@ -196,7 +196,7 @@ class KgEntityService:
         Returns:
             ``True`` 表示新行插入；``False`` 表示跳过（端点缺失 / 重复三元组）。
             调用方按返回值累加 ``relations_synced`` / ``relations_skipped`` 计数，
-            构成 SSoT 闭环；避免"未抛异常 = 成功"导致计数虚高（issue.md ISSUE-032）。
+            构成 SSoT 闭环；避免"未抛异常 = 成功"导致计数虚高（issue.md I-032）。
         """
         from negentropy.models.perception import KgEntity, KgRelation
 
@@ -224,7 +224,7 @@ class KgEntityService:
 
         if src is None or tgt is None:
             # 端点缺失：日志级别提升到 warning 便于运维定位（之前 debug 不可见，
-            # 导致 152→143 静默丢失 9 条关系长期未被发现，参 issue.md ISSUE-032）。
+            # 导致 152→143 静默丢失 9 条关系长期未被发现，参 issue.md I-032）。
             logger.warning(
                 "kg_relation_skipped",
                 extra={
@@ -376,7 +376,7 @@ class KgEntityService:
                     },
                 )
 
-        # entities_synced / relations_synced 字段含义升级（issue.md ISSUE-032）：
+        # entities_synced / relations_synced 字段含义升级（issue.md I-032）：
         # 仅统计真实新增行；调用方与历史端点保持字段名兼容（旧含义"未抛异常即计数"
         # 已修正为"实际写入"）。skipped / failed / updated 显式拆分供运维诊断。
         entities_synced = entities_created

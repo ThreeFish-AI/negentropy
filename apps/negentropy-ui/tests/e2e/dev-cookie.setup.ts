@@ -12,7 +12,7 @@
  *
  * 协议参考：
  * - docs/agents/browser-validation.md（自签 cookie 三步自检）
- * - docs/issue.md ISSUE-035（Google OAuth 风控阻断 sandbox 浏览器）
+ * - docs/issue.md I-035（Google OAuth 风控阻断 sandbox 浏览器）
  */
 import path from "node:path";
 import { test as setup, expect } from "@playwright/test";

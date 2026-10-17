@@ -9,9 +9,9 @@
  *   8-D 记忆真锚（p8-07..08）：ip-memory 锚 p8-07 → hold p8-08（lead={false}）；前景
  *       链路 mini + NegentropyPreloadMemoryTool 参数签
  *   8-E 走廊④（p8-09..11）：CodePane·expand_skill 目录行 × TOOL_REGISTRY 挂载对拍
- *       命中 0 + 在线考核计数 0 + ISSUE-194
+ *       命中 0 + 在线考核计数 0 + I-194
  *   8-F 三四条（p8-12..14）：ip-full 锚 p8-12 → hold 13/14；前景 engine/context/ 空缺框
- *       + 10/2 审批徽 + ISSUE-195/196 回扣
+ *       + 10/2 审批徽 + I-195/196 回扣
  *   8-G 映射表（p8-15..16）：20 行机制↔代码三色行滚动 + 已落地行 #2/#3/#7 钉亮
  *   8-H 修复一二步（p8-17..20）：三步梯前两级 + 防注入前提角标 + 梯顶标题
  *   8-I 第三步（p8-21..22）：退役段立规特写 + 「不加新能力」结论条
@@ -122,7 +122,7 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
         </AbsoluteFill>
         <div style={{position: 'absolute', bottom: 190, right: 80}}>
           <span style={{padding: '7px 18px', border: `1.5px solid ${theme.conceptDeep}`, borderRadius: 999, fontSize: 18, fontFamily: theme.mono, color: theme.conceptDeep}}>
-            ISSUE-194
+            I-194
           </span>
         </div>
       </Sequence>
@@ -360,7 +360,7 @@ const GapBadges: React.FC<{gapAt: number; approvalAt: number; recallAt: number}>
         </div>
       </div>
       <div style={{position: 'absolute', right: 36, top: 230, width: 256, display: 'flex', flexDirection: 'column', gap: 14}}>
-        {['ISSUE-195 · 会话回写缺两件', 'ISSUE-196 · 中文检索全空'].map((t, i) => (
+        {['I-195 · 会话回写缺两件', 'I-196 · 中文检索全空'].map((t, i) => (
           <span key={t} style={{opacity: recall[i], padding: '9px 14px', border: `1.5px solid ${theme.dim}`, borderRadius: 8, fontSize: 16, fontFamily: theme.mono, color: theme.dim, background: withAlpha(theme.bg, 0.85)}}>
             {t}
           </span>

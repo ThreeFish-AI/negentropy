@@ -34,7 +34,7 @@ logger = get_logger("negentropy.knowledge.graph_algorithms")
 # Leiden 后端可用性检测：NetworkX 3.x 的 `nx.community.leiden_communities` 是
 # dispatch wrapper —— **不会自动派发到 leidenalg 后端**，调用时反而以
 # `NotImplementedError: 'leiden_communities' is not implemented by 'networkx' backend`
-# 形式失败（参 issue.md ISSUE-028）。统一改为直接经由 igraph + leidenalg 调用
+# 形式失败（参 issue.md I-028）。统一改为直接经由 igraph + leidenalg 调用
 # `leidenalg.find_partition`，规避 NX dispatch 误用。两个依赖同时具备时才启用。
 _LEIDEN_AVAILABLE = False
 try:

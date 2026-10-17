@@ -45,7 +45,7 @@
 | [lcc-tooling--loop-full](./agent-harness/lcc-tooling--loop-full.mmd) | [171 工具与执行 §3](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L1：循环本体完整化（两信号判据、Stop 续跑、回喂闭环） |
 | [lcc-tooling--loop-with-tools](./agent-harness/lcc-tooling--loop-with-tools.mmd) | [171 工具与执行 §4](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L2：查表分发 + safe_path 边界（safe_path 在执行链首斜下方） |
 | [lcc-tooling--loop-with-gates](./agent-harness/lcc-tooling--loop-with-gates.mmd) | [171 工具与执行 §5](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L3：三道闸门插进执行之前（拒绝回喂经 tag 承载） |
-| [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2（补充图·未内嵌正文）](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（2026-10-01 精读轮配套；主干 171 换代版未内嵌，作补充视角保留；ISSUE-212 archify 3.0.0 采集口径实录） |
+| [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2（补充图·未内嵌正文）](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（2026-10-01 精读轮配套；主干 171 换代版未内嵌，作补充视角保留；I-212 archify 3.0.0 采集口径实录） |
 | [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 文末（附录后）](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」；2026-10-07 重绘工程直陈版（汇合层口径） |
 | [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |
 | [lcc-concurrency--panorama](./agent-harness/lcc-concurrency--panorama.mmd) | [174 并发与时机 §2](../../research/agent-harness/174-claude-code-concurrency.md) | architecture | ✓ | done | 后台/定时双泳道汇入循环（2026-10-07 换代） |
@@ -268,7 +268,7 @@
 | [patrol--doc-status-lifecycle](./agents/patrol--doc-status-lifecycle.mmd) | .agents/pdf-fidelity-patrol-status.md | lifecycle | ✓ | done | fix: ① 合格阈值默认已由 95 收紧至 99（PR #1080，config |
 | [patrol--patrol-sequence](./agents/patrol--patrol-sequence.mmd) | .agents/pdf-fidelity-patrol-status.md | sequence | ✓ | done | fix: 见上 |
 | [patrol--escalation-flow](./agents/patrol--escalation-flow.mmd) | .agents/pdf-fidelity-patrol-status.md | workflow | ✓ | done | fix: 三条 %% fix 随 .mmd 携带并落入图/cards：(1) 清  |
-| [issue--session-stale-sequence](./agents/issue--session-stale-sequence.mmd) | .agents/issue.md（ISSUE-066 缩进块） | sequence | ✓ | done | fix: 1) 源图 SUS->>SUS 自环（POST /api/agui/se |
+| [issue--session-stale-sequence](./agents/issue--session-stale-sequence.mmd) | .agents/issue.md（I-220 缩进块） | sequence | ✓ | done | fix: 1) 源图 SUS->>SUS 自环（POST /api/agui/se |
 | [wiki-ordering--effective-rank](./agents/wiki-ordering--effective-rank.mmd) | .agents/wiki-docs-ordering.md | workflow | ✓ | done | fix: 源图与代码零偏差，无 %% fix: 行。重绘适配：① 5 泳道语义分组 |
 
 ### cognitive-context/（docs/research/cognitive-context/ 的精读笔记与设计蓝图）

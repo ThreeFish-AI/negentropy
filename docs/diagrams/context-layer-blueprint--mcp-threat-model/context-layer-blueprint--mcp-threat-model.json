@@ -298,7 +298,7 @@
       "items": [
         "写入端威胁模式扫描必须先于会话巩固上线——扫描与巩固必须同批落地",
         "巩固单独先行＝在无扫描的写入面上开放常驻注入面",
-        "本仓现状（as-of b2fbb51f5）：add_session_to_memory 生产调用为 0、consolidation_jobs 只入队无消费者（ISSUE-195 开放），约束尚有落实窗口"
+        "本仓现状（as-of b2fbb51f5）：add_session_to_memory 生产调用为 0、consolidation_jobs 只入队无消费者（I-195 开放），约束尚有落实窗口"
       ]
     }
   ]

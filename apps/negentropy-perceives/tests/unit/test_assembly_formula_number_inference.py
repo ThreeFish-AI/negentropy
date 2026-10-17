@@ -1,6 +1,6 @@
 """``_infer_missing_formula_numbers`` 单元测试。
 
-ISSUE-094 R9 D-2/D-3/D-4：Docling ``iterate_items`` 路径下抽取的公式
+I-094 R9 D-2/D-3/D-4：Docling ``iterate_items`` 路径下抽取的公式
 LaTeX 主体不带 ``\\tag{N}`` / ``\\quad (N)`` 编号（Context Engineering 2.0
 论文中 Eq (3) / Eq (4) / Eq (6) 三处缺号），UI 视图等式编号缺失。
 

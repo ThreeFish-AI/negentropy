@@ -59,7 +59,7 @@ test('出场快于入场系数与安全带口径为常量', () => {
 });
 
 test('clampRiseDist：自下方入场行程不探进字幕安全带', () => {
-  assert.equal(clampRiseDist(120, 836), 84, 'ISSUE-170 实测几何：rest 836 → 行程封顶 84');
+  assert.equal(clampRiseDist(120, 836), 84, 'I-170 实测几何：rest 836 → 行程封顶 84');
   assert.equal(clampRiseDist(40, 836), 40, '未超限不动');
   assert.equal(clampRiseDist(120, 960), 0, '落位已在安全带内 → 零行程（退化但安全）');
 });

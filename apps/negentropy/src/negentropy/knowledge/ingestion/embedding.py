@@ -94,7 +94,7 @@ def _extract_upstream_text(exc: BaseException) -> str:
 def _build_embedding_failure_hint(upstream_text: str, api_base_host: str) -> str:
     """根据上游响应文本与代理地址生成 actionable 诊断 hint。
 
-    诊断已知代理侧不兼容场景（参 issue.md ISSUE-020 / ISSUE-030）：
+    诊断已知代理侧不兼容场景（参 issue.md I-020 / I-030）：
     - ``request body doesn't contain valid prompts``：本地 Gemini 翻译代理对
       ``:batchEmbedContents`` 兼容不全；建议切换到 OpenAI 系列 embedding 或检查
       ``NATIVE_GEMINI_BASE_URL`` 是否指向官方上游。
@@ -110,7 +110,7 @@ def _build_embedding_failure_hint(upstream_text: str, api_base_host: str) -> str
             "Embedding 上游返回 'invalid prompts'，疑似本地 Gemini 翻译代理对 "
             ":batchEmbedContents 兼容不全" + host_part + "。建议：(a) 在 Corpus Settings "
             "切换到 openai 系列 embedding；或 (b) 校验 NATIVE_GEMINI_BASE_URL 指向官方上游 "
-            "（参 docs/issue.md ISSUE-020 / ISSUE-026）。"
+            "（参 docs/issue.md I-020 / I-026）。"
         )
     return ""
 

@@ -265,7 +265,7 @@ export const Backdrop: React.FC<{tint?: string; opacity?: number}> = ({
   );
 };
 
-/** 镜导语卡：首 cue 前的空窗句底衬（ISSUE-188 句级画面覆盖——章图未起、
+/** 镜导语卡：首 cue 前的空窗句底衬（I-188 句级画面覆盖——章图未起、
  *  画面近乎空屏时，给观众一个章题锚点）；until 帧处淡出让位给首章入场。
  *  渲染顺序须在 ArchifyRecap 之前（层叠其下）。 */
 export const BeatHeadline: React.FC<{

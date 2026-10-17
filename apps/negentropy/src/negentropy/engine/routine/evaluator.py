@@ -150,7 +150,7 @@ class _RoutineLike(Protocol):
     acceptance_unmet_score_cap: int | None
     # per-routine Judge 模型覆盖（来自 config.evaluator_model）；None → 用实例级默认（全局 task 模型）。
     # 高风险复刻类任务的 acceptance 裁决需要更强模型——弱模型（如 gpt-5-nano）易误判
-    # acceptance_met=true 触发过早不可逆 SUCCESS+PR（ISSUE-121）。
+    # acceptance_met=true 触发过早不可逆 SUCCESS+PR（I-121）。
     evaluator_model: str | None
     # per-routine 锚点轨迹窗口覆盖（来自 config.judge_anchor_window）；None → 用实例级默认 5。
     judge_anchor_window: int | None
@@ -203,7 +203,7 @@ class RoutineEvaluator:
         self._max_retries = max_retries
         self._gate_timeout_seconds = gate_timeout_seconds
         # 验收未达成时的确定性评分上限（>0 时生效）：把「未满足 Acceptance 即减半/封顶」由
-        # 仅写在 acceptance_criteria 散文里、依赖小模型自觉，提升为引擎层确定性机制（ISSUE-116）。
+        # 仅写在 acceptance_criteria 散文里、依赖小模型自觉，提升为引擎层确定性机制（I-116）。
         # None/0 = 关闭（退化原行为，对其它 routine 零影响）。per-routine 可经 config 覆盖（见 evaluate）。
         self._acceptance_unmet_score_cap = acceptance_unmet_score_cap
         # LLM Judge 单次调用显式超时（与 PlanReviewer 对齐）。缺失时 litellm 默认无超时，
@@ -259,7 +259,7 @@ class RoutineEvaluator:
         )
         audit_gate = gate_output or None  # 门控完整输出（≤16KB）供审计；None 表示未配置门控
 
-        # per-routine Judge 模型覆盖（高风险 acceptance 裁决用更强模型，缓解弱模型误判，ISSUE-121）。
+        # per-routine Judge 模型覆盖（高风险 acceptance 裁决用更强模型，缓解弱模型误判，I-121）。
         model_override = getattr(routine, "evaluator_model", None)
         try:
             (
@@ -284,7 +284,7 @@ class RoutineEvaluator:
                 anchor=anchor_audit,
             )
 
-        # 验收未达成的确定性评分封顶（ISSUE-116）：把 acceptance_criteria 散文里的「未达标即减半/封顶」
+        # 验收未达成的确定性评分封顶（I-116）：把 acceptance_criteria 散文里的「未达标即减半/封顶」
         # 规则提升为引擎机制——不依赖小模型自觉。per-routine config.acceptance_unmet_score_cap 覆盖实例默认；
         # 仅当 judge 明确 acceptance_met is False 且 cap>0 时生效（acceptance_met=None/缺失则不封顶，向后兼容）。
         cap = getattr(routine, "acceptance_unmet_score_cap", None)
@@ -410,7 +410,7 @@ class RoutineEvaluator:
         超时 → exit_code=124（约定的超时退出码）；异常 → exit_code=1。**绝不返回 None**——
         None 须**仅**表示「未配置门控」，否则 ``decision.decide`` 的成功判据
         ``gate_exit_code in (None, 0)`` 会把「门控超时/异常」误当作「门控通过」，致未知验证状态被判成功
-        （ISSUE-115）。超时阈值优先用 per-routine ``timeout``（来自 ``config.gate_timeout_seconds``），
+        （I-115）。超时阈值优先用 per-routine ``timeout``（来自 ``config.gate_timeout_seconds``），
         缺省回退实例级默认——大型复刻任务的测试套件可能超 120s，需可调以免评分被超时永久压顶。
 
         以 ``start_new_session=True`` 起独立进程组，超时时整组 SIGKILL，避免 pytest 等
@@ -426,7 +426,7 @@ class RoutineEvaluator:
                 start_new_session=True,
                 # 净化环境：剥离引擎自身 uv run/venv 激活变量（VIRTUAL_ENV / UV_RUN_RECURSION_DEPTH），
                 # 避免泄漏给 worktree 内的门控命令——否则 `uv run pytest` 报 VIRTUAL_ENV 错配警告，
-                # 非 uv 门控（裸 pytest/python）更会落到引擎 venv 找错包产生假失败污染评分（ISSUE-120）。
+                # 非 uv 门控（裸 pytest/python）更会落到引擎 venv 找错包产生假失败污染评分（I-120）。
                 env=inherited_env_without_engine_venv(),
             )
             try:
@@ -542,7 +542,7 @@ class RoutineEvaluator:
         ``acceptance_met`` / ``progress_evidence`` 缺失（旧模型/未锚定模板/未遵循新契约）→ None，
         由调用方决定是否施加 cap / 审计回填。
         """
-        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（ISSUE-127）。
+        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（I-127）。
         data: dict[str, Any] = loads_lenient(content)
 
         raw_score = data.get("score", 0)

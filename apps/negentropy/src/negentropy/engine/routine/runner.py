@@ -497,7 +497,7 @@ class RoutineRunner:
                     routine.total_cost_usd = (routine.total_cost_usd or 0.0) + (result.cost_usd or 0.0)
                     routine.iteration_count = (routine.iteration_count or 0) + 1
                     # 检查点提交快照：worktree routine + 本轮执行成功 + 非 PLAN 相位（PLAN 只读无产物）。
-                    # 引擎确定性 auto-commit，不依赖 CC 遵循 prompt（ISSUE-114）。
+                    # 引擎确定性 auto-commit，不依赖 CC 遵循 prompt（I-114）。
                     if (
                         settings.routine.checkpoint_commit_enabled
                         and exec_status == "success"
@@ -551,7 +551,7 @@ class RoutineRunner:
             await db.commit()
 
         # 检查点提交（事务外、best-effort）：成功 worktree 迭代后确定性 auto-commit，
-        # 防 worktree 丢失致进度损毁 + 为 PR 留存提交历史（ISSUE-114）。异常不冒泡。
+        # 防 worktree 丢失致进度损毁 + 为 PR 留存提交历史（I-114）。异常不冒泡。
         if checkpoint_path:
             from . import workspace
 

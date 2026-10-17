@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "d594b2d7-506c-46f9-9207-4d6d678cf7a5",
+  "deliveryReceiptId": "55f04af8-c884-4ee6-b6b5-5235ffdb63c6",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--mcp-threat-model.html",
-    "sha256": "c49a04673721822537c395f8cd0f9bcef1370c039afa5fa3ea5257dafa921687",
-    "bytes": 764511
+    "sha256": "ccf9658e5cadad0de401aaff671e43ef59f4cc5fb21f7f104cbb2ca495dcd60d",
+    "bytes": 764507
   },
   "state": {
     "detail": "read",

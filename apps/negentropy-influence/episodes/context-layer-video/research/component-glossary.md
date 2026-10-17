@@ -55,7 +55,7 @@ G1–G7（只点名、不逐条念）：G1 执法点绑定 / G2 注册期校验�
 
 - `ContextAssembler.assemble()`：设计完整，生产调用 0（唯一调用在自测）。
 - 真实每轮记忆注入：`NegentropyPreloadMemoryTool`（每轮以用户消息为检索词）。
-- `expand_skill`：技能目录末行写着调用它，但它从未挂到任何代理（ISSUE-194）。
-- 会话→长期记忆：`add_session_to_memory` 生产调用 0、`consolidation_jobs` 零消费者、水位列不存在（ISSUE-195）。
-- 中文关键词检索：`to_tsvector('english', …)` 把整段汉字当一个词（ISSUE-196）。
+- `expand_skill`：技能目录末行写着调用它，但它从未挂到任何代理（I-194）。
+- 会话→长期记忆：`add_session_to_memory` 生产调用 0、`consolidation_jobs` 零消费者、水位列不存在（I-195）。
+- 中文关键词检索：`to_tsvector('english', …)` 把整段汉字当一个词（I-196）。
 - 修复序：先补回路缺件 → 执法点统一 → 退役段立规；新能力按 资产+权威 → 装配 → 检索 → 沉淀。

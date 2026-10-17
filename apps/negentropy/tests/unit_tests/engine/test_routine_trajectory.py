@@ -1,7 +1,7 @@
 """trajectory 纯函数模块单元测试。
 
 覆盖 score_trajectory / format_anchor_context / build_anchor_audit，
-含 ISSUE-128 真实轨迹 72→84→62→72→42→72 的统计回归。
+含 I-128 真实轨迹 72→84→62→72→42→72 的统计回归。
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ def test_score_trajectory_monotonic_improving():
 
 
 def test_score_trajectory_issue128_live_trajectory():
-    """ISSUE-128 真实轨迹：72→84→62→72→42→72（±20 振荡，容差带救回的任务）。"""
+    """I-128 真实轨迹：72→84→62→72→42→72（±20 振荡，容差带救回的任务）。"""
     history = [
         FakeIter(seq=1, score=72, verdict="progressing"),
         FakeIter(seq=2, score=84, verdict="progressing"),

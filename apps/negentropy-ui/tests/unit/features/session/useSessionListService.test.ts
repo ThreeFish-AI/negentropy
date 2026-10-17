@@ -4,9 +4,9 @@ import { useSessionListService } from "@/features/session/hooks/useSessionListSe
 
 // next/navigation：在 hooks-only 测试环境（无 App Router 包裹）下 stub 出
 // usePathname / useSearchParams，让 useSessionListService 内部的 URL 同步
-// (ISSUE-061 v2-D) 不会因 Provider 缺失而崩溃。
+// (I-061 v2-D) 不会因 Provider 缺失而崩溃。
 //
-// ISSUE-088：实现已从 router.replace 迁移到 window.history.replaceState。
+// I-088：实现已从 router.replace 迁移到 window.history.replaceState。
 // jsdom 原生支持 history API 更新 location.search，但不会自动触发 React 订阅。
 // 这里通过 useSyncExternalStore + 在 beforeEach 中 patch window.history.replaceState
 // 让其在每次写入后通知所有订阅者，复刻 Next.js App Router 中
@@ -187,11 +187,11 @@ describe("useSessionListService", () => {
   });
 
   // ============================================================================
-  // ISSUE-061 v2-D + ISSUE-088：sessionListView 同步到 URL ?view=archived
+  // I-061 v2-D + I-088：sessionListView 同步到 URL ?view=archived
   //   并通过 window.history.replaceState 直写，绕开 Next.js 16
   //   router.replace 在同 pathname 仅 query 变更下的 __NA no-op 路径。
   // ============================================================================
-  it("ISSUE-088：setSessionListView('archived') 通过 window.history.replaceState 写入 ?view=archived", async () => {
+  it("I-088：setSessionListView('archived') 通过 window.history.replaceState 写入 ?view=archived", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => [],
@@ -368,7 +368,7 @@ describe("useSessionListService", () => {
     );
   });
 
-  it("ISSUE-088：setSessionListView('active') 删除 ?view=，URL 回到 /", async () => {
+  it("I-088：setSessionListView('active') 删除 ?view=，URL 回到 /", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => [],

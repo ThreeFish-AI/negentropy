@@ -245,7 +245,7 @@ def _fetch_targets(conn, corpus_name: str, route: str):
 def test_corpus_pdf_extractor_timeout_bump_0066(alembic_config: Config):
     """迁移 0066：纠正存量 corpus 的 file_pdf timeout_ms 旧默认值，其余值原样保留。
 
-    覆盖（ISSUE-133 follow-up）：
+    覆盖（I-133 follow-up）：
       - 旧默认 300000→3600000(主)、600000→7200000(备)，且保持主备顺序；
       - 无 timeout_ms 的元素不被注入 key；用户自定义值(900000)保留；
       - url 路由(60000)不被本迁移触碰；

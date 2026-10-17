@@ -77,7 +77,7 @@ vi.mock("@/components/providers/AuthProvider", () => ({
   useAuth: () => ({ user: null, status: "authenticated" }),
 }));
 
-// ISSUE-061 v2-D：useSessionListService 依赖 next/navigation 做 ?view= URL 同步，
+// I-061 v2-D：useSessionListService 依赖 next/navigation 做 ?view= URL 同步，
 // integration 测试在 jsdom 环境无 App Router 包裹，需要 stub 以避免 useRouter 抛错。
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),

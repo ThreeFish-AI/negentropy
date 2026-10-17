@@ -7,13 +7,13 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
-    "sha256": "39b9f8411a304e27fc39e042dcff96983418c7fc97d6f854bf916505a65dc133",
-    "bytes": 8083
+    "sha256": "915a88f14ca1603baa2033f5210c57bd8164e5c8e5674751243f1910c1d8fc78",
+    "bytes": 8075
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
-    "sha256": "b85d8e0d17c3d35b873094713a1a839c0d552ce57415083ef4d9f65bef5387d0",
-    "bytes": 775390
+    "sha256": "6a197f5e31537473ff0eefcd4ee4eda73520a6a1a1db8b9edcd39f64228582cc",
+    "bytes": 775366
   },
   "gates": {
     "validate": "pass",
@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2329,
+  "durationMs": 1996,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

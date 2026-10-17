@@ -393,7 +393,7 @@ class TestSessionScope:
 
 
 class TestUpdateBuildRunStateMachineGuard:
-    """``update_build_run`` SQL 状态机不变量回归（ISSUE-080）。
+    """``update_build_run`` SQL 状态机不变量回归（I-080）。
 
     历史 bug：原 SQL 无 WHERE 守卫，``status='running'`` 的进度上报会把 cancel API
     已写入的 ``cancelling`` 状态回滚为 ``running``，并把 ``completed_at`` 清零，

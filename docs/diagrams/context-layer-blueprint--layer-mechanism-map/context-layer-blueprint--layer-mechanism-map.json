@@ -72,7 +72,7 @@
       "type": "cloud",
       "label": "检索轴",
       "sublabel": "§7 候选 · 排序 · 截断",
-      "tag": "CJK 失效 ISSUE-196",
+      "tag": "CJK 失效 I-196",
       "pos": [
         750,
         470
@@ -87,7 +87,7 @@
       "type": "cloud",
       "label": "沉淀轴",
       "sublabel": "§8 变好并守住不变量",
-      "tag": "D10 · ISSUE-195",
+      "tag": "D10 · I-195",
       "pos": [
         980,
         470

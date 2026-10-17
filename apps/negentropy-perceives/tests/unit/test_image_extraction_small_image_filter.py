@@ -1,6 +1,6 @@
 """单元测试：``FitzImageExtractor`` 装饰小图二次过滤。
 
-ISSUE-094 第四轮：Context Engineering 2.0 论文中大量出现 PDF 显示尺寸
+I-094 第四轮：Context Engineering 2.0 论文中大量出现 PDF 显示尺寸
 仅 20×22 pt 的装饰光栅图（SII 章节图标、脚注上标）。``EnhancedPDFProcessor``
 按渲染像素 ``< 50px`` 过滤的逻辑，对原图分辨率本身已 ≥ 50px 但 PDF 显示尺寸
 极小的装饰图无能为力。``FitzImageExtractor`` 内新增 bbox 维度 ``< 20pt``

@@ -373,7 +373,7 @@ class CommunitySummarizer:
 
         通过 ``resolve_llm_config()`` 解析 DB 配置，把厂商参数（``drop_params`` 等）
         透传到 ``call_llm_with_retry``；规避 ``temperature=0.3`` 与 gpt-5 系列模型
-        ``UnsupportedParamsError`` 的同型问题（参 issue.md ISSUE-029）。
+        ``UnsupportedParamsError`` 的同型问题（参 issue.md I-029）。
         """
         from negentropy.config.model_resolver import (
             get_fallback_llm_config,

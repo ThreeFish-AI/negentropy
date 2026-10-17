@@ -151,7 +151,7 @@ describe("message-ledger", () => {
     ]);
   });
 
-  it("ISSUE-070：同时间戳下 user 消息始终排在 assistant 之前（角色优先）", () => {
+  it("I-070：同时间戳下 user 消息始终排在 assistant 之前（角色优先）", () => {
     // 模拟时钟漂移：assistant 时间戳早 1ms（service clock 漂移），user 后到。
     // 但业务正确顺序应当是 user 在前、assistant 在后；新排序按 role 优先解决。
     const events: AgUiEvent[] = [
@@ -251,8 +251,8 @@ describe("message-ledger", () => {
     expect(ledger.map((entry) => entry.id)).toEqual(["z-message", "a-message"]);
   });
 
-  describe("ISSUE-041: 跨 runId（synthetic）语义匹配", () => {
-    // ISSUE-041：后端 ADK Web /sessions/{id} 不透传 runId，前端 fallback 到
+  describe("I-041: 跨 runId（synthetic）语义匹配", () => {
+    // I-041：后端 ADK Web /sessions/{id} 不透传 runId，前端 fallback 到
     // sessionId（synthetic runId === threadId），导致 hydration 与 realtime
     // 同一逻辑消息分裂为两个 turn → UI 双气泡。本组用例验证 isSyntheticRunId
     // 与 isSemanticEquivalentEntry 的协同放宽行为。
@@ -337,7 +337,7 @@ describe("message-ledger", () => {
       expect(isSyntheticRunId({ runId: "uuid-1", threadId: "session-abc" })).toBe(false);
     });
 
-    it("ISSUE-041 端到端 ledger merge：双源（realtime + synthetic fallback）合并为单条", () => {
+    it("I-041 端到端 ledger merge：双源（realtime + synthetic fallback）合并为单条", () => {
       // 模拟双气泡场景：realtime turn:uuid-1 与 hydration turn:sessionId 同 Pong 内容。
       const merged = mergeMessageLedger([baseRealtime], [baseFallbackSynthetic]);
       expect(merged).toHaveLength(1);
@@ -353,10 +353,10 @@ describe("message-ledger", () => {
   });
 
   // ============================================================================
-  // ISSUE-060：流式累积残缺版 + final 完整版的根因层合并（v1 仅在 chat-display
+  // I-060：流式累积残缺版 + final 完整版的根因层合并（v1 仅在 chat-display
   // 兜底，v2 改为 ledger 真正合并 → conversation-tree 不再分裂双 text node）。
   // ============================================================================
-  describe("ISSUE-060: 残缺累积版 vs final 完整版的根因层合并", () => {
+  describe("I-060: 残缺累积版 vs final 完整版的根因层合并", () => {
     const partial = {
       id: "assistant-streaming",
       threadId: "session-bug",
@@ -437,7 +437,7 @@ describe("message-ledger", () => {
     });
   });
 
-  // ISSUE-042 补丁：同时间戳下 TEXT_MESSAGE_START→CONTENT→END 的排序不被穿插
+  // I-042 补丁：同时间戳下 TEXT_MESSAGE_START→CONTENT→END 的排序不被穿插
   describe("sort tiebreaker: EVENT_TYPE_ORDER", () => {
     it("同时间戳下 START → CONTENT → END 保持正确生命周期顺序", () => {
       const ts = 1000;

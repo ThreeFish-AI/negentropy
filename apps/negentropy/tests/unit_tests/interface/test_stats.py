@@ -5,7 +5,7 @@
 1. ``_safe_plugin_stats`` helper 异常隔离 —— 单类 plugin 查询失败不再
    抛出，返回 ``{total: 0, enabled: 0}`` 且 ``logger.exception`` 被调用。
 2. ``get_stats`` 端点使用 ``get_current_user_with_db_roles`` 依赖 ——
-   与 ``/auth/me`` 对齐到 ISSUE-049 的 DB-roles 覆盖路径，避免 admin 用户被
+   与 ``/auth/me`` 对齐到 I-049 的 DB-roles 覆盖路径，避免 admin 用户被
    JWT 旧 roles 误判为 user。
 3. ``StatsResponse`` schema 与 ``_safe_plugin_stats`` 返回值兼容 ——
    ``dict[str, int]`` 字段不会被破坏。
@@ -155,7 +155,7 @@ class TestSafePluginStats:
 
 
 def test_get_stats_uses_db_roles_dependency() -> None:
-    """ISSUE-049：admin 端点必须用 ``get_current_user_with_db_roles``，避免 JWT 旧 roles 误判。
+    """I-049：admin 端点必须用 ``get_current_user_with_db_roles``，避免 JWT 旧 roles 误判。
 
     通过 inspect 路由依赖签名验证：``get_stats`` 的 ``user`` 参数默认值是
     ``Depends(get_current_user_with_db_roles)`` 而非 ``Depends(get_current_user)``。

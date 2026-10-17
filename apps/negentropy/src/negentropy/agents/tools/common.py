@@ -99,7 +99,7 @@ def emit_tool_progress(
 
     设计要点：
     - 写入 ``state.tool_progress[tool_call_id]``，前端 home-body 提取后渲染进度条；
-    - 不参与 message-ledger 比对（仅文本内容参与），避开 ISSUE-031 时间窗回归；
+    - 不参与 message-ledger 比对（仅文本内容参与），避开 I-031 时间窗回归；
     - 单点写入语义：调用方按语义里程碑（5%/20%/60%/100%）触发，里程碑天然稀疏，
       不需要时间维度 throttle；如未来增加细粒度推送，应在此处按 ``tool_call_id``
       维护上次推送时间戳实现真正的节流，并同步更新

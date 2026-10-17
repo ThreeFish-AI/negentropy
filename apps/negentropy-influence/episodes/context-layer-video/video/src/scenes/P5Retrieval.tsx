@@ -14,7 +14,7 @@
  *       + 实线徽（玩具版 4 vs 3）
  *   5-I 走廊②（p5-27..28）：CodePane·PG tsvector english 汉字单 token 实测
  *   5-J 落行登记（p5-29..30）：fm2-supply 锚 p5-29 → hold p5-30；前景查询擦肩小窗
- *       + ISSUE-196 角标
+ *       + I-196 角标
  *   5-K 子代理（p5-31..34）：主/子双窗隔离 + 判词条 + FiveAxisMap 推进（passedCount=4）
  */
 import React from 'react';
@@ -515,7 +515,7 @@ const Crash47748: React.FC<{at: number; pileAt: number; crashAt: number; splitAt
   );
 };
 
-/** 5-J 前景：查询串 vs 连写长句擦肩（关键词腿不匹配）+ ISSUE-196 角标。 */
+/** 5-J 前景：查询串 vs 连写长句擦肩（关键词腿不匹配）+ I-196 角标。 */
 const SearchMiss: React.FC<{at: number; issueAt: number}> = ({at, issueAt}) => {
   const f = useCurrentFrame();
   const enter = useProgress(at, 14);
@@ -565,7 +565,7 @@ const SearchMiss: React.FC<{at: number; issueAt: number}> = ({at, issueAt}) => {
       </div>
       <div style={{...issue, display: 'flex', justifyContent: 'center', marginTop: 12}}>
         <span style={{padding: '6px 18px', border: `1.5px solid ${theme.conceptDeep}`, borderRadius: 999, fontSize: 17, fontFamily: theme.mono, color: theme.conceptDeep}}>
-          ISSUE-196 · 三个修复候选待评审
+          I-196 · 三个修复候选待评审
         </span>
       </div>
     </div>

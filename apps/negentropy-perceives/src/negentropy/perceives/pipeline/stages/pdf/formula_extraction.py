@@ -155,7 +155,7 @@ class DoclingFormulaExtractor(PDFToolBase):
                         original_text=f.original_text,
                         # 透传 bbox（docling engine 在 _extract_formulas 优先路径
                         # 通过 iterate_items 拿 prov[0].bbox 给 formula 提供 bbox，
-                        # 这是 assembly 五级稳定排序的关键 — ISSUE-094 R8）
+                        # 这是 assembly 五级稳定排序的关键 — I-094 R8）
                         bbox=getattr(f, "bbox", None),
                     )
                 )

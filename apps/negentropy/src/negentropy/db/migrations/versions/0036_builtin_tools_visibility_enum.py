@@ -22,14 +22,14 @@ Create Date: 2026-05-18 09:40:00.000000+00:00
     同源 ``mcp_servers`` / ``skills`` / ``sub_agents`` 在迁移 0001 已用 PG 枚举建表
     （0001_init_schema.py:196/306/334），仅 ``builtin_tools`` 偏离了模板。
 
-    与 ISSUE-012（pg 枚举列上的 text-only 操作必须显式 cast）同源——本次以
+    与 I-012（pg 枚举列上的 text-only 操作必须显式 cast）同源——本次以
     「ORM Enum 与迁移 VARCHAR 漂移」的形态再次出现。
 
 幂等与不可逆性：
     采用 forward-only 修复，不回改迁移 0031（既会破坏 stairway，又会让已经
     运行旧 0031 的部署陷入 schema 漂移）。本迁移 ``upgrade`` 在数据规范化、
     类型转换前后均显式做防御性断言；``downgrade`` 走 ``USING visibility::text``
-    回到 VARCHAR(20)（规避 ISSUE-012 的直接 enum→varchar cast 陷阱）。
+    回到 VARCHAR(20)（规避 I-012 的直接 enum→varchar cast 陷阱）。
 
 锁与性能：
     ``ALTER COLUMN ... TYPE`` 取 ACCESS EXCLUSIVE 锁并重写表数据。本表生产
@@ -108,7 +108,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     # 反向：先 DROP DEFAULT，再走 ::text 中转回到 VARCHAR(20)，最后恢复 0031 的小写默认值。
-    # 必须经 ``::text``，避免「enum 直接 ::varchar」复现 ISSUE-012 类陷阱。
+    # 必须经 ``::text``，避免「enum 直接 ::varchar」复现 I-012 类陷阱。
     op.execute(sa.text(f"ALTER TABLE {SCHEMA}.builtin_tools ALTER COLUMN visibility DROP DEFAULT"))
     op.execute(
         sa.text(

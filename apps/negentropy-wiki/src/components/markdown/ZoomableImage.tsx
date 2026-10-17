@@ -24,7 +24,7 @@ interface ZoomableImageProps {
  * 与 CodeBlock / MermaidDiagram 同构（Server→Client 边界合规）。不接收 react-markdown
  * 传入的 hast `node`，避免无用节点对象跨 RSC 边界增大 payload。
  *
- * ISSUE-094 R8：透传后端 _image_to_markdown 输出的 width / height / style，
+ * I-094 R8：透传后端 _image_to_markdown 输出的 width / height / style，
  * 大图（width ≥ 400px，PDF figure region 渲染产物）使用 width:100% 填满容器，与
  * PDF 原版 figure 占满正文栏全宽的视觉等价；小图（inline icon 等）保持 max-width:100%
  * 不主动撑开。该逻辑自 MarkdownRenderer 迁入，保持单一事实源。

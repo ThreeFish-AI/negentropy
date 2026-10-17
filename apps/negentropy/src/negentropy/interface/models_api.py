@@ -74,7 +74,7 @@ def _model_config_to_dict(mc) -> dict[str, Any]:
 
 
 def _model_config_to_public_dict(mc) -> dict[str, Any]:
-    """ISSUE-066 / ISSUE-071：面向普通用户的精简版 model_config 字典。
+    """I-066 / I-071：面向普通用户的精简版 model_config 字典。
 
     剔除 ``config`` 字段（供应商特定参数，如 temperature / thinking_mode 等
     管理员视角的可调参数）与时间戳，仅返回 Home 页 LLM 下拉渲染所需的
@@ -266,7 +266,7 @@ async def list_model_configs(
 ) -> dict[str, Any]:
     """列出 model_configs 表条目。
 
-    ISSUE-066 / ISSUE-071：``enabled=True`` 是普通用户为了在 Home 页 LLM
+    I-066 / I-071：``enabled=True`` 是普通用户为了在 Home 页 LLM
     下拉中渲染「自己可用的模型列表」必走的查询路径。原实现一律 403 admin
     role required，导致 UI 浏览器层留下 console error（``Failed to load
     resource: 403`` 无法在 JS 静默），且让 dev mode build 出现两次原生错误

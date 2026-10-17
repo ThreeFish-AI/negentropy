@@ -118,7 +118,7 @@ describe("ReasoningPanel", () => {
     expect(button).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("ISSUE-070：展开后渲染推理 content（不再只有标题）", () => {
+  it("I-070：展开后渲染推理 content（不再只有标题）", () => {
     render(
       <ReasoningPanel
         steps={[
@@ -138,7 +138,7 @@ describe("ReasoningPanel", () => {
     );
   });
 
-  it("ISSUE-070：result 字段也会作为 pre 渲染", () => {
+  it("I-070：result 字段也会作为 pre 渲染", () => {
     render(
       <ReasoningPanel
         steps={[
@@ -156,7 +156,7 @@ describe("ReasoningPanel", () => {
     expect(resultEl.textContent).toContain("完成");
   });
 
-  it("ISSUE-070：mergeSteps 在 started→finished 时合并两侧的 content", () => {
+  it("I-070：mergeSteps 在 started→finished 时合并两侧的 content", () => {
     const out = mergeSteps([
       { id: "a", stepId: "s1", phase: "started", title: "X", content: "early thought" },
       { id: "b", stepId: "s1", phase: "finished", title: "X", content: "final thought" },

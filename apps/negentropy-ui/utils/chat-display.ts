@@ -298,7 +298,7 @@ function createReplyErrorSegment(node: ConversationNode): ReplyErrorDisplaySegme
 function createReplyReasoningSegment(
   node: ConversationNode,
 ): ReplyReasoningDisplaySegment {
-  // ISSUE-070：reasoning 节点的 payload.content 由 conversation-tree 在处理
+  // I-070：reasoning 节点的 payload.content 由 conversation-tree 在处理
   // ne.a2ui.thought / ne.a2ui.reasoning 自定义事件时累积写入，需要透传到
   // segment 供 ReasoningPanel 展开后渲染。不能 fallback 到 summary，否则会把
   // 「阶段完成：步骤 synth-step...」这类生命周期标识伪装成推理内容。
@@ -381,7 +381,7 @@ function createReplyBuilder(node: ConversationNode, turnId: string): ReplyBuilde
 }
 
 function appendReplySegment(builder: ReplyBuilder, segment: AssistantReplyDisplaySegment) {
-  // Reasoning segment 去重（按 stepId 维度，覆盖以下两种回归场景，详见 docs/issue.md ISSUE-053）：
+  // Reasoning segment 去重（按 stepId 维度，覆盖以下两种回归场景，详见 docs/issue.md I-053）：
   //   场景 A — collectReasoningSegments fallback：step 自身被当作 reasoning + step 含 reasoning 子节点
   //           （id 相同，由 nodeId 衍生）
   //   场景 B — 同一 stepId 下 step 节点 + reasoning 子节点 nodeId 不同（id 不同但 stepId 相同）
@@ -428,7 +428,7 @@ const REDUNDANT_TEXT_SIMILARITY_THRESHOLD = 0.5;
 const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
 
 /**
- * ISSUE-049 兜底层：检测「流式累积残缺版 + final 完整版」共存于同一 message 的双内容。
+ * I-049 兜底层：检测「流式累积残缺版 + final 完整版」共存于同一 message 的双内容。
  *
  * 触发场景：流式期间 ledger 累积出残缺中间态（"Hello, test1234"，无空格、缺字），
  * hydration / final 事件到达后又携带完整正确版（"Hello, test 1234..."），但 message-ledger
@@ -442,7 +442,7 @@ const REDUNDANT_TEXT_JACCARD_MIN_LENGTH = 30;
  *
  * 命中后丢弃较短一方（保留更完备的最终版本）。
  */
-// ISSUE-070：multiset 覆盖阈值从 0.8 → 0.7，长度比从 1.15 → 1.10。
+// I-070：multiset 覆盖阈值从 0.8 → 0.7，长度比从 1.15 → 1.10。
 // 旧阈值漏检「partial 残缺版与 final 改写版长度差较小、字符差较大」的场景
 // （如图 1：partial=`ong toPingPossible needs concrete: ) ping (...`，final=
 // `Summary — done: Replied "Pong" to your "Ping". Next options: ...`）。
@@ -480,7 +480,7 @@ export function isStreamingDuplicateOfLater(
 }
 
 /**
- * ISSUE-065 兜底层（Layer 6）：「partial 单段 vs final 多段」场景的字符级聚合判定。
+ * I-065 兜底层（Layer 6）：「partial 单段 vs final 多段」场景的字符级聚合判定。
  *
  * Layer 5 (`isStreamingDuplicateOfLater`) 仅做两两比较，要求 later 比 earlier 长 1.15x。
  * 但 C2 实测里 partial（earlier）混入了 reasoning first-line 而被切成单个长段，final
@@ -543,10 +543,10 @@ export function isStreamingDuplicateOfAggregate(
  *    场景（如标点/空白差异）。
  * 4. **字符二元组 Jaccard**：双方均 ≥ 30 字且 Jaccard ≥ 0.5 → 丢弃前段。
  *    覆盖「主动导航 prompt 在工具前后各产出一段几乎相同总结」的长回复场景。
- * 5. **流式残缺/完整两段**（ISSUE-049, `isStreamingDuplicateOfLater`）：multiset
+ * 5. **流式残缺/完整两段**（I-049, `isStreamingDuplicateOfLater`）：multiset
  *    coverage ≥ 0.8 且 later 比 earlier 长 1.15x → 丢弃 earlier。覆盖前 4 层未
  *    命中、但同源不同完成度的两两场景。
- * 6. **流式 partial 单段 vs final 多段聚合**（ISSUE-065,
+ * 6. **流式 partial 单段 vs final 多段聚合**（I-065,
  *    `isStreamingDuplicateOfAggregate`）：把 earlier 与所有未被丢弃的后续 text
  *    段拼接成 aggregate 比较，阈值与 Layer 5 对齐（multiset ≥ 0.8 且 length ≥
  *    1.15x），且额外要求 aggregate 显著长于任一 later 单段。覆盖 partial 因
@@ -588,7 +588,7 @@ function dedupeRedundantTextSegments(
 
       // 四层判定均统一为「丢弃前段」：
       // 在 LLM 双轮（tool 调用前后）产出近似总结的场景下，后段一般是经工具反馈
-      // 修正后的最终版本（见 ISSUE-036），保留后段更符合用户预期的「最新答复」。
+      // 修正后的最终版本（见 I-036），保留后段更符合用户预期的「最新答复」。
 
       // 1. 精确匹配：任何长度都触发。
       if (earlierContent === laterContent) {
@@ -632,7 +632,7 @@ function dedupeRedundantTextSegments(
         }
       }
 
-      // 5. ISSUE-049 流式双内容兜底：同源不同完成度的两段（残缺版 + 完整版）。
+      // 5. I-049 流式双内容兜底：同源不同完成度的两段（残缺版 + 完整版）。
       //    覆盖前 4 层未命中、但字符 multiset 高度互含、长度差显著的场景。
       if (isStreamingDuplicateOfLater(earlierContent, laterContent)) {
         droppedIndices.add(earlierIdx);
@@ -640,7 +640,7 @@ function dedupeRedundantTextSegments(
     }
   }
 
-  // 6. ISSUE-065 流式双内容聚合兜底：partial 单段 vs final 多段的场景。
+  // 6. I-065 流式双内容聚合兜底：partial 单段 vs final 多段的场景。
   //    前 5 层都做两两比较，partial 经常因混入 reasoning first-line 而比 final
   //    任一单段都长，导致两两比较中的 length-ratio 守卫永远不通过；此处把所有
   //    比 earlier 靠后且未被丢弃的 text 段拼接成 totalLater 再判定，覆盖
@@ -1041,7 +1041,7 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
     blocks.push(createSummaryBlock(root));
   });
 
-  // ISSUE-070：在毫秒级时钟漂移容忍窗口内，把 user message 排在 assistant
+  // I-070：在毫秒级时钟漂移容忍窗口内，把 user message 排在 assistant
   // 输出（assistant-reply / tool-group）之前。窗口收紧到 0.2s 以避免误吞
   // 「秒级 follow-up」——客户端/服务端时钟漂移在 NTP 同步下典型 < 100ms，
   // 0.2s 既足够覆盖正常抖动，也排除「用户在 Agent 回复未完成时（≤1s）紧追
@@ -1077,7 +1077,7 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
     if (typeDiff !== 0) {
       return typeDiff;
     }
-    // ISSUE-042: localeCompare 作为最终兜底是可接受的——走到这里时
+    // I-042: localeCompare 作为最终兜底是可接受的——走到这里时
     // timestamp / sourceOrder / typeDiff 均已相等，仅剩同类型不同 id 的块。
     // id 格式为 "assistant-reply:${turnId}:${msgId}"，不同 id 的排序对用户体验无影响。
     return left.id.localeCompare(right.id);
@@ -1086,10 +1086,10 @@ export function buildChatDisplayBlocks(tree: ConversationTree): ChatDisplayBlock
   return dedupeAdjacentAssistantBlocks(blocks);
 }
 
-// ISSUE-041: 跨 turn 的 assistant-reply block 去重。当 Layer 1
+// I-041: 跨 turn 的 assistant-reply block 去重。当 Layer 1
 // (collapseOverlappingTurns) 因两个 concrete turn 都非 synthetic 而无法折叠时，
 // 这里作为安全网——对时间窗内内容高度相似的相邻 assistant-reply block 保留更完整的一个。
-// ISSUE-041: ChatDisplayBlock.timestamp 来源于 node.timeRange.start（秒级），
+// I-041: ChatDisplayBlock.timestamp 来源于 node.timeRange.start（秒级），
 // 此处单位为秒，与 conversation-tree::turnsOverlapInTime 的 toleranceSec 对齐。
 const CROSS_BLOCK_TIME_WINDOW_SEC = 120;
 const CROSS_BLOCK_JACCARD_MIN_LENGTH = 30;

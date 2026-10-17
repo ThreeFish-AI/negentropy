@@ -1,5 +1,5 @@
 /**
- * 可重试错误 banner（ISSUE-067）。
+ * 可重试错误 banner（I-067）。
  *
  * 当 fetcher 抛出的 Error 满足以下任一条件时显示「重试」按钮：
  *   1. `error.retryable === true`（首选协议；由 fetcher 主动注入）；

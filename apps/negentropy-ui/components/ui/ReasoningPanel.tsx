@@ -37,7 +37,7 @@ export type ReasoningStepData = {
    * 推理过程文本内容（来自 ne.a2ui.thought / ne.a2ui.reasoning 自定义事件，
    * 由 conversation-tree 在处理 STEP_* + thought 事件时写入 reasoning 节点
    * payload.content）。展开面板时显示该文本，避免「展开后只有标题、看不到
-   * 实际推理」的体验缺失（ISSUE-070）。
+   * 实际推理」的体验缺失（I-070）。
    */
   content?: string;
   /** 步骤完成时携带的结构化结果（STEP_FINISHED.result 透传），可选展示。 */
@@ -81,7 +81,7 @@ function subscribeStorage(callback: () => void): () => void {
  * 输入顺序对结果有影响：后出现的 finished 覆盖先出现的 started —— 这与
  * AG-UI step lifecycle 的事件时序一致。
  *
- * ISSUE-070：merge 时保留**两侧的非空 content** —— started 阶段产生的 thought
+ * I-070：merge 时保留**两侧的非空 content** —— started 阶段产生的 thought
  * 文本会先出现在 started 投影里，finished 阶段如果未携带新文本，应继承
  * started 的内容；反之 finished 携带摘要时，与 started 内容拼接（去重换行）。
  */

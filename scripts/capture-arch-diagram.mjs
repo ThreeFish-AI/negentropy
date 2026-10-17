@@ -262,7 +262,7 @@ async function main() {
       // 断言放宽为「两轴分别完整包含 viewBox ≥3×」+「两轴缩放同量级（≤40% 差）」。
       // 40%：并集 padding 为固定像素量，小/扁 viewBox 图纵横比失真被放大——~1000×558 图实测
       // 16.1%、单行主链 1046×282 实测 32.6%；「两轴均 ≥3×」才是防半幅/空图的硬判，
-      // 同量级阈值只拦极端畸形（2026-10-10，lcc-tooling 渐进图实测；ISSUE-212 同族根因）。
+      // 同量级阈值只拦极端畸形（2026-10-10，lcc-tooling 渐进图实测；I-212 同族根因）。
       const sx = r.dims ? r.dims.width / vb.width : 0;
       const sy = r.dims ? r.dims.height / vb.height : 0;
       const okDims = r.dims

@@ -60,7 +60,7 @@
 | X5＝E-05 版本双门 | pinned：user_sees=[1.0.0×3]、bugfix_delivered=false；floating：[aaa,bbb,ccc]、all_users_jumped=true | mock computed version 比较逻辑（不跑真实 marketplace 更新流） | 写死推三修复不动 / 省略一次全员跳变；口播宜带「玩具模拟」限定 |
 | X6＝E-06 一字母之差 | both_installed=true、warnings=**0（硬编码）**、digest_valid_for_both=true | digest 双合法为真算；零告警是结构性结论（玩具客户端无告警通道，非测量值） | 错拼双装、digest 拦不住名字冒充 |
 
-## 三、数字纪律（ISSUE-164：他方数字一律自复算或带归属角标）
+## 三、数字纪律（I-164：他方数字一律自复算或带归属角标）
 
 - **已自复算（【二】，本轮 2026-09-27 复核）**：247 行/L133（grep）；194 个整天＝停摆约六个半月（时戳口径；日历差 195）；冻结 49 天；SEP 81 天；#546 八行/24 天/0 评论（作者 tobi-oye）；48 open PR；tags=0/releases=0（官方仓）；「一个月后」（05-13→06-10＝28 天）；「二十四小时内」（05-13→05-14＝18 小时）；「建仓第二天」（07-15→07-16）；supabase 八版逐版 assets；npm `@contextlock/core` 月下载=12；curl 三连；lab3 selftest 重跑一致。
 - **带归属他方数字**：76/3,984/36.82%/91%＝Snyk 自报【四】@2026-02-05（口播已带「安全团队/厂商」主语，画面须带时点角标）；98,380/157/4.03＝论文【三】（已带「学术界」）；86.3% 假前置＝MalSkillBench【三】；171 字符+3 分钟 Won't Fix＝L. Tal【三】（已带「有人」归属，建议画面角标补出处）；18.8 万＝文件实例含 fork、TomeVault 自报【四】（口播已带「自报+文件数+复刻各算一个」三重限定）。

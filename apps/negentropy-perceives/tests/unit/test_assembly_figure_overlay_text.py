@@ -1,6 +1,6 @@
 """``assembly`` stage — Figure overlay 矢量标签抑制 + caption 例外保留契约。
 
-锁定 ISSUE-094 R6 修复契约：
+锁定 I-094 R6 修复契约：
 
 - PyMuPDF 把 PDF 中 Figure 视觉区内的**矢量标签**（如 Context Engineering 2.0
   Figure 1 中 "Context 1.0..4.0" 标题行 / "Context Input" / "Intelligence Level"

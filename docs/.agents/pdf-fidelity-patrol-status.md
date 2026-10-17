@@ -52,7 +52,7 @@
 
 ### 3.1 巡检态校正 reconcile（权威 = 最新非 cancelled 终态 Routine）
 
-`_finalize_terminal_patrols` 的 last-write-wins + `_collapse_superseded_patrols` 取消冗余 Routine 时**不回写状态**，会污染列：一个先以 `failed` 终态写入 `unfixable`、随后被 collapse 取消的 Routine，会把更早 `succeeded` 的 `done` 覆盖成 `unfixable`（实测：succeeded/95 被 failed/2 覆盖，ISSUE-159）。
+`_finalize_terminal_patrols` 的 last-write-wins + `_collapse_superseded_patrols` 取消冗余 Routine 时**不回写状态**，会污染列：一个先以 `failed` 终态写入 `unfixable`、随后被 collapse 取消的 Routine，会把更早 `succeeded` 的 `done` 覆盖成 `unfixable`（实测：succeeded/95 被 failed/2 覆盖，I-159）。
 
 [`_reconcile_patrol_status`](../../apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py) 每 tick 在 collapse 之后运行，以**权威源 = routines 表**重算列：
 

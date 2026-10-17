@@ -1,6 +1,6 @@
 """单元测试：``_rejoin_split_diacritics`` 间隔变音符号重组。
 
-ISSUE-094 第四轮：PyMuPDF 把 ``Pokémon`` / ``Baltrušaitis`` / ``Pérdig˜ao``
+I-094 第四轮：PyMuPDF 把 ``Pokémon`` / ``Baltrušaitis`` / ``Pérdig˜ao``
 等含组合变音字符的词在 PDF 中拆为 ``base + 独立间隔符号 + 后续字母``，
 ``" ".join`` 拼回 ``Pok ´ emon`` 形态。本测试守护重组逻辑。
 """
