@@ -186,9 +186,9 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 ---
 
-## 2. 第一性对象与理论锚
+## 2. 问题定义与分析单元
 
-§1 的登记簿列全了失效形态；本章往回追一步，回答这些失效为什么集中爆发：它们共享同一个第一性对象，Agent 运行时上下文。先给这个对象的问题定义（四类失效现象与四个根因：数据侧三类承 011 口径，模型侧一类为本篇补充），再给形式定义（Context Engineering 2.0 论文，arXiv 2510.26493）与产品侧定义（a16z 的定名文与 Atlan 的五层框架），随后立起分析单元（每轮装配事务），以研究范围收束。§3 的三面蓝图在这个对象之上展开。
+§1 的登记簿列全了失效形态；本章往回追一步，回答这些失效为什么集中爆发：它们共享同一个研究对象，Agent 运行时上下文。先给这个对象的问题定义（四类失效现象与四个根因：数据侧三类承 011 口径，模型侧一类为本篇补充），再给形式定义（Context Engineering 2.0 论文，arXiv 2510.26493）与产品侧定义（a16z 的定名文与 Atlan 的五层框架），随后立起分析单元（每轮装配事务），以研究范围收束。§3 的三面蓝图在这个对象之上展开。
 
 ### 2.1 为什么需要：四类失效现象与四个根因
 
@@ -222,7 +222,7 @@ a16z 定名文（投资人观点文）给出 context layer 的三动词链定义
 
 > Tie together all of an enterprise's messy data, add a contextual layer on top that helps agents understand business logic, and package it such that the context can be supplied to agents.
 
-接起来（tie together）、加一层（add）、打包供给（package）。末环「供给封装」在转述里最常被遗漏，而它恰恰把 context layer 与「又一本数据字典」区分开。同文两处边界声明随行。其一，**两半声明**："This piece will primarily focus on data context that ties together traditional systems of record. An equally important and overlapping opportunity is also capturing an organization's decisions and workflow logic…"（本文只写打通传统记录系统的 data context 半边；捕获组织决策与工作流逻辑的另一半同等重要、交叠、未展开）。其二，context ⊃ semantic，现代上下文层是语义层的超集：指标定义可硬编码，但 Agent 自主性还需要 canonical entities、identity resolution、tribal knowledge 指令与治理指引（a16z 原文列举）。命名未收敛（context OS / context engine / contextual data layer / ontology 并存，a16z 自认概念同一）。本蓝图立场：术语收 a16z 宽定义；工程落位不按任何产品分类法，而按 §3 三面五轴；a16z 留白的另一半，Agent 运行时上下文，正是本文的第一性对象（此迁移为蓝图立场，非 a16z 原义）。
+接起来（tie together）、加一层（add）、打包供给（package）。末环「供给封装」在转述里最常被遗漏，而它恰恰把 context layer 与「又一本数据字典」区分开。同文两处边界声明随行。其一，**两半声明**："This piece will primarily focus on data context that ties together traditional systems of record. An equally important and overlapping opportunity is also capturing an organization's decisions and workflow logic…"（本文只写打通传统记录系统的 data context 半边；捕获组织决策与工作流逻辑的另一半同等重要、交叠、未展开）。其二，context ⊃ semantic，现代上下文层是语义层的超集：指标定义可硬编码，但 Agent 自主性还需要 canonical entities、identity resolution、tribal knowledge 指令与治理指引（a16z 原文列举）。命名未收敛（context OS / context engine / contextual data layer / ontology 并存，a16z 自认概念同一）。本蓝图立场：术语收 a16z 宽定义；工程落位不按任何产品分类法，而按 §3 三面五轴；a16z 留白的另一半，Agent 运行时上下文，正是本文的研究对象（此迁移为蓝图立场，非 a16z 原义）。
 
 Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品）：system context / session context / memory / artifacts / on-demand retrieval。其中 artifacts 层的纪律逐字：
 
@@ -242,7 +242,7 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 由此得出三条推论：四类现象全部发生在装配事务内部（错口径被装配进窗口、错证据被装配进窗口、越权数据被装配进窗口；过量内容与缺失记忆同样是装配面事件——装了不该装的、没装该装的）；D1–D10 破坏实验（011 §6）大多是对装配事务的单点干预（D8 在 L1 摄取门、D6/D4/D10 落 L2 校验与裁决段，段位对账见 §9.2）；§12 映射表以装配事务为对账口径。装配面实况的完整对账（负发现＋正锚五挂点）由 §6 承载。
 
-![第一性对象与分析单元：实体空间 ℰ 的相关子集 E_rel 经 Char 映射取并集得到原始上下文 C（式 2）；式 4 的 f_context 每被实调用一次＝一次装配事务——四类现象发生在事务内部，验收以事务为最小单位](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object-dark.png)
+![研究对象与分析单元：实体空间 ℰ 的相关子集 E_rel 经 Char 映射取并集得到原始上下文 C（式 2）；式 4 的 f_context 每被实调用一次＝一次装配事务——四类现象发生在事务内部，验收以事务为最小单位](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object-dark.png)
 
 > 图源（可 diff 文本）：[`context-layer-blueprint--first-class-object.mmd`](../../assets/mermaid/cognitive-context/context-layer-blueprint--first-class-object.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--first-class-object.html`](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html)
 
@@ -256,7 +256,7 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 ## 3. 总纲：三面蓝图
 
-§2 立起了第一性对象与分析单元；本章给出组织全部设计的总纲。结构是三个互相独立的面：验收面（失效登记簿）、结构面（五条正交轴）、时间面（六段两环）。机制落在多轴组合上，失效落在段与段的转换上。本章同时把业界既有分解（Horizon 四信号/Atlan 五层/CE2 三支柱等）一并投影到三面，并给出 ADR 台账。
+§2 立起了研究对象与分析单元；本章给出组织全部设计的总纲。结构是三个互相独立的面：验收面（失效登记簿）、结构面（五条正交轴）、时间面（六段两环）。机制落在多轴组合上，失效落在段与段的转换上。本章同时把业界既有分解（Horizon 四信号/Atlan 五层/CE2 三支柱等）一并投影到三面，并给出 ADR 台账。
 
 ### 3.1 三面：各自回答一个问题
 

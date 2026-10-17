@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "c412758c-5905-46e0-b7bd-75b9268b256f",
+  "deliveryReceiptId": "3acf6779-bc60-47ce-af0b-5bdc9834e533",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
-    "sha256": "7a99fc70df19fd6c2504c755cdf0773382e8b1cee8f9e592f559fdfc842a3b05",
-    "bytes": 760894
+    "sha256": "1b8b3967e35fee285166941ce7d86189c34bd31b908f4af6e7d31ca80c4e5497",
+    "bytes": 760885
   },
   "state": {
     "detail": "read",

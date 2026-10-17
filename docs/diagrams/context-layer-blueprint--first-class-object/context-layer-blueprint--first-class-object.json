@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "dataflow",
   "meta": {
-    "title": "第一性对象与分析单元：每轮装配事务",
+    "title": "研究对象与分析单元：每轮装配事务",
     "subtitle": "ℰ → E_rel → Char(e) → C → (C,𝒯) → f_context：式 4 每被实调用一次＝一次装配事务（arXiv:2510.26493 实线锚）",
     "locale": "zh-CN",
     "animation": "trace",

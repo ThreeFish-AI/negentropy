@@ -228,7 +228,7 @@ export const ARCHIFY = {
     "chapters": [
       {
         "id": "fco-objects",
-        "label": "第一性对象",
+        "label": "研究对象",
         "file": "blueprint--first-class-object--fco-objects.mp4",
         "endStill": "blueprint--first-class-object--fco-objects-end.png",
         "beats": 5,

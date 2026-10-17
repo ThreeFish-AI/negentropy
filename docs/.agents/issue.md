@@ -4478,3 +4478,12 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **待收敛（媒体面，勿视为已完成）**：narration p0-25/p1-13 两句重 TTS＋audio/manifest.json 再生（与 ISSUE-217 已登记的 p0-25/p1-13/p1-28/p8-25 重 TTS 项合并执行，勿重复）；failure-map/architecture/first-class-object 三图章节素材（public/archify/ 带 duration 清单与 mp4/png、archify.manifest.ts 派生件）与 draft.mp4 随下一轮生产 pass 重录重渲；P0Errors.tsx 屏上字需 draft 重渲才可见。
 - **后续防范**：「用 N 个典型问题引出机制必要性」类论证，选样前先对问题空间做正交分类核对（本次十类），防单叙事线（如 Snowflake 数据侧）冒充全域代表；登记簿行数/簇数是跨面钉定数字（正文/图源/README/分集脚本），任一改动须全量 grep「九簇|九类|42 行|四十二行」类口径清零；archify 节点 sublabel 改长文本先想 validate 的最小投影字号门（6px），超宽收紧措辞而非动布局。
 - **同类问题影响**：011 §1 三现象叙事在 Horizon 域内自洽、不动（013 已明示分叉：现象一至三承 011、现象四为本篇补充）；T9 多代理族此前三现象＋登记簿双缺，本轮入册后 175 E1–E5 破坏实验获得登记簿对位行；Chroma《Context Rot》引用只落一手页 URL（arXiv 编号存疑勿引）。
+
+## ISSUE-219 013 §2 章题「第一性对象与理论锚」名不副实＋「第一性对象」生造术语全仓置换「研究对象」
+
+- **表因**：用户质询 013 §2 章题怪、未准确表达章节主旨。核验成立：「理论锚」只盖 §2.2 形式定义一角，§2.1 问题定义、§2.4 分析单元、§2.5 研究范围全在题面之外；且全篇其余章题均为「名字：说明」式（§1 失效模式登记簿：十类失效汇总、§3 总纲：三面蓝图…），唯 §2 裸并列「A 与 B」。
+- **根因**：章题沿用了生造词「第一性对象」（本意 first-class object，误沾「第一性原理」语义，违反 Plain Language 规范），并顺手拼进「理论锚」凑并列，未按章节实际载荷（问题定义→形式/产品侧定义→分析单元→范围）取名；该术语随后跨文档扩散（011、gl-notes、mermaid README、分集 planning/guided-views 标签），形成跨面术语债。
+- **处理方式**（用户拍板：章题改「问题定义与分析单元」＋术语全仓换「研究对象」）：①013 五处（L189 章题、L191/L225 正文、L245 图题、L259 §3 章首回指）；②011:476 与 horizon gl-notes:498 同句式同步；③mermaid README:281 行改「§2 问题定义与分析单元」并顺手修 ISSUE-218 遗留计数漂移（「三症状三病灶」→「四类失效四个根因」，同行备注同步）；④分集 planning.md 两处（L16 章名列表、L25 钩子锚点）；⑤first-class-object 图 candidate meta.title 改「研究对象与分析单元：每轮装配事务」，finalize --quality showcase 四门全过（2540ms，旧 browser-check 回执先挪走重跑，复认 ISSUE-217/218 同坑）、.mmd 头注同步、双主题 PNG 重采（4736×3488，925574/898755 B 过 1310720 B 门）；⑥分集媒体文本层四件同步（public/archify/blueprint--first-class-object.json、views/ 同名件、archify.manifest.ts 的 fco-objects label、html/blueprint--first-class-object.html 派生件——标题×3＋guided-views 标签×1，初扫漏网经全仓 grep 复扫补齐）。slug `first-class-object` 与目录名不改（ID 非内容）；CHANGELOG:184 历史版本条目按变更记录载体冻结不动。
+- **待收敛（媒体面，勿视为已完成）**：分集 first-class-object 章节素材（public/archify/ mp4/png、guided-views 标签「研究对象」）与 draft.mp4 随下一轮生产 pass 重录重渲（与 ISSUE-218 三图重录项合并执行）；narration 无术语命中，无 TTS 项。
+- **后续防范**：章节题名须盖全该章载荷并循全篇「名字：说明」题式，不得以子节概念（如「理论锚」）冒充全章概括；生造术语入正文前先过 Plain Language 规范（本例「第一性对象」当写作「研究对象」），一旦入图源/分集脚本即成跨面钉定词，改名成本随面数线性增长。
+- **同类问题影响**：013 内部对 §2 的两处既有指称（§3 章首、mermaid README）原写作「第一性对象与分析单元」，本轮与新章题对齐为「研究对象与分析单元」；其余文档族（014/015/mapping）无该术语命中，零外溢。
