@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.52,
- "story_sec": 9.97,
- "total_wall_sec": 31.73,
+ "lead_sec": 0.56,
+ "story_sec": 10.02,
+ "total_wall_sec": 32.96,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,8 +16,8 @@
    "end_still": "blueprint--first-class-object--fco-objects-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.52,
-   "story_sec": 5.55,
+   "lead_sec": 0.56,
+   "story_sec": 5.57,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "espace",
@@ -27,7 +27,7 @@
     "taskdom"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 62.0
   },
   {
    "id": "fco-txn",
@@ -37,8 +37,8 @@
    "end_still": "blueprint--first-class-object--fco-txn-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.48,
-   "story_sec": 4.42,
+   "lead_sec": 0.52,
+   "story_sec": 4.45,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "operators",

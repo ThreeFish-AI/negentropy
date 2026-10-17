@@ -155,7 +155,7 @@ export const ARCHIFY = {
         "endStill": "blueprint--architecture--arc-facets-end.png",
         "beats": 12,
         "leadSec": 0.44,
-        "storySec": 13.29,
+        "storySec": 13.27,
         "beatNodes": [
           "registry",
           "axisAsset",
@@ -178,7 +178,7 @@ export const ARCHIFY = {
         "endStill": "blueprint--architecture--arc-axes-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.53,
+        "storySec": 5.56,
         "beatNodes": [
           "axisAsset",
           "axisAuth",
@@ -194,7 +194,7 @@ export const ARCHIFY = {
         "endStill": "blueprint--architecture--arc-seams-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.54,
+        "storySec": 5.55,
         "beatNodes": [
           "chipM1M5",
           "chipM2M6",
@@ -210,7 +210,7 @@ export const ARCHIFY = {
         "endStill": "blueprint--architecture--arc-stages-end.png",
         "beats": 6,
         "leadSec": 0.44,
-        "storySec": 6.65,
+        "storySec": 6.63,
         "beatNodes": [
           "stageL1",
           "stageL2",
@@ -232,8 +232,8 @@ export const ARCHIFY = {
         "file": "blueprint--first-class-object--fco-objects.mp4",
         "endStill": "blueprint--first-class-object--fco-objects-end.png",
         "beats": 5,
-        "leadSec": 0.52,
-        "storySec": 5.55,
+        "leadSec": 0.56,
+        "storySec": 5.57,
         "beatNodes": [
           "espace",
           "erel",
@@ -248,8 +248,8 @@ export const ARCHIFY = {
         "file": "blueprint--first-class-object--fco-txn.mp4",
         "endStill": "blueprint--first-class-object--fco-txn-end.png",
         "beats": 4,
-        "leadSec": 0.48,
-        "storySec": 4.42,
+        "leadSec": 0.52,
+        "storySec": 4.45,
         "beatNodes": [
           "operators",
           "txn",
@@ -518,12 +518,12 @@ export const ARCHIFY = {
     "chapters": [
       {
         "id": "fm2-open",
-        "label": "九簇总览",
+        "label": "十簇总览",
         "file": "failure-map--fm2-open.mp4",
         "endStill": "failure-map--fm2-open-end.png",
-        "beats": 9,
-        "leadSec": 0.76,
-        "storySec": 9.95,
+        "beats": 10,
+        "leadSec": 0.52,
+        "storySec": 11.05,
         "beatNodes": [
           "c1_koujing",
           "c2_zhixing",
@@ -533,7 +533,8 @@ export const ARCHIFY = {
           "c6_yunhangshi",
           "c7_jiexian",
           "c8_jiyi",
-          "c9_zuzhi"
+          "c9_zuzhi",
+          "c10_xiezuo"
         ]
       },
       {
@@ -542,8 +543,8 @@ export const ARCHIFY = {
         "file": "failure-map--fm2-def.mp4",
         "endStill": "failure-map--fm2-def-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.34,
+        "leadSec": 0.52,
+        "storySec": 3.35,
         "beatNodes": [
           "c1_koujing",
           "c2_zhixing",
@@ -557,7 +558,7 @@ export const ARCHIFY = {
         "endStill": "failure-map--fm2-supply-end.png",
         "beats": 4,
         "leadSec": 0.48,
-        "storySec": 4.46,
+        "storySec": 4.44,
         "beatNodes": [
           "c4_yanzheng",
           "c5_gongji",
@@ -567,15 +568,16 @@ export const ARCHIFY = {
       },
       {
         "id": "fm2-ends",
-        "label": "两端两簇",
+        "label": "末端三簇",
         "file": "failure-map--fm2-ends.mp4",
         "endStill": "failure-map--fm2-ends-end.png",
-        "beats": 2,
-        "leadSec": 0.56,
-        "storySec": 3.22,
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.36,
         "beatNodes": [
           "c8_jiyi",
-          "c9_zuzhi"
+          "c9_zuzhi",
+          "c10_xiezuo"
         ]
       }
     ]
@@ -790,8 +792,8 @@ export const ARCHIFY = {
         "file": "lifecycle--lc2-open.mp4",
         "endStill": "lifecycle--lc2-open-end.png",
         "beats": 6,
-        "leadSec": 0.52,
-        "storySec": 6.65,
+        "leadSec": 0.48,
+        "storySec": 6.67,
         "beatNodes": [
           "l1",
           "l2",
@@ -807,7 +809,7 @@ export const ARCHIFY = {
         "file": "lifecycle--lc2-l1.mp4",
         "endStill": "lifecycle--lc2-l1-end.png",
         "beats": 1,
-        "leadSec": 0.52,
+        "leadSec": 0.48,
         "storySec": 3.22,
         "beatNodes": [
           "l1"
@@ -832,7 +834,7 @@ export const ARCHIFY = {
         "endStill": "lifecycle--lc2-l3-end.png",
         "beats": 1,
         "leadSec": 0.52,
-        "storySec": 3.23,
+        "storySec": 3.24,
         "beatNodes": [
           "l3"
         ]
@@ -843,7 +845,7 @@ export const ARCHIFY = {
         "file": "lifecycle--lc2-l4.mp4",
         "endStill": "lifecycle--lc2-l4-end.png",
         "beats": 1,
-        "leadSec": 0.52,
+        "leadSec": 0.56,
         "storySec": 3.25,
         "beatNodes": [
           "l4"
@@ -856,7 +858,7 @@ export const ARCHIFY = {
         "endStill": "lifecycle--lc2-l5-end.png",
         "beats": 1,
         "leadSec": 0.52,
-        "storySec": 3.25,
+        "storySec": 3.24,
         "beatNodes": [
           "l5"
         ]
@@ -880,7 +882,7 @@ export const ARCHIFY = {
         "endStill": "lifecycle--lc2-loops-end.png",
         "beats": 3,
         "leadSec": 0.52,
-        "storySec": 3.32,
+        "storySec": 3.33,
         "beatNodes": [
           "l2",
           "l4",

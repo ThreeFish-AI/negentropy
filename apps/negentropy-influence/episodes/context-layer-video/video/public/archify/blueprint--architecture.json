@@ -3,7 +3,7 @@
  "mode": "chapter",
  "lead_sec": 0.44,
  "story_sec": 31.01,
- "total_wall_sec": 82.96,
+ "total_wall_sec": 85.49,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 12,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 13.29,
+   "story_sec": 13.27,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "registry",
@@ -34,7 +34,7 @@
     "stageL6"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 62.0
+   "capture_fps": 63.0
   },
   {
    "id": "arc-axes",
@@ -45,7 +45,7 @@
    "beats": 5,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.53,
+   "story_sec": 5.56,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "axisAsset",
@@ -66,7 +66,7 @@
    "beats": 5,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 5.54,
+   "story_sec": 5.55,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "chipM1M5",
@@ -76,7 +76,7 @@
     "chipM7"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 62.0
   },
   {
    "id": "arc-stages",
@@ -87,7 +87,7 @@
    "beats": 6,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 6.65,
+   "story_sec": 6.63,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "stageL1",

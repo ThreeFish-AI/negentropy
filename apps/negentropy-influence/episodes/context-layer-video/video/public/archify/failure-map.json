@@ -1,23 +1,23 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.76,
- "story_sec": 20.97,
- "total_wall_sec": 68.98,
+ "lead_sec": 0.52,
+ "story_sec": 22.2,
+ "total_wall_sec": 65.7,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
  "chapters": [
   {
    "id": "fm2-open",
-   "label": "九簇总览",
+   "label": "十簇总览",
    "index": 0,
    "file": "failure-map--fm2-open.mp4",
    "end_still": "failure-map--fm2-open-end.png",
-   "beats": 9,
+   "beats": 10,
    "dwell_ms": 1100,
-   "lead_sec": 0.76,
-   "story_sec": 9.95,
+   "lead_sec": 0.52,
+   "story_sec": 11.05,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c1_koujing",
@@ -28,10 +28,11 @@
     "c6_yunhangshi",
     "c7_jiexian",
     "c8_jiyi",
-    "c9_zuzhi"
+    "c9_zuzhi",
+    "c10_xiezuo"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 63.0
+   "capture_fps": 61.0
   },
   {
    "id": "fm2-def",
@@ -41,8 +42,8 @@
    "end_still": "failure-map--fm2-def-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.48,
-   "story_sec": 3.34,
+   "lead_sec": 0.52,
+   "story_sec": 3.35,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c1_koujing",
@@ -61,7 +62,7 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.48,
-   "story_sec": 4.46,
+   "story_sec": 4.44,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c4_yanzheng",
@@ -70,22 +71,23 @@
     "c7_jiexian"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 64.0
+   "capture_fps": 61.0
   },
   {
    "id": "fm2-ends",
-   "label": "两端两簇",
+   "label": "末端三簇",
    "index": 3,
    "file": "failure-map--fm2-ends.mp4",
    "end_still": "failure-map--fm2-ends-end.png",
-   "beats": 2,
-   "dwell_ms": 1600,
-   "lead_sec": 0.56,
-   "story_sec": 3.22,
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.36,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c8_jiyi",
-    "c9_zuzhi"
+    "c9_zuzhi",
+    "c10_xiezuo"
    ],
    "measured_fps": 25.0,
    "capture_fps": 61.0

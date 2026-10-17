@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.52,
- "story_sec": 29.38,
- "total_wall_sec": 127.97,
+ "lead_sec": 0.48,
+ "story_sec": 29.41,
+ "total_wall_sec": 125.46,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,8 +16,8 @@
    "end_still": "lifecycle--lc2-open-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.52,
-   "story_sec": 6.65,
+   "lead_sec": 0.48,
+   "story_sec": 6.67,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l1",
@@ -28,7 +28,7 @@
     "l6"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 63.0
+   "capture_fps": 61.0
   },
   {
    "id": "lc2-l1",
@@ -38,7 +38,7 @@
    "end_still": "lifecycle--lc2-l1-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.52,
+   "lead_sec": 0.48,
    "story_sec": 3.22,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -73,7 +73,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.52,
-   "story_sec": 3.23,
+   "story_sec": 3.24,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l3"
@@ -89,7 +89,7 @@
    "end_still": "lifecycle--lc2-l4-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.52,
+   "lead_sec": 0.56,
    "story_sec": 3.25,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -107,7 +107,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.52,
-   "story_sec": 3.25,
+   "story_sec": 3.24,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l5"
@@ -141,7 +141,7 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 3.32,
+   "story_sec": 3.33,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l2",

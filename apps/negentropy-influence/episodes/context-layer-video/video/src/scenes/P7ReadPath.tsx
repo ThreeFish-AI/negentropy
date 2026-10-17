@@ -2,7 +2,7 @@
  *
  *  11 镜 / 29 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
  *   7-A 分析单元（fco-txn@p7-01 + hold@02：算子群→装配事务框定）
- *   7-B 三症状归位（fco-txn@p7-03 特写推进；承 7-A 链尾镜界背靠背 → lead=false）
+ *   7-B 四类失效归位（fco-txn@p7-03 特写推进；承 7-A 链尾镜界背靠背 → lead=false）
  *   7-C 七段全貌（rp-open@p7-04 + hold@05/06，承 7-B → lead=false；p7-06 RequestCard
  *       变形 ContextRequest——Morph 卡→窄条→JSON，身份线索描边/圆角/标题位不变；
  *       Morph 窗内 recap 压至 0.12 让位（RecapDim，cue 时序不变））
@@ -69,9 +69,9 @@ export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
         ]} />
       </Sequence>
 
-      {/* 7-B 三症状归位：fco-txn 特写推进（承 7-A 链尾镜界背靠背 → lead=false） */}
+      {/* 7-B 四类失效归位：fco-txn 特写推进（承 7-A 链尾镜界背靠背 → lead=false） */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="7-B">
-        <ArchifyRecap slug="blueprint--first-class-object" caption="读管线 · 三症状归位" lead={false} cues={[
+        <ArchifyRecap slug="blueprint--first-class-object" caption="读管线 · 四类失效归位" lead={false} cues={[
           {chapterId: 'fco-txn', at: at('p7-03') - bB.from, durationInFrames: dur('p7-03')},
         ]} />
       </Sequence>
