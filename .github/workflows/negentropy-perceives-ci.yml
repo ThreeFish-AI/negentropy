@@ -207,6 +207,14 @@ jobs:
             # ——详见 pyproject [tool.uv] 注释与 I-092 2026-09-06 增补
             --ignore-vuln CVE-2026-9856
 
+            # transformers PYSEC-2026-4174（CVE-2026-80047 / GHSA-x9r9-c232-4q39）：
+            # GenerativePreTrainedModel.load_custom_generate() 在 trust_remote_code 确认前
+            # 把远程 custom_generate/generate.py 落盘到 ~/.cache/huggingface/modules——
+            # 需加载恶意 HF 仓库触发。与上方三条 transformers 豁免同威胁模型：本项目仅加载
+            # 第一方模型 artifact、不加载不可信 HF 仓库，且从不调用 load_custom_generate，
+            # 攻击向量不可达；upstream 无已发布修复版本（Last affected 5.8.1，fix 未发布）
+            --ignore-vuln PYSEC-2026-4174
+
             # torch 2.10.0 本地内存破坏 / DoS，需攻击者构造恶意 tensor / pt2 文件；
             # 本项目仅加载第一方模型 artifact，无不可信输入路径，upstream 暂无 fix
             --ignore-vuln PYSEC-2025-189

@@ -236,6 +236,7 @@
 | I-228 | Memory Facts History 模态：缺 Esc 键关闭与 ARIA 语义 | ✅ 已完成 | 2026-05-04 | [详情](#I-228) |
 | I-229 | Memory 浏览器实机验证 dev cookie 工具与 seed 数据备查 | ✅ 已完成 | 2026-05-04 | [详情](#I-229) |
 | I-230 | issue.md 双层结构整改与 ID 命名空间迁移（ISSUE-NNN → I-NNN） | 🔄 进行中 | — | [详情](#I-230) |
+| I-231 | Perceives Security Audit 复发（2026-10-17 增补 58 条）：docling 家族真升级 + 最小修复线收敛 + 一条无 fix 豁免 | ✅ 已完成 | 2026-10-17 | [详情](#I-231) |
 
 ---
 
@@ -5393,3 +5394,16 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：新条目一律追加末尾并同步登记索引行；编号分配前先取当前最大号（勿凭记忆跳号），跨分支合并时核对撞号并按本条先例顺延重编；禁止无 ID 随笔块；secret 一律不得写入任何已提交文档。
 - **同类问题影响**：历史 commit message 与外部讨论中的 `ISSUE-NNN` 引用按同号映射读作 `I-NNN`（映射声明见文件头引言）。
 - **待收敛（媒体面，勿视为已完成）**：分集脚本文本层（narration `>` 备注行、storyboard 表格、planning/glossary）已同步改字——narration.json（TTS 消费面）零命中、**音频零漂移、无需重配**；屏上字（场景 tsx 角标）与已录制章节素材 / 成片中的旧 `ISSUE-` 字样，随下一轮渲染与生产 pass 吸收；archify 三图本轮已重渲收口。
+
+---
+
+<a id="I-231"></a>
+
+## I-231：Perceives Security Audit 复发（2026-10-17 advisory 增补 58 条）：docling 家族真升级 + 最小修复线收敛 + 一条无 fix 豁免
+
+- **表因**：CI `Security Audit` 红灯（run 39018704951）——pip-audit advisory DB 增补致「Found 58 known vulnerabilities … in 13 packages」exit 1。
+- **根因**：上游 advisory DB 周期性增补（I-092 / I-141 / I-160 同族第四次复发）。其中 docling 2.98 家族 19 条属「处理不可信 PDF」可达面、必须真升级；而升级链上 docling 2.140 对 docling-core 的依赖约束欠紧（解析器接受 2.79、运行时却要求 `FileSizeLimitExceededError` 导入），首轮升级后 import 即断——纯锁版本不动运行时导入面的验证抓不住这类断裂。
+- **处理方式**：①13 包全部真升级：docling/docling-slim 2.98→2.140、docling-core 2.79→2.101.1（运行时硬需求补钉）、docling-ibm-models 4.0.3、docling-parse 7.22.3、mcp 1.28.1→1.30.0（锁 1.x 最小修复线、不跨 2.x 大版本，2.x 留待 fastmcp 生态验证）、litellm 1.85→1.96.2、pyjwt 2.15.1、pypdf 6.21.0、urllib3 2.8.0、anyio 4.14.2、fsspec 2026.6.0、multidict 6.9.1、soupsieve 2.9.0、virtualenv 21.14.5；②transformers PYSEC-2026-4174（CVE-2026-80047：`load_custom_generate` 在 trust_remote_code 确认前把远程代码落盘，Last affected 5.8.1、无已发布 fix）按既有三条 transformers 豁免同威胁模型登记 `--ignore-vuln`（仅加载第一方模型 artifact、从不调用该 API，向量不可达）；③pyproject 地板与 `[tool.uv] override-dependencies` 同步抬升（docling>=2.132.0 / pypdf>=6.19.0 / litellm>=1.96.2 / urllib3>=2.8.0 / pyjwt>=2.15.0 / mcp>=1.30.0 / docling-core>=2.101.1）。
+- **验证**：CI 同款 pip-audit（28 条 ignore）本地 exit 0；bandit exit 0；perceives 全量单测 2132 passed / 16 skipped（唯一残余 fail 为本机 `~/.negentropy/perceives.config.yaml` 开发档案穿透 `test_build_with_defaults_only` 的隔离 patch 错层——挪走该文件 100/100 过、CI 无此文件恒绿，与升级无关）；torch 2.10.0 / torchvision 0.25.0 / transformers 4.57.6 / pillow 12.3.0 邻接钉零牵动。
+- **后续防范**：升级传递依赖家族（docling* / mcp* 一类「主包 + 兄弟包」结构）时，必须连带冒烟兄弟包的**运行时导入面**（`python -c "import …"`）而非只看解析成功——上游约束欠紧只能靠执行期暴露；大版本（mcp 2.x）即便解析器放行也先锁最小修复线，等生态验证。
+- **同类问题影响**：主后端 `apps/negentropy/uv.lock` 的 litellm / mcp 若有独立钉版，其 Dependabot 告警另行核销（本条仅覆盖 perceives 面）；本机用户配置穿透测试隔离的问题属 test_config 既有缺陷，已在此留痕，修法（patch 目标改指 `_config_yaml` 重绑层）另行处理。
