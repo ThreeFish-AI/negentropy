@@ -7,12 +7,12 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--object-lifecycle/context-layer-blueprint--object-lifecycle.json",
-    "sha256": "4cec3dcd00d710196a7ef97a5fe2772352b182f51cc4e0743b7c196fefb64419",
+    "sha256": "9d9fef1621b9a81c1819489f02405eff8023d94ac53f54d8cb9912293f154c0f",
     "bytes": 4577
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.html",
-    "sha256": "0279973b6973acc22f4fb77f6b70c7257a94b478bc17eb0a52efa1ee852d80c0",
+    "sha256": "3c114ee950dc67e0117be6d7adee5e08b0250157be45ecfdad008216545f5e8d",
     "bytes": 760394
   },
   "gates": {
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2247
+  "durationMs": 2092
 }

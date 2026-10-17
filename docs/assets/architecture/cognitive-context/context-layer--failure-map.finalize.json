@@ -5,15 +5,15 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-16T15:59:12.573Z",
+  "startedAt": "2026-10-17T03:52:06.625Z",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
-    "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+    "sha256": "47f56ea1e0c04a2151fcf11ed4c18fc3a26e23a7c62db611303a4a969c8a391b",
     "bytes": 7257
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+    "sha256": "2e82d4d8c45998b9c13ee18f718b5d22fcb318fbbc1b5a45fc7c6fcbc35c76dc",
     "bytes": 768641
   },
   "stages": {
@@ -40,7 +40,7 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+          "sha256": "47f56ea1e0c04a2151fcf11ed4c18fc3a26e23a7c62db611303a4a969c8a391b",
           "bytes": 7257
         },
         "validation": {
@@ -56,7 +56,7 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 426,
+      "durationMs": 428,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -72,18 +72,18 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "c7271b87-aadc-4ade-87ea-0b58e5a3c086",
+        "receiptId": "cdfb5322-a181-4939-8bfc-3d518046bfbb",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
         "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "specification": {
-          "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+          "sha256": "47f56ea1e0c04a2151fcf11ed4c18fc3a26e23a7c62db611303a4a969c8a391b",
           "bytes": 7257
         },
         "artifact": {
-          "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+          "sha256": "2e82d4d8c45998b9c13ee18f718b5d22fcb318fbbc1b5a45fc7c6fcbc35c76dc",
           "bytes": 768641
         },
         "validation": {
@@ -99,7 +99,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 172,
+      "durationMs": 88,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -111,7 +111,7 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "artifact": {
-          "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+          "sha256": "2e82d4d8c45998b9c13ee18f718b5d22fcb318fbbc1b5a45fc7c6fcbc35c76dc",
           "bytes": 768641
         },
         "checks": [
@@ -238,13 +238,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "c7271b87-aadc-4ade-87ea-0b58e5a3c086"
+        "deliveryReceiptId": "cdfb5322-a181-4939-8bfc-3d518046bfbb"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1305,
+      "durationMs": 1246,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -262,10 +262,10 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "c7271b87-aadc-4ade-87ea-0b58e5a3c086",
+        "deliveryReceiptId": "cdfb5322-a181-4939-8bfc-3d518046bfbb",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-          "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+          "sha256": "2e82d4d8c45998b9c13ee18f718b5d22fcb318fbbc1b5a45fc7c6fcbc35c76dc",
           "bytes": 768641
         },
         "state": {
@@ -960,6 +960,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-16T15:59:14.860Z",
-  "durationMs": 2286
+  "finishedAt": "2026-10-17T03:52:08.804Z",
+  "durationMs": 2178
 }

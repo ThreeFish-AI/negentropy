@@ -7,12 +7,12 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
-    "sha256": "3d9d7fb4720cd3ec1c733e0dcb18e088684f48e8d66083750392768b5575c5bd",
+    "sha256": "47f56ea1e0c04a2151fcf11ed4c18fc3a26e23a7c62db611303a4a969c8a391b",
     "bytes": 7257
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "6fe3f1a3d0824a8bcfcfb8d45ab7fed528a32d18fa58bea9746011396caaf980",
+    "sha256": "2e82d4d8c45998b9c13ee18f718b5d22fcb318fbbc1b5a45fc7c6fcbc35c76dc",
     "bytes": 768641
   },
   "gates": {
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2286
+  "durationMs": 2178
 }

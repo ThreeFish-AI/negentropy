@@ -1136,7 +1136,7 @@ def destructive():
     errs = validate_view(bad, TABLES)
     expect("D6", bool(errs) and any("not PRIMARY KEY/UNIQUE" in e for e in errs),
            f"拆结构校验（relationship 指向非键列）→ {'; '.join(errs)}"
-           f"—— 无门则垃圾定义静默入库（非键列 join 未在注册期拦下）")
+           f"—— 无门则非法定义静默入库（非键列 join 未在注册期拦下）")
     d7 = compile_query(SALES, "aov", dims=[], derived_post_agg=False)
     expect("D7", d7 == {(): 122.22}, "拆 derived 先聚后除 → 122.22（对照 108.33）")
     # D8：拆血缘摄取的「对象可解析」校验 → 虚构对象边静默入账本

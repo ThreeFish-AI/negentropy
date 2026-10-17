@@ -53,7 +53,7 @@
       "id": "l4",
       "type": "decision",
       "label": "L4 应答锚定",
-      "sublabel": "三条出路 · 无静默瞎猜",
+      "sublabel": "三条出路 · 无静默臆测",
       "tag": "G4 治理≠验证",
       "step": "04",
       "lane": "main",

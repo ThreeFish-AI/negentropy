@@ -6,10 +6,10 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "e9c47e8a-551c-4208-87cd-5aaac75b2150",
+  "deliveryReceiptId": "41a98911-67d3-4961-92ac-01983ebc9be4",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.html",
-    "sha256": "0279973b6973acc22f4fb77f6b70c7257a94b478bc17eb0a52efa1ee852d80c0",
+    "sha256": "3c114ee950dc67e0117be6d7adee5e08b0250157be45ecfdad008216545f5e8d",
     "bytes": 760394
   },
   "state": {
