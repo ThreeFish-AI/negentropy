@@ -57,7 +57,7 @@ export const P6Compounding: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 6-A 开轴回写：lc2-l5 hold 链 + 前景判词条 chip + 沉淀轴轴签 */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="6-A">
-        <ArchifyRecap slug="lifecycle" caption="时间面 · L5 沉淀回灌" cues={[
+        <ArchifyRecap slug="lifecycle" caption="时间面 · L5 沉淀与回写" cues={[
           {chapterId: 'lc2-l5', at: at('p6-01') - bA.from, durationInFrames: dur('p6-01')},
           {chapterId: 'lc2-l5', at: at('p6-02') - bA.from, durationInFrames: dur('p6-02'), fit: 'hold'},
         ]} />

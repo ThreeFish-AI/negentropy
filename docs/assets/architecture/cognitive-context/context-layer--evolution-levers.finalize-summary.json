@@ -7,13 +7,13 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--evolution-levers/context-layer--evolution-levers.json",
-    "sha256": "b7c8ae5af8a859d45772f5b434e0c250c3f501d7bb85b4238ff2bb2a457c7988",
-    "bytes": 9889
+    "sha256": "1e4c417f85aa62c45a7133e05ac1e36b67ccc00ae668b02c5c04697264b99fdc",
+    "bytes": 9924
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--evolution-levers.html",
-    "sha256": "60b7cea486fb971411273cdce6cbf0fd400678ed9003f47c193bb4d87717c9e7",
-    "bytes": 766842
+    "sha256": "e14fb6ff8aba40f9d777a5d73c8e5ee2d5300226cdb7211d995f58c34d374b51",
+    "bytes": 766870
   },
   "gates": {
     "validate": "pass",
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--evolution-levers.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 1783
+  "durationMs": 1919
 }

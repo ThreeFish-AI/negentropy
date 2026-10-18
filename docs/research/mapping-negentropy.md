@@ -96,7 +96,7 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 >
 > 两份锚点均经 `grep -n` 实测，只分析不改码；OV 锚点中 `ng/` = `apps/negentropy/src/negentropy/`。材料出处：Horizon 见 [Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md)（机制详解、实验室、批判性边界、重评审记录），HZ 条目内的 M1–M7 标记取自该笔记经全局重评选后的新口径，背景调研见 [Snowflake 数据云调研 §D7 Horizon Catalog](./retrieval-storage/034-snowflake-data-cloud.md)；OpenViking 见 [OpenViking 精读笔记](./cognitive-context/014-openviking.md)（机制载荷与证据分级）。设计 SSOT 是 [Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md)（三轴蓝图 + 本仓治理织物实例化，是 HZ-13、HZ-1 的展开；2026-09-27 完全重铸）。
 
-Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架同构物本仓已有（definitions registry 与 parse_definition 422 门、patrol/Judge 评估-修正闭环、skills_injector 三层渐进披露、CatalogService/GlobalSearchService），真增量集中在验证问答、定义内嵌同义词与指令、冲突浮出人工裁决、四因子信任归一、代理会话权限天花板、MCP 供给面六处。OpenViking 的 13 条映射为 ✅4 / 🔶5 / ⏸4：能力大多已有等价物，只是形态为 Postgres 表加 JSONB 元数据；最大真增量是 OV-7 会话两阶段提交，对准「交互式对话 → 长期记忆」链路零触发方的断链（OV-D2），OV-1 统一 URI 因副本式存储与 013 ADR-1 冲突而只取寻址格式。取证副产物中 OV-D2、OV-D3、OV-D6 优先级最高，OV-D6 须在 I-194 方案落地前先修。两份映射的落点都在 013 蓝图：HZ-1、HZ-13 是其展开，OV 的回写建议见 OV 蓝图对位。
+Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架同构物本仓已有（definitions registry 与 parse_definition 422 门、patrol/Judge 评估-修正闭环、skills_injector 三层渐进披露、CatalogService/GlobalSearchService），真增量集中在验证问答、定义内嵌同义词与指令、冲突浮出人工裁决、四因子信任归一、代理会话权限上界、MCP 供给面六处。OpenViking 的 13 条映射为 ✅4 / 🔶5 / ⏸4：能力大多已有等价物，只是形态为 Postgres 表加 JSONB 元数据；最大真增量是 OV-7 会话两阶段提交，对准「交互式对话 → 长期记忆」链路零触发方的断链（OV-D2），OV-1 统一 URI 因副本式存储与 013 ADR-1 冲突而只取寻址格式。取证副产物中 OV-D2、OV-D3、OV-D6 优先级最高，OV-D6 须在 I-194 方案落地前先修。两份映射的落点都在 013 蓝图：HZ-1、HZ-13 是其展开，OV 的回写建议见 OV 蓝图对位。
 
 ### HZ 与 OV 映射总表
 
@@ -118,7 +118,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 | HZ-12 | §12 生态 Ossie YAML 互操作 | 无对应 | — | ⏸ 暂缓（YAGNI） |
 | HZ-13 | §12 生态 MCP 激活面（对外供给外部 agent） | 方向相反：本仓是 MCP **客户端**（perceives 经 McpClientService 接入） | [`mcp_client.py:307`](../../apps/negentropy/src/negentropy/interface/mcp_client.py)（McpClientService） | 🔶 值得落地（供给面） |
 | HZ-14 | M5 端到端列级血缘（引擎沉淀 + OpenLineage 摄取） | 无对应（routine 执行史是运行日志，非资产依赖图） | — | ⏸ 暂缓（YAGNI） |
-| HZ-15 | M6 Agent Identity（代理会话权限天花板 + agent 归因审计） | 部分对应：agent 类型元数据有（preset 描述用），「代理会话权限只减不增」无 | [`agents_api.py:44`](../../apps/negentropy/src/negentropy/interface/agents_api.py)（agent_type 字段）· [`agent_presets.py:109`](../../apps/negentropy/src/negentropy/interface/agent_presets.py)（_agent_type） | 🔶 值得落地 |
+| HZ-15 | M6 Agent Identity（代理会话权限上界 + agent 归因审计） | 部分对应：agent 类型元数据有（preset 描述用），「代理会话权限只减不增」无 | [`agents_api.py:44`](../../apps/negentropy/src/negentropy/interface/agents_api.py)（agent_type 字段）· [`agent_presets.py:109`](../../apps/negentropy/src/negentropy/interface/agent_presets.py)（_agent_type） | 🔶 值得落地 |
 | HZ-16 | M7 分类与标签驱动策略传播（自动分类→标签→策略） | 无对应（definitions.meta JSONB 可承载标签，但无分类扫描与标签驱动策略链） | — | ⏸ 暂缓（YAGNI） |
 
 **OpenViking**
@@ -169,7 +169,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **HZ-14 血缘（⏸，新晋机制）**。本仓 grep 全仓无 lineage 实现；routine/巡检的执行史是运行日志（谁跑了什么），不是资产依赖图（什么派生自什么）。触发条件：当出现「定义/文档资产间的派生关系图」需求（如定义变更影响面分析、跨文档口径溯源）时，优先引入「写入时自动沉淀依赖边」的引擎副产品模式，而非事后扫描。
 
-**HZ-15 Agent Identity（🔶，新晋机制）**。本仓 `agent_type`/`_agent_type` 是 **preset 描述元数据**（区分 routine agent 类型），不是 Horizon M6 的「代理会话身份」，后者守护的是**代理代表用户行事时的权限天花板与归因审计**。本仓引擎任务以服务身份运行（权限天然收束），但用户触发的 agent 会话（如 ad-hoc 工具调用链）无「会话权限=用户权限∩代理允许面」的显式契约。建议：013 §14.4 ContextGuard 设计（原 Phase 2）中把「调用方身份（人/代理/服务）」纳入守卫上下文，归因写入审计日志。
+**HZ-15 Agent Identity（🔶，新晋机制）**。本仓 `agent_type`/`_agent_type` 是 **preset 描述元数据**（区分 routine agent 类型），不是 Horizon M6 的「代理会话身份」，后者守护的是**代理代表用户行事时的会话权限上界与归因审计**。本仓引擎任务以服务身份运行（权限天然收束），但用户触发的 agent 会话（如 ad-hoc 工具调用链）无「会话权限=用户权限∩代理允许面」的显式契约。建议：013 §14.4 ContextGuard 设计（原 Phase 2）中把「调用方身份（人/代理/服务）」纳入守卫上下文，归因写入审计日志。
 
 **HZ-16 分类标签（⏸，新晋机制）**。本仓定义资产暂无敏感分级需求（非数据资产栈）。触发条件：当 definitions 出现「哪些定义可对外供给、哪些仅内部」的规模化治理需求时，先做「标签字段纪律」（definitions.meta 承载），再考虑自动分类。
 
@@ -650,7 +650,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 
 **AN-11 凭据边界：占位值 + 出站代理注入（⏸）**。这正是手册 p45 点名「最常见也最危险」的形态。原型 D5 实测：出站拦截即使守住，令牌仍会经构建日志泄露。本仓的前提不同：单用户本机部署，CC 本身就是用户的代理，所以判为暂缓。落地路径现成：已有 coding-proxy，届时由它注入凭证，子进程只留占位值。
 
-**AN-12 有效权限取交集（🔶）**。与 HZ-15 是同一缺口（代理会话权限天花板），沿用其 🔶 判定与落地时机，不重复立项。
+**AN-12 有效权限取交集（🔶）**。与 HZ-15 是同一缺口（代理会话权限上界），沿用其 🔶 判定与落地时机，不重复立项。
 
 **AN-15 UNKNOWN 必须显式记录（🔶）**。推断 verdict 本身合理，它保证决策层总有合法输入。但它抹掉了「这一轮评估其实没读懂」的信号，属于 UNKNOWN 被静默转写。
 

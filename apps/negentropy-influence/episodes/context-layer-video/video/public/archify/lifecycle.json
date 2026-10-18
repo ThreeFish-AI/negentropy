@@ -32,7 +32,7 @@
   },
   {
    "id": "lc2-l1",
-   "label": "L1 采集纳管",
+   "label": "L1 采集登记",
    "index": 1,
    "file": "lifecycle--lc2-l1.mp4",
    "end_still": "lifecycle--lc2-l1-end.png",
@@ -49,7 +49,7 @@
   },
   {
    "id": "lc2-l2",
-   "label": "L2 铸形裁决",
+   "label": "L2 校验与裁决",
    "index": 2,
    "file": "lifecycle--lc2-l2.mp4",
    "end_still": "lifecycle--lc2-l2-end.png",
@@ -100,7 +100,7 @@
   },
   {
    "id": "lc2-l5",
-   "label": "L5 沉淀回灌",
+   "label": "L5 沉淀与回写",
    "index": 5,
    "file": "lifecycle--lc2-l5.mp4",
    "end_still": "lifecycle--lc2-l5-end.png",

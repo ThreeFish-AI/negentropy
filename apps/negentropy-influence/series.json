@@ -245,7 +245,7 @@
             "accessed": "2026-10-01"
           },
           "status": "final-review",
-          "statusNote": "完全重制 v2 终渲待审（2026-10-02，011 gen2 C 型信源·story 档·零跨域剧场；评审 H 轮）：15:05.90 = 27177 帧 @30fps · 1920×1080（ffprobe 视频流帧数与帧复算一致）；156 句 4562 字 story 段落演绎（71 块情绪标记，实测校准 302 字/分含时距；H 轮 p2-21/22 口播对齐画面实例数字重录）；八幕 66 镜；archify 47 图 104 章逐章录制 106 cue · 锚定 67.9% · 7.0 cue/分 · 5 图型；换场交界逐帧亮度实测无断层；check_series/覆盖门/tsc/qa --check 全 FAIL 0；交付 ~/Documents/video/context-layer/拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？ v2.mp4（97.1MB，v1 存档保留）",
+          "statusNote": "完全重制 v2 终渲待审（2026-10-02，011 gen2 C 型信源·story 档·零跨域剧场；评审 H 轮）：15:05.90 = 27177 帧 @30fps · 1920×1080（ffprobe 视频流帧数与帧复算一致）；156 句 4562 字 story 段落演绎（71 块情绪标记，实测校准 302 字/分含时距；H 轮 p2-21/22 口播对齐画面实例数字重录）；八幕 66 镜；archify 47 图 104 章逐章录制 106 cue · 锚定 67.9% · 7.0 cue/分 · 5 图型；换场交界逐帧亮度实测无断层；check_series/覆盖门/tsc/qa --check 全 FAIL 0；交付 ~/Documents/video/context-layer/拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？ v2.mp4（97.1MB，v1 存档保留）；2026-10-16 直述化轮已改旁白 2 句（p2-08/p2-11「坏法→失效」，md/json 双面），现交付成片仍为旧文本版，成片重制随 I-217 待办",
           "voice": "story 段落演绎（me-bright 系 + cues.toml 台本）"
         },
         {
@@ -263,12 +263,12 @@
           "source": {
             "title": "Context Layer 技术蓝图：Agent 系统的上下文供给与治理（013 去比喻版：三面×五轴〔资产/权威/装配/检索/沉淀〕×六段两环+读/纳管双管线）",
             "repo": "https://github.com/ThreeFish-AI/negentropy",
-            "pinnedRef": "1f8642348",
+            "pinnedRef": "5ebfb7e3b",
             "license": "本仓内部文档",
-            "accessed": "2026-10-16"
+            "accessed": "2026-10-19"
           },
           "status": "final-review",
-          "statusNote": "v4 零类比重制·edge 草渲待审（2026-10-16，013 去比喻版信源；用户裁决弃 MRO 剧场全量直讲——组件名+白话+贯穿请求「上季度华东区重复购买率」三步走查）：26:57.3 = 1617.3s 草渲 960×540@30fps（71.0MB，manifest 实测 27.0 分落 [21.0,27.0] 窗，30 分钟硬顶内）；293 句 edge 云希合成（④ 真实性 3 路 + 易懂性含零类比门清零、⑤ REWRITE=0）；九幕 97 镜·archify 12 图 63 章 116 cue·锚定 39.6%·密度 4.3/分·图型 4；RequestCard 恒定锚 + FiveAxisMap 五轴导航 + 读/纳管双管线真名走查（Resolve..Emit / Ingest..Tag·Index）；check/覆盖门/check_series/tsc/qa 十项体检 FAIL 0（尾幕+九幕逐幕；唯一 WARN：P6 p6-12 一帧装置擦字幕带，人审项）；终渲（1080p）/交付归档/indextts 升档待人工显式指令",
+          "statusNote": "v4 零类比重制·edge 草渲待审（2026-10-17 收敛轮重渲，013 去比喻版信源；用户裁决弃 MRO 剧场全量直讲——组件名+白话+贯穿请求「上季度华东区重复购买率」三步走查）：26:58.1 = 1618.1s 草渲 960×540@30fps（48543 帧·71.1MB，实测 26.97 分落 [21.0,27.0] 窗，30 分钟硬顶内）；293 句 edge 云希合成（④ 真实性 3 路 + 易懂性含零类比门清零、⑤ REWRITE=0）；九幕 97 镜·archify 12 图 63 章 116 cue·锚定 39.6%·密度 4.3/分·图型 4；RequestCard 恒定锚 + FiveAxisMap 五轴导航 + 读/纳管双管线真名走查（Resolve..Emit / Ingest..Tag·Index）；check/覆盖门/check_series/tsc/qa 十项体检 FAIL 0（2026-10-16 版草渲：尾幕+九幕逐幕；唯一 WARN：P6 p6-12 一帧装置擦字幕带，人审项，新版待复核）；2026-10-17 重渲过 beat-heads×4 全片＋尾幕渐黑五项体检 FAIL 0·WARN 0，十项待终渲前重跑；终渲（1080p）/交付归档/indextts 升档待人工显式指令；2026-10-19 评审轮已修屏上术语（跨轴组合/沉淀轴段名）与 8-M lead，另 p0-09/p0-17/p0-24 口播等长改词（错法→失效）、音轨待重配，draft 未随之重渲，终渲前须重渲重配并重跑体检",
           "voice": "edge 云希（zh-CN-YunxiNeural +4%，草渲档）"
         },
         {

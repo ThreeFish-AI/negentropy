@@ -64,7 +64,7 @@ dependencies = [
     # --- LLM 编排（Smart 模式） ---
     "litellm>=1.96.2",  # >=1.83.7 修复 GHSA-9566(SQLi/SSTI) / 9590(MCP-RCE) / 9588(hash exposure) / 9589(OIDC bypass)；>=1.96.2 修复 PYSEC-2026-4066（I-231，锁 1.96.2 最小修复线）
     # --- CLI ---
-    "typer>=0.21.2",  # docling 2.89 要求 typer<0.22.0
+    "typer>=0.21.2",  # docling 2.140 要求 typer>=0.19.0,<0.27.0（0.21.2 为本项目自设地板）
     "rich>=15.0.0",
     # --- 数据模型与配置 ---
     "pydantic>=2.12.5",

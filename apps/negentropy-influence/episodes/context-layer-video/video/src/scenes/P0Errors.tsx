@@ -3,7 +3,7 @@
  *  7 镜 / 8 条 archify cue（failure-map：fm2-def ×4 + fm2-open ×4）：
  *   0-A 成绩对撞（p0-01..06）：19/85 双成绩条（ScoreDuo·NumCrash 迁移）+ 同模型标签脉冲
  *       + 实线徽 + 「29/150 题」刻度 + 「证据页直给」角标 + 本集标题字条 @enter:fall
- *   0-B 请求登场（p0-07..09）：RequestCard 首现〔M-001〕+ 三错法空槽位 @stagger
+ *   0-B 请求登场（p0-07..09）：RequestCard 首现〔M-001〕+ 三失效空槽位 @stagger
  *   0-C 失效卡①（p0-10..13）：fm2-def 锚 p0-10 → hold 11/12/13；前景两份口径卡对推
  *       + 应答气泡左右摆 + $14.2M/$12.8M 翻牌 @impulse + 虚线徽（Snowflake 案例）
  *   0-D 失效卡②（p0-14..16）：表清单错连线（橙描画）+ 10.1% 翻牌 + 语法对勾常亮
@@ -57,7 +57,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
         </div>
       </Sequence>
 
-      {/* 0-B 请求登场：RequestCard 首现（恒定锚）+ 三错法空槽位 */}
+      {/* 0-B 请求登场：RequestCard 首现（恒定锚）+ 三失效空槽位 */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="0-B">
         <RequestIntro cardAt={at('p0-07') - bB.from} slotsAt={at('p0-09') - bB.from} />
       </Sequence>
@@ -236,14 +236,14 @@ const EpisodeTitle: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 0-B：RequestCard 首现 + 三错法空槽位。 */
+/** 0-B：RequestCard 首现 + 三失效空槽位。 */
 const RequestIntro: React.FC<{cardAt: number; slotsAt: number}> = ({cardAt, slotsAt}) => {
   const slots = useStagger(3, {stride: 12, at: slotsAt});
   return (
     <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 56}}>
       <RequestCard at={cardAt} />
       <div style={{display: 'flex', gap: 34}}>
-        {['错法一', '错法二', '错法三'].map((t, i) => (
+        {['失效一', '失效二', '失效三'].map((t, i) => (
           <div
             key={t}
             style={{

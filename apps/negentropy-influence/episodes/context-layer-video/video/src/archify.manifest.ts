@@ -189,7 +189,7 @@ export const ARCHIFY = {
       },
       {
         "id": "arc-seams",
-        "label": "机制即接缝",
+        "label": "机制＝多轴组合",
         "file": "blueprint--architecture--arc-seams.mp4",
         "endStill": "blueprint--architecture--arc-seams-end.png",
         "beats": 5,
@@ -301,7 +301,7 @@ export const ARCHIFY = {
       },
       {
         "id": "lmm-seam",
-        "label": "跨轴接缝",
+        "label": "跨轴组合",
         "file": "blueprint--layer-mechanism-map--lmm-seam.mp4",
         "endStill": "blueprint--layer-mechanism-map--lmm-seam-end.png",
         "beats": 5,
@@ -805,7 +805,7 @@ export const ARCHIFY = {
       },
       {
         "id": "lc2-l1",
-        "label": "L1 采集纳管",
+        "label": "L1 采集登记",
         "file": "lifecycle--lc2-l1.mp4",
         "endStill": "lifecycle--lc2-l1-end.png",
         "beats": 1,
@@ -817,7 +817,7 @@ export const ARCHIFY = {
       },
       {
         "id": "lc2-l2",
-        "label": "L2 铸形裁决",
+        "label": "L2 校验与裁决",
         "file": "lifecycle--lc2-l2.mp4",
         "endStill": "lifecycle--lc2-l2-end.png",
         "beats": 1,
@@ -853,7 +853,7 @@ export const ARCHIFY = {
       },
       {
         "id": "lc2-l5",
-        "label": "L5 沉淀回灌",
+        "label": "L5 沉淀与回写",
         "file": "lifecycle--lc2-l5.mp4",
         "endStill": "lifecycle--lc2-l5-end.png",
         "beats": 1,

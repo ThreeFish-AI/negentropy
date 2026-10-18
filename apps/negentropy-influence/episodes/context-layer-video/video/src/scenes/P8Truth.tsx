@@ -193,7 +193,7 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="blueprint--architecture" caption="三面蓝图 · 收束定格" cues={[
           {chapterId: 'arc-facets', at: at('p8-32') - bM.from, durationInFrames: dur('p8-32')},
           {chapterId: 'arc-facets', at: at('p8-33') - bM.from, durationInFrames: dur('p8-33'), fit: 'hold'},
-        ]} lead={false} />
+        ]} />
         <Finale
           totalFrames={bM.durationInFrames}
           d32={dur('p8-32')}

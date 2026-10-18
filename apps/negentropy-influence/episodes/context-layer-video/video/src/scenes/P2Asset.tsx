@@ -19,7 +19,7 @@
  *   2-I fan trap 破坏实验（消融对照：¥100 订单 ×3 事件先连后聚 → ¥300、整月 200/440
  *       对撞 + 实心徽 + 「查询语法完全合法」对勾常亮）
  *   2-J 正确次序（先聚后连回 ¥200 绿 + 回扣条@p2-26）
- *   2-K lmm-seam@p2-27 + hold@28（跨轴接缝；M1 角标走画框外左余量）
+ *   2-K lmm-seam@p2-27 + hold@28（跨轴组合；M1 角标走画框外左余量）
  *   2-L 代码走廊①（CodePane：definitions 表四类定义 + 校验 422 + 实心徽 + 渲染产物
  *       投影箭头@p2-32）
  *   2-M 常驻块三问（Core Block 挂窗口顶部 + 示例行写入@p2-34 + 三问标签@p2-35）
@@ -164,7 +164,7 @@ export const P2Asset: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 2-K 跨轴机制：lmm-seam 锚 + hold；M1 角标走画框外左余量 */}
       <Sequence from={bK.from} durationInFrames={bK.durationInFrames} name="2-K">
         <SeamMarginTag a27={at('p2-27') - bK.from} />
-        <ArchifyRecap slug="blueprint--layer-mechanism-map" caption="资产轴 · 跨轴接缝" cues={[
+        <ArchifyRecap slug="blueprint--layer-mechanism-map" caption="资产轴 · 跨轴组合" cues={[
           {chapterId: 'lmm-seam', at: at('p2-27') - bK.from, durationInFrames: dur('p2-27')},
           {chapterId: 'lmm-seam', at: at('p2-28') - bK.from, durationInFrames: dur('p2-28'), fit: 'hold'},
         ]} />

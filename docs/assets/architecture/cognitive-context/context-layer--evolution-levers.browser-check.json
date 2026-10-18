@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "0918e730-39ea-408f-b4e6-a88ee30a2c38",
+  "deliveryReceiptId": "66f0295e-f596-4486-a4ed-d04d8a4772ed",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--evolution-levers.html",
-    "sha256": "60b7cea486fb971411273cdce6cbf0fd400678ed9003f47c193bb4d87717c9e7",
-    "bytes": 766842
+    "sha256": "e14fb6ff8aba40f9d777a5d73c8e5ee2d5300226cdb7211d995f58c34d374b51",
+    "bytes": 766870
   },
   "state": {
     "detail": "read",

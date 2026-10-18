@@ -22,6 +22,7 @@ SRC_DIR = REPO / "docs/assets/architecture/cognitive-context"
 VIEWS_DIR = P / "video/public/archify/views"
 OUT_DIR = P / "video/public/archify/html"
 MARK = "<!-- guided-views-compat (E2-injected) -->"
+MARK_END = "<!-- guided-views-compat end (E2-injected) -->"
 
 JS_TEMPLATE = """
 (function () {
@@ -110,7 +111,12 @@ def main() -> None:
         html = src.read_text(encoding="utf-8")
         # 幂等：剥旧注入块
         html = re.sub(
-            re.escape(MARK) + r"[\s\S]*?" + re.escape(MARK + " end"),
+            re.escape(MARK)
+            + r"[\s\S]*?(?:"
+            + re.escape(MARK + " end")  # 旧标记：注释闭合后的 ` end` 文本节点
+            + r"|"
+            + re.escape(MARK_END)
+            + r")",
             "",
             html,
         )
@@ -134,7 +140,7 @@ def main() -> None:
             f"{json.dumps(views, ensure_ascii=False)}</script>\n"
             f"{style}"
             f"<script>{JS_TEMPLATE}</script>\n"
-            f"{MARK} end\n"
+            f"{MARK_END}\n"
         )
         if "</body>" not in html:
             sys.exit(f"FAIL: {src} 无 </body>")

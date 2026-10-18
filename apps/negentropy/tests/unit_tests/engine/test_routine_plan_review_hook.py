@@ -48,7 +48,7 @@ async def test_run_refine_returns_feedback(monkeypatch):
 
 
 async def test_run_approve_tells_end_turn(monkeypatch):
-    """I-128：批准后指示 CC 结束本轮（不调 ExitPlanMode），引擎自动推进实施。"""
+    """I-225：批准后指示 CC 结束本轮（不调 ExitPlanMode），引擎自动推进实施。"""
     _patch_review(
         monkeypatch,
         PlanReviewResult(ok=True, verdict="approve", score=92, feedback="结构清晰"),
@@ -65,7 +65,7 @@ async def test_run_approve_tells_end_turn(monkeypatch):
 async def test_run_review_unavailable_fail_open(monkeypatch):
     _patch_review(monkeypatch, PlanReviewResult(ok=False, error="LLM down"))
     reason = await h._run({"tool_input": {}}, {"goal": "g", "acceptance_criteria": "a"})
-    # fail-open：不卡死，指示 CC 结束本轮（不再调用工具），引擎自动推进（I-128）
+    # fail-open：不卡死，指示 CC 结束本轮（不再调用工具），引擎自动推进（I-225）
     assert "结束本轮" in reason and "不要" in reason
 
 
@@ -216,11 +216,11 @@ def test_main_exit_plan_unified_runs_review(monkeypatch, tmp_path):
     assert captured.get("reason") == "REVIEWED"
 
 
-# --- I-126/128：ExitPlanMode 同走钩子返回「已批准、结束本轮」deny+reason ---
+# --- I-126/225：ExitPlanMode 同走钩子返回「已批准、结束本轮」deny+reason ---
 
 
 def test_exit_plan_approved_reason_content():
-    """ExitPlanMode 批准文案指示 CC 结束本轮、不再调用工具（I-128），引擎自动推进实施。"""
+    """ExitPlanMode 批准文案指示 CC 结束本轮、不再调用工具（I-225），引擎自动推进实施。"""
     r = h._EXIT_APPROVED_REASON
     assert "批准" in r and "结束本轮" in r
     assert "不要" in r and ("IMPLEMENT" in r or "实施" in r)

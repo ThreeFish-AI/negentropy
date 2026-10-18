@@ -13,7 +13,7 @@
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
 | 0-A 成绩对撞 | p0-01..06 | `@shot:MS` 双成绩条并排：同一模型标签居中连接两侧，19% 短灰条 vs 85% 满绿条；实线徽（第三方实测·FinanceBench·同一 GPT-4-Turbo）挂角；p0-03 时 19% 条内亮「29/150 题」刻度、p0-04 时 85% 条亮「证据页直给」角标；p0-06 顶部落本集标题字条（数字基线标尺定式；RSI-039 首镜视听合力） | 两条成绩条 `@stagger` 自零位增长（动机：p0-01 同模型两次作答的反差）；p0-05 模型标签脉冲高亮「一个参数都没改」（词窗落位〔M-005〕）；标题字条 `@enter:fall` |
-| 0-B 请求登场 | p0-07..09 | `@shot:CU` RequestCard 首现〔M-001〕：钢蓝描边卡居中，问题文本「上季度华东区的重复购买率是多少？」+ 提问人标签「运营专员」；p0-09 卡下方展开三个空槽位（错法一/二/三占位框） | 卡片淡入+描边描画 `@draw`（动机：p0-07 拿一个具体请求从头跟到尾）；三槽位 `@stagger` 弹入（动机：p0-09 至少有三种错法） |
+| 0-B 请求登场 | p0-07..09 | `@shot:CU` RequestCard 首现〔M-001〕：钢蓝描边卡居中，问题文本「上季度华东区的重复购买率是多少？」+ 提问人标签「运营专员」；p0-09 卡下方展开三个空槽位（失效一/二/三占位框） | 卡片淡入+描边描画 `@draw`（动机：p0-07 拿一个具体请求从头跟到尾）；三槽位 `@stagger` 弹入（动机：p0-09 至少有三种失效） |
 | 0-C 失效卡① | p0-10..13 | `@shot:MS` 口径簇特写回放为底，失效卡①叠加前景：两份「重复购买率」定义卡左右并列（按客户 / 按订单），代理应答气泡在两数间摆动；p0-13 虚线徽（官方自报·Snowflake 案例开场）$14.2M vs $12.8M·**archify full**：failure-map 章 `fm2-def`（锚 p0-10）·**archify full**：failure-map 章 `fm2-def`（hold p0-11）·**archify full**：failure-map 章 `fm2-def`（hold p0-12）·**archify full**：failure-map 章 `fm2-def`（hold p0-13） | 两定义卡左右对推入场（动机：p0-10 同一个指标两个数）；应答气泡随句左右摆（动机：p0-12 碰到哪份定义就报哪个数）；$ 双数翻牌 `@impulse`（重音镜·动机：p0-13 官方案例同季两个数） |
 | 0-D 失效卡② | p0-14..16 | `@shot:CU` 失效卡②：数据库表清单中两张表被高亮错误连线（选错表/连错关系），语法对勾常亮在侧；实线徽（中立锚·Spider 2.0）10.1%（632 题·千列级库）；角标「错在选表与连表 · 不在语法」 | 表节点 `@stagger` 亮起、错连线橙红描画（动机：p0-16 错的不是查询语法）；10.1% 数字翻牌 `@impulse`（重音镜·动机：p0-15 强模型这样答只对一成） |
 | 0-E 失效卡③ | p0-17..20 | `@shot:CU` 模型窗口内容列展开：一条客户手机号表记录（脱敏样式）明文滑入本轮窗口，整列橙警示描边；RequestCard 缩于左上角〔M-001〕+「用户凭证继承」小标 | 手机号行滑入窗口列（动机：p0-19 旁边就是一张客户手机号表）；整列橙边呼吸（动机：p0-20 原样进了模型这一轮能看到的全部内容）；凭证小标闪（动机：p0-18 默认继承这个人能碰的一切） |
@@ -50,7 +50,7 @@
 | 2-H 口径纪律 | p2-19..20 | `@shot:CU` 口径卡特写：上半栏「算什么」、下半栏「按什么次序算」；卡角挂「口径只存一份 · 用时现算」章；下方实验预告槽亮起 | 双栏卡描画（动机：p2-19 口径不只写算什么）；次序栏高亮+预告槽亮（动机：p2-20 次序错了会怎样看一个破坏实验） |
 | 2-I 破坏实验 | p2-21..24 | `@shot:MS` fan trap 装置（Worked Example+消融对比定式）：一张 ¥100 订单卡+三条事件记录卡；先连后聚执行序下三条记录都挂上订单→100 被记成 300（红）→整月对照 200 vs 440（实心徽·本仓复算）；「查询语法完全合法」对勾常亮 | 订单与三事件卡入场（动机：p2-21 一笔一百块的订单挂着三条事件记录）；三条连线全部挂上+金额 ×3 跳变 `@impulse`（重音镜·动机：p2-22 一百块被记成三百）；200/440 对撞条（动机：p2-23 正确答案两百算出来四百四十）；对勾保持绿（动机：p2-24 语法合法业务全错） |
 | 2-J 正确次序 | p2-25..26 | `@shot:CU` 同装置对照侧：先各自汇总再连接——三事件先聚成一单、再挂订单→金额回到 100、整月回到 200（绿）；下方回扣条「重复购买率＝订单×客户连表，会遇到同一个问题」 | 执行序开关翻转→先聚后连动画（动机：p2-25 答案才回到两百）；回扣条亮（动机：p2-26 同样要把订单和客户连起来算） |
-| 2-K 跨轴机制 | p2-27..28 | `@shot:WS` 跨轴接缝矩阵回放：M1 口径单点位同时压在资产×权威×装配三轴（角标：M1＝资产×权威×装配·蓝图 §3.3）；其余跨轴机制位微光预告·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（锚 p2-27）·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（hold p2-28） | M1 三轴压点聚亮（动机：p2-27 口径单点加查询时现算同时涉及三条轴）；其余机制位微光（动机：p2-28 蓝图里的机制大多这样跨在几条轴上） |
+| 2-K 跨轴机制 | p2-27..28 | `@shot:WS` 跨轴组合矩阵回放：M1 口径单点位同时压在资产×权威×装配三轴（角标：M1＝资产×权威×装配·蓝图 §3.3）；其余跨轴机制位微光预告·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（锚 p2-27）·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（hold p2-28） | M1 三轴压点聚亮（动机：p2-27 口径单点加查询时现算同时涉及三条轴）；其余机制位微光（动机：p2-28 蓝图里的机制大多这样跨在几条轴上） |
 | 2-L 注册校验 | p2-29..32 | `@shot:CU` 代码走廊①（CodePane·真实仓码）：definitions 建表行+四类定义枚举（技能模板/例程预设/技能/代理）；INSERT 敲入→红 422 响应弹回（实心徽·本仓复算）；旁侧投影箭头「盘上技能文件＝该表渲染产物」 | 仓码逐行滚屏（动机：p2-29 表和表之间的引用要对得上指标写明怎么汇总）；422 弹回 `@impulse`（重音镜·动机：p2-31 不合法的接口直接返回 422 进不了库）；投影箭头（动机：p2-32 只是渲染出来的） |
 | 2-M 常驻块三问 | p2-33..35 | `@shot:MS` Core Block 装置建立：常驻画像块矩形挂进窗口顶部（每一轮都在）；示例行「运营专员 · 负责华东区」写入；块面三问标签：谁能写 / 写多大 / 写满了怎么办 | 画像块挂入窗口（动机：p2-33 每一轮都在窗口里）；示例行写入（动机：p2-34 代理不用再问一遍）；三问标签 `@stagger` 贴上（动机：p2-35 它要先答三个问题） |
 | 2-N 写入纪律 | p2-36..38 | `@shot:CU` Core Block 内部：三条写入路径（会话内/工具回写/人工维护）汇入块体、每次写落一行审计记录；防注入扫描（外部文字夹带命令→一律不当命令执行）小图；2048 token 上限条封顶线；p2-38 截断演示——按比例截断+metadata.truncated 标记亮（不静默丢弃） | 三路径汇入+审计行滚动（动机：p2-36 写入有三条路每次写都有记录）；命令样例被扫描拦下（动机：p2-37 防注入就是不当命令执行）；上限条触顶→比例截断+标记亮（动机：p2-38 写满按比例截断并标记） |
@@ -91,7 +91,7 @@
 | 5-B 宽进严出 | p5-05..08 | `@shot:MS` WideFunnel 装置：150 条候选列表涌进→重排段（模型逐条细看、重新排序）→截断层只留前 20；角标「Anthropic 参考实现与评测口径」（Worked Example 定式） | 候选行涌入（动机：p5-06 初检先求全按语义召回一百五十条）；重排双向交换动画（动机：p5-07 重排再求准逐条细看）；截断层落下只留 top-20（动机：p5-08 评测口径取前二十） |
 | 5-C 本请求候选 | p5-09..10 | `@shot:CU` 候选列表特写：指标文档、季度报表说明靠前亮起，不相干的留存分析靠后灰淡；信噪比标尺在侧 | 列表行分类着色（动机：p5-09 这个请求的候选构成）；标尺指针摆向高信噪端（动机：p5-10 截断控制的是信噪比） |
 | 5-D 信任四因子 | p5-11..13 | `@shot:CU` 信任标尺装置：relevance / authority / popularity（log 封顶）/ freshness 四因子权重条；规则角标「权威压过热度 · 热度有上限 · 新的压过旧的」 | 四因子条 `@stagger` 立起（动机：p5-12 四个因子点名）；规则角标逐条落（动机：p5-13 排序规则三连） |
-| 5-E 治理胜出 | p5-14..15 | `@shot:MS` 跨轴接缝矩阵回放：M1 口径单点位高亮；前景重排列中两份「重复购买率」卡换位——受治理的升至首位（钢蓝）、推断口径降后（灰）；RRF 角标（Reciprocal Rank Fusion·按排名合成）·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（锚 p5-14）·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（锚 p5-14 · hold p5-15） | 两卡换位动画（动机：p5-14 都被召回时受治理的那份排在前面）；名次倒数加权示意（动机：p5-15 分数不能直接比就按排名合成、不用管分数本身） |
+| 5-E 治理胜出 | p5-14..15 | `@shot:MS` 跨轴组合矩阵回放：M1 口径单点位高亮；前景重排列中两份「重复购买率」卡换位——受治理的升至首位（钢蓝）、推断口径降后（灰）；RRF 角标（Reciprocal Rank Fusion·按排名合成）·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（锚 p5-14）·**archify full**：blueprint--layer-mechanism-map 章 `lmm-seam`（锚 p5-14 · hold p5-15） | 两卡换位动画（动机：p5-14 都被召回时受治理的那份排在前面）；名次倒数加权示意（动机：p5-15 分数不能直接比就按排名合成、不用管分数本身） |
 | 5-F 应答契约 | p5-16..19 | `@shot:CU` resolve 契约卡：三条出路并列——① 题库命中→重放核准查询+置信度+出处（绿）② 未命中→按定义现算+「未经核准」标注（橙）③ 连受治理的定义都没有→直说缺口 no_governed_coverage（灰） | 三出路卡 `@stagger` 入位（动机：p5-16 答案只有三条出路）；各卡细节随句点亮（动机：p5-17..19 每条一句） |
 | 5-G 应答锚定 | p5-20..21 | `@shot:MS` 应答锚定段回放：本请求走第一条——题库命中「重复购买率」核准查询、绿章落定；时间面段名标签 L4·**archify full**：lifecycle 章 `lc2-l4`（锚 p5-20）·**archify full**：lifecycle 章 `lc2-l4`（hold p5-21） | 绿章落下 `@impulse`（动机：p5-20 正好有核准查询）；L4 段位标记（动机：p5-21 在时间面上这一步叫应答锚定） |
 | 5-H 治理不等于验证 | p5-22..26 | `@shot:MS` 477 vs 48 对撞装置：上游提前按天汇总的明细层层叠起→完全合法的算式算出 477（橙）；真实答案 48（绿）；实线徽（第三方复现）+角标「玩具版 4 vs 3」；p5-25 双标签分位「治理管定义对 · 验证管结果对」；p5-26 题库 >20 条显著拖慢角标（官方文档） | 明细按天叠层（动机：p5-23 上游提前把明细按天汇总）；477/48 对峙放大（重音镜·动机：p5-24 那是重复计数真实答案是四十八）；双标签分位（动机：p5-25 两件事要分开落位）；>20 拖慢角标（动机：p5-26 题库本身也有限度） |
@@ -152,22 +152,24 @@
 
 ## 字幕规范
 
-底部单行、一句一条、随配音同步（frozen Subtitle）；句尾「。」渲染层剥除；字号 44px 级；zh 恒单行（v6 句长 ≤35 字），若按设计宽度可能折行，须在语义边界拆成连续字幕窗口淡入淡出切换，禁止依赖 CSS 自动换行或压缩字距；en 版默认单行，仅按 frozen Subtitle 规则触发两行回落。
+底部单行、一句一条、随配音同步（frozen Subtitle）；句尾「。」渲染层剥除；字号 44px 级；zh 恒单行（v6 实测句长 ≤46 字，9 句超 35 走下述拆窗路径），若按设计宽度可能折行，须在语义边界拆成连续字幕窗口淡入淡出切换，禁止依赖 CSS 自动换行或压缩字距；en 版默认单行，仅按 frozen Subtitle 规则触发两行回落。
 
 ## 实现映射
 
 | 幕 | 组件 | 公共件 |
 |---|---|---|
-| P0 | scenes/P0Errors.tsx（重写：三失效卡实装+成绩对撞+登记表回放） | RequestCard 首现、ScoreBar（19/85·97/4）、EvidenceBadge、失效卡①②③ |
+| P0 | scenes/P0Errors.tsx（重写：三失效卡实装+成绩对撞+登记表回放） | RequestCard 首现、ScoreDuo（19/85·97/4，P0Errors 导出、8-L 复用）、EvidenceBadge、失效卡①②③ |
 | P1 | scenes/P1Blueprint.tsx（重写） | **FiveAxisMap 建立**、窗口定义装置、五类来源连线、换轴不动演示、context rot 曲线、金句卡 |
 | P2 | scenes/P2Asset.tsx（重写） | FiveAxisMap 幕首高亮、**IntakeLine（五段名 Ingest/Normalize/Classify/Tier/Tag·Index）**、**CatalogCard（目录条目卡）**、fan trap 对撞、CoreBlock 装置、CodePane① |
 | P3 | scenes/P3Authority.tsx（重写） | FiveAxisMap 幕首高亮、执法点分层表、双层拦截+D5、**VennShrink**、D9/Classmethod 徽条 |
-| P4 | scenes/P4Assembly.tsx（重写） | FiveAxisMap 幕首高亮、TokenBudgetBar、时序四档总表、46/19 对照、**InvertedU** |
+| P4 | scenes/P4Assembly.tsx（重写） | FiveAxisMap 幕首高亮、TokenBudget、时序四档总表、46/19 对照、**InvertedU** |
 | P5 | scenes/P5Retrieval.tsx（重写） | FiveAxisMap 幕首高亮、三档基线、**WideFunnel（150→20）**、TrustRuler、ResolveContract 三出路卡、477/48 对撞、CodePane②、子代理双窗 |
 | P6 | scenes/P6Compounding.tsx（重写） | FiveAxisMap 幕首高亮、**LampTrio**、consolidation_jobs 队列+水位线、修复时序、两条供给路径、CONFLICT 卡、D4 对照 |
 | P7 | scenes/P7ReadPath.tsx（重写） | **SevenStations（段名 Resolve/Plan/Retrieve/Fuse/Guard/Compose/Emit，载体＝请求卡与目录条目）**、RequestCard→ContextRequest 变形、CatalogCard 接头飞行、dropped 记录盒、ContextBundle 展开、五轴叠放收束 |
 | P8 | scenes/P8Truth.tsx（重写） | CodePane③④、判定面卡、MappingTable20、FixLadder 三步梯、轴依赖链、三错对策覆盖、终幕定格+系列卡 |
 
-公共组件清单（入 components/）：FiveAxisMap（五轴真名导航·Map-First 主锚）、RequestCard（贯穿请求卡·M-001 恒定锚）、CatalogCard（目录条目卡·M-001 同物同形）、IntakeLine（纳管五段横轨）、SevenStations（读管线七段横轨）、VennShrink（权限交集收缩）、WideFunnel（候选漏斗）、LampTrio（三状态灯）、InvertedU（倒 U 曲线）、EvidenceBadge（三级证据徽：虚线/实线/实心）、ArchifyRecap（图回放容器·全部章回放走此件）、CodePane（代码走廊）、ScoreBar（成绩/比例条）、TokenBudgetBar（token 预算条）、CoreBlock（常驻画像块装置）、TrustRuler（信任四因子标尺）、ResolveContract（三条出路卡）、DroppedLedger（丢弃记录盒）、SubAgentSplit（子代理双窗）、FixLadder（修复序三步梯）、MappingTable20（20 行映射表）。
+公共组件清单（as-built，入 components/ 共 12 件）：FiveAxisMap（五轴真名导航·Map-First 主锚）、RequestCard（贯穿请求卡·M-001 恒定锚）、CatalogCard（目录条目卡·M-001 同物同形）、IntakeLine（纳管五段横轨）、SevenStations（读管线七段横轨）、VennShrink（权限交集收缩）、WideFunnel（候选漏斗）、LampTrio（三状态灯）、InvertedU（倒 U 曲线）、EvidenceBadge（三级证据徽：虚线/实线/实心）、ArchifyRecap（图回放容器·全部章回放走此件）、TokenBudget（token 预算条·仅 P4 消费）。
+
+scene 内联装置（非公共件，随所在 scene）：ScoreDuo（成绩对撞条·P0Errors 导出，0-A/8-L 共用）、CodePane（代码走廊·P2①/P5②/P8③④）、CoreBlock（常驻画像块装置·P2）、TrustRuler（信任四因子标尺·P5）、ResolveContract（三条出路卡·P5）、dropped 留痕盒（P7ReadPath 内联）、SubAgentSplit（子代理双窗·P5）、FixLadder（修复序三步梯·P8）、MappingTable20（20 行映射表·P8）。
 
 代码走廊清单（真实仓码 canonical，与 narration.md 同口径）：① definitions 表+422 拒绝（P2·2-L）· ② PG tsvector 英文配置汉字单 token 实测（P5·5-I）· ③ assemble() 调用点 grep 唯一命中单测（P8·8-B）· ④ expand_skill 目录行 × TOOL_REGISTRY 挂载对拍（P8·8-E）。2-I fan trap 与 5-H 477/48 为数据结构示意装置（非代码走廊、无终端输出）。

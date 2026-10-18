@@ -33,7 +33,8 @@
       "sources": [
         {
           "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
-          "label": "§11.4 可进化参数面"
+          "line": 327,
+          "label": "§8.5 记忆检索权重与统一 RRF"
         }
       ]
     },

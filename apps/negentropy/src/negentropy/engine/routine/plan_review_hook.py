@@ -189,7 +189,7 @@ async def _run(payload: dict, ctx: dict) -> str:
         reflections=reflections if isinstance(reflections, list) else None,
         max_plan_chars=max_plan_chars,
     )
-    # 批准后**结束本轮**而非调用 ExitPlanMode（I-128）：单迭代两段式下，Runner 在批准后于
+    # 批准后**结束本轮**而非调用 ExitPlanMode（I-225）：单迭代两段式下，Runner 在批准后于
     # 同一 Iteration 内 --resume 续接 implement 段；而 headless ExitPlanMode 恒被 CLI 标 is_error，
     # CC 会误判失败而循环重试、空耗 turns。故批准/失败兜底均指示 CC「直接结束本轮」，由引擎续接实施。
     if not result.ok:
@@ -236,9 +236,9 @@ async def _run(payload: dict, ctx: dict) -> str:
     )
 
 
-# ExitPlanMode 批准文案（I-126/128）：headless 下 ExitPlanMode 必被 CLI 标 is_error
+# ExitPlanMode 批准文案（I-126/225）：headless 下 ExitPlanMode 必被 CLI 标 is_error
 # （permissionDecision=allow 经实验**不能**消除）。若指示 CC「继续实施」，CC 会因 is_error 误判失败
-# 而循环重试 ExitPlanMode 空耗 turns（I-128 实测 3×）。而 PLAN→IMPLEMENT 推进纯由引擎下一次
+# 而循环重试 ExitPlanMode 空耗 turns（I-225 实测 3×）。而 PLAN→IMPLEMENT 推进纯由引擎下一次
 # 评估驱动、不依赖 ExitPlanMode，故明确指示 CC **结束本轮**——引擎自动推进实施阶段。
 _EXIT_APPROVED_REASON = (
     "✅ NegentropyEngine 已收到你的方案并批准。请**立即结束本轮回复**，"

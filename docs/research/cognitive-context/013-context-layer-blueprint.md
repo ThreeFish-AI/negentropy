@@ -50,7 +50,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 场景 A/B/C/E/T | 011 配套原型里的测试场景，行内写作「场景 C2」「场景 A4」一类 |
 | D1–D10 | 011 §6 的十次破坏实验 |
 | G1–G7 | 治理该落在哪个环节的七条法则，本文新立，见 §9 |
-| ISSUE-N | 本仓（negentropy 仓库）的待办 Issue，N 是编号 |
+| I-N | 本仓（negentropy 仓库）的待办 Issue，N 是编号 |
 | 映射 #n | §12.4 映射表（把各机制逐条对应到本仓代码，共 20 行，即表名里的 16+4）的行号，#1–#20 |
 | 170–175 | [Claude Code 精读](../agent-harness/170-claude-code-harness-overview.md) |
 | `file:line` | 代码事实的行内锚；行里说到代码现状时，以它指向的代码为准 |
@@ -202,7 +202,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 **现象四：任务一长、会话一换，Agent 自身先降质。** 上面三类失效源于供给内容有误，这一类源于模型的认知资源本身。长任务多轮推进：窗口超限后近期消息被静默截断（OpenClaw #24031，arXiv 2603.13110 转述）；240 条消息的多主题会话，无上下文生命周期管理时关键信息保留 54.3%、有管理 99.6%（同一论文，登记簿 §1.6 已录）；任务不变、只往窗口加内容，18 个 2025 旗舰模型准确率单调下滑，且劣化发生在各自标称窗口之内（Chroma《Context Rot》一手实测）——不是窗口不够大，是注意力随长度摊薄；窗口填充约超 50% 后编码性能常降（倒 U，§1.6 已录）；工具全量挂载则选错工具，46 件减到 19 件即选对（§1.6 已录）。换个会话：从零开始，上一个会话学到的一切都不在场（CoALA：「Language models are stateless」）。Anthropic 把这两端统称为信息稀缺与信息过载（info scarcity / info excess）——上下文过少与过多同样降质。
 
-四类现象向下追溯是四个**不会自行消失的根因**。口径散落：「收入是什么」没有唯一权威定义处，每个消费者自带一份副本，漂移只是时间问题。执行算错：join 顺序、聚合方式、粒度对齐任何一环出现偏差，合法 SQL 照样产出业务上的错数（fan trap、平均的平均、distinct 双计、半可加跨天相加）。访问控制被绕过：策略实现在应用层或 BI 层，绕开这个应用就等于绕开策略，数据一导出、口径一复制，保护即失效。模型认知资源结构性不足：注意力随长度摊薄（n 个 token 产生 n² 两两注意力关系，Anthropic 口径）、窗口是硬额度、单次调用无跨轮状态——三条都是架构属性，模型换代不消除、窗口免费也不消除，「等模型升级」不是出路。§1 登记簿的十簇由两组根因展开：1.1–1.3 直接承接数据侧三根因；1.6 行 1/2/5 承接根因④；其余行承接正交根因面——验证缺失（治理≠验证）、检索与装配工程、存在≠接线≠在线、记忆与供给安全、供给人力与组织认领、多 Agent 共享（1.10）。本蓝图全部结构都按「哪条轴、哪一段防住哪条失效」组织。
+四类现象向下追溯是四个**不会自行消失的根因**。口径散落：「收入是什么」没有唯一权威定义处，每个消费者自带一份副本，漂移只是时间问题。执行算错：join 顺序、聚合方式、粒度对齐任何一环出现偏差，合法 SQL 照样产出业务上的错数（fan trap、平均的平均、distinct 双计、半可加跨天相加）。访问控制被绕过：策略实现在应用层或 BI 层，绕开这个应用就等于绕开策略，数据一导出、口径一复制，保护即失效。模型认知资源结构性不足：注意力随长度摊薄（n 个 token 产生 n² 两两注意力关系，Anthropic 口径）、窗口是硬额度、单次调用无跨轮状态——三条都是架构属性，模型换代不消除、窗口免费也不消除，「等模型升级」不是出路。§1 登记簿的十簇由两组根因展开：1.1–1.3 直接承接数据侧三根因；1.6 行 1/3/5 承接根因④；其余行承接正交根因面——验证缺失（治理≠验证）、检索与装配工程、存在≠接线≠在线、记忆与供给安全、供给人力与组织认领、多 Agent 共享（1.10）。本蓝图全部结构都按「哪条轴、哪一段防住哪条失效」组织。
 
 失效不全是技术问题，组织面早有佐证：MIT《State of AI in Business 2025》的结论——「most fail due to brittle workflows, lack of contextual learning, and misalignment with day-to-day operations」——经 a16z 转述（MIT 中立机构，引文以 a16z 页为准）；Redis 调查口径：97% 认为上下文决定 AI 成败、只有 4% 建成了相应系统（n=1000 在报告落地页与公开文本零披露、方法论未公开）。ownership 缺位与组织运营失效的完整簇见 §11。
 
@@ -450,7 +450,7 @@ version: 12
 
 ### 4.4 注册门：结构校验的注册期拦截层
 
-资产注册时即经结构校验。Horizon 侧的形态是语义视图五段式 DDL 过结构校验门（011 M1）；本仓的对应物是 definitions 的注册期 422 门。create 与 update 双路生效：解析/格式失败与领域校验失败抛 `DefinitionParseError`（[registry.py](../../../apps/negentropy/src/negentropy/agents/definitions/registry.py) `:30`；解析/格式 raise 点 `:129/:131/:133/:138/:140`，领域校验经 validator `:144`），API 层 `_parse_or_422` 映射为 HTTP 422 拒入库（[definitions_api.py](../../../apps/negentropy/src/negentropy/interface/definitions_api.py) `:75-80`，create `:192`、update `:246`）。反事实实测（实际运行日志，`--selftest` 全绿），D6：跳过 validate 注册违反结构校验规则的视图，非法 relationship（指向非键列）仍被拒入库。
+资产注册时即经结构校验。Horizon 侧的形态是语义视图五段式 DDL 过结构校验门（011 M1）；本仓的对应物是 definitions 的注册期 422 门。create 与 update 双路生效：解析/格式失败与领域校验失败抛 `DefinitionParseError`（[registry.py](../../../apps/negentropy/src/negentropy/agents/definitions/registry.py) `:30`；解析/格式 raise 点 `:129/:131/:133/:138/:140`，领域校验经 validator `:144`），API 层 `_parse_or_422` 映射为 HTTP 422 拒入库（[definitions_api.py](../../../apps/negentropy/src/negentropy/interface/definitions_api.py) `:75-80`，create `:192`、update `:246`）。反事实实测（实际运行日志，`--selftest` 全绿），D6：向注册期结构校验门提交 relationship 指向非键列的视图，被拦下并报 `not PRIMARY KEY/UNIQUE`；无门则非法定义静默入库。
 
 注册期校验与运行期重算（§6）是两道可各自独立失效的校验，互不替代。只修一道的系统，另一道失效时静默出错（011 §7.1 规律 3；§9 以 G2 承接）。
 
@@ -1127,8 +1127,8 @@ Horizon Context 最小原型实验室 · M1-M7 机制自洽验证
   [PASS] C2: RBAC 双层: 检索层对 intern 过滤 plan 建议（["dim_filtered (PRIVATE): ['plan']"]，降级总量 {(): 650}）；直闯执行层 → AccessDenied（引擎是最后一道拦截）
   [PASS] E2b: 权限上界实时性: 回收 select:orders 后，既有会话判定即刻失去、其余权限不受牵连（查询期实时求值，无快照过期窗口）
   [PASS] D5: 拆 RBAC → intern 按 plan 拿到 [90,560]（泄露发生）；装回 → blocked
-  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则垃圾定义静默入库……
-  [PASS] D9: 拆权限上界（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）……
+  [PASS] D6: 拆结构校验（relationship 指向非键列）→ relationship bad: referenced column customers.plan is not PRIMARY KEY/UNIQUE—— 无门则非法定义静默入库（非键列 join 未在注册期拦下）
+  [PASS] D9: 拆权限上界（快照冻结）→ 回收后旧会话仍持 select:orders（越权窗口）；对照：同时创建的上界会话判定时实时求值，同一时刻立即失去——不存在「回收前签发的会话凭证仍可用」的窗口
   [PASS] D10: 拆标签映射（只分类不绑策略）→ phone 已贴系统标签仍以明文返回——发现→标记→执行 链条断在最后一环
 目录: 9 条（governed 视图覆盖 4/5 表）
 SELFTEST PASSED ✔
@@ -1142,7 +1142,7 @@ Horizon Context MCP 服务原型 · stdio JSON-RPC 全链路自测
 SELFTEST PASSED ✔
 ```
 
-（D9 行原文尾部与 D6 行原文尾部各含一处修辞性短语，为守零类比纪律以省略号截断；D4 行逐字摘录归 §8.4 裁决纪律主位；完整日志见仓内 lab 文件。）
+（D4 行逐字摘录归 §8.4 裁决纪律主位；完整日志见仓内 lab 文件。）
 
 D1–D10 十次破坏性实验速查如下（每个只改一个 flag/一行；机制→代码行号速查与完整输出由 [011 §6](./011-horizon-context.md) 承载）：
 

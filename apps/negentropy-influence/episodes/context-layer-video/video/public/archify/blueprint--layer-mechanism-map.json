@@ -56,7 +56,7 @@
   },
   {
    "id": "lmm-seam",
-   "label": "跨轴接缝",
+   "label": "跨轴组合",
    "index": 2,
    "file": "blueprint--layer-mechanism-map--lmm-seam.mp4",
    "end_still": "blueprint--layer-mechanism-map--lmm-seam-end.png",

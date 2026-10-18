@@ -32,7 +32,7 @@
  },
  {
   "id": "arc-seams",
-  "label": "机制即接缝",
+  "label": "机制＝多轴组合",
   "focus": [
    "chipM1M5",
    "chipM2M6",
@@ -40,7 +40,7 @@
    "chipM4",
    "chipM7"
   ],
-  "note": "M1–M7 不新增轴、全挂两轴接缝：M2/M6 单落权威，其余跨轴组合"
+  "note": "M1–M7 不新增轴、单轴或跨轴组合：M2/M6 单落权威，其余跨轴组合"
  },
  {
   "id": "arc-stages",

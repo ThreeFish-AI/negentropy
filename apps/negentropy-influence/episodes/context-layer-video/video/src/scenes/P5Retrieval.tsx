@@ -98,7 +98,7 @@ export const P5Retrieval: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 5-E 治理胜出：lmm-seam hold 链 + 前景定义卡换位 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="5-E">
-        <ArchifyRecap slug="blueprint--layer-mechanism-map" caption="跨轴接缝 · 口径单点" cues={[
+        <ArchifyRecap slug="blueprint--layer-mechanism-map" caption="跨轴组合 · 口径单点" cues={[
           {chapterId: 'lmm-seam', at: at('p5-14') - bE.from, durationInFrames: dur('p5-14')},
           {chapterId: 'lmm-seam', at: at('p5-15') - bE.from, durationInFrames: dur('p5-15'), fit: 'hold'},
         ]} />
