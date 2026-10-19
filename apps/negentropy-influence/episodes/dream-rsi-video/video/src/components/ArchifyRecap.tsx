@@ -50,7 +50,7 @@ export const ArchifyRecap: React.FC<{
    *  实例内亦只抑制「与前 cue 背靠背」的换章弹入——空窗后重现的章恢复入场，
    *  否则画框在完全卸载数秒后以全不透明一帧瞬现。 */
   lead?: boolean;
-  /** 末章冻结补足帧数：盖住末 cue 窗之后的镜内空窗句（ISSUE-188 句级画面覆盖——
+  /** 末章冻结补足帧数：盖住末 cue 窗之后的镜内空窗句（I-188 句级画面覆盖——
    *  cue 只占锚句窗，章间/尾部空窗句由末帧 hold 接管，不再近乎空屏）。 */
   tailFrames?: number;
 }> = ({slug, caption, cues, lead = true, tailFrames = 0}) => {

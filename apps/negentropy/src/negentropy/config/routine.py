@@ -55,7 +55,7 @@ class RoutineSettings(BaseSettings):
         default=True,
         description="worktree routine 每个成功 IMPLEMENT/FINALIZE 迭代后，引擎确定性 auto-commit 检查点"
         "（git add -A && git commit，仅本地不推送）。防 worktree 丢失致进度损毁、为 PR 留存提交历史；"
-        "不依赖 CC 遵循 prompt 指令（ISSUE-114）。",
+        "不依赖 CC 遵循 prompt 指令（I-114）。",
     )
     acceptance_unmet_score_cap: int = Field(
         default=0,
@@ -215,7 +215,7 @@ class RoutineSettings(BaseSettings):
         ge=10,
         le=300,
         description="单次 Plan 审阅 LLM 调用的超时（秒）。默认 120：强模型（如 claude-sonnet-4-6）"
-        "审阅大型方案需 >60s，过小会触发 litellm.Timeout 致评审失败、CC 落回 'Answer questions?'（ISSUE-129）。"
+        "审阅大型方案需 >60s，过小会触发 litellm.Timeout 致评审失败、CC 落回 'Answer questions?'（I-129）。"
         "per-routine 可经 config.plan_review_timeout_seconds 覆盖。",
     )
     plan_review_unified_loop: bool = Field(

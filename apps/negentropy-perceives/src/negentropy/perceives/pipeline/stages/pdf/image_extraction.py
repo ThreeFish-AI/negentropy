@@ -153,7 +153,7 @@ def _compute_overlap_ratio(
 
 
 # ---------------------------------------------------------------------------
-# figure region bbox 视觉扩展（ISSUE-094 R8）
+# figure region bbox 视觉扩展（I-094 R8）
 # ---------------------------------------------------------------------------
 
 
@@ -171,7 +171,7 @@ def _expand_figure_bbox(
 ) -> Tuple[float, float, float, float]:
     """以 seed_bbox 为种子，吸纳邻近矢量 drawings 与短文本标签，得到扩展 bbox。
 
-    设计动机（ISSUE-094 R8）：
+    设计动机（I-094 R8）：
     Docling / MinerU 给出的 figure region bbox 通常仅覆盖嵌入光栅图本体，
     未包含 figure 的视觉上下文（列标题 / 子标签 / 轴说明 / 装饰线 / caption）。
     R7 修复了 pt → px 比例（96/72），但若种子 bbox 仅占正文栏 50%，最终
@@ -540,7 +540,7 @@ async def _render_figure_regions(
 
     与 PyMuPDF 仅抽出 figure 内部嵌入位图不同，本函数对 layout 给出的
     完整 figure region（含矢量绘图层标签 / 嵌入位图 / 注解等）一次性
-    渲染为单张 PNG，保留 PDF 原版视觉信息（如 ISSUE-094 R7 中 Context
+    渲染为单张 PNG，保留 PDF 原版视觉信息（如 I-094 R7 中 Context
     Engineering 2.0 Figure 1 顶部 "Context 1.0..4.0" 标题行、底部
     "Context Input / Intelligence Level" 分类标签）。
 
@@ -620,7 +620,7 @@ async def _render_figure_regions(
                         )
                         continue
 
-                    # ── ISSUE-094 R8: figure bbox 视觉扩展 ────────────────
+                    # ── I-094 R8: figure bbox 视觉扩展 ────────────────
                     # Docling/MinerU 给出的 figure region bbox 通常仅覆盖嵌入
                     # 光栅图本体，未含 figure 完整视觉范围（列标题/子标签/
                     # 装饰线/caption）。R7 修复了 pt → px 比例换算，但若种子

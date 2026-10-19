@@ -242,7 +242,7 @@ def test_approval_wait_constants_are_humane():
 
 
 # ----------------------------------------------------------------------------
-# record_approval_denial / was_recently_denied —— 重试循环结构性兜底（ISSUE-156 续）
+# record_approval_denial / was_recently_denied —— 重试循环结构性兜底（I-156 续）
 # ----------------------------------------------------------------------------
 
 

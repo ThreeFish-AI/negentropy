@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
+  "receiptId": "ad60f037-e036-442a-98b5-6328f055f8e4",
   "status": "current",
   "command": "deliver",
   "type": "architecture",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-  "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
   "specification": {
-    "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
-    "bytes": 6486
+    "sha256": "2a6c1768ab335e814d30048cda4a4d1f0158f867f4e2a2b8b3e83dd102fbbcff",
+    "bytes": 7249
   },
   "artifact": {
-    "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-    "bytes": 765362
+    "sha256": "01f9f999cf533eede94699d5e6598c98a9185afaedba80731c0f0ee23e2e41eb",
+    "bytes": 768625
   }
 }

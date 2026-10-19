@@ -142,7 +142,7 @@ def _window_stats(scores: list[int]) -> tuple[int | None, float | None, int | No
 def _classify(n: int, slope: float | None, amplitude: int | None, flips: int) -> str:
     """方向启发式（顺序敏感）：不足 → 振荡 → 上升 → 下降 → 平坦。
 
-    振荡优先于斜率：高振幅 + 多次反转的轨迹即便带趋势，本质仍是振荡（ISSUE-128 真实轨迹即此）。
+    振荡优先于斜率：高振幅 + 多次反转的轨迹即便带趋势，本质仍是振荡（I-128 真实轨迹即此）。
     """
     if n < 2 or slope is None:
         return DIRECTION_INSUFFICIENT

@@ -47,7 +47,7 @@
 **系列片头《一个循环》**（2026-10-06 上线、2026-10-08 独立化并铺开五集）：约 23.5s 统一开场（口播
 为独立音轨不入各集 narration，逐集差异=本集 mech 授色与本集站定格，全数据驱动）；种子与同步纪律见
 [series-assets/claude-code-explained/intro/README.md](./series-assets/claude-code-explained/intro/README.md)，
-台账见 [ISSUE-209](../../docs/.agents/issue.md)。
+台账见 [I-209](../../docs/.agents/issue.md)。
 
 ## Context Layer · 上下文层系列（doc 型 · 3 集）
 
@@ -55,8 +55,8 @@
 
 | #   | 作品                                                                              | 一句话主题                     | 视觉契约（主色）              | 信源                                                                                     | 状态                                                          |
 | --- | --------------------------------------------------------------------------------- | ------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 1   | [《拆解 Horizon Context》](./episodes/horizon-context-video/README.md)            | Snowflake Horizon Context：怎么治理 Agent Context  | 琥珀金/青碧/淡紫              | 011 gen2 冻结 @ `192ae6ca9` + 双 selftest 复算，2026-10-02                              | **v2 终渲待审**（完全重制 · 15:06 · story 档 · archify 47 图 106 cue · 锚定 67.9%） |
-| 2   | [《给 AI 发一张工卡：Agent 上下文层蓝图》](./episodes/context-layer-video/README.md) | Context Layer：蓝图怎么复刻    | 钢蓝/工业橙/校准绿            | 013 蓝图完全重铸版 + 011 + lab/mcp 原型 @ `a77c65822`，2026-09-29                        | **v2 终渲待审**（14:02 · 机务工卡剧场 · 13 图 76 章 71 cue · 锚定 36.8%） |
+| 1   | [《拆解 Horizon Context》](./episodes/horizon-context-video/README.md)            | Snowflake Horizon Context：怎么治理 Agent Context  | 琥珀金/青碧/淡紫              | 011 gen2 冻结 @ `192ae6ca9` + 双 selftest 复算，2026-10-02                              | **v2 终渲待审**（完全重制 · 15:06 · story 档 · archify 47 图 106 cue · 锚定 67.9%；10-16 直述化 2 句旁白已改、成片待重制） |
+| 2   | [《拆解 Agent Context Layer：上下文怎么供给、治理、装配》](./episodes/context-layer-video/README.md) | Context Layer：三面蓝图怎么拆（2026-10-16 v4 零类比重制） | 钢蓝/工业橙/校准绿            | 013 去比喻版 + 011 + lab/mcp 原型 @ `5ebfb7e3b`，2026-10-19                        | **v4 零类比重制·edge 草渲待审**（26:58 · 12 图 63 章 116 cue · 锚定 39.6%） |
 | 3   | [《给 AI 一座图书馆：OpenViking 上下文数据库》](./episodes/openviking-video/README.md) | OpenViking：文件系统范式怎么做上下文 | 玫红/薄荷绿/长春花蓝        | 014 精读笔记 + 015 映射 + openviking_lab @ `348d8797`，2026-09-24                          | **v1 终渲待审**（10:37 · archify 9 图 54 cue 回放）          |
 
 ## Agent 基础设施系列（doc 型 · 3 集）

@@ -10,21 +10,25 @@ import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
 import type {Lang} from './i18n';
 import type {ManifestItem, SceneRange} from './types';
 import {P0Errors} from './scenes/P0Errors';
-import {P1Hangar} from './scenes/P1Hangar';
-import {P2MasterPage} from './scenes/P2MasterPage';
-import {P3ShadowBoard} from './scenes/P3ShadowBoard';
-import {P4Signoff} from './scenes/P4Signoff';
-import {P5Tarmac} from './scenes/P5Tarmac';
-import {P6Truth} from './scenes/P6Truth';
+import {P1Blueprint} from './scenes/P1Blueprint';
+import {P2Asset} from './scenes/P2Asset';
+import {P3Authority} from './scenes/P3Authority';
+import {P4Assembly} from './scenes/P4Assembly';
+import {P5Retrieval} from './scenes/P5Retrieval';
+import {P6Compounding} from './scenes/P6Compounding';
+import {P7ReadPath} from './scenes/P7ReadPath';
+import {P8Truth} from './scenes/P8Truth';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
   P0: P0Errors,
-  P1: P1Hangar,
-  P2: P2MasterPage,
-  P3: P3ShadowBoard,
-  P4: P4Signoff,
-  P5: P5Tarmac,
-  P6: P6Truth,
+  P1: P1Blueprint,
+  P2: P2Asset,
+  P3: P3Authority,
+  P4: P4Assembly,
+  P5: P5Retrieval,
+  P6: P6Compounding,
+  P7: P7ReadPath,
+  P8: P8Truth,
 };
 
 export type MainProps = {manifest: ManifestItem[]; lang?: Lang};
@@ -45,7 +49,7 @@ export const Main: React.FC<MainProps> = ({manifest, lang}) => {
           return (
             <Sequence key={sc.scene} from={sc.from} durationInFrames={sc.durationInFrames} name={sc.scene}>
               {/* 幕间呼吸淡入淡出：只花幕间既有静默，from/总时长零改动；首幕不淡入、
-                  末幕不淡出（尾幕渐黑由 P6 从末 beat 推导，叠加成双重渐黑） */}
+                  末幕不淡出（尾幕渐黑由 P8 从末 beat 推导，叠加成双重渐黑） */}
               <SceneFade
                 durationInFrames={sc.durationInFrames}
                 fadeIn={i === 0 ? 0 : SCENE_FADE_FRAMES}

@@ -16,7 +16,7 @@ title: "浏览器操作 MCP 集成方案：Playwright MCP 全系统默认配备"
 - **约束**：
   - **Single Source of Truth**：传输规格在迁移中**单一定义**，同时供目录卡片与全局注入复用，杜绝 Split-Brain。
   - **最小干预**：复用既有的 Claude Code MCP 注入链路（`mcp_config`），不新建 ADK→MCP 直连桥。
-  - **确定性**：版本钉死（`@playwright/mcp@0.0.75`），契合 [Routine 确定性加固](../subsystems/039-the-routine-system.md)（ISSUE-114/116）的工程取向。
+  - **确定性**：版本钉死（`@playwright/mcp@0.0.75`），契合 [Routine 确定性加固](../subsystems/039-the-routine-system.md)（I-114/116）的工程取向。
   - **优雅降级**：运行时若缺 Node/npx/浏览器，MCP 连接失败仅告警跳过，不阻断主流程。
 
 ## 2. 架构总览：单一注入点，三入口汇聚

@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.44,
- "story_sec": 31.49,
- "total_wall_sec": 142.52,
+ "lead_sec": 0.48,
+ "story_sec": 31.4,
+ "total_wall_sec": 135.38,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,16 +16,14 @@
    "end_still": "assembly-economics--ae-k1-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.44,
-   "story_sec": 3.25,
-   "beat_offsets_sec": [
-    0.0
-   ],
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "k1"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
    "id": "ae-k2",
@@ -35,16 +33,14 @@
    "end_still": "assembly-economics--ae-k2-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.44,
-   "story_sec": 3.21,
-   "beat_offsets_sec": [
-    0.0
-   ],
+   "lead_sec": 0.52,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "k2"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
    "id": "ae-k3",
@@ -54,16 +50,14 @@
    "end_still": "assembly-economics--ae-k3-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.44,
-   "story_sec": 3.25,
-   "beat_offsets_sec": [
-    0.0
-   ],
+   "lead_sec": 0.52,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "k3"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
    "id": "ae-k4",
@@ -73,16 +67,14 @@
    "end_still": "assembly-economics--ae-k4-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.44,
-   "story_sec": 3.24,
-   "beat_offsets_sec": [
-    0.0
-   ],
+   "lead_sec": 0.52,
+   "story_sec": 3.2,
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "k4"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
    "id": "ae-k5",
@@ -92,16 +84,14 @@
    "end_still": "assembly-economics--ae-k5-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.44,
-   "story_sec": 3.26,
-   "beat_offsets_sec": [
-    0.0
-   ],
+   "lead_sec": 0.52,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "k5"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
    "id": "ae-ch",
@@ -111,18 +101,15 @@
    "end_still": "assembly-economics--ae-ch-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.22,
-   "beat_offsets_sec": [
-    0.0,
-    1.604
-   ],
+   "lead_sec": 0.68,
+   "story_sec": 3.2,
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "ch1",
     "ch2"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 63.0
   },
   {
    "id": "ae-guard",
@@ -132,18 +119,15 @@
    "end_still": "assembly-economics--ae-guard-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.44,
-   "story_sec": 3.25,
-   "beat_offsets_sec": [
-    0.0,
-    1.603
-   ],
+   "lead_sec": 0.48,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "fuse",
     "guard"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
    "id": "ae-llm",
@@ -155,14 +139,12 @@
    "dwell_ms": 3200,
    "lead_sec": 0.48,
    "story_sec": 3.25,
-   "beat_offsets_sec": [
-    0.0
-   ],
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "llm"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   },
   {
    "id": "ae-knobs",
@@ -172,15 +154,9 @@
    "end_still": "assembly-economics--ae-knobs-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.44,
+   "lead_sec": 0.48,
    "story_sec": 5.56,
-   "beat_offsets_sec": [
-    0.0,
-    1.103,
-    2.206,
-    3.309,
-    4.41
-   ],
+   "beat_offsets_sec": [],
    "beat_nodes": [
     "k1",
     "k2",
@@ -189,7 +165,7 @@
     "k5"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 26.0
+   "capture_fps": 61.0
   }
  ],
  "capture": {
@@ -200,7 +176,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/atlanta-v4/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/assembly-economics.html",
  "slug": "assembly-economics",
  "type": "workflow"
 }

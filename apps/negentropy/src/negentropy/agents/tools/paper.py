@@ -11,7 +11,7 @@ Paper Curation Tools — AI Agent 论文采集工具集
 
 设计原则（参考 AGENTS.md 复用驱动 + 最小干预）：
 - 仅新增 2 个工具：search_papers + ingest_paper；其余职能复用 KnowledgeService.ingest_url。
-- Tool Progress 走 ADK state_delta 旁路，不参与 message-ledger（规避 ISSUE-031 时间窗双气泡）。
+- Tool Progress 走 ADK state_delta 旁路，不参与 message-ledger（规避 I-031 时间窗双气泡）。
 - 抽取 schema 复用 commit d772605c 的 AI_PAPER_SCHEMA（schema-guided extraction）。
 - 不引入新表，运行时确保 `agent-papers` Corpus 存在即可。
 
@@ -342,7 +342,7 @@ async def ingest_paper(
 
     if should_request_approval("ingest_paper", policy):
         # denial 缓存：同一 arxiv_id 近期被拒/超时过 → 直接返回 blocked、不再弹审批，
-        # 结构性掐断 LLM 重试循环（ISSUE-156 续）。
+        # 结构性掐断 LLM 重试循环（I-156 续）。
         if was_recently_denied(tool_context, "ingest_paper", arxiv_id):
             logger.info("ingest_paper_skipped_recently_denied", arxiv_id=arxiv_id)
             return {

@@ -4,7 +4,7 @@ Revision ID: 0066
 Revises: 0065
 Create Date: 2026-06-08 00:00:00.000000+00:00
 
-设计动机(ISSUE-133 follow-up):
+设计动机(I-133 follow-up):
     大型 PDF Ingest「Connection timeout after 300.0s」的真正取值源,是 corpus 持久化
     配置(JSONB)里固化的 ``config.extractor_routes.file_pdf.targets[].timeout_ms``——
     建库时由 ``knowledge/_shared.py:_resolve_default_extractor_routes`` 从 YAML/config

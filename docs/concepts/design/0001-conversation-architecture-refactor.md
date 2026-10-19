@@ -9,8 +9,8 @@ title: "RFC 0001：Home Chat 会话架构重塑"
 | **状态**         | Draft（待评审）                                                              |
 | **作者**         | Aurelius Huang (cm.huang@aftership.com)                                      |
 | **创建时间**     | 2026-04-29                                                                   |
-| **关联 Issue**   | ISSUE-031, 036, 039, 040, 041                                                |
-| **依赖 PR**      | [#435 ISSUE-041 hotfix](https://github.com/ThreeFish-AI/negentropy/pull/435) |
+| **关联 Issue**   | I-031, 036, 039, 040, 041                                                |
+| **依赖 PR**      | [#435 I-041 hotfix](https://github.com/ThreeFish-AI/negentropy/pull/435) |
 | **目标实施阶段** | Phase 3（在 Phase 2 后端 runId 透传完成后启动）                              |
 
 ---
@@ -18,11 +18,11 @@ title: "RFC 0001：Home Chat 会话架构重塑"
 ## 1. 背景与动机
 
 ### 1.1 现状问题
-Home 页 user↔Agent 交互链路在过去 4 个月发生 **5 次双气泡或同类型 UI 退化**（[ISSUE-031/036/039/040/041](../../.agents/issue.md)），每次都通过 dedup 层"贴膏药"修复，导致：
+Home 页 user↔Agent 交互链路在过去 4 个月发生 **5 次双气泡或同类型 UI 退化**（[I-031/036/039/040/041](../../.agents/issue.md)），每次都通过 dedup 层"贴膏药"修复，导致：
 
 - **6 层 dedup 金字塔**（eventKey + mergeEvents + mergeEventsWithRealtimePriority + isSemanticEquivalentEntry + collapseDefaultTurnDuplicates + dedupeRedundantTextSegments）— 每层独立 heuristic，假设冲突时 bug 级联。
 - **3 处时间窗硬编码**（8000ms / 1000ms / 5-pass 稳态）— 边界 fragile，长回复 / 短回复 / 慢网络都会暴露盲区。
-- **4 处合成 ID fallback**（DEFAULT_THREAD_ID / DEFAULT_RUN_ID / `runId === threadId` / synthetic messageId）— 跨源碰撞不识别（ISSUE-041 即典型）。
+- **4 处合成 ID fallback**（DEFAULT_THREAD_ID / DEFAULT_RUN_ID / `runId === threadId` / synthetic messageId）— 跨源碰撞不识别（I-041 即典型）。
 - **协议违规**：AG-UI 协议要求 `(threadId, runId, messageId)` 复合身份，但后端 `/sessions/{id}` 不透传 runId，前端被迫合成 fallback。
 
 ### 1.2 行业最佳实践（循证调研）
@@ -220,10 +220,10 @@ const conversation = useMemo(
 
 ### 4.1 向后兼容
 - 旧 `ConversationNode` / `ChatDisplayBlock` 类型暂保留至 Sub-PR 3.7，期间新旧路径并行，由 feature flag 切换
-- A2UI 自定义事件（`ne.a2ui.thought` / `ne.a2ui.link`）保持 CUSTOM 包裹格式，兼容 ISSUE-040 H1 处理
+- A2UI 自定义事件（`ne.a2ui.thought` / `ne.a2ui.link`）保持 CUSTOM 包裹格式，兼容 I-040 H1 处理
 
 ### 4.2 回归覆盖
-- 沿用 Phase 1 的 16 例（保证 ISSUE-041 不退化）
+- 沿用 Phase 1 的 16 例（保证 I-041 不退化）
 - 新增 G 系列（10+ 例）：
   - G1-3：mergeByKeyWithTiebreaker 通用复用
   - G4-6：semanticEquivalent 各阈值边界

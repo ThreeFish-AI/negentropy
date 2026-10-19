@@ -187,7 +187,7 @@ async def test_build_graph_failure_preserves_algorithm_warnings():
 
 
 # ================================
-# Cancellation Propagation Tests (ISSUE-080)
+# Cancellation Propagation Tests (I-080)
 # ================================
 #
 # 背景：旧版 chunk 批处理循环 `asyncio.gather(return_exceptions=True)` 误将
@@ -205,7 +205,7 @@ async def test_build_graph_failure_preserves_algorithm_warnings():
 
 @pytest.mark.asyncio
 async def test_pipeline_cancelled_in_gather_propagates_to_terminal_cancelled():
-    """ISSUE-080 R1：process_chunk 中抛出的 PipelineCancelled 必须穿透 gather
+    """I-080 R1：process_chunk 中抛出的 PipelineCancelled 必须穿透 gather
     re-raise，build_graph 终态为 cancelled，而非被静默吞没为 failed_chunk。
 
     回归保护：旧实现 ``for result in results: if isinstance(result, Exception):
@@ -254,7 +254,7 @@ async def test_pipeline_cancelled_in_gather_propagates_to_terminal_cancelled():
 
 @pytest.mark.asyncio
 async def test_cancel_between_batches_short_circuits_next_batch():
-    """ISSUE-080 R2：批次入口的 in-memory cancel 检查必须在下一批 LLM 调用前生效。
+    """I-080 R2：批次入口的 in-memory cancel 检查必须在下一批 LLM 调用前生效。
 
     构造：单 chunk 一批，首批正常完成后通过 signal_cancel 触发取消，第二批应被
     批次入口 ``if is_cancelled(run_id): raise PipelineCancelled`` 短路，不再调用
@@ -322,7 +322,7 @@ async def test_cancel_between_batches_short_circuits_next_batch():
 
 @pytest.mark.asyncio
 async def test_maybe_report_chunk_progress_skips_when_cancelled():
-    """ISSUE-080 R3：cancel 已 set 后，chunk 进度上报必须早出，不再发起
+    """I-080 R3：cancel 已 set 后，chunk 进度上报必须早出，不再发起
     ``update_build_run(status='running', ...)`` 调用——否则原 SQL 守卫修复前会
     把 cancelling 回写为 running（即便修复后 SQL 守卫拒之，多余的调用也是噪音）。
 

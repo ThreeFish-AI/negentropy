@@ -19,7 +19,7 @@ WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 
 # pnpm 版本单一事实源＝根 package.json#packageManager（`corepack install` 不带参数即读本地清单）。
-# 勿改回 `corepack prepare pnpm@latest`：npm 的 latest 与 packageManager 会各自漂移（ISSUE-175）。
+# 勿改回 `corepack prepare pnpm@latest`：npm 的 latest 与 packageManager 会各自漂移（I-175）。
 RUN corepack install
 
 # 复制所有 package.json（workspace resolution 需要）

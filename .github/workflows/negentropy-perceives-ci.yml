@@ -204,8 +204,16 @@ jobs:
             # 本项目仅加载第一方模型 artifact、不加载不可信 HF 仓库，攻击向量不可达；
             # 修复版本 5.10.0 已发布，但 transformers 锁定 <5.0.0 的根因是 marker-pdf 2.0.0/
             # surya 0.22.1 要求 pillow<11、与 pillow>=12.3.0（修 8 条可达图像解析 CVE）冲突
-            # ——详见 pyproject [tool.uv] 注释与 ISSUE-092 2026-09-06 增补
+            # ——详见 pyproject [tool.uv] 注释与 I-092 2026-09-06 增补
             --ignore-vuln CVE-2026-9856
+
+            # transformers PYSEC-2026-4174（CVE-2026-80047 / GHSA-x9r9-c232-4q39）：
+            # GenerativePreTrainedModel.load_custom_generate() 在 trust_remote_code 确认前
+            # 把远程 custom_generate/generate.py 落盘到 ~/.cache/huggingface/modules——
+            # 需加载恶意 HF 仓库触发。与上方三条 transformers 豁免同威胁模型：本项目仅加载
+            # 第一方模型 artifact、不加载不可信 HF 仓库，且从不调用 load_custom_generate，
+            # 攻击向量不可达；upstream 无已发布修复版本（Last affected 5.8.1，fix 未发布）
+            --ignore-vuln PYSEC-2026-4174
 
             # torch 2.10.0 本地内存破坏 / DoS，需攻击者构造恶意 tensor / pt2 文件；
             # 本项目仅加载第一方模型 artifact，无不可信输入路径，upstream 暂无 fix
@@ -225,7 +233,7 @@ jobs:
             # 加载第一方模型 artifact，向量不可达）。upstream fix 2.13.0 已发布，但升级实测回归：
             # torch>=2.13 强制 torchvision 0.25.0→0.29.0（其 0.25.0 硬钉 torch==2.10.0），而
             # transformers 受 pillow 冲突钉死 4.57.6，二者在 docling engine worker 导入链上不兼容
-            #（实测 parse-pdf 由 Success 变 Failed: cannot import name AutoProcessor）——见 ISSUE-092
+            #（实测 parse-pdf 由 Success 变 Failed: cannot import name AutoProcessor）——见 I-092
             --ignore-vuln CVE-2025-3000
           )
           uv run pip-audit "${ignore_args[@]}"

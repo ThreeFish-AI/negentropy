@@ -39,7 +39,7 @@
       ] },
     { "id": "resolve", "lane": "engine", "col": 0, "type": "backend", "label": "① Resolve 主体解析", "sublabel": "Tenant / User · 可见性边界", "width": 124,
       "sources": [
-        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 440, "label": "§5.3 权限天花板实时求值" },
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 440, "label": "§5.3 会话权限上界实时求值" },
         { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 45, "label": "tenant / user 两级空间" }
       ] },
     { "id": "plan", "lane": "engine", "col": 1, "type": "backend", "label": "② Plan 意图与预算", "sublabel": "Context Pack · 各域预算比", "width": 124,
@@ -54,7 +54,7 @@
       ] },
     { "id": "retrieve_recall", "lane": "engine", "col": 2, "type": "database", "label": "③ Retrieve 召回范式", "sublabel": "目录定位 + 多路召回", "width": 124, "yOffset": 80,
       "sources": [
-        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 587, "label": "§7.1 宽进严出三段管线" },
+        { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 587, "label": "§7.1 高召回初检→重排→top-k 截断三段管线" },
         { "path": "docs/research/cognitive-context/013-context-layer-blueprint.md", "line": 619, "label": "并行种子 + 图扩展" }
       ] },
     { "id": "fuse", "lane": "engine", "col": 3, "type": "backend", "label": "④ Fuse 融合重排", "sublabel": "RRF · 归一信任分", "width": 124,

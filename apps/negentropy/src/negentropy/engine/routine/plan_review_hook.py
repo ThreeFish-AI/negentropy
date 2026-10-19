@@ -1,4 +1,4 @@
-"""Claude Code PreToolUse 钩子 — 同轮投递 NegentropyEngine 的 Plan Review 反馈给 CC（ISSUE-123）。
+"""Claude Code PreToolUse 钩子 — 同轮投递 NegentropyEngine 的 Plan Review 反馈给 CC（I-123）。
 
 定位（为何用 hook 而非 stdin auto-answer）：
     受控实验证实，claude headless(`-p`) 下 ``AskUserQuestion`` 被 CLI **即时自动报错解析**
@@ -23,7 +23,7 @@
 **stdout 纯净性（关键）**：Claude Code 按 **纯 JSON** 解析钩子 stdout；而 negentropy 引擎的
 structlog/日志默认写 stdout（实测 `disposer_registered`/`task_model_resolved` 等噪声行）。若混入
 stdout，Claude Code 解析失败 → 放弃钩子 → CC 落回 CLI 自动报错 "Answer questions?"（评审反馈丢失，
-ISSUE-123 实测复发根因）。故进程启动即**保存原始 stdout fd，并把进程级 stdout(fd 1) 重定向到 stderr**，
+I-123 实测复发根因）。故进程启动即**保存原始 stdout fd，并把进程级 stdout(fd 1) 重定向到 stderr**，
 所有引擎/日志噪声入 stderr，最终决策 JSON 仅经保存的原始 stdout 输出——无论日志去向皆纯净。
 """
 
@@ -40,7 +40,7 @@ from contextlib import suppress
 # **而非 ``python -m`` 包模块**——后者会让 runpy 先 import ``negentropy.engine.routine`` 包 ``__init__`` 链
 # （触发 lifecycle/db.session 的 ``disposer_registered`` 日志写到尚未重定向的 stdout，污染钩子 JSON）。
 #
-# 关键（ISSUE-130）：下述重定向/日志重配是**进程级全局副作用**，必须收敛进 ``__main__`` 入口的
+# 关键（I-130）：下述重定向/日志重配是**进程级全局副作用**，必须收敛进 ``__main__`` 入口的
 # ``_bootstrap_stdout_purity()``，**绝不可在 import 时执行**。否则任何在进程内 ``import plan_review_hook``
 # 的场景——pytest 收集本模块单测、orchestrator 仅为取 ``__file__`` 而 import（orchestrator.py）——都会把
 # 宿主进程 stdout 重定向到 stderr、并把全局 structlog 改道 file sink，连带破坏其它依赖 capsys 捕获
@@ -52,7 +52,7 @@ def _bootstrap_stdout_purity() -> None:
     """脚本入口专用:保存原始 stdout fd 并把进程 stdout 全量重定向到 stderr + 日志改 file sink。
 
     顺序即正确性:先 fd/对象级重定向(②③),再 import ``configure_logging``(⑤),确保重定向赶在
-    任何引擎 import 的日志噪声之前生效。仅由 ``__main__`` 调用,import 时不触发(ISSUE-130)。
+    任何引擎 import 的日志噪声之前生效。仅由 ``__main__`` 调用,import 时不触发(I-130)。
     """
     global _REAL_STDOUT_FD
     # ① 保存原始 stdout fd，供 _emit 写最终 JSON。
@@ -174,7 +174,7 @@ async def _run(payload: dict, ctx: dict) -> str:
     # 方案字符上限（卡环根因修复）：交 judge 前的截断上限。过小会让 judge 看不到尾部 Phase 而误判
     # 「不完整」致 refine 死循环；默认 200000 远超正常方案，仅作失控超长的有限上界。
     max_plan_chars = int(ctx.get("max_plan_chars") or 200_000)
-    # max_retries=1（ISSUE-129）：钩子受 Claude Code PreToolUse 超时硬约束，多次重试 × timeout 会超钩子
+    # max_retries=1（I-129）：钩子受 Claude Code PreToolUse 超时硬约束，多次重试 × timeout 会超钩子
     # 预算被杀致 CC 落回 "Answer questions?"。钩子内单次尝试即可——真正的「重试」是 CC 据 refine 反馈
     # 重新提交（外层闭环），无需在钩子内重试空耗时间预算。
     reviewer = PlanReviewer(
@@ -189,7 +189,7 @@ async def _run(payload: dict, ctx: dict) -> str:
         reflections=reflections if isinstance(reflections, list) else None,
         max_plan_chars=max_plan_chars,
     )
-    # 批准后**结束本轮**而非调用 ExitPlanMode（ISSUE-128）：单迭代两段式下，Runner 在批准后于
+    # 批准后**结束本轮**而非调用 ExitPlanMode（I-225）：单迭代两段式下，Runner 在批准后于
     # 同一 Iteration 内 --resume 续接 implement 段；而 headless ExitPlanMode 恒被 CLI 标 is_error，
     # CC 会误判失败而循环重试、空耗 turns。故批准/失败兜底均指示 CC「直接结束本轮」，由引擎续接实施。
     if not result.ok:
@@ -236,9 +236,9 @@ async def _run(payload: dict, ctx: dict) -> str:
     )
 
 
-# ExitPlanMode 批准文案（ISSUE-126/128）：headless 下 ExitPlanMode 必被 CLI 标 is_error
+# ExitPlanMode 批准文案（I-126/225）：headless 下 ExitPlanMode 必被 CLI 标 is_error
 # （permissionDecision=allow 经实验**不能**消除）。若指示 CC「继续实施」，CC 会因 is_error 误判失败
-# 而循环重试 ExitPlanMode 空耗 turns（ISSUE-128 实测 3×）。而 PLAN→IMPLEMENT 推进纯由引擎下一次
+# 而循环重试 ExitPlanMode 空耗 turns（I-225 实测 3×）。而 PLAN→IMPLEMENT 推进纯由引擎下一次
 # 评估驱动、不依赖 ExitPlanMode，故明确指示 CC **结束本轮**——引擎自动推进实施阶段。
 _EXIT_APPROVED_REASON = (
     "✅ NegentropyEngine 已收到你的方案并批准。请**立即结束本轮回复**，"
@@ -264,7 +264,7 @@ def main() -> None:
         except Exception:
             ctx = {}
     # legacy 模式（plan_review_unified_loop 关闭）：CC 经 AskUserQuestion 提交方案，ExitPlanMode 仅
-    # 返回「已批准」消噪、不评审（保留 ISSUE-126 行为）。unified 模式：ExitPlanMode（CC 原生提交方式）
+    # 返回「已批准」消噪、不评审（保留 I-126 行为）。unified 模式：ExitPlanMode（CC 原生提交方式）
     # 与 AskUserQuestion 均走真实 PlanReviewer 评审。
     if tool_name == "ExitPlanMode" and ctx.get("mode") != "unified":
         _emit(_EXIT_APPROVED_REASON)
@@ -280,6 +280,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # 进程级 stdout 重定向 + 日志改 file sink —— 仅脚本入口执行，绝不在 import 时触发（ISSUE-130）。
+    # 进程级 stdout 重定向 + 日志改 file sink —— 仅脚本入口执行，绝不在 import 时触发（I-130）。
     _bootstrap_stdout_purity()
     main()

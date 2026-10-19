@@ -1282,7 +1282,7 @@ async def memory_metrics(
     """Memory 系统聚合指标（需 admin 鉴权）。
 
     基于 SRE 四大黄金信号和 USE 方法，从现有表聚合搜索、巩固、Retention、PII 等指标。
-    admin 判断以 DB user_states 为权威（参见 _require_admin / ISSUE-049）。
+    admin 判断以 DB user_states 为权威（参见 _require_admin / I-049）。
     """
     user = await _require_admin(user)
 

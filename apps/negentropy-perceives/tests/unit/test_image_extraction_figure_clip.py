@@ -1,6 +1,6 @@
 """单元测试：``_render_figure_regions`` —— layout figure 区域整图渲染 + raster 反向去重。
 
-ISSUE-094 R7：PDF Figure 是矢量绘图层（标签 / 标注 / 装饰）+ 嵌入位图的复合图形。
+I-094 R7：PDF Figure 是矢量绘图层（标签 / 标注 / 装饰）+ 嵌入位图的复合图形。
 PyMuPDF ``get_images()`` 仅抽出嵌入位图，对矢量绘图层无能为力。R7 转用
 ``page.get_pixmap(clip=region.bbox)`` 对整个 layout figure region 重渲染，
 完整保留 PDF 原版视觉信息（如 Context Engineering 2.0 Figure 1 顶部
@@ -9,7 +9,7 @@ PyMuPDF ``get_images()`` 仅抽出嵌入位图，对矢量绘图层无能为力�
 反向去重策略锁定（``_FIGURE_CONTAINS_RASTER_THRESHOLD = 0.8``）：当 raster
 ≥ 80% 面积被 figure region 包含时，drop raster 并以 figure 整图替代。
 
-ISSUE-094 R8：layout 工具返回的 figure region bbox 仅覆盖嵌入光栅图本体
+I-094 R8：layout 工具返回的 figure region bbox 仅覆盖嵌入光栅图本体
 （如 Context Engineering 2.0 Figure 1 ~299pt），未含完整视觉范围（列标题
 + 子标签 + 装饰线 + caption ~515pt）。新增 ``_expand_figure_bbox`` 后处理
 扩展 bbox 至视觉对齐范围，使 markdown 的 ``<img width>`` 与 PDF 原版占比一致。
@@ -139,7 +139,7 @@ class TestFigureContainsRasterThreshold:
 
 
 class TestExpandFigureBbox:
-    """``_expand_figure_bbox`` —— ISSUE-094 R8 figure bbox 视觉扩展。
+    """``_expand_figure_bbox`` —— I-094 R8 figure bbox 视觉扩展。
 
     场景：Docling/MinerU 给出的 figure region bbox 仅覆盖嵌入光栅图本体，
     未含 figure 完整视觉范围（列标题/子标签/装饰线/caption）。此函数后处理

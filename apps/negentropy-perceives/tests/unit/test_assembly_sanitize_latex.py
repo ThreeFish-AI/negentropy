@@ -7,7 +7,7 @@
 3. 单 token 重复溢出截断；
 4. **R9 新增**：非 ``align``/``aligned``/``array``/``matrix`` 环境下裸 ``&``
    分隔符必须被剥离，否则 KaTeX 在 ``$$...$$`` 块中触发
-   ``ParseError: Misplaced &``，整公式拒渲染（ISSUE-094 R9 D-5）。
+   ``ParseError: Misplaced &``，整公式拒渲染（I-094 R9 D-5）。
 """
 
 from __future__ import annotations

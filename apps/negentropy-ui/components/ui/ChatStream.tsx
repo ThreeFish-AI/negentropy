@@ -26,7 +26,7 @@ type ChatStreamProps = {
   scrollToBottomTrigger?: number;
   /**
    * Tool Progress 旁路（C3）— 由 home-body 从 snapshotForDisplay.tool_progress 提取，
-   * 不参与 conversationTree / message-ledger，规避 ISSUE-031 时间窗双气泡风险。
+   * 不参与 conversationTree / message-ledger，规避 I-031 时间窗双气泡风险。
    */
   toolProgressMap?: ToolProgressMap;
   /**

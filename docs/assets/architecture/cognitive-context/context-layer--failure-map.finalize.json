@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-13T06:55:40.486Z",
+  "startedAt": "2026-10-17T08:32:22.068Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-    "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
-    "bytes": 6486
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+    "sha256": "2a6c1768ab335e814d30048cda4a4d1f0158f867f4e2a2b8b3e83dd102fbbcff",
+    "bytes": 7249
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-    "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-    "bytes": 765362
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+    "sha256": "01f9f999cf533eede94699d5e6598c98a9185afaedba80731c0f0ee23e2e41eb",
+    "bytes": 768625
   },
   "stages": {
     "validate": {
@@ -27,8 +27,8 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--quality",
         "showcase",
         "--json"
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
-          "bytes": 6486
+          "sha256": "2a6c1768ab335e814d30048cda4a4d1f0158f867f4e2a2b8b3e83dd102fbbcff",
+          "bytes": 7249
         },
         "validation": {
           "checksPassed": 9,
@@ -54,33 +54,33 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 372,
+      "durationMs": 363,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--quality",
         "showcase",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
+        "receiptId": "ad60f037-e036-442a-98b5-6328f055f8e4",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/.archify/architecture-context-layer--failure-map-20261010-003320/candidate.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--failure-map/context-layer--failure-map.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "specification": {
-          "sha256": "5b3ea0a8799f93944ee510ef082e1a73b2aefef2e01a0892916fa077226bcac4",
-          "bytes": 6486
+          "sha256": "2a6c1768ab335e814d30048cda4a4d1f0158f867f4e2a2b8b3e83dd102fbbcff",
+          "bytes": 7249
         },
         "artifact": {
-          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-          "bytes": 765362
+          "sha256": "01f9f999cf533eede94699d5e6598c98a9185afaedba80731c0f0ee23e2e41eb",
+          "bytes": 768625
         },
         "validation": {
           "checksPassed": 9,
@@ -95,20 +95,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 85,
+      "durationMs": 120,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "artifact": {
-          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-          "bytes": 765362
+          "sha256": "01f9f999cf533eede94699d5e6598c98a9185afaedba80731c0f0ee23e2e41eb",
+          "bytes": 768625
         },
         "checks": [
           {
@@ -178,7 +178,7 @@
             "minLabelRouteClearance": null,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 7.500000000000001,
+            "minProjectedNodeTextPx": 6,
             "maxBends": 0,
             "routesOverSuggestedBends": 0,
             "maxStretch": 1,
@@ -213,39 +213,39 @@
           "desktopReadability": {
             "budgetBasis": "recognized-declared-wide",
             "readerContract": "declared-wide-v1",
-            "availableDiagramWidth": 1036.607142857143,
-            "actualBudgetPx": 1036.607142857143,
-            "actualReaderWidth": 1066.607142857143,
-            "desiredReaderWidth": 1066.607142857143,
+            "availableDiagramWidth": 1180,
+            "actualBudgetPx": 1180,
+            "actualReaderWidth": 1210,
+            "desiredReaderWidth": 1210,
             "viewportCap": 1376,
             "limit": "source-size",
             "requestedTargetPx": 7.5,
-            "requestedTargetMet": true,
+            "requestedTargetMet": false,
             "hardFloorPx": 6,
             "hardFloorMet": true,
             "minimumOwner": {
               "kind": "node",
               "id": "c7_jiexian"
             },
-            "minimumSourceTextPx": 8.4,
-            "minimumProjectedTextPx": 7.500000000000001,
-            "semanticTextCount": 21
+            "minimumSourceTextPx": 6,
+            "minimumProjectedTextPx": 6,
+            "semanticTextCount": 23
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a"
+        "deliveryReceiptId": "ad60f037-e036-442a-98b5-6328f055f8e4"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1202,
+      "durationMs": 1366,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
         "--json",
         "--require-provenance"
       ],
@@ -258,11 +258,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "ca07fd59-68f5-4e92-8917-ff217f17ca7a",
+        "deliveryReceiptId": "ad60f037-e036-442a-98b5-6328f055f8e4",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
-          "sha256": "e5238cd5798187673cabe3930cc53ee30e384082fa1ee98db16c3bf5fc923a8d",
-          "bytes": 765362
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+          "sha256": "01f9f999cf533eede94699d5e6598c98a9185afaedba80731c0f0ee23e2e41eb",
+          "bytes": 768625
         },
         "state": {
           "detail": "read",
@@ -293,8 +293,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1213,
-              "diagramWidth": 1183,
+              "readerWidth": 1233,
+              "diagramWidth": 1203,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
@@ -303,11 +303,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -343,8 +343,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1267,
-              "diagramWidth": 1237,
+              "readerWidth": 1287,
+              "diagramWidth": 1257,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -353,11 +353,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -393,8 +393,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1394,
-              "diagramWidth": 1364,
+              "readerWidth": 1416,
+              "diagramWidth": 1386,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -403,11 +403,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -443,8 +443,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1766,
-              "diagramWidth": 1716,
+              "readerWidth": 1794,
+              "diagramWidth": 1744,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -453,11 +453,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -546,8 +546,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1213,
-              "diagramWidth": 1183,
+              "readerWidth": 1233,
+              "diagramWidth": 1203,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
@@ -556,11 +556,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -596,8 +596,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1267,
-              "diagramWidth": 1237,
+              "readerWidth": 1287,
+              "diagramWidth": 1257,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -606,11 +606,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -646,8 +646,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1394,
-              "diagramWidth": 1364,
+              "readerWidth": 1416,
+              "diagramWidth": 1386,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -656,11 +656,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -696,8 +696,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1766,
-              "diagramWidth": 1716,
+              "readerWidth": 1794,
+              "diagramWidth": 1744,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -706,11 +706,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -751,8 +751,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1213,
-              "diagramWidth": 1183,
+              "readerWidth": 1233,
+              "diagramWidth": 1203,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
@@ -761,11 +761,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -801,8 +801,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1267,
-              "diagramWidth": 1237,
+              "readerWidth": 1287,
+              "diagramWidth": 1257,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -811,11 +811,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -851,8 +851,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1394,
-              "diagramWidth": 1364,
+              "readerWidth": 1416,
+              "diagramWidth": 1386,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
@@ -861,11 +861,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -901,8 +901,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1766,
-              "diagramWidth": 1716,
+              "readerWidth": 1794,
+              "diagramWidth": 1744,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -911,11 +911,11 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 732
               },
-              "viewBoxWidth": 1161,
-              "minimumProjectedNodeTextPx": 8.4,
-              "minimumProjectedNonEdgeTextPx": 8.4,
+              "viewBoxWidth": 1180,
+              "minimumProjectedNodeTextPx": 6,
+              "minimumProjectedNonEdgeTextPx": 6,
               "minimumProjectedEdgeTextPx": null,
-              "minimumProjectedNodeText": "装配面名实分离／激活悬空／巩固断链 · 4 行",
+              "minimumProjectedNodeText": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
                 "kind": "node",
@@ -951,11 +951,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/sarajevo-v3/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--failure-map.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-13T06:55:42.527Z",
-  "durationMs": 2040
+  "finishedAt": "2026-10-17T08:32:24.264Z",
+  "durationMs": 2195
 }

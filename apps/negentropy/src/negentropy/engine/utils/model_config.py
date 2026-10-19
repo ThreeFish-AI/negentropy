@@ -78,7 +78,7 @@ async def resolve_model_config_async(
     if explicit_model:
         # 按名解析以携带凭证 kwargs（api_key/api_base）——否则裸 explicit_model + {} kwargs
         # 会丢失代理路由，导致 Judge/Reviewer 的 litellm 调用因缺凭证失败（per-routine
-        # evaluator_model 覆盖即走此路，ISSUE-121 修复的端到端正确性依赖于此）。
+        # evaluator_model 覆盖即走此路，I-121 修复的端到端正确性依赖于此）。
         resolved = await resolve_llm_config_by_model_name(explicit_model)
         if resolved is not None:
             return resolved

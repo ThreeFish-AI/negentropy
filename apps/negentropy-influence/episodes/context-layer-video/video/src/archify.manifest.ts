@@ -34,8 +34,8 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-k1.mp4",
         "endStill": "assembly-economics--ae-k1-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
+        "leadSec": 0.48,
+        "storySec": 3.22,
         "beatNodes": [
           "k1"
         ]
@@ -46,8 +46,8 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-k2.mp4",
         "endStill": "assembly-economics--ae-k2-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.21,
+        "leadSec": 0.52,
+        "storySec": 3.25,
         "beatNodes": [
           "k2"
         ]
@@ -58,8 +58,8 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-k3.mp4",
         "endStill": "assembly-economics--ae-k3-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
+        "leadSec": 0.52,
+        "storySec": 3.23,
         "beatNodes": [
           "k3"
         ]
@@ -70,8 +70,8 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-k4.mp4",
         "endStill": "assembly-economics--ae-k4-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
+        "leadSec": 0.52,
+        "storySec": 3.2,
         "beatNodes": [
           "k4"
         ]
@@ -82,8 +82,8 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-k5.mp4",
         "endStill": "assembly-economics--ae-k5-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.26,
+        "leadSec": 0.52,
+        "storySec": 3.23,
         "beatNodes": [
           "k5"
         ]
@@ -94,8 +94,8 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-ch.mp4",
         "endStill": "assembly-economics--ae-ch-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
+        "leadSec": 0.68,
+        "storySec": 3.2,
         "beatNodes": [
           "ch1",
           "ch2"
@@ -107,8 +107,8 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-guard.mp4",
         "endStill": "assembly-economics--ae-guard-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.25,
+        "leadSec": 0.48,
+        "storySec": 3.26,
         "beatNodes": [
           "fuse",
           "guard"
@@ -132,7 +132,7 @@ export const ARCHIFY = {
         "file": "assembly-economics--ae-knobs.mp4",
         "endStill": "assembly-economics--ae-knobs-end.png",
         "beats": 5,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 5.56,
         "beatNodes": [
           "k1",
@@ -149,167 +149,112 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "ax-obj",
-        "label": "对象轴",
-        "file": "blueprint--architecture--ax-obj.mp4",
-        "endStill": "blueprint--architecture--ax-obj-end.png",
+        "id": "arc-facets",
+        "label": "三面各答一问",
+        "file": "blueprint--architecture--arc-facets.mp4",
+        "endStill": "blueprint--architecture--arc-facets-end.png",
+        "beats": 12,
+        "leadSec": 0.44,
+        "storySec": 13.27,
+        "beatNodes": [
+          "registry",
+          "axisAsset",
+          "axisAuth",
+          "axisAssembly",
+          "axisRetrieval",
+          "axisCompounding",
+          "stageL1",
+          "stageL2",
+          "stageL3",
+          "stageL4",
+          "stageL5",
+          "stageL6"
+        ]
+      },
+      {
+        "id": "arc-axes",
+        "label": "五轴与独立性",
+        "file": "blueprint--architecture--arc-axes.mp4",
+        "endStill": "blueprint--architecture--arc-axes-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.52,
+        "storySec": 5.56,
         "beatNodes": [
-          "src-instruction",
-          "src-memory",
-          "src-knowledge",
-          "src-tools",
-          "src-session"
+          "axisAsset",
+          "axisAuth",
+          "axisAssembly",
+          "axisRetrieval",
+          "axisCompounding"
         ]
       },
       {
-        "id": "ax-struct",
-        "label": "结构轴",
-        "file": "blueprint--architecture--ax-struct.mp4",
-        "endStill": "blueprint--architecture--ax-struct-end.png",
+        "id": "arc-seams",
+        "label": "机制＝多轴组合",
+        "file": "blueprint--architecture--arc-seams.mp4",
+        "endStill": "blueprint--architecture--arc-seams-end.png",
         "beats": 5,
         "leadSec": 0.44,
-        "storySec": 5.57,
+        "storySec": 5.55,
         "beatNodes": [
-          "layer-object",
-          "layer-catalog",
-          "layer-enrich",
-          "layer-govern",
-          "layer-activate"
+          "chipM1M5",
+          "chipM2M6",
+          "chipM3",
+          "chipM4",
+          "chipM7"
         ]
       },
       {
-        "id": "ax-time",
-        "label": "时间轴",
-        "file": "blueprint--architecture--ax-time.mp4",
-        "endStill": "blueprint--architecture--ax-time-end.png",
-        "beats": 5,
-        "leadSec": 0.4,
-        "storySec": 5.54,
-        "beatNodes": [
-          "ph-collect",
-          "ph-govern",
-          "ph-activate",
-          "ph-verify",
-          "ph-evolve"
-        ]
-      },
-      {
-        "id": "ax-accept",
-        "label": "验收面",
-        "file": "blueprint--architecture--ax-accept.mp4",
-        "endStill": "blueprint--architecture--ax-accept-end.png",
-        "beats": 10,
-        "leadSec": 0.44,
-        "storySec": 11.08,
-        "beatNodes": [
-          "layer-object",
-          "layer-catalog",
-          "layer-enrich",
-          "layer-govern",
-          "layer-activate",
-          "ph-collect",
-          "ph-govern",
-          "ph-activate",
-          "ph-verify",
-          "ph-evolve"
-        ]
-      }
-    ]
-  },
-  "blueprint--dual-track-roadmap": {
-    "slug": "blueprint--dual-track-roadmap",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "dt-design",
-        "label": "共享设计层",
-        "file": "blueprint--dual-track-roadmap--dt-design.mp4",
-        "endStill": "blueprint--dual-track-roadmap--dt-design-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "design"
-        ]
-      },
-      {
-        "id": "dt-show",
-        "label": "样板间",
-        "file": "blueprint--dual-track-roadmap--dt-show.mp4",
-        "endStill": "blueprint--dual-track-roadmap--dt-show-end.png",
-        "beats": 4,
-        "leadSec": 0.48,
-        "storySec": 4.44,
-        "beatNodes": [
-          "p0",
-          "p1",
-          "p2",
-          "p3"
-        ]
-      },
-      {
-        "id": "dt-main",
-        "label": "本楼改造",
-        "file": "blueprint--dual-track-roadmap--dt-main.mp4",
-        "endStill": "blueprint--dual-track-roadmap--dt-main-end.png",
-        "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.37,
-        "beatNodes": [
-          "ph1",
-          "ph2",
-          "ph3"
-        ]
-      },
-      {
-        "id": "dt-p0",
-        "label": "P0 已验证",
-        "file": "blueprint--dual-track-roadmap--dt-p0.mp4",
-        "endStill": "blueprint--dual-track-roadmap--dt-p0-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.21,
-        "beatNodes": [
-          "p0"
-        ]
-      }
-    ]
-  },
-  "blueprint--industry-landscape": {
-    "slug": "blueprint--industry-landscape",
-    "type": "architecture",
-    "chapters": [
-      {
-        "id": "il-routes",
-        "label": "四路线",
-        "file": "blueprint--industry-landscape--il-routes.mp4",
-        "endStill": "blueprint--industry-landscape--il-routes-end.png",
+        "id": "arc-stages",
+        "label": "时间面六段",
+        "file": "blueprint--architecture--arc-stages.mp4",
+        "endStill": "blueprint--architecture--arc-stages-end.png",
         "beats": 6,
         "leadSec": 0.44,
-        "storySec": 6.64,
+        "storySec": 6.63,
         "beatNodes": [
-          "sf",
-          "dbt",
-          "cube",
-          "atl",
-          "bp",
-          "palantir"
+          "stageL1",
+          "stageL2",
+          "stageL3",
+          "stageL4",
+          "stageL5",
+          "stageL6"
+        ]
+      }
+    ]
+  },
+  "blueprint--first-class-object": {
+    "slug": "blueprint--first-class-object",
+    "type": "dataflow",
+    "chapters": [
+      {
+        "id": "fco-objects",
+        "label": "研究对象",
+        "file": "blueprint--first-class-object--fco-objects.mp4",
+        "endStill": "blueprint--first-class-object--fco-objects-end.png",
+        "beats": 5,
+        "leadSec": 0.56,
+        "storySec": 5.57,
+        "beatNodes": [
+          "espace",
+          "erel",
+          "charfn",
+          "rawctx",
+          "taskdom"
         ]
       },
       {
-        "id": "il-gap",
-        "label": "落地断层",
-        "file": "blueprint--industry-landscape--il-gap.mp4",
-        "endStill": "blueprint--industry-landscape--il-gap-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.24,
+        "id": "fco-txn",
+        "label": "装配事务",
+        "file": "blueprint--first-class-object--fco-txn.mp4",
+        "endStill": "blueprint--first-class-object--fco-txn-end.png",
+        "beats": 4,
+        "leadSec": 0.52,
+        "storySec": 4.45,
         "beatNodes": [
-          "gap",
-          "agents"
+          "operators",
+          "txn",
+          "answer",
+          "symptoms"
         ]
       }
     ]
@@ -319,84 +264,55 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "lm-obj",
-        "label": "对象层席",
-        "file": "blueprint--layer-mechanism-map--lm-obj.mp4",
-        "endStill": "blueprint--layer-mechanism-map--lm-obj-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "id": "lmm-open",
+        "label": "矩阵总览",
+        "file": "blueprint--layer-mechanism-map--lmm-open.mp4",
+        "endStill": "blueprint--layer-mechanism-map--lmm-open-end.png",
+        "beats": 12,
+        "leadSec": 0.52,
+        "storySec": 13.29,
         "beatNodes": [
-          "obj-m",
-          "obj-i"
+          "axis_asset",
+          "axis_authority",
+          "axis_assembly",
+          "axis_retrieval",
+          "axis_compounding",
+          "m1_semantic_view",
+          "m2_row_policy",
+          "m3_semantic_gov",
+          "m4_vqr",
+          "m5_lineage",
+          "m6_agent_identity",
+          "m7_tagging"
         ]
       },
       {
-        "id": "lm-cat",
-        "label": "目录层席",
-        "file": "blueprint--layer-mechanism-map--lm-cat.mp4",
-        "endStill": "blueprint--layer-mechanism-map--lm-cat-end.png",
+        "id": "lmm-single",
+        "label": "单轴全落权威",
+        "file": "blueprint--layer-mechanism-map--lmm-single.mp4",
+        "endStill": "blueprint--layer-mechanism-map--lmm-single-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "cat-m",
-          "cat-i"
-        ]
-      },
-      {
-        "id": "lm-enr",
-        "label": "富化层席",
-        "file": "blueprint--layer-mechanism-map--lm-enr.mp4",
-        "endStill": "blueprint--layer-mechanism-map--lm-enr-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 3.26,
         "beatNodes": [
-          "enr-m",
-          "enr-i"
+          "m2_row_policy",
+          "m6_agent_identity"
         ]
       },
       {
-        "id": "lm-gov",
-        "label": "治理层席",
-        "file": "blueprint--layer-mechanism-map--lm-gov.mp4",
-        "endStill": "blueprint--layer-mechanism-map--lm-gov-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "gov-m",
-          "gov-i"
-        ]
-      },
-      {
-        "id": "lm-act",
-        "label": "激活层席",
-        "file": "blueprint--layer-mechanism-map--lm-act.mp4",
-        "endStill": "blueprint--layer-mechanism-map--lm-act-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "act-m",
-          "act-i"
-        ]
-      },
-      {
-        "id": "lm-spine",
-        "label": "全脊柱",
-        "file": "blueprint--layer-mechanism-map--lm-spine.mp4",
-        "endStill": "blueprint--layer-mechanism-map--lm-spine-end.png",
+        "id": "lmm-seam",
+        "label": "跨轴组合",
+        "file": "blueprint--layer-mechanism-map--lmm-seam.mp4",
+        "endStill": "blueprint--layer-mechanism-map--lmm-seam-end.png",
         "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.57,
+        "leadSec": 0.52,
+        "storySec": 5.56,
         "beatNodes": [
-          "obj-m",
-          "cat-m",
-          "enr-m",
-          "gov-m",
-          "act-m"
+          "m1_semantic_view",
+          "m3_semantic_gov",
+          "m4_vqr",
+          "m5_lineage",
+          "m7_tagging"
         ]
       }
     ]
@@ -406,100 +322,69 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "tm-client",
-        "label": "客户端环境",
-        "file": "blueprint--mcp-threat-model--tm-client.mp4",
-        "endStill": "blueprint--mcp-threat-model--tm-client-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.29,
+        "id": "tm2-open",
+        "label": "供给面全景",
+        "file": "blueprint--mcp-threat-model--tm2-open.mp4",
+        "endStill": "blueprint--mcp-threat-model--tm2-open-end.png",
+        "beats": 11,
+        "leadSec": 0.52,
+        "storySec": 12.15,
         "beatNodes": [
-          "con",
-          "agent"
+          "host-client",
+          "mcp-surface",
+          "compile-gate",
+          "governed-exec",
+          "data-plane",
+          "token-theft",
+          "desc-poison",
+          "deputy",
+          "handle-spoof",
+          "injection",
+          "legitimation"
         ]
       },
       {
-        "id": "tm-poison",
-        "label": "描述投毒",
-        "file": "blueprint--mcp-threat-model--tm-poison.mp4",
-        "endStill": "blueprint--mcp-threat-model--tm-poison-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
+        "id": "tm2-surface",
+        "label": "供给边界",
+        "file": "blueprint--mcp-threat-model--tm2-surface.mp4",
+        "endStill": "blueprint--mcp-threat-model--tm2-surface-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.33,
+        "beatNodes": [
+          "host-client",
+          "mcp-surface",
+          "compile-gate"
+        ]
+      },
+      {
+        "id": "tm2-plane",
+        "label": "数据与执行",
+        "file": "blueprint--mcp-threat-model--tm2-plane.mp4",
+        "endStill": "blueprint--mcp-threat-model--tm2-plane-end.png",
+        "beats": 2,
+        "leadSec": 0.52,
         "storySec": 3.24,
         "beatNodes": [
-          "tool-poison"
-        ]
-      },
-      {
-        "id": "tm-inject",
-        "label": "间接注入",
-        "file": "blueprint--mcp-threat-model--tm-inject.mp4",
-        "endStill": "blueprint--mcp-threat-model--tm-inject-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "response-injection"
-        ]
-      },
-      {
-        "id": "tm-deputy",
-        "label": "混淆代理",
-        "file": "blueprint--mcp-threat-model--tm-deputy.mp4",
-        "endStill": "blueprint--mcp-threat-model--tm-deputy-end.png",
-        "beats": 1,
-        "leadSec": 0.48,
-        "storySec": 3.25,
-        "beatNodes": [
-          "confused-deputy"
-        ]
-      },
-      {
-        "id": "tm-token",
-        "label": "令牌透传",
-        "file": "blueprint--mcp-threat-model--tm-token.mp4",
-        "endStill": "blueprint--mcp-threat-model--tm-token-end.png",
-        "beats": 1,
-        "leadSec": 0.48,
-        "storySec": 3.23,
-        "beatNodes": [
-          "token-theft"
-        ]
-      },
-      {
-        "id": "tm-gate",
-        "label": "治理门与执行",
-        "file": "blueprint--mcp-threat-model--tm-gate.mp4",
-        "endStill": "blueprint--mcp-threat-model--tm-gate-end.png",
-        "beats": 4,
-        "leadSec": 0.44,
-        "storySec": 4.42,
-        "beatNodes": [
-          "mcp",
-          "gate",
-          "execution",
+          "governed-exec",
           "data-plane"
         ]
       },
       {
-        "id": "tm-full",
-        "label": "供给面全景",
-        "file": "blueprint--mcp-threat-model--tm-full.mp4",
-        "endStill": "blueprint--mcp-threat-model--tm-full-end.png",
-        "beats": 10,
-        "leadSec": 0.44,
-        "storySec": 11.08,
+        "id": "tm2-threats",
+        "label": "六类威胁",
+        "file": "blueprint--mcp-threat-model--tm2-threats.mp4",
+        "endStill": "blueprint--mcp-threat-model--tm2-threats-end.png",
+        "beats": 6,
+        "leadSec": 0.52,
+        "storySec": 6.66,
         "beatNodes": [
-          "con",
-          "agent",
-          "tool-poison",
-          "response-injection",
-          "confused-deputy",
           "token-theft",
-          "mcp",
-          "gate",
-          "execution",
-          "data-plane"
+          "desc-poison",
+          "deputy",
+          "handle-spoof",
+          "injection",
+          "legitimation"
         ]
       }
     ]
@@ -514,8 +399,8 @@ export const ARCHIFY = {
         "file": "blueprint--object-lifecycle--ol-draft.mp4",
         "endStill": "blueprint--object-lifecycle--ol-draft-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.22,
+        "leadSec": 0.48,
+        "storySec": 3.25,
         "beatNodes": [
           "draft"
         ]
@@ -526,8 +411,8 @@ export const ARCHIFY = {
         "file": "blueprint--object-lifecycle--ol-gov.mp4",
         "endStill": "blueprint--object-lifecycle--ol-gov-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
+        "leadSec": 0.52,
+        "storySec": 3.21,
         "beatNodes": [
           "governed"
         ]
@@ -538,8 +423,8 @@ export const ARCHIFY = {
         "file": "blueprint--object-lifecycle--ol-conflict.mp4",
         "endStill": "blueprint--object-lifecycle--ol-conflict-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
+        "leadSec": 0.52,
+        "storySec": 3.25,
         "beatNodes": [
           "conflict"
         ]
@@ -550,8 +435,8 @@ export const ARCHIFY = {
         "file": "blueprint--object-lifecycle--ol-super.mp4",
         "endStill": "blueprint--object-lifecycle--ol-super-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.26,
+        "leadSec": 0.52,
+        "storySec": 3.25,
         "beatNodes": [
           "superseded"
         ]
@@ -562,8 +447,8 @@ export const ARCHIFY = {
         "file": "blueprint--object-lifecycle--ol-full.mp4",
         "endStill": "blueprint--object-lifecycle--ol-full-end.png",
         "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.57,
+        "leadSec": 0.52,
+        "storySec": 5.55,
         "beatNodes": [
           "draft",
           "governed",
@@ -584,8 +469,8 @@ export const ARCHIFY = {
         "file": "evolution-levers--el-six.mp4",
         "endStill": "evolution-levers--el-six-end.png",
         "beats": 6,
-        "leadSec": 0.44,
-        "storySec": 6.64,
+        "leadSec": 0.52,
+        "storySec": 6.67,
         "beatNodes": [
           "retrieval",
           "kstrategy",
@@ -601,8 +486,8 @@ export const ARCHIFY = {
         "file": "evolution-levers--el-ctx.mp4",
         "endStill": "evolution-levers--el-ctx-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.22,
+        "leadSec": 0.52,
+        "storySec": 3.26,
         "beatNodes": [
           "ctxstrat"
         ]
@@ -613,8 +498,8 @@ export const ARCHIFY = {
         "file": "evolution-levers--el-sm.mp4",
         "endStill": "evolution-levers--el-sm-end.png",
         "beats": 7,
-        "leadSec": 0.44,
-        "storySec": 7.77,
+        "leadSec": 0.52,
+        "storySec": 7.72,
         "beatNodes": [
           "draft",
           "shadow",
@@ -632,274 +517,149 @@ export const ARCHIFY = {
     "type": "architecture",
     "chapters": [
       {
-        "id": "fm-stale",
-        "label": "过期供给",
-        "file": "failure-map--fm-stale.mp4",
-        "endStill": "failure-map--fm-stale-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "id": "fm2-open",
+        "label": "十簇总览",
+        "file": "failure-map--fm2-open.mp4",
+        "endStill": "failure-map--fm2-open-end.png",
+        "beats": 10,
+        "leadSec": 0.52,
+        "storySec": 11.05,
         "beatNodes": [
-          "F2"
+          "c1_koujing",
+          "c2_zhixing",
+          "c3_menjin",
+          "c4_yanzheng",
+          "c5_gongji",
+          "c6_yunhangshi",
+          "c7_jiexian",
+          "c8_jiyi",
+          "c9_zuzhi",
+          "c10_xiezuo"
         ]
       },
       {
-        "id": "fm-conflict",
-        "label": "口径打架",
-        "file": "failure-map--fm-conflict.mp4",
-        "endStill": "failure-map--fm-conflict-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "F1"
-        ]
-      },
-      {
-        "id": "fm-auth",
-        "label": "代理越权",
-        "file": "failure-map--fm-auth.mp4",
-        "endStill": "failure-map--fm-auth-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "F5"
-        ]
-      },
-      {
-        "id": "fm-breach",
-        "label": "权限穿透",
-        "file": "failure-map--fm-breach.mp4",
-        "endStill": "failure-map--fm-breach-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "F4"
-        ]
-      },
-      {
-        "id": "fm-unverified",
-        "label": "未验证断言",
-        "file": "failure-map--fm-unverified.mp4",
-        "endStill": "failure-map--fm-unverified-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "F6"
-        ]
-      },
-      {
-        "id": "fm-poison",
-        "label": "供给面投毒",
-        "file": "failure-map--fm-poison.mp4",
-        "endStill": "failure-map--fm-poison-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "F7"
-        ]
-      },
-      {
-        "id": "fm-split",
-        "label": "检索割裂",
-        "file": "failure-map--fm-split.mp4",
-        "endStill": "failure-map--fm-split-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.24,
-        "beatNodes": [
-          "F3"
-        ]
-      },
-      {
-        "id": "fm-silent",
-        "label": "静默退化",
-        "file": "failure-map--fm-silent.mp4",
-        "endStill": "failure-map--fm-silent-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
-        "beatNodes": [
-          "F8"
-        ]
-      },
-      {
-        "id": "fm-obj",
-        "label": "对象层堵截",
-        "file": "failure-map--fm-obj.mp4",
-        "endStill": "failure-map--fm-obj-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "F1",
-          "L4"
-        ]
-      },
-      {
-        "id": "fm-cat",
-        "label": "目录层堵截",
-        "file": "failure-map--fm-cat.mp4",
-        "endStill": "failure-map--fm-cat-end.png",
+        "id": "fm2-def",
+        "label": "定义执法三簇",
+        "file": "failure-map--fm2-def.mp4",
+        "endStill": "failure-map--fm2-def-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.33,
+        "leadSec": 0.52,
+        "storySec": 3.35,
         "beatNodes": [
-          "F2",
-          "F3",
-          "L5"
+          "c1_koujing",
+          "c2_zhixing",
+          "c3_menjin"
         ]
       },
       {
-        "id": "fm-gov",
-        "label": "治理层堵截",
-        "file": "failure-map--fm-gov.mp4",
-        "endStill": "failure-map--fm-gov-end.png",
+        "id": "fm2-supply",
+        "label": "背书接入四簇",
+        "file": "failure-map--fm2-supply.mp4",
+        "endStill": "failure-map--fm2-supply-end.png",
         "beats": 4,
-        "leadSec": 0.44,
+        "leadSec": 0.48,
         "storySec": 4.44,
         "beatNodes": [
-          "F4",
-          "F5",
-          "F7",
-          "L7"
+          "c4_yanzheng",
+          "c5_gongji",
+          "c6_yunhangshi",
+          "c7_jiexian"
         ]
       },
       {
-        "id": "fm-act",
-        "label": "激活层堵截",
-        "file": "failure-map--fm-act.mp4",
-        "endStill": "failure-map--fm-act-end.png",
+        "id": "fm2-ends",
+        "label": "末端三簇",
+        "file": "failure-map--fm2-ends.mp4",
+        "endStill": "failure-map--fm2-ends-end.png",
         "beats": 3,
-        "leadSec": 0.44,
-        "storySec": 3.32,
+        "leadSec": 0.52,
+        "storySec": 3.36,
         "beatNodes": [
-          "F6",
-          "F8",
-          "L8"
-        ]
-      },
-      {
-        "id": "fm-all",
-        "label": "八失效全景",
-        "file": "failure-map--fm-all.mp4",
-        "endStill": "failure-map--fm-all-end.png",
-        "beats": 8,
-        "leadSec": 0.44,
-        "storySec": 8.88,
-        "beatNodes": [
-          "F1",
-          "F2",
-          "F3",
-          "F4",
-          "F5",
-          "F6",
-          "F7",
-          "F8"
+          "c8_jiyi",
+          "c9_zuzhi",
+          "c10_xiezuo"
         ]
       }
     ]
   },
-  "five-sources": {
-    "slug": "five-sources",
-    "type": "architecture",
+  "ingest-pipeline": {
+    "slug": "ingest-pipeline",
+    "type": "workflow",
     "chapters": [
       {
-        "id": "fs-instr",
-        "label": "身份与规程",
-        "file": "five-sources--fs-instr.mp4",
-        "endStill": "five-sources--fs-instr-end.png",
+        "id": "ig-open",
+        "label": "总览",
+        "file": "ingest-pipeline--ig-open.mp4",
+        "endStill": "ingest-pipeline--ig-open-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "ingest",
+          "tag_index"
+        ]
+      },
+      {
+        "id": "ig-ingest",
+        "label": "Ingest 登记",
+        "file": "ingest-pipeline--ig-ingest.mp4",
+        "endStill": "ingest-pipeline--ig-ingest-end.png",
         "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "src-instruction"
-        ]
-      },
-      {
-        "id": "fs-mem",
-        "label": "记忆",
-        "file": "five-sources--fs-mem.mp4",
-        "endStill": "five-sources--fs-mem-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
         "storySec": 3.25,
         "beatNodes": [
-          "src-memory",
-          "sig-memory"
+          "ingest"
         ]
       },
       {
-        "id": "fs-know",
-        "label": "知识",
-        "file": "five-sources--fs-know.mp4",
-        "endStill": "five-sources--fs-know-end.png",
-        "beats": 2,
+        "id": "ig-normalize",
+        "label": "Normalize 归一",
+        "file": "ingest-pipeline--ig-normalize.mp4",
+        "endStill": "ingest-pipeline--ig-normalize-end.png",
+        "beats": 1,
         "leadSec": 0.44,
-        "storySec": 3.25,
+        "storySec": 3.26,
         "beatNodes": [
-          "src-knowledge",
-          "sig-knowledge"
+          "normalize"
         ]
       },
       {
-        "id": "fs-tools",
-        "label": "能力",
-        "file": "five-sources--fs-tools.mp4",
-        "endStill": "five-sources--fs-tools-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.22,
-        "beatNodes": [
-          "src-tools",
-          "sig-tools"
-        ]
-      },
-      {
-        "id": "fs-session",
-        "label": "会话",
-        "file": "five-sources--fs-session.mp4",
-        "endStill": "five-sources--fs-session-end.png",
+        "id": "ig-classify",
+        "label": "Classify 分类",
+        "file": "ingest-pipeline--ig-classify.mp4",
+        "endStill": "ingest-pipeline--ig-classify-end.png",
         "beats": 1,
         "leadSec": 0.44,
         "storySec": 3.24,
         "beatNodes": [
-          "src-session"
+          "classify"
         ]
       },
       {
-        "id": "fs-gov",
-        "label": "治理面",
-        "file": "five-sources--fs-gov.mp4",
-        "endStill": "five-sources--fs-gov-end.png",
-        "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.33,
-        "beatNodes": [
-          "gov-privacy",
-          "gov-access",
-          "gov-exec"
-        ]
-      },
-      {
-        "id": "fs-out",
-        "label": "五源汇流",
-        "file": "five-sources--fs-out.mp4",
-        "endStill": "five-sources--fs-out-end.png",
-        "beats": 6,
+        "id": "ig-tier",
+        "label": "Tier 分级",
+        "file": "ingest-pipeline--ig-tier.mp4",
+        "endStill": "ingest-pipeline--ig-tier-end.png",
+        "beats": 4,
         "leadSec": 0.44,
-        "storySec": 6.66,
+        "storySec": 4.46,
         "beatNodes": [
-          "src-instruction",
-          "src-memory",
-          "src-knowledge",
-          "src-tools",
-          "src-session",
-          "ctx-output"
+          "tier",
+          "l0",
+          "l1",
+          "l2"
+        ]
+      },
+      {
+        "id": "ig-tag",
+        "label": "Tag/Index 入册",
+        "file": "ingest-pipeline--ig-tag.mp4",
+        "endStill": "ingest-pipeline--ig-tag-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "tag_index"
         ]
       }
     ]
@@ -914,8 +674,8 @@ export const ARCHIFY = {
         "file": "injection-points--ip-nine.mp4",
         "endStill": "injection-points--ip-nine-end.png",
         "beats": 8,
-        "leadSec": 0.44,
-        "storySec": 8.88,
+        "leadSec": 0.48,
+        "storySec": 8.82,
         "beatNodes": [
           "r1_identity",
           "r2_skills",
@@ -933,8 +693,8 @@ export const ARCHIFY = {
         "file": "injection-points--ip-hooks.mp4",
         "endStill": "injection-points--ip-hooks-end.png",
         "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.54,
+        "leadSec": 0.52,
+        "storySec": 5.51,
         "beatNodes": [
           "h1_instruction",
           "h2_before_model",
@@ -949,8 +709,8 @@ export const ARCHIFY = {
         "file": "injection-points--ip-memory.mp4",
         "endStill": "injection-points--ip-memory-end.png",
         "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "leadSec": 0.52,
+        "storySec": 3.21,
         "beatNodes": [
           "r5_memory",
           "h3_tool_registry"
@@ -962,8 +722,8 @@ export const ARCHIFY = {
         "file": "injection-points--ip-assembler.mp4",
         "endStill": "injection-points--ip-assembler-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
+        "leadSec": 0.48,
+        "storySec": 3.21,
         "beatNodes": [
           "ref_assembler"
         ]
@@ -974,8 +734,8 @@ export const ARCHIFY = {
         "file": "injection-points--ip-out.mp4",
         "endStill": "injection-points--ip-out-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.25,
+        "leadSec": 0.48,
+        "storySec": 3.21,
         "beatNodes": [
           "out_llm"
         ]
@@ -986,8 +746,8 @@ export const ARCHIFY = {
         "file": "injection-points--ip-auth.mp4",
         "endStill": "injection-points--ip-auth-end.png",
         "beats": 3,
-        "leadSec": 0.48,
-        "storySec": 3.37,
+        "leadSec": 0.52,
+        "storySec": 3.33,
         "beatNodes": [
           "r1_identity",
           "r7_defs",
@@ -1000,8 +760,8 @@ export const ARCHIFY = {
         "file": "injection-points--ip-full.mp4",
         "endStill": "injection-points--ip-full-end.png",
         "beats": 15,
-        "leadSec": 0.44,
-        "storySec": 16.59,
+        "leadSec": 0.52,
+        "storySec": 16.57,
         "beatNodes": [
           "r1_identity",
           "r2_skills",
@@ -1027,131 +787,213 @@ export const ARCHIFY = {
     "type": "dataflow",
     "chapters": [
       {
-        "id": "lc-collect",
-        "label": "采集",
-        "file": "lifecycle--lc-collect.mp4",
-        "endStill": "lifecycle--lc-collect-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.21,
+        "id": "lc2-open",
+        "label": "六段两环总览",
+        "file": "lifecycle--lc2-open.mp4",
+        "endStill": "lifecycle--lc2-open-end.png",
+        "beats": 6,
+        "leadSec": 0.48,
+        "storySec": 6.67,
         "beatNodes": [
-          "sources",
-          "collect"
+          "l1",
+          "l2",
+          "l3",
+          "l4",
+          "l5",
+          "l6"
         ]
       },
       {
-        "id": "lc-govern",
-        "label": "治理",
-        "file": "lifecycle--lc-govern.mp4",
-        "endStill": "lifecycle--lc-govern-end.png",
+        "id": "lc2-l1",
+        "label": "L1 采集登记",
+        "file": "lifecycle--lc2-l1.mp4",
+        "endStill": "lifecycle--lc2-l1-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.21,
+        "leadSec": 0.48,
+        "storySec": 3.22,
         "beatNodes": [
-          "govern"
+          "l1"
         ]
       },
       {
-        "id": "lc-activate",
-        "label": "激活",
-        "file": "lifecycle--lc-activate.mp4",
-        "endStill": "lifecycle--lc-activate-end.png",
+        "id": "lc2-l2",
+        "label": "L2 校验与裁决",
+        "file": "lifecycle--lc2-l2.mp4",
+        "endStill": "lifecycle--lc2-l2-end.png",
         "beats": 1,
-        "leadSec": 0.44,
-        "storySec": 3.23,
-        "beatNodes": [
-          "activate"
-        ]
-      },
-      {
-        "id": "lc-verify",
-        "label": "验证",
-        "file": "lifecycle--lc-verify.mp4",
-        "endStill": "lifecycle--lc-verify-end.png",
-        "beats": 1,
-        "leadSec": 0.44,
+        "leadSec": 0.52,
         "storySec": 3.24,
         "beatNodes": [
-          "verify"
+          "l2"
         ]
       },
       {
-        "id": "lc-evolve",
-        "label": "进化",
-        "file": "lifecycle--lc-evolve.mp4",
-        "endStill": "lifecycle--lc-evolve-end.png",
-        "beats": 2,
-        "leadSec": 0.44,
-        "storySec": 3.23,
+        "id": "lc2-l3",
+        "label": "L3 装配执法",
+        "file": "lifecycle--lc2-l3.mp4",
+        "endStill": "lifecycle--lc2-l3-end.png",
+        "beats": 1,
+        "leadSec": 0.52,
+        "storySec": 3.24,
         "beatNodes": [
-          "evolve",
-          "delivery"
+          "l3"
         ]
       },
       {
-        "id": "lc-loop",
-        "label": "大回路",
-        "file": "lifecycle--lc-loop.mp4",
-        "endStill": "lifecycle--lc-loop-end.png",
-        "beats": 5,
-        "leadSec": 0.44,
-        "storySec": 5.57,
+        "id": "lc2-l4",
+        "label": "L4 应答锚定",
+        "file": "lifecycle--lc2-l4.mp4",
+        "endStill": "lifecycle--lc2-l4-end.png",
+        "beats": 1,
+        "leadSec": 0.56,
+        "storySec": 3.25,
         "beatNodes": [
-          "collect",
-          "govern",
-          "activate",
-          "verify",
-          "evolve"
+          "l4"
+        ]
+      },
+      {
+        "id": "lc2-l5",
+        "label": "L5 沉淀与回写",
+        "file": "lifecycle--lc2-l5.mp4",
+        "endStill": "lifecycle--lc2-l5-end.png",
+        "beats": 1,
+        "leadSec": 0.52,
+        "storySec": 3.24,
+        "beatNodes": [
+          "l5"
+        ]
+      },
+      {
+        "id": "lc2-l6",
+        "label": "L6 衰减退役",
+        "file": "lifecycle--lc2-l6.mp4",
+        "endStill": "lifecycle--lc2-l6-end.png",
+        "beats": 1,
+        "leadSec": 0.52,
+        "storySec": 3.22,
+        "beatNodes": [
+          "l6"
+        ]
+      },
+      {
+        "id": "lc2-loops",
+        "label": "验证与进化环",
+        "file": "lifecycle--lc2-loops.mp4",
+        "endStill": "lifecycle--lc2-loops-end.png",
+        "beats": 3,
+        "leadSec": 0.52,
+        "storySec": 3.33,
+        "beatNodes": [
+          "l2",
+          "l4",
+          "l5"
         ]
       }
     ]
   },
-  "runtime-layering": {
-    "slug": "runtime-layering",
-    "type": "architecture",
+  "read-pipeline": {
+    "slug": "read-pipeline",
+    "type": "workflow",
     "chapters": [
       {
-        "id": "rl-cgave",
-        "label": "五段内环",
-        "file": "runtime-layering--rl-cgave.mp4",
-        "endStill": "runtime-layering--rl-cgave-end.png",
-        "beats": 5,
+        "id": "rp-open",
+        "label": "总览",
+        "file": "read-pipeline--rp-open.mp4",
+        "endStill": "read-pipeline--rp-open-end.png",
+        "beats": 3,
         "leadSec": 0.44,
-        "storySec": 5.52,
+        "storySec": 3.35,
         "beatNodes": [
-          "cl_collect",
-          "cl_govern",
-          "cl_activate",
-          "cl_verify",
-          "cl_evolve"
+          "req",
+          "bundle",
+          "dropped"
         ]
       },
       {
-        "id": "rl-sys",
-        "label": "五子系统",
-        "file": "runtime-layering--rl-sys.mp4",
-        "endStill": "runtime-layering--rl-sys-end.png",
-        "beats": 5,
+        "id": "rp-resolve",
+        "label": "Resolve 主体",
+        "file": "read-pipeline--rp-resolve.mp4",
+        "endStill": "read-pipeline--rp-resolve-end.png",
+        "beats": 2,
         "leadSec": 0.44,
-        "storySec": 5.55,
+        "storySec": 3.25,
         "beatNodes": [
-          "sys_memory",
-          "sys_kb",
-          "sys_kg",
-          "sys_tools",
-          "sys_skills"
+          "req",
+          "resolve"
         ]
       },
       {
-        "id": "rl-store",
-        "label": "单库持久",
-        "file": "runtime-layering--rl-store.mp4",
-        "endStill": "runtime-layering--rl-store-end.png",
+        "id": "rp-plan",
+        "label": "Plan 计划",
+        "file": "read-pipeline--rp-plan.mp4",
+        "endStill": "read-pipeline--rp-plan-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.22,
+        "beatNodes": [
+          "plan"
+        ]
+      },
+      {
+        "id": "rp-retrieve",
+        "label": "Retrieve 双范式",
+        "file": "read-pipeline--rp-retrieve.mp4",
+        "endStill": "read-pipeline--rp-retrieve-end.png",
+        "beats": 2,
+        "leadSec": 0.48,
+        "storySec": 3.29,
+        "beatNodes": [
+          "retrieve_exact",
+          "retrieve_recall"
+        ]
+      },
+      {
+        "id": "rp-fuse",
+        "label": "Fuse 融合",
+        "file": "read-pipeline--rp-fuse.mp4",
+        "endStill": "read-pipeline--rp-fuse-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.23,
+        "beatNodes": [
+          "fuse"
+        ]
+      },
+      {
+        "id": "rp-guard",
+        "label": "Guard 检查",
+        "file": "read-pipeline--rp-guard.mp4",
+        "endStill": "read-pipeline--rp-guard-end.png",
+        "beats": 2,
+        "leadSec": 0.44,
+        "storySec": 3.24,
+        "beatNodes": [
+          "guard",
+          "dropped"
+        ]
+      },
+      {
+        "id": "rp-compose",
+        "label": "Compose 裁剪",
+        "file": "read-pipeline--rp-compose.mp4",
+        "endStill": "read-pipeline--rp-compose-end.png",
+        "beats": 1,
+        "leadSec": 0.44,
+        "storySec": 3.25,
+        "beatNodes": [
+          "compose"
+        ]
+      },
+      {
+        "id": "rp-emit",
+        "label": "Emit 交付",
+        "file": "read-pipeline--rp-emit.mp4",
+        "endStill": "read-pipeline--rp-emit-end.png",
         "beats": 1,
         "leadSec": 0.44,
         "storySec": 3.26,
         "beatNodes": [
-          "pg_store"
+          "bundle"
         ]
       }
     ]

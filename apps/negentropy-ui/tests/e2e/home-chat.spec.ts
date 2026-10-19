@@ -1,9 +1,9 @@
 /**
  * Home / 人与 Agent 对话全链路防回归基建
  *
- * 目标：让 ISSUE-031 / 036 / 039 / 040 / 041 系列双气泡复发**在 CI 失败而不是合并后才被发现**。
+ * 目标：让 I-031 / 036 / 039 / 040 / 041 系列双气泡复发**在 CI 失败而不是合并后才被发现**。
  *
- * 设计原则（参考 docs/issue.md ISSUE-041「双气泡复发」准则）：
+ * 设计原则（参考 docs/issue.md I-041「双气泡复发」准则）：
  * 1. 严格断言 `[data-testid="message-bubble"]` count，不依赖文本匹配（防 dedup 漂移误判）。
  * 2. 既测「Send 后立即态」又测「reload hydration 态」，两者必须 count 一致。
  * 3. 模拟双轮 LLM、并行工具调用等复发场景，确保 dedup 金字塔完整工作。
@@ -207,7 +207,7 @@ test("Home 双气泡守卫：单轮文本回复后 assistant message-bubble coun
     page.locator('[data-testid="message-bubble"][data-message-role="user"]'),
   ).toHaveCount(1);
 
-  // hydration 一致性：reload 后 count 不变（防 ISSUE-041 跨 runId 分裂）
+  // hydration 一致性：reload 后 count 不变（防 I-041 跨 runId 分裂）
   await page.reload();
   await expect(page.getByText("Hello! 我是 Negentropy。")).toBeVisible({ timeout: 10_000 });
   await expect(
@@ -219,7 +219,7 @@ test("Home 双气泡守卫：单轮文本回复后 assistant message-bubble coun
 });
 
 // ============================================================================
-// C7-B: 流式输出 + Markdown + 工具调用混合用例（覆盖 ISSUE-040 思考独白溢出）
+// C7-B: 流式输出 + Markdown + 工具调用混合用例（覆盖 I-040 思考独白溢出）
 // ============================================================================
 
 test("Home 双气泡守卫：流式 Markdown + 终态 hydration 后 message-bubble 一致", async ({ page }) => {
@@ -312,11 +312,11 @@ test("Home 双气泡守卫：流式 Markdown + 终态 hydration 后 message-bubb
 });
 
 // ============================================================================
-// C7-C: 模型切换 localStorage 持久化（覆盖 ISSUE-037）
+// C7-C: 模型切换 localStorage 持久化（覆盖 I-037）
 // ============================================================================
 
 // NOTE: 该用例的 SessionList "+ New" 触发后未呈现新会话项，疑似 mock route 时序与 startNewSession
-// 之间有竞态。核心断言（localStorage 持久化）已在 ISSUE-037 单测覆盖；E2E 用例待 follow-up 调试。
+// 之间有竞态。核心断言（localStorage 持久化）已在 I-037 单测覆盖；E2E 用例待 follow-up 调试。
 test.skip("Home 模型选择：刷新页面后选择保留（即使尚未 Send）", async ({ page }) => {
   await mockAuthenticatedUser(page);
 
@@ -377,7 +377,7 @@ test.skip("Home 模型选择：刷新页面后选择保留（即使尚未 Send�
   const modelSelect = page.getByLabel("选择主 Agent 使用的 LLM");
   await modelSelect.selectOption({ label: "Claude Opus 4.7" });
 
-  // 验证 localStorage 已持久化（覆盖 ISSUE-037 的根因）；value 形式为 vendor/model_name
+  // 验证 localStorage 已持久化（覆盖 I-037 的根因）；value 形式为 vendor/model_name
   const persisted = await page.evaluate(
     (sid) =>
       window.localStorage.getItem(`negentropy:home:llm-model:${sid}`),
@@ -391,7 +391,7 @@ test.skip("Home 模型选择：刷新页面后选择保留（即使尚未 Send�
 });
 
 // ============================================================================
-// C7-D: 工具调用 + 并行执行 message-bubble 守卫（防 ISSUE-039 短回复重复）
+// C7-D: 工具调用 + 并行执行 message-bubble 守卫（防 I-039 短回复重复）
 // ============================================================================
 
 test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-bubble 仍为 1", async ({ page }) => {
@@ -538,7 +538,7 @@ test("Home 双气泡守卫：assistant 含 tool-group + 后续文本时 message-
 });
 
 // ============================================================================
-// C7-D: ISSUE-049 — 新建会话 URL 同步 sessionId（深链 / 书签 / 分享）
+// C7-D: I-049 — 新建会话 URL 同步 sessionId（深链 / 书签 / 分享）
 // ============================================================================
 
 test("Home URL sync：点击 + New 后 URL 应包含 ?sessionId=，刷新仍保持，可被外部 URL 直接定位", async ({ page }) => {
@@ -586,7 +586,7 @@ test("Home URL sync：点击 + New 后 URL 应包含 ?sessionId=，刷新仍保�
 });
 
 // ============================================================================
-// C7-E: ISSUE-049 — 流式累积残缺版 + final 完整版双内容兜底防御
+// C7-E: I-049 — 流式累积残缺版 + final 完整版双内容兜底防御
 // ============================================================================
 
 test("Home 流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 final 版", async ({ page }) => {
@@ -644,7 +644,7 @@ test("Home 流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 fin
         messageId: "assistant-streaming",
         timestamp: baseTs + 0.003,
       },
-      // final 增量：另一个 messageId，更完备的内容（覆盖 ISSUE-049 双 messageId 场景）
+      // final 增量：另一个 messageId，更完备的内容（覆盖 I-049 双 messageId 场景）
       {
         type: "TEXT_MESSAGE_START",
         threadId: sessionId,
@@ -721,7 +721,7 @@ test("Home 流式 dedupe：双 messageId 同源不同完成度 → 仅渲染 fin
 });
 
 // ============================================================================
-// C7-F: ISSUE-061 v2-D — 归档列表 view 与会话切换 URL 全路径同步
+// C7-F: I-061 v2-D — 归档列表 view 与会话切换 URL 全路径同步
 // ============================================================================
 
 test("Home URL sync v2-D：切换归档面板写入 ?view=archived，刷新仍保持，可外部 URL 直达", async ({ page }) => {

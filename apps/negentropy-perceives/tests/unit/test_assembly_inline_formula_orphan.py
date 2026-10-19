@@ -1,6 +1,6 @@
 """``assembly`` stage — 无 bbox 公式（inline + block）兜底匹配单元测试。
 
-锁定 ISSUE-094 R5 修复契约：
+锁定 I-094 R5 修复契约：
 
 - MinerU 对短公式（如 ``CE: (C, T) → f_{context} (3)``）常分类为 ``inline`` 且
   缺失 bbox。此前 ``assembly`` 仅承接 ``formula_type == "block"`` 的孤儿，

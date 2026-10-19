@@ -58,5 +58,5 @@ en 交付前须补 en 文案（组件 NARRATION/SUBS 容器）与 `series-intro-
 另存在**机械阻断**——skill `pipeline.py` 的非主语言渲染预检
 `check_skeleton_for_lang` 直比 Main.tsx 归一化指纹与 skill 模板、不读 drift
 登记，铺开态下五集 en render 预检会 FAIL。en 交付前置 = skill 侧修预检
-（认可 drift 登记或模板吸纳挂载点），登记于 ISSUE-209 与 vibe-video.toml
+（认可 drift 登记或模板吸纳挂载点），登记于 I-209 与 vibe-video.toml
 drift reason。

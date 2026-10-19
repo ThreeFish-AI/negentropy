@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "上下文失效登记簿十簇：失效形态总览",
+    "locale": "zh-CN",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer--failure-map.html",
+    "legend": {
+      "entries": {
+        "backend": {
+          "label": "含义→计算→执法：定义能否被算对、被管住"
+        },
+        "messagebus": {
+          "label": "人工核验→供给→运行→接入：答案谁担保、上下文从哪来"
+        },
+        "external": {
+          "label": "记忆安全→组织落地→协作：防注入、owner 缺位与多代理共享"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "c1_koujing",
+      "type": "backend",
+      "label": "§1.1 口径簇",
+      "sublabel": "口径散落→对账崩塌；非法定义静默入库 · 2 行",
+      "tag": "拦截：M1 口径单点＋注册期校验门",
+      "pos": [
+        41,
+        110
+      ],
+      "size": [
+        280,
+        86
+      ]
+    },
+    {
+      "id": "c2_zhixing",
+      "type": "backend",
+      "label": "§1.2 执行簇",
+      "sublabel": "fan trap／半可加／双计／存量过期 · 6 行",
+      "tag": "拦截：M1 先聚后连＋查询期重算",
+      "pos": [
+        426,
+        110
+      ],
+      "size": [
+        280,
+        86
+      ]
+    },
+    {
+      "id": "c3_menjin",
+      "type": "backend",
+      "label": "§1.3 访问控制簇",
+      "sublabel": "策略绕过／越权窗口／审批窄化 · 9 行",
+      "tag": "拦截：M2·M3·M6·M7＋执行点律",
+      "pos": [
+        811,
+        110
+      ],
+      "size": [
+        280,
+        86
+      ]
+    },
+    {
+      "id": "c4_yanzheng",
+      "type": "messagebus",
+      "label": "§1.4 验证簇",
+      "sublabel": "governance≠verification；题库腐化 · 4 行",
+      "tag": "拦截：M4 VQR 锚定＋grain 契约",
+      "pos": [
+        843,
+        334
+      ],
+      "size": [
+        216,
+        86
+      ]
+    },
+    {
+      "id": "c5_gongji",
+      "type": "messagebus",
+      "label": "§1.5 供给簇",
+      "sublabel": "覆盖率上限／检索失配／CJK · 6 行",
+      "tag": "拦截：两条供给路径＋检索分域＋高召回初检→重排→top-k 截断",
+      "pos": [
+        592,
+        334
+      ],
+      "size": [
+        216,
+        86
+      ]
+    },
+    {
+      "id": "c6_yunhangshi",
+      "type": "messagebus",
+      "label": "§1.6 运行时簇",
+      "sublabel": "工具饱和／分片迷失／缓存前缀失效 · 6 行",
+      "tag": "拦截：预算带＋压缩分级＋缓存感知分段",
+      "pos": [
+        342,
+        334
+      ],
+      "size": [
+        216,
+        86
+      ]
+    },
+    {
+      "id": "c7_jiexian",
+      "type": "messagebus",
+      "label": "§1.7 接线簇",
+      "sublabel": "装配面已定义未接入生产路径／激活悬空／巩固回路缺件 · 4 行",
+      "tag": "拦截：I-194/195＋挂载对账＋G6",
+      "pos": [
+        92,
+        334
+      ],
+      "size": [
+        216,
+        86
+      ]
+    },
+    {
+      "id": "c8_jiyi",
+      "type": "external",
+      "label": "§1.8 记忆安全簇",
+      "sublabel": "intent legitimation／投毒／注入／认证失效 · 6 行",
+      "tag": "拦截：写入端扫描先于巩固＋受众绑定凭据",
+      "pos": [
+        60,
+        558
+      ],
+      "size": [
+        280,
+        86
+      ]
+    },
+    {
+      "id": "c9_zuzhi",
+      "type": "external",
+      "label": "§1.9 组织运营簇",
+      "sublabel": "ownership 缺位／信念断裂／陈旧数据 · 3 行",
+      "tag": "拦截：shared ownership＋执法点前置",
+      "pos": [
+        445,
+        558
+      ],
+      "size": [
+        280,
+        86
+      ]
+    },
+    {
+      "id": "c10_xiezuo",
+      "type": "external",
+      "label": "§1.10 协作簇",
+      "sublabel": "上下文割裂／认领竞态／协商不可追踪 · 3 行",
+      "tag": "拦截：任务契约全量交接＋认领临界区＋结构化协议",
+      "pos": [
+        830,
+        558
+      ],
+      "size": [
+        280,
+        86
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "含义 → 计算 → 执法 · 定义能否被算对、被管住",
+      "wraps": [
+        "c1_koujing",
+        "c2_zhixing",
+        "c3_menjin"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "人工核验 → 供给 → 运行 → 接入 · 答案谁担保、上下文从哪来",
+      "wraps": [
+        "c4_yanzheng",
+        "c5_gongji",
+        "c6_yunhangshi",
+        "c7_jiexian"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "记忆安全 → 组织落地 → 协作 · 防注入、owner 缺位与多代理共享",
+      "wraps": [
+        "c8_jiyi",
+        "c9_zuzhi",
+        "c10_xiezuo"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "c1_koujing",
+      "to": "c2_zhixing",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "c2_zhixing",
+      "to": "c3_menjin",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "c3_menjin",
+      "to": "c4_yanzheng",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "c4_yanzheng",
+      "to": "c5_gongji",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "from": "c5_gongji",
+      "to": "c6_yunhangshi",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "from": "c6_yunhangshi",
+      "to": "c7_jiexian",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "from": "c7_jiexian",
+      "to": "c8_jiyi",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "c8_jiyi",
+      "to": "c9_zuzhi",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "c9_zuzhi",
+      "to": "c10_xiezuo",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "十簇与五轴对位",
+      "items": [
+        "口径／执行簇由资产轴＋装配轴承接：M1 口径单点与查询期重算，D1/D2/D3/D7 反事实实验可复跑",
+        "访问控制簇由权威轴承接：策略挂数据本体、执行点求值，D5/D9/D10 反事实与 M6 会话权限上界",
+        "验证簇由检索轴＋验证环承接：M4 VQR 命中短路与 grain 契约独立验收位"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "绕开测试：一问判治理是否接入执行路径",
+      "items": [
+        "问「绕开这个点会发生什么」——答得出「什么都拦不住」的，策略写得再全也不生效",
+        "强制力来自求值点而非定义点：注册期门、装配期注册表、执行期引擎求值、编译期失败四层执法点分层"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "回路在线三条件",
+      "items": [
+        "回路成立须三件齐备：触发器、消费者、水位线，缺任一件回路不存在",
+        "I-195 实例：add_session_to_memory 有定义有测试，生产调用方为零、队列无消费者、水位列零命中"
+      ]
+    }
+  ]
+}

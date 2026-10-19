@@ -153,7 +153,7 @@ class TestHarnessEngineeringParity:
         for forbidden in expected_signature["quality_invariants"]["must_not_contain"]:
             assert forbidden not in pipeline_result.markdown, (
                 f"Regression detected: forbidden substring {forbidden!r} "
-                f"reappeared (see docs/agents/issue.md ISSUE-094)"
+                f"reappeared (see docs/agents/issue.md I-094)"
             )
 
     async def test_image_refs_match_image_count(

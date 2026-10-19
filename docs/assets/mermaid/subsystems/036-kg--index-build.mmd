@@ -3,7 +3,7 @@
 %%type: dataflow
 %%derived: byte-exact extraction of mermaid block #5
 %% fix: 构建管线缺三个已落地阶段——resolving（graph/entity_resolver.py::EntityResolver.resolve）、syncing（KgEntityService.batch_sync_from_graph_build 写 kg_entities/kg_relations）、pagerank（graph_algorithms.py::compute_pagerank）；service.py L202-208 权威阶段常量为 extracting→resolving→syncing→pagerank→communities→summaries
-%% fix: 社区层级是三层不是两层——graph_algorithms.py::compute_communities 默认 resolutions=[0.5,1.0,2.0] 降序映射 level 0/1/2（level 0 最细）；Leiden 经 igraph+leidenalg.find_partition，失败一次性降级 Louvain（NetworkX leiden_communities 是 dispatch wrapper 不派发，ISSUE-028）
+%% fix: 社区层级是三层不是两层——graph_algorithms.py::compute_communities 默认 resolutions=[0.5,1.0,2.0] 降序映射 level 0/1/2（level 0 最细）；Leiden 经 igraph+leidenalg.find_partition，失败一次性降级 Louvain（NetworkX leiden_communities 是 dispatch wrapper 不派发，I-028）
 %% fix: 「知识图谱 (AGE)」与现实现不符——knowledge/** 零 cypher() 调用，AgeGraphRepository 为遗留命名，实际落点是 kg_entities/kg_relations 一等公民表（models/perception.py L501/L569）
 %% fix: 「Local Search（实体邻域）」在代码中无同名服务——实为 GraphService.search → repository.hybrid_search（L986）向量+图结构融合，rrf_k 非空走 RRF（Cormack SIGIR 2009）否则线性加权
 %% fix: 「图遍历 1-2 跳」是配置上界——GraphContextBuilder 默认 max_hops=2，但 unified_search.py 热路径实际以 max_hops=1 调用

@@ -404,7 +404,7 @@ export function MessageBubble({
   const isSystem = message.role === "system";
   const content = normalizeContent(message.content);
   const hasContent = content.trim().length > 0;
-  // ISSUE-070：分离「streaming 状态」与「内容是否为空」两个维度。
+  // I-070：分离「streaming 状态」与「内容是否为空」两个维度。
   // 旧实现要求 hasContent 才认 streaming，导致 Agent 刚开始流式回复但尚未产出
   // 任何 token 时（streaming=true && content=""）UI 完全 blank、无任何反馈。
   // 现：streaming + 非用户 即视为 streaming；空内容 + 无 body 时显示「等首 token」

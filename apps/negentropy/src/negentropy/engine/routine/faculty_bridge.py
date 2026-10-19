@@ -232,7 +232,7 @@ async def _drive(agent: BaseAgent, task_prompt: str, *, user_id: str) -> str | N
 
     runner = get_runner(agent=agent)
     session_id = str(uuid4())  # PostgresSessionService 要求 UUID 字符串
-    # 自治 faculty 调用无人在环（ISSUE-156 续）：预创建 session 并注入 approval_policy=never，
+    # 自治 faculty 调用无人在环（I-156 续）：预创建 session 并注入 approval_policy=never，
     # 避免 InternalizationFaculty 的 ingest_paper / update_knowledge_graph 等高风险工具触发
     # 审批门 → 无人响应 → 超时循环。app_name 取 runner.app_name 与 ADK session 查找对齐。
     try:

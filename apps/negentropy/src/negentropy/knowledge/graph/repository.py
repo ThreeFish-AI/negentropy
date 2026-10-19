@@ -1815,7 +1815,7 @@ class AgeGraphRepository(GraphRepository):
     ) -> None:
         """更新构建运行状态。
 
-        状态机不变量（ISSUE-080）：
+        状态机不变量（I-080）：
         - 终态写入（``completed`` / ``failed`` / ``cancelled``）永远允许；
         - 非终态写入（如 ``running`` 进度上报）仅当 DB 当前**不在终态/cancelling** 时
           才生效。这避免 build task 的进度上报把取消 API 已写入的 ``cancelling``
@@ -2188,7 +2188,7 @@ class AgeGraphRepository(GraphRepository):
         - ``running`` 超 ``running_threshold_minutes`` 分钟无更新 → 标记为 ``failed``；
         - ``cancelling`` 超 ``cancelling_threshold_minutes`` → 强制 ``cancelled``。
 
-        阈值（ISSUE-080）：``cancelling_threshold_minutes`` 默认从 5 → 2，配合
+        阈值（I-080）：``cancelling_threshold_minutes`` 默认从 5 → 2，配合
         bootstrap 内 watchdog tick 间隔 60s，最坏兜底 ≤ 3 分钟。``running_threshold_minutes``
         保持 30 分钟（保守，配合 ``update_build_run`` 修复后 ``completed_at`` 保留语义，
         真实反映任务最后一次心跳时间而非任务启动时间）。

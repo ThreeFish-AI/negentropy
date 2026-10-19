@@ -1,11 +1,11 @@
 """Knowledge 搜索查询时使用 corpus 自配 embedding 模型的契约测试
 
-覆盖 ISSUE-028 修复：``search()`` 必须按 ``corpus.config.models.embedding_config_id``
+覆盖 I-028 修复：``search()`` 必须按 ``corpus.config.models.embedding_config_id``
 解析 embedding fn，使索引侧 (``_attach_embeddings``) 与查询侧契约对称：
 
 - corpus 显式 pin → 调 corpus 专属 fn（**不**用 service 默认 fn）；
 - corpus 未 pin → 退回 service 默认 fn（``self._embedding_fn``）；
-- corpus pin 的 fn 失败 → hybrid 仍走 keyword 兜底（ISSUE-026 契约不被破坏）；
+- corpus pin 的 fn 失败 → hybrid 仍走 keyword 兜底（I-026 契约不被破坏）；
 - rrf 模式同样 honor corpus pin；
 - semantic 模式 corpus pin 失败 → ``EmbeddingFailed`` 上抛（→ api.py 映射 502）。
 """
@@ -116,7 +116,7 @@ class TestSearchHonorsCorpusEmbeddingConfig:
 
     @pytest.mark.asyncio
     async def test_corpus_pinned_fn_failure_keeps_hybrid_keyword_fallback(self) -> None:
-        """corpus pin 的 fn 失败 → hybrid 仍走 keyword 兜底（ISSUE-026 契约不被破坏）。"""
+        """corpus pin 的 fn 失败 → hybrid 仍走 keyword 兜底（I-026 契约不被破坏）。"""
         repo = _StubRepository()
         svc = _make_service(repository=repo, default_embedding_fn=AsyncMock())
 

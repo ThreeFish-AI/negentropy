@@ -1,6 +1,6 @@
-# 《给 AI 发一张工卡：Agent 上下文层蓝图》科普视频工程
+# 《拆解 Agent Context Layer：上下文怎么供给、治理、装配》科普视频工程
 
-> 交付状态：**v2 终渲待审**（2026-09-29，14:02 @1080p30，第 4 轮评审修复 21 条后重渲，归档 ~/Documents/video/context-layer/）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v4 零类比重制·edge 草渲待审**（2026-10-17 收敛轮重渲：013 式 5–7 LaTeX 统一、三症状→四类失效全链清零、p7-03 等长改写并入重配（共 5 句）、4 图章节素材重录＋lead/manifest 再生、draft.mp4 重渲过 beat-heads×4 全片＋尾幕渐黑共五项体检（FAIL 0·WARN 0；十项全量体检为 2026-10-16 版结论，终渲前重跑）；此前 2026-10-16 v4 零类比重制，组件直讲：组件名+白话+贯穿请求走查；RequestCard 恒定锚/FiveAxisMap 导航/双管线真名走查；2026-10-19 评审轮已修屏上术语（跨轴组合/沉淀轴段名）与 8-M lead（另同步组件注释术语；p0-09/p0-17/p0-24 口播等长改词、音轨待重配），draft 未随之重渲、终渲前须重渲重配并重跑体检）。终渲与交付待人工确认。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -28,9 +28,14 @@ uv run --no-project $T/scripts/source_ledger.py --project $P verify
 uv run --no-project $T/scripts/pipeline.py --project $P build
 uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 
-# ③ 配音（参数全部取自 pipeline.toml，勿在命令行另写 --style/--ref）
-uv run --no-project $T/scripts/pipeline.py --project $P tts --plan   # 排期对账
-uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
+# ②b archify 图集重建（换 worktree 必跑；源图=archify 3.0 无 guided-views，须先注入兼容层再录制）
+python3 $P/scripts/patch-archify-html.py                      # docs 原件 → 本集 html/ 桥接副本（SSOT 不动）
+uv run --with playwright python $T/scripts/record_archify_all.py --project $P   # 串行 ~30min
+uv run --no-project --with pillow $T/scripts/archify_lead.py --project $P      # 漏跑=白闪进片
+uv run --no-project $T/scripts/archify_manifest.py --project $P
+
+# ③ 配音（edge 草渲档；参数全部取自 pipeline.toml）
+uv run --no-project $T/scripts/pipeline.py --project $P tts          # 秒级；改稿后重配亦秒级
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit

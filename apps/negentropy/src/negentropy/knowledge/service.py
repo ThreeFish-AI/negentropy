@@ -3233,7 +3233,7 @@ class KnowledgeService:
         )
 
         # 与 _attach_embeddings 索引侧对称：优先使用 corpus 自配的 embedding 模型，
-        # 落空再退回 service 默认 fn。修复 query/index embedding 模型不一致 (ISSUE-028)。
+        # 落空再退回 service 默认 fn。修复 query/index embedding 模型不一致 (I-028)。
         corpus_config = await self._get_corpus_config(corpus_id)
         embedding_fn = self._resolve_embedding_fn(corpus_config)
 

@@ -1,7 +1,7 @@
 """``pipeline_watchdog`` handler — 收敛 KB/KG pipeline 长尾。
 
 从 ``bootstrap.py:485-520`` 的 inline ``_pipeline_watchdog_tick`` 平移而来。
-设计原因详见 ISSUE-080：``update_build_run`` SQL 守卫修复后，watchdog 仅作 backstop。
+设计原因详见 I-080：``update_build_run`` SQL 守卫修复后，watchdog 仅作 backstop。
 """
 
 from __future__ import annotations

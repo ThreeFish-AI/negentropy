@@ -32,12 +32,12 @@ function HomeInner() {
   // 单一事实源（Single Source of Truth）：URL 的 ?sessionId= 参数。
   // 不再维护独立 React state — sessionId 完全派生自 URL，避免双 state 一致性问题
   // 与 useEffect 内 setState 的 React 18 反模式。这意味着：
-  // 1. 刷新 / 复制 URL / 浏览器返回前进 → 自然恢复对应会话（ISSUE-059）；
+  // 1. 刷新 / 复制 URL / 浏览器返回前进 → 自然恢复对应会话（I-059）；
   // 2. 书签 / 分享链接可直接指向特定会话；
   // 3. setSessionId 通过 window.history.replaceState 更新 URL，
   //    Next.js App Router 的 useSearchParams 会监听 history API 变更并触发派生重渲染。
   //
-  // ISSUE-062：useSearchParams() 每次 render 返回新的 ReadonlyURLSearchParams 引用
+  // I-062：useSearchParams() 每次 render 返回新的 ReadonlyURLSearchParams 引用
   // （即使 query 不变），如果直接列入 useCallback deps 会让 setSessionId 引用持续
   // 重建 → 传入 useSessionListService 后 loadSessions useCallback 也持续重建 →
   // useEffect(() => loadSessions(), [loadSessions]) 反复触发，与 startNewSession
@@ -48,7 +48,7 @@ function HomeInner() {
 
   const setSessionId = useCallback(
     (next: string | null) => {
-      // ISSUE-088：Next.js 16.2.3 的 useRouter().replace(target, { scroll: false })
+      // I-088：Next.js 16.2.3 的 useRouter().replace(target, { scroll: false })
       // 在「同 pathname、仅 query 变化」场景下会输出 history.replaceState({__NA: true}, "", 旧URL)
       // 的 no-op 路径，URL 不会真正更新，导致 useSearchParams 永远派生旧值。
       // 直接调用 window.history.replaceState 绕开该 RSC 导航判定路径——

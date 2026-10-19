@@ -2,7 +2,7 @@
  * Studio 中栏对话 → 共享 ``TranscriptItem[]`` 适配器。
  *
  * 消费 ``buildChatDisplayBlocks`` 的输出（``ChatDisplayBlock[]``）——复用 Studio 既有的 turn/工具
- * 分组、6 层去重、ISSUE-070 时钟漂移排序、reasoning/agent-transfer 处理（~1000 行），**不重新排序**，
+ * 分组、6 层去重、I-070 时钟漂移排序、reasoning/agent-transfer 处理（~1000 行），**不重新排序**，
  * 仅按下表做展示模型映射，末尾经共享 ``collapseToolRuns`` 折叠 ≥3 连续工具。
  *
  * 语义：人 = 真实用户（``user``，居右）；机 = 一核五翼 + Claude Code（带 ``role``，居左）。

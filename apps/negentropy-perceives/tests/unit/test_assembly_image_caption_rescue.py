@@ -1,6 +1,6 @@
 """``_figure_caption_to_inject`` 单元测试。
 
-ISSUE-094 R9 D-6：image_extraction 偶尔未能从 PyMuPDF / Docling
+I-094 R9 D-6：image_extraction 偶尔未能从 PyMuPDF / Docling
 正确关联图片下方的 caption 文本，导致 Markdown ``<img alt="...">`` 退化为
 文件名（如 ``alt="fig_p4_2.png"``），同时下方独立段落 ``Figure 3:
 Evolutionary process in context engineering`` 仍以纯文本形式存在 ——

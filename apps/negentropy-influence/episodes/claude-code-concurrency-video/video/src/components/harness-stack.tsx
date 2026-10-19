@@ -142,7 +142,7 @@ export const PlateSlab3D: React.FC<{
       >
         {/* 零光源（solids-3d 宪法三）：basic 材质本就不吃光，此前的 ambientLight 是空操作。
             板体恒等于 theme.panel 深底，active 的暖意只走描边与 PLATE_LIT 的轻微提亮——
-            绝不让整块变成实心亮块（ISSUE-177 教训二：emissive 把点亮层烧成橙块、压掉文字对比）。 */}
+            绝不让整块变成实心亮块（I-177 教训二：emissive 把点亮层烧成橙块、压掉文字对比）。 */}
         <group rotation={[rotationX, yaw, 0]} position={[0, -headroom / 2, 0]}>
           <Slab3D
             width={width}

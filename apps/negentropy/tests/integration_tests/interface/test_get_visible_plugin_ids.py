@@ -5,7 +5,7 @@
     该字段映射为 ``Enum(PluginVisibility, schema="negentropy")``，导致 SQLAlchemy
     生成的 ``WHERE visibility = $N::negentropy.pluginvisibility`` 在 VARCHAR 列上
     报 ``UndefinedFunctionError``，``GET /interface/tools`` / ``GET /interface/stats``
-    500（见 docs/agents/issue.md ISSUE-089，与 ISSUE-012 同源）。
+    500（见 docs/agents/issue.md I-089，与 I-012 同源）。
 
 本测试用真实 PG round-trip 守护：
     1. 4 类 plugin（builtin_tool / mcp_server / skill / agent）的 visibility
@@ -208,7 +208,7 @@ async def test_get_visible_plugin_ids_union_semantics(
 
 @pytest.mark.asyncio
 async def test_get_visible_plugin_ids_builtin_tool_public_query_does_not_raise() -> None:
-    """ISSUE-089 直接回归测试：``builtin_tool`` 的 PUBLIC 子查询不再触发
+    """I-089 直接回归测试：``builtin_tool`` 的 PUBLIC 子查询不再触发
     ``UndefinedFunctionError: operator does not exist: character varying = negentropy.pluginvisibility``。
 
     只要 0036 迁移已应用、ORM 与 DB 列类型一致，本调用即可顺利完成 round-trip

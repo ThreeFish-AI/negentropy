@@ -22,7 +22,7 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 
 ## 跨域结论
 
-- **Skills**：对齐面最宽（三级披露、空集省略、宽容加载、离线 eval 门均 ✅，两处强于参考实现）；真增量集中在目录与激活契约（`expand_skill` 未挂载，ISSUE-194）与目录注入面无转义。
+- **Skills**：对齐面最宽（三级披露、空集省略、宽容加载、离线 eval 门均 ✅，两处强于参考实现）；真增量集中在目录与激活契约（`expand_skill` 未挂载，I-194）与目录注入面无转义。
 - **Jev**：编排级快慢分工与弃权孤例已在；真增量是四条纪律（弃权语义、矫正 counter、置信缺省方向、量纲分组），多数是「写」级成本。
 - **Agent Harness**：闭环骨架与审批底座已在；交互式对话的压缩为零（HM-M11，最高优先）与记忆链路防注入（HM-M3）是主链路缺口；凭据边界与生产门控绑定「触达生产」触发条件。
 - **认知与上下文**：定义注册、评估闭环、渐进披露已有同构物；真增量是验证问答资产、定义内嵌同义词与指令、冲突浮出人工裁决、信任归一。
@@ -36,24 +36,24 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 
 | 条目 | 内容 | 关联 |
 | --- | --- | --- |
-| OV-7 | 会话→记忆触发：巩固触发器 + consolidation_jobs 消费者 + 水位，独立 PR 先于 013 修复序首批（§14.1；原 Phase 1） | ISSUE-195 |
-| OV-9 | 巩固 diff 审计：审计面接 UI，merge loser 可追溯 | ISSUE-195 |
-| OV-10 | 幂等水位：threads.metadata.consolidated_at_event_seq，与 OV-7 同 PR | ISSUE-195 |
-| OV-3 | 修 OV-D3 `force_refresh` 签名并改源水位判据，独立 PR 先于 013 修复序首批（§14.1；原 Phase 1） | ISSUE-195 |
-| SK-M3 + SK-M5 | `expand_skill` 挂载 TOOL_REGISTRY + 目录块行级清洗，同一 PR，先做 (a)/(b) 二选一决策 | ISSUE-194 |
-| SK-M14/M15/M19 | 写入链路规范校验：name 正则、description ≤1024 拒换行、盘上合规单测 | ISSUE-194 |
+| OV-7 | 会话→记忆触发：巩固触发器 + consolidation_jobs 消费者 + 水位，独立 PR 先于 013 修复序首批（§14.1；原 Phase 1） | I-195 |
+| OV-9 | 巩固 diff 审计：审计面接 UI，merge loser 可追溯 | I-195 |
+| OV-10 | 幂等水位：threads.metadata.consolidated_at_event_seq，与 OV-7 同 PR | I-195 |
+| OV-3 | 修 OV-D3 `force_refresh` 签名并改源水位判据，独立 PR 先于 013 修复序首批（§14.1；原 Phase 1） | I-195 |
+| SK-M3 + SK-M5 | `expand_skill` 挂载 TOOL_REGISTRY + 目录块行级清洗，同一 PR，先做 (a)/(b) 二选一决策 | I-194 |
+| SK-M14/M15/M19 | 写入链路规范校验：name 正则、description ≤1024 拒换行、盘上合规单测 | I-194 |
 | SK-M20 | 翻译物化 frontmatter 改 `yaml.safe_dump`，一行 | — |
 | SK-M22 | materializer 清扫盘上孤儿目录（生成标记区分手写目录） | — |
-| JV-3、JV-16 | judge 族解析矫正 counter + warn，绑 evaluator/plan_reviewer 下次触碰 | ISSUE-198 |
-| JV-9 | KG 置信缺省方向修正（`extractors.py:972`） | ISSUE-198 |
-| JV-4 | 自动作答解析失败改走 `_FALLBACK_ANSWER` | ISSUE-198 |
-| JV-13 | 在用未注册 task key 补注册或前移校验 | ISSUE-198 |
+| JV-3、JV-16 | judge 族解析矫正 counter + warn，绑 evaluator/plan_reviewer 下次触碰 | I-198 |
+| JV-9 | KG 置信缺省方向修正（`extractors.py:972`） | I-198 |
+| JV-4 | 自动作答解析失败改走 `_FALLBACK_ANSWER` | I-198 |
+| JV-13 | 在用未注册 task key 补注册或前移校验 | I-198 |
 | PG-M2 | 自进化提案回路增加编辑级拒绝记忆 | — |
 | HM-M11 | 交互式对话启用 `EventsCompactionConfig`，验收含无孤儿 function_response | — |
-| HM-M3 | 记忆写入过威胁模式表、注入块补数据声明，与 SK-M5 同批 | ISSUE-195 |
-| HM-M10 | 中文关键词检索修复（CJK 分词），绑 hybrid search 触碰 | ISSUE-196 |
-| HM-M9 | 事件全文索引 + 只读会话检索，ISSUE-195 评审同场决定 | ISSUE-195 |
-| HM-M14 | 审批覆盖面与文档对齐（补接线或收窄清单） | ISSUE-197 |
+| HM-M3 | 记忆写入过威胁模式表、注入块补数据声明，与 SK-M5 同批 | I-195 |
+| HM-M10 | 中文关键词检索修复（CJK 分词），绑 hybrid search 触碰 | I-196 |
+| HM-M9 | 事件全文索引 + 只读会话检索，I-195 评审同场决定 | I-195 |
+| HM-M14 | 审批覆盖面与文档对齐（补接线或收窄清单） | I-197 |
 | HZ-6 | ContextGuard 出口守卫随 013 §14.4 能力行落地（原 Phase 2） | — |
 | HZ-10 | 验证问答资产沉淀（绑 patrol done 文档） | — |
 | HZ-11 | 信任归一实现（authority 分层 + log1p + 单一 staleness） | — |
@@ -73,7 +73,7 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 | JV-1 / JV-10 / JV-7 / JV-12 | 枚举姿势 ADR、confidence 量纲分组注记、plan_reviewer 污染注记、rerank 纯排序语义注记 |
 | PG-M3 / DR-M1 | 自进化方案补「报告返回态」纪律；补「元级评估重放化」候选方向与触发条件 |
 | HZ-1 / HZ-5 | 蓝图对象层章交叉引用 synonyms/instructions/verified-QA 字段；治理实例化补策略对象化 |
-| OV-D6 | 取证漂移：_fetch_memory 用户校验登记（先于巩固上线，ISSUE-195；OV-D1 通道表述订正已销账、OV-D2 修复由做表 OV-7 承载） |
+| OV-D6 | 取证漂移：_fetch_memory 用户校验登记（先于巩固上线，I-195；OV-D1 通道表述订正已销账、OV-D2 修复由做表 OV-7 承载） |
 | AN-9 | `ToolStatsDaily` 聚合查询产出低成功率能力清单，接入巡检报告 |
 
 ### 暂缓（触发条件见各域节）
@@ -96,7 +96,7 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 >
 > 两份锚点均经 `grep -n` 实测，只分析不改码；OV 锚点中 `ng/` = `apps/negentropy/src/negentropy/`。材料出处：Horizon 见 [Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md)（机制详解、实验室、批判性边界、重评审记录），HZ 条目内的 M1–M7 标记取自该笔记经全局重评选后的新口径，背景调研见 [Snowflake 数据云调研 §D7 Horizon Catalog](./retrieval-storage/034-snowflake-data-cloud.md)；OpenViking 见 [OpenViking 精读笔记](./cognitive-context/014-openviking.md)（机制载荷与证据分级）。设计 SSOT 是 [Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md)（三轴蓝图 + 本仓治理织物实例化，是 HZ-13、HZ-1 的展开；2026-09-27 完全重铸）。
 
-Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架同构物本仓已有（definitions registry 与 parse_definition 422 门、patrol/Judge 评估-修正闭环、skills_injector 三层渐进披露、CatalogService/GlobalSearchService），真增量集中在验证问答、定义内嵌同义词与指令、冲突浮出人工裁决、四因子信任归一、代理会话权限天花板、MCP 供给面六处。OpenViking 的 13 条映射为 ✅4 / 🔶5 / ⏸4：能力大多已有等价物，只是形态为 Postgres 表加 JSONB 元数据；最大真增量是 OV-7 会话两阶段提交，对准「交互式对话 → 长期记忆」链路零触发方的断链（OV-D2），OV-1 统一 URI 因副本式存储与 013 ADR-1 冲突而只取寻址格式。取证副产物中 OV-D2、OV-D3、OV-D6 优先级最高，OV-D6 须在 ISSUE-194 方案落地前先修。两份映射的落点都在 013 蓝图：HZ-1、HZ-13 是其展开，OV 的回写建议见 OV 蓝图对位。
+Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架同构物本仓已有（definitions registry 与 parse_definition 422 门、patrol/Judge 评估-修正闭环、skills_injector 三层渐进披露、CatalogService/GlobalSearchService），真增量集中在验证问答、定义内嵌同义词与指令、冲突浮出人工裁决、四因子信任归一、代理会话权限上界、MCP 供给面六处。OpenViking 的 13 条映射为 ✅4 / 🔶5 / ⏸4：能力大多已有等价物，只是形态为 Postgres 表加 JSONB 元数据；最大真增量是 OV-7 会话两阶段提交，对准「交互式对话 → 长期记忆」链路零触发方的断链（OV-D2），OV-1 统一 URI 因副本式存储与 013 ADR-1 冲突而只取寻址格式。取证副产物中 OV-D2、OV-D3、OV-D6 优先级最高，OV-D6 须在 I-194 方案落地前先修。两份映射的落点都在 013 蓝图：HZ-1、HZ-13 是其展开，OV 的回写建议见 OV 蓝图对位。
 
 ### HZ 与 OV 映射总表
 
@@ -118,7 +118,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 | HZ-12 | §12 生态 Ossie YAML 互操作 | 无对应 | — | ⏸ 暂缓（YAGNI） |
 | HZ-13 | §12 生态 MCP 激活面（对外供给外部 agent） | 方向相反：本仓是 MCP **客户端**（perceives 经 McpClientService 接入） | [`mcp_client.py:307`](../../apps/negentropy/src/negentropy/interface/mcp_client.py)（McpClientService） | 🔶 值得落地（供给面） |
 | HZ-14 | M5 端到端列级血缘（引擎沉淀 + OpenLineage 摄取） | 无对应（routine 执行史是运行日志，非资产依赖图） | — | ⏸ 暂缓（YAGNI） |
-| HZ-15 | M6 Agent Identity（代理会话权限天花板 + agent 归因审计） | 部分对应：agent 类型元数据有（preset 描述用），「代理会话权限只减不增」无 | [`agents_api.py:44`](../../apps/negentropy/src/negentropy/interface/agents_api.py)（agent_type 字段）· [`agent_presets.py:109`](../../apps/negentropy/src/negentropy/interface/agent_presets.py)（_agent_type） | 🔶 值得落地 |
+| HZ-15 | M6 Agent Identity（代理会话权限上界 + agent 归因审计） | 部分对应：agent 类型元数据有（preset 描述用），「代理会话权限只减不增」无 | [`agents_api.py:44`](../../apps/negentropy/src/negentropy/interface/agents_api.py)（agent_type 字段）· [`agent_presets.py:109`](../../apps/negentropy/src/negentropy/interface/agent_presets.py)（_agent_type） | 🔶 值得落地 |
 | HZ-16 | M7 分类与标签驱动策略传播（自动分类→标签→策略） | 无对应（definitions.meta JSONB 可承载标签，但无分类扫描与标签驱动策略链） | — | ⏸ 暂缓（YAGNI） |
 
 **OpenViking**
@@ -169,7 +169,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **HZ-14 血缘（⏸，新晋机制）**。本仓 grep 全仓无 lineage 实现；routine/巡检的执行史是运行日志（谁跑了什么），不是资产依赖图（什么派生自什么）。触发条件：当出现「定义/文档资产间的派生关系图」需求（如定义变更影响面分析、跨文档口径溯源）时，优先引入「写入时自动沉淀依赖边」的引擎副产品模式，而非事后扫描。
 
-**HZ-15 Agent Identity（🔶，新晋机制）**。本仓 `agent_type`/`_agent_type` 是 **preset 描述元数据**（区分 routine agent 类型），不是 Horizon M6 的「代理会话身份」，后者守护的是**代理代表用户行事时的权限天花板与归因审计**。本仓引擎任务以服务身份运行（权限天然收束），但用户触发的 agent 会话（如 ad-hoc 工具调用链）无「会话权限=用户权限∩代理允许面」的显式契约。建议：013 §14.4 ContextGuard 设计（原 Phase 2）中把「调用方身份（人/代理/服务）」纳入守卫上下文，归因写入审计日志。
+**HZ-15 Agent Identity（🔶，新晋机制）**。本仓 `agent_type`/`_agent_type` 是 **preset 描述元数据**（区分 routine agent 类型），不是 Horizon M6 的「代理会话身份」，后者守护的是**代理代表用户行事时的会话权限上界与归因审计**。本仓引擎任务以服务身份运行（权限天然收束），但用户触发的 agent 会话（如 ad-hoc 工具调用链）无「会话权限=用户权限∩代理允许面」的显式契约。建议：013 §14.4 ContextGuard 设计（原 Phase 2）中把「调用方身份（人/代理/服务）」纳入守卫上下文，归因写入审计日志。
 
 **HZ-16 分类标签（⏸，新晋机制）**。本仓定义资产暂无敏感分级需求（非数据资产栈）。触发条件：当 definitions 出现「哪些定义可对外供给、哪些仅内部」的规模化治理需求时，先做「标签字段纪律」（definitions.meta 承载），再考虑自动分类。
 
@@ -179,7 +179,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **OV-1 统一 URI（⏸）**。`viking://` 是「把一切导入自有 AGFS」的副本式设计；013 §4.5 ADR-1 明确拒绝该形态（2026-10-10 版节号；原注 §5.2）（新表=副本=Split-Brain 引信）。**触发条件**：013 三视图/`context_catalog_unified` 落地时，把 `{item_type}:{uuid}` 定为统一指针格式，只取其寻址语法（scope 语义、确定性 ID），不取其存储。
 
-**OV-2 分层披露（🔶）**。本仓已有四种两级形态但无「每节点 sidecar」。值得做的只是**新鲜度**子集（OV-3）；逐目录 sidecar 与本仓「目录=人工 Wiki 组织」的现状不匹配，且 Skills L2/L3 实际不可达（ISSUE-194），先修激活层再谈分层。
+**OV-2 分层披露（🔶）**。本仓已有四种两级形态但无「每节点 sidecar」。值得做的只是**新鲜度**子集（OV-3）；逐目录 sidecar 与本仓「目录=人工 Wiki 组织」的现状不匹配，且 Skills L2/L3 实际不可达（I-194），先修激活层再谈分层。
 
 **OV-3 新鲜度（🔶）**。`get_or_generate_summary` 的 24h TTL 不感知源数据变化；且 SummarizeStep 传入的 `force_refresh` 因签名不符抛 TypeError 被降级吞掉（OV-D3）。**绑定 OV-7 同批**：OV-7 落地后 summarize step 每次巩固真实执行，TTL 失真随即暴露；修法是把 TTL 换成「源水位差」判据，范式直接复用 `title_inspector.py:191`。
 
@@ -201,7 +201,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **OV-12 检索轨迹（✅）**。检索轨迹分通道已比 OpenViking 落地更实（它的 `ThinkingTrace` 无生产者，014 §4.5）。
 
-**OV-13 经验进化（⏸）**。经验进化闭环已按 Reflexion 方式成立，**触发**：ISSUE-194 修复后若 skill_template proposer 长期无证据不提案，再把同 skill 相关的 procedural 失败教训接为证据源。
+**OV-13 经验进化（⏸）**。经验进化闭环已按 Reflexion 方式成立，**触发**：I-194 修复后若 skill_template proposer 长期无证据不提案，再把同 skill 相关的 procedural 失败教训接为证据源。
 
 ### HZ 与 OV 落地建议
 
@@ -246,7 +246,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 - OV-4 typed query。触发条件：ADR-2 统一检索后。
 - OV-5 目录递归。触发条件：目录深度 ≥3 且评测出现选错目录类失败。
 - OV-8 LLM 档。触发条件：模糊带误判被反馈证实。
-- OV-13 经验进化。触发条件：ISSUE-194 修复后 proposer 仍无证据。
+- OV-13 经验进化。触发条件：I-194 修复后 proposer 仍无证据。
 
 ### OV 蓝图对位
 
@@ -258,11 +258,11 @@ OV 对 [013 Context Layer 蓝图](./cognitive-context/013-context-layer-blueprin
 | §5 目录层 | M-a 副本式 = ADR-1 的反面教材 | **强化 ADR-1**：统一指针格式随 013 §4.5 ADR-1 行内格式约定一并定（2026-10-10 版节号；原注 §5.3） |
 | §6 富化层 | M-d 提炼是富化层的「供给入口」 | **新增真缺口**：对话路径供给入口断开（OV-7），重铸版 013 §6.2 已并入巩固三件套设计（2026-09-27） |
 | §7 治理层 | memory_diff / .done | 新增 🔶：巩固 diff 落 `result` 字段（OV-9）、会话水位（OV-10） |
-| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 013 旧版 §12.7 #9 状态行**：已销账（现行 §12.4：L1 ✅ / L2·L3 🔶 ISSUE-194）；旧版 §8.5「自动注入通道 = `ContextAssembler.assemble()`」误述的宿主更正亦已落地（现行 §6.5，见 OV-D1） |
+| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 013 旧版 §12.7 #9 状态行**：已销账（现行 §12.4：L1 ✅ / L2·L3 🔶 I-194）；旧版 §8.5「自动注入通道 = `ContextAssembler.assemble()`」误述的宿主更正亦已落地（现行 §6.5，见 OV-D1） |
 
 ### OV 取证副产物
 
-OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程登记为 ISSUE-195；ISSUE-194（expand_skill 未挂载）见 [issue.md](../.agents/issue.md)。
+OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程登记为 I-195；I-194（expand_skill 未挂载）见 [issue.md](../.agents/issue.md)。
 
 | # | 类别 | 现象 | 锚点 | 影响 |
 | --- | --- | --- | --- | --- |
@@ -271,8 +271,8 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 | OV-D3 | 代码缺陷 | SummarizeStep 的 `force_refresh` 抛 TypeError 被降级吞掉，强制刷新从未生效 | `ng/engine/consolidation/pipeline/steps/summarize_step.py:40` · `memory_summarizer.py:93` | 摘要最多 24h 陈旧；OV-D2 修复后每次巩固空转一次 |
 | OV-D4 | 文档漂移 | ConflictResolver docstring 称三阶段检测（key/embedding/LLM），实现只有按 fact_type 的规则 | `ng/engine/governance/conflict_resolver.py:6` 对照 `:110` | 高估冲突检测能力 |
 | OV-D5 | 写路径分叉 | `save_to_memory` 直写 `embedding=None`：不去重、无 PII 检测、不写审计，且全仓无 embedding 回填 | `ng/agents/tools/internalization.py:72` | 这些行对 vector/hybrid 与 DedupMerge 不可见 |
-| OV-D6 | 授权风险 | `_fetch_memory` 按 UUID 读 Memory，不校验 user/app | `ng/agents/tools/skill_resources.py:167` | 当前因工具未挂载不可达；**ISSUE-194 方案 (a) 落地前必须先修**，否则成为跨用户读取通道 |
-| OV-D7 | 状态表失真 | 013 旧版 §12.7 #9「L1/L2/L3 ✅」与 ISSUE-194 结论矛盾 | 013 §12.4 #9 行（2026-10-10 换代现行锚） | 已回写闭环（重铸版口径：L1 ✅ / L2·L3 🔶） |
+| OV-D6 | 授权风险 | `_fetch_memory` 按 UUID 读 Memory，不校验 user/app | `ng/agents/tools/skill_resources.py:167` | 当前因工具未挂载不可达；**I-194 方案 (a) 落地前必须先修**，否则成为跨用户读取通道 |
+| OV-D7 | 状态表失真 | 013 旧版 §12.7 #9「L1/L2/L3 ✅」与 I-194 结论矛盾 | 013 §12.4 #9 行（2026-10-10 换代现行锚） | 已回写闭环（重铸版口径：L1 ✅ / L2·L3 🔶） |
 | OV-D8 | 部分接线 | memory_pipeline_prompt 进化面只有 fact extractor 读取；summarizer/reflection 仍用硬编码 prompt | `ng/engine/evolution/weights.py:91` | 这两个 scope 的晋升在运行时是 no-op |
 
 ## Agent 基础设施：Skills
@@ -282,9 +282,9 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 > - 091（090 精读配套规范映射，090 现已并入 230）：分支 ThreeFish-AI/agent-skills-spec-study，无本仓基线哈希；核验日源文档未标注；外部钉点：agentskills.io 规范仓固定提交 `69ef37e9`。
 > - 211（230 精读配套规范映射）：工作区 `dar-es-salaam-v2` @ `95f5a532`；2026-09-26；外部钉点未单列（上游材料为 [230 精读](./agent-infra/230-agent-skills-standard.md)）。
 > - 221（供应链映射）：本 worktree，无本仓基线哈希；2026-09-28；外部钉点：`69ef37e9`（规范仓固定提交）、`b0b3272f`（SEP-2640 SSOT）、`1bd11679`（RFC PR#8 合入提交）。
-> - 上游材料：[230 精读](./agent-infra/230-agent-skills-standard.md)（090 精读已并入其内）、[220 精读](./agent-infra/220-skills-supply-chain.md)；问题登记：[ISSUE-194](../.agents/issue.md)；实验室副本：[assets/agent_skills_lab2.py](./agent-infra/assets/agent_skills_lab2.py)。
+> - 上游材料：[230 精读](./agent-infra/230-agent-skills-standard.md)（090 精读已并入其内）、[220 精读](./agent-infra/220-skills-supply-chain.md)；问题登记：[I-194](../.agents/issue.md)；实验室副本：[assets/agent_skills_lab2.py](./agent-infra/assets/agent_skills_lab2.py)。
 
-本仓已结构性实现对齐面：三级渐进披露、目录空集省略、宽容加载 fail-soft、离线 eval 门、metadata 正门、同名唯一约束、盘上技能格式合规均判 ✅，其中目录空集省略优于 skills-ref 参考实现、同名唯一约束强于规范。真增量集中在目录与激活契约（`expand_skill` 未挂载 TOOL_REGISTRY，ISSUE-194）与目录注入面无转义；写入侧规范校验、盘上校验门、翻译物化引号与 materializer 清扫仍缺。供应链层 6 条判定本仓与上游同构地停在 digest 半步：version 槽位闲置、checksum 只作变更检测，无外部下载面属侥幸而非设计，注入层零校验。遮蔽告警、压缩豁免、防自触发、Tier 3 文件型资源按触发条件暂缓。
+本仓已结构性实现对齐面：三级渐进披露、目录空集省略、宽容加载 fail-soft、离线 eval 门、metadata 正门、同名唯一约束、盘上技能格式合规均判 ✅，其中目录空集省略优于 skills-ref 参考实现、同名唯一约束强于规范。真增量集中在目录与激活契约（`expand_skill` 未挂载 TOOL_REGISTRY，I-194）与目录注入面无转义；写入侧规范校验、盘上校验门、翻译物化引号与 materializer 清扫仍缺。供应链层 6 条判定本仓与上游同构地停在 digest 半步：version 槽位闲置、checksum 只作变更检测，无外部下载面属侥幸而非设计，注入层零校验。遮蔽告警、压缩豁免、防自触发、Tier 3 文件型资源按触发条件暂缓。
 
 ### SK 映射总表
 
@@ -294,7 +294,7 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 | --- | --- | --- | --- | --- |
 | SK-M1 | 三级渐进披露（spec §Progressive disclosure） | Layer 1 目录常驻 / Layer 2 模板按需 / Layer 3 资源懒载 | `agents/skills_injector.py:342`（format_skills_block）/ `agents/tools/skill_registry.py:120`（expand_skill）/ `agents/tools/__init__.py:14`（skill_resources） | ✅ |
 | SK-M2 | 无技能时省略目录块（client guide Step 3：omit, don't show empty） | 空列表 → 空字符串 | `agents/skills_injector.py:347-348` | ✅（优于 skills-ref：`skills_ref/prompt.py:32` 空集仍输出空 `<available_skills>` 块，与自家指南相悖） |
-| SK-M3 | 模型自主激活依赖工具真实挂载（client guide Step 4） | 目录末行教模型调用 `expand_skill`，但该工具从未进 TOOL_REGISTRY（ISSUE-194，2026-09-23 登记，至今未修） | `agents/skills_injector.py:357` / `agents/tools/__init__.py:28`（已导出）/ `agents/tools/registry.py:66,91`（仅 log_activity + preload_memory_tool）、`:105` | 🔶 做 |
+| SK-M3 | 模型自主激活依赖工具真实挂载（client guide Step 4） | 目录末行教模型调用 `expand_skill`，但该工具从未进 TOOL_REGISTRY（I-194，2026-09-23 登记，至今未修） | `agents/skills_injector.py:357` / `agents/tools/__init__.py:28`（已导出）/ `agents/tools/registry.py:66,91`（仅 log_activity + preload_memory_tool）、`:105` | 🔶 做 |
 | SK-M4 | R6-b 在线门依赖真实调用样本（SK-M3 二阶影响） | **已重设计**：离线 eval-suite holdout 门优先；在线门仅在 `expand_skill` 有数据时叠加，无数据 → None 交离线门 | `engine/evolution/handlers/skill.py:11`（「离线 held-out 优于噪声在线 canary」）、`:353`、`:428-433`（候选桶无数据 → 跳过在线门） | ✅（重设计落地；在线门成待激活死代码，SK-M3 修复后自动复活） |
 | SK-M5 | 目录是注入面：需转义/行锚定（230 lab4·X3 主证 + lab2·X4 补充 + client guide） | `format_skills_block` 直插 name/description，无 escape、无换行防御（对照 skills-ref `prompt.py` html.escape） | `agents/skills_injector.py:353-355` | 🔶 做 |
 | SK-M6 | 宽容加载 fail-soft（client guide：warn & load，deliberately relaxes） | `enforcement_mode="warning"` 默认；任何异常记录警告并跳过该条，不冒泡 | `agents/skills_injector.py:93`、`:117-118` | ✅ |
@@ -332,7 +332,7 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 
 **SK-M2 目录空集省略（✅）。** client guide Step 3 要求无技能时省略目录块（omit, don't show empty）。本仓空列表直接输出空字符串（`agents/skills_injector.py:347-348`）；对照 skills-ref，`skills_ref/prompt.py:32` 在空集时仍输出空 `<available_skills>` 块，与自家指南相悖，本仓行为优于参考实现。
 
-**SK-M3 expand_skill 悬空（🔶 做）。** 复核成立，严重度降级：R6-b 已重设计为离线门优先（SK-M4），悬空不再阻塞技能晋升，只剩「目录承诺的能力不可用」与文档漂移两层。材料怎么做：模型自主激活有 file-read 与专用工具两条实现路径，前提是目录承诺的调用路径真实存在；client guide Step 4 还要求目录旁写简短行为说明、专用激活工具的 name 参数做枚举约束、无技能时不注册工具也不出空目录。本仓现状（全链核验）：`agents/skills_injector.py:357` 在每个注入目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」；`expand_skill` / `list_available_skills` / `fetch_skill_resource` 只在 `agents/tools/__init__.py:28-29` 导出，不在 TOOL_REGISTRY 符号表（`agents/tools/registry.py:64-92`；其中 `:66,91` 附近仅 log_activity + preload_memory_tool，`:105` 为注册表构建行）；六翼 `NegentropyToolset` 先按白名单过滤（`agents/_dynamic_tools.py:121`），再经 `TOOL_REGISTRY.get()` 解析（`registry.py:129`），即使 DB `agents.tools` 写上名字也解析不到；根 Agent 实挂 `tools=[log_activity, preload_memory_tool]`（`agents/agent.py:248`）；`git log -S "expand_skill"` 在 faculties / agent.py / registry.py / `_dynamic_tools.py` 零命中，历史上从未绑定（问题登记：[ISSUE-194](../.agents/issue.md)，2026-09-23 登记，至今未修）。后果：目录是只能看、不能用的菜单，模型照指示调用会撞上不存在的工具；指南防的是「有工具无技能」，本仓是「有技能无工具」。建议（二选一，须显式决策）：(a) 兑现契约，把三件工具纳入 TOOL_REGISTRY，挂载到消费 Layer 1 的 Agent，`name` 参数按当前 owner 可见技能做枚举约束（无技能时既不出目录也不注册工具），并在 `_dynamic_tools.py` 白名单同步；或 (b) 收回承诺，删掉 Layer 1 末行指令，把目录降级为信息性，并在 [141 号笔记](./self-evolution/141-skills-evolution-and-si-measurement.md)与设计文档注明 R6-b 在线门不可用。时机：下一个触碰 `skills_injector` 或 agent tools 的 PR；也可在「模型驱动激活」路线重启时一并做。落地 (a) 前须补一条集成测试，断言「目录里出现的激活工具名 ∈ 该 Agent 实际挂载的工具名」，把契约固化成机器门禁。
+**SK-M3 expand_skill 悬空（🔶 做）。** 复核成立，严重度降级：R6-b 已重设计为离线门优先（SK-M4），悬空不再阻塞技能晋升，只剩「目录承诺的能力不可用」与文档漂移两层。材料怎么做：模型自主激活有 file-read 与专用工具两条实现路径，前提是目录承诺的调用路径真实存在；client guide Step 4 还要求目录旁写简短行为说明、专用激活工具的 name 参数做枚举约束、无技能时不注册工具也不出空目录。本仓现状（全链核验）：`agents/skills_injector.py:357` 在每个注入目录末行写死「To use a skill, call expand_skill(name) to retrieve its full template.」；`expand_skill` / `list_available_skills` / `fetch_skill_resource` 只在 `agents/tools/__init__.py:28-29` 导出，不在 TOOL_REGISTRY 符号表（`agents/tools/registry.py:64-92`；其中 `:66,91` 附近仅 log_activity + preload_memory_tool，`:105` 为注册表构建行）；六翼 `NegentropyToolset` 先按白名单过滤（`agents/_dynamic_tools.py:121`），再经 `TOOL_REGISTRY.get()` 解析（`registry.py:129`），即使 DB `agents.tools` 写上名字也解析不到；根 Agent 实挂 `tools=[log_activity, preload_memory_tool]`（`agents/agent.py:248`）；`git log -S "expand_skill"` 在 faculties / agent.py / registry.py / `_dynamic_tools.py` 零命中，历史上从未绑定（问题登记：[I-194](../.agents/issue.md)，2026-09-23 登记，至今未修）。后果：目录是只能看、不能用的菜单，模型照指示调用会撞上不存在的工具；指南防的是「有工具无技能」，本仓是「有技能无工具」。建议（二选一，须显式决策）：(a) 兑现契约，把三件工具纳入 TOOL_REGISTRY，挂载到消费 Layer 1 的 Agent，`name` 参数按当前 owner 可见技能做枚举约束（无技能时既不出目录也不注册工具），并在 `_dynamic_tools.py` 白名单同步；或 (b) 收回承诺，删掉 Layer 1 末行指令，把目录降级为信息性，并在 [141 号笔记](./self-evolution/141-skills-evolution-and-si-measurement.md)与设计文档注明 R6-b 在线门不可用。时机：下一个触碰 `skills_injector` 或 agent tools 的 PR；也可在「模型驱动激活」路线重启时一并做。落地 (a) 前须补一条集成测试，断言「目录里出现的激活工具名 ∈ 该 Agent 实际挂载的工具名」，把契约固化成机器门禁。
 
 **SK-M4 R6-b 在线门离线优先（✅）。** R6-b 在线门依赖 `expand_skill` 真实调用样本（该二阶影响见 SK-M3）：以窗口内 `expand_skill` 真实调用为样本（`engine/evolution/handlers/skill.py:428-480`，遥测打点见 `engine/observability/tool_telemetry.py:161`），样本不足 `SKILL_RUNTIME_CANARY_MIN_SAMPLES = 10` 时返回 hold（`engine/evolution/decision.py:282`、`:444-445`）。已重设计：离线 eval-suite holdout 门优先；在线门仅在 `expand_skill` 有数据时叠加，无数据返回 None 交离线门（`engine/evolution/handlers/skill.py:11`「离线 held-out 优于噪声在线 canary」、`:353`、`:428-433` 候选桶无数据即跳过在线门）。在线门当前是待激活死代码，SK-M3 修复后自动复活。
 
@@ -416,10 +416,10 @@ OV-D1 至 OV-D8 为取证时发现的本仓漂移与风险，已按精读流程�
 
 - [Skills 设计](../concepts/design/skills.md) §2 对照表「模板按需（Layer 2）」「资源文件挂载（Layer 3）」两行与 §3.2 首条（已加校正指针）；
 - [skills-advanced.md](../concepts/user-guide/skills-advanced.md) 与 [skills-paper-hunter.md](../concepts/user-guide/skills-paper-hunter.md) 中「LLM 自主调用 `expand_skill`」的流程描述；
-- [172 规划与协调](./agent-harness/172-claude-code-planning-coordination.md)：换代重写后的现行版不含「技能两层加载」表述（§11 现为「适用边界」），091 时代在该文所加的 ISSUE-194 校正指针已不在现行文本中，SK-M3 选方案 (a) 时须评估是否需要补教学性说明；
-- HZ-9 与 [013 Context Layer 蓝图](./cognitive-context/013-context-layer-blueprint.md) 16+4 映射表（§12.4 #9 行已校正口径：L1 ✅ / L2·L3 🔶 ISSUE-194；2026-10-10 换代后重核 @b2fbb51f5）。
+- [172 规划与协调](./agent-harness/172-claude-code-planning-coordination.md)：换代重写后的现行版不含「技能两层加载」表述（§11 现为「适用边界」），091 时代在该文所加的 I-194 校正指针已不在现行文本中，SK-M3 选方案 (a) 时须评估是否需要补教学性说明；
+- HZ-9 与 [013 Context Layer 蓝图](./cognitive-context/013-context-layer-blueprint.md) 16+4 映射表（§12.4 #9 行已校正口径：L1 ✅ / L2·L3 🔶 I-194；2026-10-10 换代后重核 @b2fbb51f5）。
 
-SK-M3 落地方案 (a) 后，这些表述将自动重新成立；选 (b) 则须同步改写。为避免与 SK-M3 决策打架，校正指针只落在设计 SSOT 一处，其余登记于 [ISSUE-194](../.agents/issue.md) 统一处理。
+SK-M3 落地方案 (a) 后，这些表述将自动重新成立；选 (b) 则须同步改写。为避免与 SK-M3 决策打架，校正指针只落在设计 SSOT 一处，其余登记于 [I-194](../.agents/issue.md) 统一处理。
 
 ## Agent 基础设施：Jev
 
@@ -531,7 +531,7 @@ Jev 对本仓的真增量不在接入更便宜的判断模型，而在四条可�
 | PG-M2 | 拒绝记忆：被拒编辑连同轨迹作负证据注入下一轮提案（§3.3 式 6） | 巡检记忆的正/负证据标签体系；进化提案回路缺编辑级负证据 | [`routine/patrol_memory.py:42-45`](../../apps/negentropy/src/negentropy/engine/routine/patrol_memory.py) | 🔶 部分对齐，**值得落地** |
 | PG-M3 | 报告纪律：报「返回图 85%」而非「搜索最优 95%」，杜绝测试集选优（§5.4） | `decide()` 以最新迭代判成功、`best_score` 仅作停滞参照 | [`routine/decision.py:34`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ 天然对齐，宜显式成文 |
 | PG-M4 | 边属性 `condition`/`guidance`/`pitfalls`：转移级操作知识（§3.1） | definitions SSOT → harness_materializer 渲染 skill/routine 定义 | [`agents/definitions/harness_materializer.py`](../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) | ⏸ 暂缓（YAGNI） |
-| PG-M5 | 结构校验先于验证 rollout：非法候选不花预算、直接沉淀负证据（Algorithm 1 L11-13） | 决策纯函数边界（不读 settings、参数显式注入）+ 门控语义（门控超时/失败 ≠ 门控通过，ISSUE-115） | [`routine/decision.py:96-170`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ 已对齐 |
+| PG-M5 | 结构校验先于验证 rollout：非法候选不花预算、直接沉淀负证据（Algorithm 1 L11-13） | 决策纯函数边界（不读 settings、参数显式注入）+ 门控语义（门控超时/失败 ≠ 门控通过，I-115） | [`routine/decision.py:96-170`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ 已对齐 |
 
 **Dream-RSI**
 
@@ -546,7 +546,7 @@ Jev 对本仓的真增量不在接入更便宜的判断模型，而在四条可�
 
 ### PG-DR 逐条说明
 
-**PG-M1 验证门与「平局接受」（✅ 已对齐）**。存量已对齐。PG 的门是「单一权威信号（验证分）+ 缓存参考分 + 平局接受」。本仓 [`decide_canary`](../../apps/negentropy/src/negentropy/engine/evolution/decision.py) 已实现同型语义：**「helpful_ratio 允许 0 改进（只要不下降）」即平局接受，任一退化则 rollback**，且比 PG 多了样本充足性检查（`hold` 而非立即定夺）。routine 侧 [`decide()`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) 的停滞判定同样吸收了「平局含信息」：ISSUE-128 引入的 `no_progress_score_tolerance` 容差带（经 [`orchestrator.py:905-911`](../../apps/negentropy/src/negentropy/engine/routine/orchestrator.py) per-routine 注入）把「评分落在 [历史最优 − tolerance, +∞)」视为有进展，这正是对 Judge 聚合分天然 ± 振荡的「平局语义」处理，与 PG 面对小验证集时的谨慎同源。**无需落地**；价值在于交叉确认：两套独立系统在同一个坑位收敛到同一个解法，说明该模式已是领域共识（PG 之外，金丝雀发布、进化计算 elitism 亦然）。
+**PG-M1 验证门与「平局接受」（✅ 已对齐）**。存量已对齐。PG 的门是「单一权威信号（验证分）+ 缓存参考分 + 平局接受」。本仓 [`decide_canary`](../../apps/negentropy/src/negentropy/engine/evolution/decision.py) 已实现同型语义：**「helpful_ratio 允许 0 改进（只要不下降）」即平局接受，任一退化则 rollback**，且比 PG 多了样本充足性检查（`hold` 而非立即定夺）。routine 侧 [`decide()`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) 的停滞判定同样吸收了「平局含信息」：I-128 引入的 `no_progress_score_tolerance` 容差带（经 [`orchestrator.py:905-911`](../../apps/negentropy/src/negentropy/engine/routine/orchestrator.py) per-routine 注入）把「评分落在 [历史最优 − tolerance, +∞)」视为有进展，这正是对 Judge 聚合分天然 ± 振荡的「平局语义」处理，与 PG 面对小验证集时的谨慎同源。**无需落地**；价值在于交叉确认：两套独立系统在同一个坑位收敛到同一个解法，说明该模式已是领域共识（PG 之外，金丝雀发布、进化计算 elitism 亦然）。
 
 **PG-M2 拒绝记忆（🔶 部分对齐，值得落地）**。巡检侧已结构化，进化侧是真空区。本仓巡检记忆已有一套**正/负证据双轨**：[`patrol_memory.py`](../../apps/negentropy/src/negentropy/engine/routine/patrol_memory.py) 的 `pdf-fidelity-unfixable`（区域级不可修复标记 = 负证据，会话内避让）、`pdf-fidelity-pattern`（有效修法 = 正证据，向后传播）、`pdf-fidelity-baseline`（回归基线集 + `DEFAULT_REGRESSION_DROP_THRESHOLD = 3` 的非回归门）。这与 PG「被拒候选 + 成功 pattern 分轨沉淀」的设计同构，且以 tag 键定的确定性查询实现了 SSOT。**差异在进化回路**：PG 的拒绝记忆是**编辑级**的，记录「哪个结构变更提案、在哪个验证集上、掉了多少分」，并作为负证据注入下一轮提案器（式 6）。本仓 [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md) 的 GEPA 反思回路目前从**执行反馈**提案，尚无「历史被拒提案」的结构化沉淀；若提案器重复生成等价坏提案，没有机制层阻断。**建议落地**（对应方案落地阶段实施）：`evolution_proposals` 增加 `rejection_evidence` 沉淀（提案 diff + 验证指标 delta + 拒绝原因），提案器上下文注入最近 N 条负证据。PG 的经验是这能拦住「训练集动机未泛化」型重复提案（论文 R3/R10 均为实例）。
 
@@ -554,11 +554,11 @@ Jev 对本仓的真增量不在接入更便宜的判断模型，而在四条可�
 
 **PG-M4 边属性三件套（⏸ 暂缓，YAGNI）**。暂缓，等真实痛点。PG 把「何时走 / 怎么走 / 别踩什么坑」字段化到**转移级**。本仓 definitions SSOT → [`harness_materializer`](../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) 渲染的是 skill/routine 定义的文本与结构化字段，步骤间依赖以叙述存在。借鉴形态：给 routine preset / harness skill 的步骤定义加 `condition`/`pitfalls` 显式字段（不必引入完整图）。**判定暂缓**：当前 routine 失败模式中未见「步骤乱序」主导的案例（Judge 振荡/命名门控才是主痛点），按最小干预原则等真实痛点出现再动（论文自己也证明：错误位置的结构先验会把 MultiChallenge 从 87.5 拖到 58.9，结构是双刃剑）。
 
-**PG-M5 结构校验先于 rollout（✅ 已对齐）**。存量已对齐。PG：结构非法的候选不进验证 rollout，直接入拒绝记忆（省预算 + 负证据沉淀）。本仓同型模式两处：① 决策层纯函数边界（`decide()` 不读 settings、阈值/容差显式注入，非法输入在类型层即被拒）；② 门控语义（ISSUE-115：`gate_exit_code ∉ {None, 0}` 时整块跳过成功判定，即「门控超时/失败 ≠ 门控通过」）。原则一致：**不可用候选在进入昂贵验证之前拦截**。
+**PG-M5 结构校验先于 rollout（✅ 已对齐）**。存量已对齐。PG：结构非法的候选不进验证 rollout，直接入拒绝记忆（省预算 + 负证据沉淀）。本仓同型模式两处：① 决策层纯函数边界（`decide()` 不读 settings、阈值/容差显式注入，非法输入在类型层即被拒）；② 门控语义（I-115：`gate_exit_code ∉ {None, 0}` 时整块跳过成功判定，即「门控超时/失败 ≠ 门控通过」）。原则一致：**不可用候选在进入昂贵验证之前拦截**。
 
 **DR-M1 历史即重放模拟器（🔶 部分对齐，暂缓，YAGNI）**。离线门已有，「历史→模拟器」是真空区。论文把「已完成的历史」升级为**可交互对象**：候选策略在发现树上走替代轨迹，评估只读记录、零执行成本。本仓最接近的对照是 eval 体系：[`EvalRun`](../../apps/negentropy/src/negentropy/models/eval_suite.py) 的 `baseline_version` parent 边构成版本链，`is_frozen` 切出可见/holdout 集，`longitudinal_recheck` 每日对已晋升对象复跑 holdout；retrieval 侧 `memory_retrieval_logs.config_version` 让 [`eval_runner`](../../apps/negentropy/src/negentropy/engine/evolution/eval_runner.py) 能按版本分桶**重放聚合**历史窗口指标。甚至 [`scheduled_task.fire_reason`](../../apps/negentropy/src/negentropy/models/scheduled_task.py) 已含 `replay` 枚举（为审计与回放区分调度源）。**差异在交互性**：本仓的「重放」都是**重放聚合/复跑验证**（对既有数据算指标、对既有版本再打分），不是「让一个候选**策略/编排**在录制好的历史上走替代路径并为其打分」。Dream-RSI 评估的对象是「会做序列决策的策略」，本仓 evolution 的提案是「一组配置参数」，后者没有序列决策面，也就不需要模拟器。**判定暂缓（YAGNI）**：本仓当前没有「可编程探索策略」这一层可被重放评估。触发条件成文见落地建议。
 
-**DR-M2 离线锚定评估（✅ 方向已对齐，论文是更强形式）**。140 号双支柱已同向，论文给出极端形式。论文的评估信号全部来自历史记录（重放分），绝不每轮从零独立打分。本仓 [140 号调研](./self-evolution/140-experience-era-self-improvement.md)诊断的正是反面病症：Judge 无历史锚点、评分天然 ±20 振荡（[ISSUE-128](../.agents/issue.md) 容差带治标），随后落地的 [`_JUDGE_PROMPT_ANCHORED`](../../apps/negentropy/src/negentropy/engine/routine/evaluator.py)（轨迹锚定 + progress_evidence 先证据后给分）就是锚定支柱。论文比本仓走得更远的地方：锚定不止用于「评得稳」，还闭环进「改得对」（策略修订看重放轨迹）。对本仓的启示按 Dream-RSI 保真度光谱读：锚定 prompt（弱形式，无新信息）→ 轨迹证据锚定（中形式，本仓现状）→ 历史重放模拟器（强形式，DR-M1）。**无须立刻行动**；若未来 Judge 振荡再次成为主痛点，沿光谱升级是现成路径。
+**DR-M2 离线锚定评估（✅ 方向已对齐，论文是更强形式）**。140 号双支柱已同向，论文给出极端形式。论文的评估信号全部来自历史记录（重放分），绝不每轮从零独立打分。本仓 [140 号调研](./self-evolution/140-experience-era-self-improvement.md)诊断的正是反面病症：Judge 无历史锚点、评分天然 ±20 振荡（[I-128](../.agents/issue.md) 容差带治标），随后落地的 [`_JUDGE_PROMPT_ANCHORED`](../../apps/negentropy/src/negentropy/engine/routine/evaluator.py)（轨迹锚定 + progress_evidence 先证据后给分）就是锚定支柱。论文比本仓走得更远的地方：锚定不止用于「评得稳」，还闭环进「改得对」（策略修订看重放轨迹）。对本仓的启示按 Dream-RSI 保真度光谱读：锚定 prompt（弱形式，无新信息）→ 轨迹证据锚定（中形式，本仓现状）→ 历史重放模拟器（强形式，DR-M1）。**无须立刻行动**；若未来 Judge 振荡再次成为主痛点，沿光谱升级是现成路径。
 
 **DR-M3 候选包含保证（✅ 已对齐）**。两套系统在同一个坑位收敛到同一个解法。论文 argmax 候选集包含当前策略 ⇒ V\*≥V⁰；本仓 [`decide_canary`](../../apps/negentropy/src/negentropy/engine/evolution/decision.py) 的语义是「helpful_ratio 不下降即接受（平局接受），任一退化则 rollback」，且 [`MemoryConfigVersion`](../../apps/negentropy/src/negentropy/models/evolution.py) 的 promote/rollback = 新写一行 + 翻 `is_active` 指针，「改不动就不换」的防回退下界两边同构。交叉确认价值：与 PG-M1（验证门平局接受）构成**三套独立系统的同构收敛**（Dream-RSI / PG / 本仓 + 金丝雀发布与进化计算 elitism），该模式已是领域共识，本仓无需动作。
 
@@ -591,9 +591,9 @@ Jev 对本仓的真增量不在接入更便宜的判断模型，而在四条可�
 > - AI Native | 分支 `feature/1.x.x`，基线提交 `161d6244` | 无日期 | 页码为手册印刷页码；后端路径以 `apps/negentropy/src/negentropy/` 为根；精读笔记 [180](./agent-harness/180-ai-native-handbook.md)
 > - Hermes | 工作区 HEAD `2edf3ed5`（`feature/1.x.x` 基线） | 无日期（文内 2026-09-27 是 HM-M2 销账注记的日期） | Hermes 固定提交 `068db016`；`ng/` = `apps/negentropy/src/negentropy/`；精读笔记 [190](./agent-harness/190-hermes-agent.md)
 
-AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭据边界（AN-11）、授权第三态 Challenge（AN-13）、生产门控对象（AN-14）三处，都绑定在「Agent 触达生产或不可信代码」的前提上，本仓是单用户本机部署，所以判为暂缓。Hermes 的 16 条映射为 ✅4 / 🔶6 / ⏸6，真增量是交互式对话的上下文压缩（HM-M11）、记忆写入与注入两端防注入（HM-M3）、零 LLM 原文会话检索（HM-M9），取证副产物是中文关键词检索失效（HM-M10，ISSUE-196）与审批门只接线两个工具（HM-M14，ISSUE-197）。两份材料在「CC 最大权限」取舍上一致，AN-17 与 HM-M14 都判 ⏸，HM-M14 同时记下 AN-17 成文时的前提「没有通用 shell」已不成立，触发条件实际已满足。
+AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭据边界（AN-11）、授权第三态 Challenge（AN-13）、生产门控对象（AN-14）三处，都绑定在「Agent 触达生产或不可信代码」的前提上，本仓是单用户本机部署，所以判为暂缓。Hermes 的 16 条映射为 ✅4 / 🔶6 / ⏸6，真增量是交互式对话的上下文压缩（HM-M11）、记忆写入与注入两端防注入（HM-M3）、零 LLM 原文会话检索（HM-M9），取证副产物是中文关键词检索失效（HM-M10，I-196）与审批门只接线两个工具（HM-M14，I-197）。两份材料在「CC 最大权限」取舍上一致，AN-17 与 HM-M14 都判 ⏸，HM-M14 同时记下 AN-17 成文时的前提「没有通用 shell」已不成立，触发条件实际已满足。
 
-相邻材料：[170 五层 Harness 总览](./agent-harness/170-claude-code-harness-overview.md)（循环本体的机制对位）；[039 Routine 系统](../concepts/subsystems/039-the-routine-system.md)（闭环与决策的现役设计）；[013 Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md)（2026-09-27 完全重铸版）；进化路线 [130 自进化 Agents Team](./self-evolution/130-self-evolving-agents-team.md) 与 [141 Skill 进化闭环](./self-evolution/141-skills-evolution-and-si-measurement.md)；Hermes 原型 [`assets/hermes_lab.py`](./agent-harness/assets/hermes_lab.py)。180 笔记提供规律 R1–R5 与破坏性实验 D1–D6；SK 域的目录注入面条目与 `expand_skill`、OV 域 M-d 会话两阶段提交（ISSUE-195）是 HM 条目的相邻域。
+相邻材料：[170 五层 Harness 总览](./agent-harness/170-claude-code-harness-overview.md)（循环本体的机制对位）；[039 Routine 系统](../concepts/subsystems/039-the-routine-system.md)（闭环与决策的现役设计）；[013 Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md)（2026-09-27 完全重铸版）；进化路线 [130 自进化 Agents Team](./self-evolution/130-self-evolving-agents-team.md) 与 [141 Skill 进化闭环](./self-evolution/141-skills-evolution-and-si-measurement.md)；Hermes 原型 [`assets/hermes_lab.py`](./agent-harness/assets/hermes_lab.py)。180 笔记提供规律 R1–R5 与破坏性实验 D1–D6；SK 域的目录注入面条目与 `expand_skill`、OV 域 M-d 会话两阶段提交（I-195）是 HM 条目的相邻域。
 
 ### AN 与 HM 映射总表
 
@@ -602,7 +602,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 | # | 手册机制（出处） | 本仓对应 | 锚点 | 判定 |
 |---|---|---|---|---|
 | AN-1 | 行动—验证—纠错闭环，完成要有客观证据（p35–36） | Routine 命令门控 + Judge 评估 + 决策纯函数 | [`evaluator.py:407`](../../apps/negentropy/src/negentropy/engine/routine/evaluator.py) `_run_gate` · [`decision.py:96`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) `decide` | ✅ |
-| AN-2 | 门禁由程序执行，门控失败不等于通过（p37、p58） | 只有 `gate_exit_code ∈ {None, 0}` 才可能判成功（ISSUE-115） | [`decision.py:147`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ |
+| AN-2 | 门禁由程序执行，门控失败不等于通过（p37、p58） | 只有 `gate_exit_code ∈ {None, 0}` 才可能判成功（I-115） | [`decision.py:147`](../../apps/negentropy/src/negentropy/engine/routine/decision.py) | ✅ |
 | AN-3 | 上下文按需加载，超预算时裁剪或压缩（p36） | token 预算装配 + 上下文耗尽后压缩重试 | [`context_assembler.py:353`](../../apps/negentropy/src/negentropy/engine/adapters/postgres/context_assembler.py) · [`runner.py:69`](../../apps/negentropy/src/negentropy/engine/routine/runner.py) | ✅ |
 | AN-4 | 规划、状态与恢复，中断后从可信位置继续（p36） | 引擎确定性检查点提交 + 迭代全过程事件 | [`workspace.py:522`](../../apps/negentropy/src/negentropy/engine/routine/workspace.py) · [`routine.py:283`](../../apps/negentropy/src/negentropy/models/routine.py) | ✅ |
 | AN-5 | 人只放在需要判断的位置（p36） | 审批模式 every / first / auto + 高风险工具审批 | [`orchestrator.py:1220`](../../apps/negentropy/src/negentropy/engine/routine/orchestrator.py) · [`approval.py:128`](../../apps/negentropy/src/negentropy/agents/approval.py) | ✅ |
@@ -626,13 +626,13 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 | HM-M1 | 缓存优先三段式装配 + 冻结快照（§3） | 每请求动态 instruction；每轮检索记忆注入 system instruction；LLM 请求侧未配置提供方前缀缓存 | `ng/agents/_dynamic_instruction.py:80` `_provider` · `:97-99` · `ng/agents/tools/memory.py:6` · `:161` `append_instructions` | ⏸ 触发条件见下 |
 | HM-M2 | 有界常驻、Agent 可自编的声明式记忆（§4） | `MemoryCoreBlock` + 30% 记忆预算；核心块只能经 REST `/core-blocks` 写，Agent 无编辑工具（`core_block_replace` 全仓零调用方） | `ng/models/internalization.py:250` · `ng/engine/api.py:1206` · `ng/engine/tools/memory_tools.py:236` · `ng/agents/tools/registry.py:64` · `ng/engine/adapters/postgres/context_assembler.py:38` | 🔶 写 |
 | HM-M3 | 记忆写入与加载两端威胁扫描、快照 `[BLOCKED]` 占位（§4） | `save_to_memory` 只做 JSON 格式校验后直接 ORM 落库，不经 memory_service，PII 与注入检测都不覆盖；注入块只说「无关时忽略」 | `ng/agents/tools/internalization.py:23` · `:71-80` · `ng/engine/governance/content_validator.py:21` · `ng/agents/tools/memory.py:52-56` | 🔶 做 |
-| HM-M4 | 技能渐进披露：目录常驻、正文按需（§4） | 目录注入已对齐；`expand_skill` 未挂载 | `ng/agents/skills_injector.py:342` · `:357` · `ng/agents/tools/registry.py:64` | 🔶（部分）ISSUE-194 已登记 |
+| HM-M4 | 技能渐进披露：目录常驻、正文按需（§4） | 目录注入已对齐；`expand_skill` 未挂载 | `ng/agents/skills_injector.py:342` · `:357` · `ng/agents/tools/registry.py:64` | 🔶（部分）I-194 已登记 |
 | HM-M5 | 交付后旁路 review 自写技能（§5） | 交互式无；Routine 有迭代后记忆提炼；技能进化走离线门控 | `ng/engine/routine/orchestrator.py:1393` · `ng/engine/evolution/handlers/skill.py:96` · `ng/engine/evolution/decision.py:120` | ⏸ 争议一 |
 | HM-M6 | 分派侧白名单、「广播不等于许可」（§5） | 按翼 `allowed_names` 许可上界 + Faculty `read_only` 白名单 | `ng/agents/_dynamic_tools.py:38` · `ng/engine/routine/faculty_bridge.py:43` · `:81` | ✅ |
 | HM-M7 | 署名边界 + 只归档不删除（§5） | `Skill.owner_id` / `is_system` + `SkillVersion` 快照可恢复 | `ng/models/skill.py:21` · `:48` · `:114-119` | ✅ 前置齐备 |
 | HM-M8 | Curator 按使用信号的生命周期（§5） | 技能无使用遥测字段 | `ng/models/skill.py:15-68` | ⏸ 同 HM-M5 |
 | HM-M9 | 零 LLM 原文会话检索 + 谱系去重（§6） | 事件表无全文索引；会话 API 无检索路由 | `ng/models/pulse.py:36` · `:45` · `ng/engine/sessions_api.py:119-202` | 🔶 做 |
-| HM-M10 | CJK bigram / trigram 分词索引（§6） | `memories` 与知识库的 `search_vector` 均按 english 配置生成与查询 | `ng/db/migrations/versions/0047_memory_hybrid_search_function.py:58` · `:146` · `ng/db/migrations/versions/0001_init_schema.py:914` · `ng/engine/adapters/postgres/memory_service.py:1255` · `ng/knowledge/retrieval/repository.py:841` | 🔶 做（ISSUE-196） |
+| HM-M10 | CJK bigram / trigram 分词索引（§6） | `memories` 与知识库的 `search_vector` 均按 english 配置生成与查询 | `ng/db/migrations/versions/0047_memory_hybrid_search_function.py:58` · `:146` · `ng/db/migrations/versions/0001_init_schema.py:914` · `ng/engine/adapters/postgres/memory_service.py:1255` · `ng/knowledge/retrieval/repository.py:841` | 🔶 做（I-196） |
 | HM-M11 | 交互式上下文压缩：结构不变式 + 唯一断点（§6） | 零压缩：`num_recent_events` 零调用方，未启用 `EventsCompactionConfig`（ADK 2.2.0 标 `@experimental`）；仅 Routine 有 compact 重试 | `ng/engine/adapters/postgres/session_service.py:146-156` · `ng/engine/routine/runner.py:69` · ADK 2.2.0 `google/adk/apps/_configs.py:49-50` | 🔶 做 |
 | HM-M12 | 隔离委派：新上下文、只回摘要、深度 1、子代理禁记忆（§7） | `transfer_to_agent` 是控制权移交，不是隔离执行；`run_faculty` 的 `read_only` 近似 | `ng/agents/agent.py:126-130` · `:249` · `ng/engine/routine/faculty_bridge.py:125` | ⏸ |
 | HM-M13 | cron 不许自排程（§7） | Agent 工具注册表内无排程类工具，排程只经 REST / UI | `ng/agents/tools/registry.py:64-92` · `ng/models/scheduled_task.py:31` | ✅ 结构性对齐 |
@@ -650,7 +650,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 
 **AN-11 凭据边界：占位值 + 出站代理注入（⏸）**。这正是手册 p45 点名「最常见也最危险」的形态。原型 D5 实测：出站拦截即使守住，令牌仍会经构建日志泄露。本仓的前提不同：单用户本机部署，CC 本身就是用户的代理，所以判为暂缓。落地路径现成：已有 coding-proxy，届时由它注入凭证，子进程只留占位值。
 
-**AN-12 有效权限取交集（🔶）**。与 HZ-15 是同一缺口（代理会话权限天花板），沿用其 🔶 判定与落地时机，不重复立项。
+**AN-12 有效权限取交集（🔶）**。与 HZ-15 是同一缺口（代理会话权限上界），沿用其 🔶 判定与落地时机，不重复立项。
 
 **AN-15 UNKNOWN 必须显式记录（🔶）**。推断 verdict 本身合理，它保证决策层总有合法输入。但它抹掉了「这一轮评估其实没读懂」的信号，属于 UNKNOWN 被静默转写。
 
@@ -685,15 +685,15 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 - **建议**：
   - 写入端复用一份威胁模式表：Hermes 的 36 条是 MIT 许可，可按需裁剪。
   - 注入块头补一句数据声明。
-  - 时机：与 SK-M5 的「目录注入防护」同批落地，在 ISSUE-195 会话巩固上线前完成；巩固一旦上线，自动写入量会放大这个面。
+  - 时机：与 SK-M5 的「目录注入防护」同批落地，在 I-195 会话巩固上线前完成；巩固一旦上线，自动写入量会放大这个面。
 
 **HM-M5 / HM-M8 运行中自写技能与 Curator（⏸）**。Hermes 的头号卖点「运行中自写技能」按[争议一](./agent-harness/190-hermes-agent.md#争议一运行中自写技能还是离线门控进化没有判卷人时一次成功不等于方法对)暂缓：本仓选的是离线门控进化，这与 Hermes 的在线写回是路线分歧，不是缺口。
 
 - **本仓路线**：技能进化由 `SkillProposer` 从失败用例驱动有界改写（`evolution/handlers/skill.py:96`），经 `pre_propose_check` → shadow → canary 门控（`decision.py:120`、`:427`）。这是门控派。
 - **暂缓理由**：
-  - 本仓连「模型自主激活技能」都尚未打通：`expand_skill` 未挂载（ISSUE-194），在线 canary 恒被跳过。
+  - 本仓连「模型自主激活技能」都尚未打通：`expand_skill` 未挂载（I-194），在线 canary 恒被跳过。
   - 没有使用遥测，Curator 式回收无信号可用。
-- **触发条件**：ISSUE-194 挂载完成，技能具备 view / use 计数，且出现至少一类同构任务在 30 天内反复出现。届时可借鉴两点，而不是照搬「Be ACTIVE」：
+- **触发条件**：I-194 挂载完成，技能具备 view / use 计数，且出现至少一类同构任务在 30 天内反复出现。届时可借鉴两点，而不是照搬「Be ACTIVE」：
   - review prompt 的「禁止固化」清单：环境性失败、负面工具结论、未解决的失败。
   - 「只归档不删除、宽限从未用过的新技能」这两条回收纪律。
 
@@ -707,12 +707,12 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
   - `sessions_api` 只有归档、删除、审批响应等路由（`:119-202`），没有检索路由。
   - 关键词检索只覆盖记忆表和知识库。
 - **建议**：
-  - [ISSUE-195](../.agents/issue.md) 的「会话 → 长期记忆」断链修好之前，原文检索是更便宜的第一步：零 LLM、没有巩固 worker 的一致性问题，而且与 OV 域 M-d 会话两阶段提交不冲突，二者互补。
+  - [I-195](../.agents/issue.md) 的「会话 → 长期记忆」断链修好之前，原文检索是更便宜的第一步：零 LLM、没有巩固 worker 的一致性问题，而且与 OV 域 M-d 会话两阶段提交不冲突，二者互补。
   - 做法：在事件文本上建 GIN 索引，挂一个只读检索工具，结果按 thread 去重。
-  - 时机：与 ISSUE-195 方案评审同场决定。
+  - 时机：与 I-195 方案评审同场决定。
   - 前置：先修 HM-M10，否则中文检索仍然失效。
 
-**HM-M10 中文关键词检索失效（🔶 做 · ISSUE-196）**。
+**HM-M10 中文关键词检索失效（🔶 做 · I-196）**。
 
 - **Hermes 怎么做**：专门加了 `cjk_unicode61` bigram 索引与 trigram 回退。原因是 unicode61 会把一串连续汉字当作一个 token。
 - **本仓现状**：迁移 0047 为 `memories` 建的触发器是 `to_tsvector('english', content)`（`:58`），查询用 `plainto_tsquery('english', …)`（`:146`、`memory_service.py:1255`）；知识库由 0001 的 `tsvector_update_trigger(search_vector, 'pg_catalog.english', content)` 生成（`0001_init_schema.py:914`），查询同款（`repository.py:841`）。
@@ -725,7 +725,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
   ```
 
 - **差异**：中文内容的 tsvector 关键词腿只能命中「整段原串」，混合检索实际退化为纯向量检索，BM25 融合权重对中文是空转。记忆检索在没有 embedding 时会回退到 `ILIKE '%query%'`（`memory_service.py:808`、`:1290`），中文子串能命中；知识库没有这层回退。
-- **建议**：先登记 ISSUE-196，方案另行评审，本节不预设。候选是 `pg_trgm` 或 `pg_bigm`，或在入库时做 bigram 预切分写入 `simple` 配置；须在 PG16/17/18 上核扩展可用性（见本机多版本漂移经验）。时机：下一次触及 hybrid search 的 PR。
+- **建议**：先登记 I-196，方案另行评审，本节不预设。候选是 `pg_trgm` 或 `pg_bigm`，或在入库时做 bigram 预切分写入 `simple` 配置；须在 PG16/17/18 上核扩展可用性（见本机多版本漂移经验）。时机：下一次触及 hybrid search 的 PR。
 
 **HM-M11 交互式上下文压缩（🔶 做 · 最高优先）**。
 
@@ -751,7 +751,7 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
   - 主机级命令执行已经存在。`invoke_claude_code`（`claude_code.py:23`）默认给 Claude Code 开 `Bash,Read,Write,Edit,Glob,Grep`，在主机 cwd 上运行，权限由 CC 自身的 `permission_mode`（默认 auto）决定，且不在 `HIGH_RISK_TOOLS` 内。
   - 审批门本身只在 `ingest_to_corpus`、`ingest_paper` 两处接线（`ingest.py:119`、`paper.py:343`），全局 `before_tool_callback` 只做遥测。`HIGH_RISK_TOOLS` 列出的 `save_to_memory`、`execute_code`、`write_file`、`publish_content`、`send_notification` 并未调用 `should_request_approval`。
 - **判定理由**：维持 ⏸，与 AN-17 的「CC 最大权限」取舍保持一致：这是既定的产品选择，不是缺口。但 AN-17 成文时的前提「没有通用 shell」已不成立，触发条件实际已满足，是否把 `invoke_claude_code` 纳入审批清单或加命令级硬拦截，需要单独决策。
-- **需先修的事实层问题**：`HIGH_RISK_TOOLS` 与[用户指南](../concepts/user-guide/chat-essentials.md)（称 `always` 模式「任何工具调用前都弹审批」）都高估了审批覆盖面，已登记 ISSUE-197。
+- **需先修的事实层问题**：`HIGH_RISK_TOOLS` 与[用户指南](../concepts/user-guide/chat-essentials.md)（称 `always` 模式「任何工具调用前都弹审批」）都高估了审批覆盖面，已登记 I-197。
 
 ### AN 与 HM 落地建议
 
@@ -772,22 +772,22 @@ AI Native 手册的 17 条映射为 ✅8 / 🔶3 / ⏸6，真增量集中在凭�
 
 - **做**
   1. HM-M11：交互式对话启用 ADK 原生 `EventsCompactionConfig`，验收加「无孤儿 function_response」断言。时机：下一次长会话稳定性工作或 013 §14.3 前置项排序（原 Phase 1），二者取先。
-  2. HM-M3：记忆写入过威胁模式表，注入块头补数据声明。时机：与 SK-M5 目录注入防护同批，先于 ISSUE-195 巩固上线。
-  3. HM-M10：修中文关键词检索（ISSUE-196）。时机：下一次触及 hybrid search 的 PR。
-  4. HM-M9：事件文本全文索引 + 只读会话检索工具，结果按 thread 去重。时机：ISSUE-195 方案评审同场决定，前置 HM-M10。
-  5. ISSUE-197（HM-M14）：把审批覆盖面与文档对齐，要么为清单内工具补接线，要么收窄清单与用户指南的说法。时机：下一次触及 approval 的 PR。
+  2. HM-M3：记忆写入过威胁模式表，注入块头补数据声明。时机：与 SK-M5 目录注入防护同批，先于 I-195 巩固上线。
+  3. HM-M10：修中文关键词检索（I-196）。时机：下一次触及 hybrid search 的 PR。
+  4. HM-M9：事件文本全文索引 + 只读会话检索工具，结果按 thread 去重。时机：I-195 方案评审同场决定，前置 HM-M10。
+  5. I-197（HM-M14）：把审批覆盖面与文档对齐，要么为清单内工具补接线，要么收窄清单与用户指南的说法。时机：下一次触及 approval 的 PR。
 - **写**
   - HM-M2：013 记忆层补「核心块由谁写、上限、写满策略」的设计取舍，约一段。已销账（013 §4.3，2026-10-10 版节号）。
   - 本次同批：校正 [0001 RFC](../concepts/design/0001-conversation-architecture-refactor.md) 的 Hermes 口径（见 HM 取证副产物）。
 - **暂缓**
   - HM-M1：启用提供方前缀缓存时。
-  - HM-M5 / HM-M8：ISSUE-194 挂载、有使用遥测、同构任务反复出现时。
+  - HM-M5 / HM-M8：I-194 挂载、有使用遥测、同构任务反复出现时。
   - HM-M12：需要并行扇出时。
-  - HM-M14：维持「CC 最大权限」取舍；若改变该取舍，或 ISSUE-197 决定补接线，再评估命令级硬拦截。
+  - HM-M14：维持「CC 最大权限」取舍；若改变该取舍，或 I-197 决定补接线，再评估命令级硬拦截。
   - HM-M16：出现消息平台接入需求时。
 
 ### HM 取证副产物
 
-1. **HM-D1 · ISSUE-196**：中文关键词检索失效，详见 [issue.md](../.agents/issue.md)。
+1. **HM-D1 · I-196**：中文关键词检索失效，详见 [issue.md](../.agents/issue.md)。
 2. **HM-D2 · 0001 RFC 口径校正**：[`0001-conversation-architecture-refactor.md`](../concepts/design/0001-conversation-architecture-refactor.md) §1.2 表把 Hermes 的刷新语义写成「session lineage 跨 compression」。按固定提交，默认 `in_place: True` 是**同一会话 ID 原地压缩、旧行软归档**，只有旧式轮换路径才生成 `parent_session_id` 续接会话。已就地校正并注明钉点；该表「服务端去重」的结论不受影响。
-3. **HM-D3 · ISSUE-197**：审批门只接线两个工具，`HIGH_RISK_TOOLS` 与用户指南高估了覆盖面，详见 [issue.md](../.agents/issue.md)。
+3. **HM-D3 · I-197**：审批门只接线两个工具，`HIGH_RISK_TOOLS` 与用户指南高估了覆盖面，详见 [issue.md](../.agents/issue.md)。

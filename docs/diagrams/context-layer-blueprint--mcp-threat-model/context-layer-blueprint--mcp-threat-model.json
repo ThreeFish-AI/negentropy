@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "MCP/技能供给面威胁模型：六类威胁与拦截位",
+    "locale": "zh-CN",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-blueprint--mcp-threat-model.html"
+  },
+  "components": [
+    {
+      "id": "host-client",
+      "type": "external",
+      "label": "外部 Agent 客户端",
+      "sublabel": "Claude / Cursor / 自研宿主",
+      "pos": [
+        38,
+        296
+      ],
+      "size": [
+        160,
+        68
+      ]
+    },
+    {
+      "id": "mcp-surface",
+      "type": "backend",
+      "label": "MCP 供给面",
+      "sublabel": "list / resolve / compile · 无状态核心",
+      "pos": [
+        300,
+        296
+      ],
+      "size": [
+        178,
+        68
+      ]
+    },
+    {
+      "id": "compile-gate",
+      "type": "security",
+      "label": "编译期治理门",
+      "sublabel": "RBAC 于 SQL 生成前评估 · 凭证绑定校验",
+      "pos": [
+        557,
+        296
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "governed-exec",
+      "type": "backend",
+      "label": "受治理执行",
+      "sublabel": "egress 白名单 · 爆炸半径隔离",
+      "pos": [
+        841,
+        296
+      ],
+      "size": [
+        156,
+        68
+      ]
+    },
+    {
+      "id": "data-plane",
+      "type": "database",
+      "label": "数据平面",
+      "sublabel": "仓库 / 向量库 / 常驻记忆",
+      "pos": [
+        1089,
+        296
+      ],
+      "size": [
+        156,
+        68
+      ]
+    },
+    {
+      "id": "token-theft",
+      "type": "security",
+      "label": "token 透传窃取",
+      "sublabel": "受众绑定 RFC 8707 · 令牌不跨源复用",
+      "pos": [
+        38,
+        64
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "desc-poison",
+      "type": "security",
+      "label": "描述投毒",
+      "sublabel": "自述不可信输入 · 哈希 pinning＋注册期评审",
+      "pos": [
+        300,
+        64
+      ],
+      "size": [
+        178,
+        64
+      ]
+    },
+    {
+      "id": "deputy",
+      "type": "security",
+      "label": "confused deputy",
+      "sublabel": "每客户端同意 · redirect 匹配＋强确认",
+      "pos": [
+        557,
+        64
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "handle-spoof",
+      "type": "security",
+      "label": "状态句柄冒充",
+      "sublabel": "持有句柄 ≠ 认证 · 句柄绑 verified-token",
+      "pos": [
+        557,
+        440
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "injection",
+      "type": "security",
+      "label": "间接注入",
+      "sublabel": "信任边界段 · 写入端扫描先于巩固上线",
+      "pos": [
+        300,
+        440
+      ],
+      "size": [
+        178,
+        64
+      ]
+    },
+    {
+      "id": "legitimation",
+      "type": "security",
+      "label": "良性记忆偏置",
+      "sublabel": "intent legitimation（非注入）· 读取端检测-反思＋双指标",
+      "pos": [
+        1057,
+        442
+      ],
+      "size": [
+        220,
+        68
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "外部客户端环境",
+      "wraps": [
+        "host-client",
+        "token-theft"
+      ],
+      "pad": 16
+    },
+    {
+      "kind": "security-group",
+      "label": "Context Layer 供给边界（安全边界）",
+      "wraps": [
+        "mcp-surface",
+        "compile-gate"
+      ],
+      "pad": 18
+    },
+    {
+      "kind": "region",
+      "label": "数据与执行平面",
+      "wraps": [
+        "governed-exec",
+        "data-plane"
+      ],
+      "pad": 18
+    }
+  ],
+  "connections": [
+    {
+      "from": "host-client",
+      "to": "mcp-surface",
+      "label": "tools/call",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "mcp-surface",
+      "to": "compile-gate",
+      "label": "compile",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "compile-gate",
+      "to": "governed-exec",
+      "label": "强确认后执行",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "governed-exec",
+      "to": "data-plane",
+      "label": "受治理查询",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "token-theft",
+      "to": "host-client",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "from": "desc-poison",
+      "to": "mcp-surface",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "from": "deputy",
+      "to": "compile-gate",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight"
+    },
+    {
+      "from": "handle-spoof",
+      "to": "compile-gate",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight"
+    },
+    {
+      "from": "injection",
+      "to": "mcp-surface",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight"
+    },
+    {
+      "from": "legitimation",
+      "to": "data-plane",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "总纪律：供给自述默认不可信",
+      "items": [
+        "MCP Security Best Practices（2026-07-28 版本组，截至 2026-10-09 仍最新）：工具行为描述除非来自受信服务器，一律按不可信处理",
+        "生态实测（USENIX，实线）：98,380 个技能扫描出 157 恶意、632 漏洞，平均每恶意技能 4.03 个漏洞",
+        "四家头部客户端（Gemini CLI / Claude Code / OpenAI / VS Code）零家验签（实心）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "一一对应：威胁与对策不可互换",
+      "items": [
+        "六类威胁各有专属拦截位——读法：每行的拦截位都不同，对策不可互换",
+        "良性记忆偏置是 intent legitimation 而非注入：检索记忆真实、来自日常积累，写入端扫描拦不住它",
+        "个性化使攻击成功率相对提升 15.8%–243.7%（PS-Bench 口径，arXiv 2601.17887）；对策＝读取端 detect-and-reflect，平均 ASR 降约 27.4%"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "时序约束：写入端扫描先于巩固上线",
+      "items": [
+        "写入端威胁模式扫描必须先于会话巩固上线——扫描与巩固必须同批落地",
+        "巩固单独先行＝在无扫描的写入面上开放常驻注入面",
+        "本仓现状（as-of b2fbb51f5）：add_session_to_memory 生产调用为 0、consolidation_jobs 只入队无消费者（I-195 开放），约束尚有落实窗口"
+      ]
+    }
+  ]
+}

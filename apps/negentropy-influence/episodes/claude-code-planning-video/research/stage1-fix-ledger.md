@@ -2,7 +2,7 @@
 
 > 评审形态：P0 机器预检 + 七维 reader（D1 事实保真/D2 因果机制/D3 素材映射/D4 可懂性/D5 系列反串线/D6 台账登记面/D7 完备性 critic）+ 四批对抗核验（默认反驳、独立重 derive）+ 综合归级。
 > 流量：14 条原始 → 去重 12 → 存活 11 → 归并 7 + 移交 1（session 工作流 wf_01123624-795）。
-> 机器门基线（修复前实测）：冻结 diff 仅 3 行链接适配 / 归档指纹 10/10 / audit 15/15 FAIL 0 / 网络 verify 28·FAIL 0·WARN 2 / check_series FAIL 0·WARN 5（ISSUE-211 已知态）/ narration 3561 字 ≈ 14.02 分。
+> 机器门基线（修复前实测）：冻结 diff 仅 3 行链接适配 / 归档指纹 10/10 / audit 15/15 FAIL 0 / 网络 verify 28·FAIL 0·WARN 2 / check_series FAIL 0·WARN 5（I-211 已知态）/ narration 3561 字 ≈ 14.02 分。
 
 | ID | 级/严重度 | 结论 | 处置 | 复验 |
 |---|---|---|---|---|
@@ -23,7 +23,7 @@
 
 - 冻结 diff 门：仅 3 行链接层级适配，文字零漂移 ✅
 - `pipeline.py build`：147 句 / 3574 字 / 14.1 分 ✅（narration.json 与 chapters.json 已重建）
-- `check_series`：FAIL 0 / WARN 5（维持 ISSUE-211 已知态，无新增）✅
+- `check_series`：FAIL 0 / WARN 5（维持 I-211 已知态，无新增）✅
 - `source_ledger audit`：15/15 在册 FAIL 0 ✅
 - ④ 双重校验门按序列留待 script-review→④，本阶段不重跑。
 

@@ -224,7 +224,7 @@ const PermissionMove: React.FC<{
   atFlip: number;
 }> = ({span, atMove, seatAt, atTag, atFlip}) => {
   const module0 = useEnter('fade', {at: 2, dur: DUR.f5});
-  // 滑移：snap 弹簧钳行程 min(1,·)（ISSUE-180 口径——过冲不穿透插槽，转为辉光）
+  // 滑移：snap 弹簧钳行程 min(1,·)（I-180 口径——过冲不穿透插槽，转为辉光）
   const raw = useSpring('snap', {at: atMove, dur: DUR.f6});
   const t = Math.min(1, raw);
   const overshoot = clamp01(raw - 1) * 9;

@@ -10,7 +10,7 @@
   {
    "index": 2,
    "layer": "上下文层",
-   "title": "给 AI 发一张工卡：Agent 上下文层蓝图",
+   "title": "拆解 Agent Context Layer：上下文怎么供给、治理、装配",
    "published": false
   },
   {
@@ -21,5 +21,5 @@
   }
  ],
  "activeIndex": 1,
- "next": "给 AI 发一张工卡：Agent 上下文层蓝图"
+ "next": "拆解 Agent Context Layer：上下文怎么供给、治理、装配"
 }

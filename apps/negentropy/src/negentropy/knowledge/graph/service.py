@@ -572,7 +572,7 @@ class GraphService:
             async def maybe_report_chunk_progress() -> None:
                 """chunk 处理过程中按节流条件上报 progress_percent（仅更新单字段，不改 warnings）。
 
-                取消守卫（ISSUE-080）：in-memory ``is_cancelled`` 仅覆盖**同 worker**
+                取消守卫（I-080）：in-memory ``is_cancelled`` 仅覆盖**同 worker**
                 场景（cancel API 与 build task 在同一进程内通过 ``asyncio.Event`` 通信）；
                 跨 worker 场景下此检查不生效，正确性由 SQL 层 ``update_build_run`` 的
                 状态机 WHERE 守卫兜底（非终态写入不会回滚 cancelling）。
@@ -589,7 +589,7 @@ class GraphService:
                     progress_state["last_reported_at"] = now
                     progress_state["last_reported_chunks"] = chunks_processed
                     progress = min(chunks_processed / total_chunks, 1.0) * 0.80 if total_chunks > 0 else 0.80
-                    # extracting 阶段累计计数同步落库（issue.md ISSUE-031）：
+                    # extracting 阶段累计计数同步落库（issue.md I-031）：
                     # 此为 resolver 前的原始累计（含跨 chunk 同义实体），UI/SSE 在 progress<0.82
                     # 阶段可见单调增长；resolving 阶段会回填去重后的最终值。
                     current_entity_count = len(all_entities)
@@ -629,7 +629,7 @@ class GraphService:
                 """处理单个知识块，LLM 提取失败时降级到 fallback 提取器。
 
                 Args:
-                    chunk_index: 调度时预分配的 1-based 序号（issue.md ISSUE-030 修复）；
+                    chunk_index: 调度时预分配的 1-based 序号（issue.md I-030 修复）；
                         替代 ``chunks_processed + 1`` 运行时读取，规避并发竞态导致多 chunk
                         同时日志 `chunk_index=1` / `=11` 的观测性问题。
 
@@ -863,12 +863,12 @@ class GraphService:
             # tally 循环微秒级跑完导致进度从 0 跳到 batch_size。
             # semaphore 仍限制实际 LLM 并发为 max_concurrency，调用效率不变。
             for i in range(0, len(chunks), batch_size):
-                # 批次入口取消检查点（ISSUE-080）
+                # 批次入口取消检查点（I-080）
                 if is_cancelled(run_id):
                     raise PipelineCancelled(run_id, last_stage=PHASE_EXTRACTING)
 
                 batch = chunks[i : i + batch_size]
-                # chunk_index 在调度时一次性预分配（issue.md ISSUE-030 修复）：
+                # chunk_index 在调度时一次性预分配（issue.md I-030 修复）：
                 # 同批并发 chunk 在协程内并发读 chunks_processed 导致竞态，
                 # 这里改为 1-based 全局序号 (batch 起始 i + 批内 offset + 1)，互斥唯一。
                 pending = [
@@ -880,7 +880,7 @@ class GraphService:
                     try:
                         result = await coro
                     except PipelineCancelled:
-                        # 取消同批剩余任务（ISSUE-080）：避免 cancel 信号
+                        # 取消同批剩余任务（I-080）：避免 cancel 信号
                         # 在 chunk loop 内丢失、批次继续处理直到下一个 phase
                         # 边界才被感知。
                         for t in pending:

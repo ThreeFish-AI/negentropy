@@ -6,15 +6,15 @@
 
 
 [blueprint]
-url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/a77c6582264ac783025118bab7f8b2c10a425eec/docs/research/cognitive-context/013-context-layer-blueprint.md"
+url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/5ebfb7e3bb1d27c23c50829ffb999201751f7593/docs/research/cognitive-context/013-context-layer-blueprint.md"
 kind = "repo"
-pinned_ref = "a77c6582264ac783025118bab7f8b2c10a425eec"
-accessed = "2026-09-28"
-raw_sha256 = "93d120692a908efd"
-text_sha256 = "1fa40443b4291722"
-bytes = 71044
-lines = 542
-via = "pinned commit, 本仓内部文档（013 完全重铸版=设计与判定 SSOT，三轴蓝图）"
+pinned_ref = "5ebfb7e3bb1d27c23c50829ffb999201751f7593"
+accessed = "2026-10-19"
+raw_sha256 = "14191369fa3b758b"
+text_sha256 = "34d69038fb0f630d"
+bytes = 198720
+lines = 1274
+via = "pinned commit, 本仓内部文档（013 去比喻收敛版=设计与判定 SSOT，三面×五轴×六段两环+读/纳管双管线；v4 术语层实际消费版，b2946cca8..5ebfb7e3b 间 013 零变动）"
 
 [paper-note]
 url = "https://raw.githubusercontent.com/ThreeFish-AI/negentropy/a77c6582264ac783025118bab7f8b2c10a425eec/docs/research/cognitive-context/011-horizon-context.md"
