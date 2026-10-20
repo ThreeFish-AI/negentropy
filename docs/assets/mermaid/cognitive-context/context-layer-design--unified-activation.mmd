@@ -1,0 +1,26 @@
+%%source: origin/master:docs/concepts/design/context-layer.md §5.2 统一 Context Router（旧版；feature/1.x.x 已由 013 蓝图取代，对齐 013 ADR-2/ADR-3/§7.3/§12 口径）
+%%slug: cognitive-context/context-layer-design--unified-activation
+%%type: workflow
+%%derived: archify workflow v2, corrected from source mermaid
+%% fix: ① 「✨ 新增」两处（KB chunk 接地片段、Memory hybrid_search 种子源）统一标目标态（tag），去掉装饰符号；
+%% ② ContextAssembler 标「未接线」（013 §12.1：assemble() 生产调用 0），生产自动注入实走 NegentropyPreloadMemoryTool；Memory 种子 memory_enabled 全仓零命中；ContextGuard 目录不存在（§12.4）→ 标「未落地」；
+%% ③ Router 命名随图保留，tag 标「ADR-2 并入」——013 ADR-2 不新建 Router 类，路由并入升级后的 HybridPlanner；
+%% ④ 「KB per-corpus hybrid_search」label 因宽度拆为 label「KB hybrid_search」+ sublabel「per-corpus」；「归一信任排名」标 §7.2 设计态；
+%% ⑤ 工作流布局把 CA/HP 与其子节点按 lane 摆放（auto / entry / ondemand / llm 四泳道），语义拓扑不变；与 context-layer--assembly-economics / read-pipeline 并存，不替换。
+graph TB
+    q["用户请求"] --> router{"Context Router<br/>route_context()"}
+    router -->|"auto 自动注入"| ca["ContextAssembler"]
+    router -->|"on_demand 深度检索"| hp["HybridPlanner"]
+    ca --> ca1["记忆 + KG 摘要"]
+    ca --> ca2["KB chunk 接地片段<br/>top-3 · ~200 token"]
+    ca1 --> merge["归一信任排名"]
+    ca2 --> merge
+    hp --> hp1["Memory hybrid_search<br/>新增种子源"]
+    hp --> hp2["KB hybrid_search<br/>per-corpus"]
+    hp --> hp3["KG 图扩展"]
+    hp1 --> rrf["RRF + Rerank<br/>跨源融合"]
+    hp2 --> rrf
+    hp3 --> rrf
+    merge --> guard{"ContextGuard<br/>PII 扫描 + corpus 校验"}
+    rrf --> guard
+    guard -->|"所有路径含回退"| llm["LLM Prompt"]

@@ -1,0 +1,36 @@
+%%source: origin/master:docs/concepts/design/context-layer.md §7.1 进化集成（旧版；feature/1.x.x 已由 013 蓝图取代，对齐 013 §8.5 与 models/evolution.py 口径）
+%%slug: cognitive-context/context-layer-design--evolution-levers
+%%type: architecture
+%%derived: archify architecture, corrected from source mermaid
+%% fix: ① 状态机补终态 rejected（STATUS_REJECTED，shadow_eval 劣化即拒绝；models/evolution.py L83），共 8 个 status 值，canary 与 runtime_canary 合画为一个节点；
+%% ② subgraph→subgraph 的单边（archify 不支持）拆为「七杠杆 → 单在途护栏 → draft」：护栏精确到 target_ref（uq_evolution_proposals_one_inflight 部分唯一索引 L178；同 kind 不同 ref 可并行各 1），并发抢占 with_for_update(skip_locked=True)（orchestrator.py L117）；
+%% ③ context_strategy 标「提案 · 零命中」（013 §8.5：全仓代码无此面）；runtime_canary 仅 skill 面生效（advance_runtime_canary 默认 no-op）；
+%% ④ 与既有 context-layer--evolution-levers 同口径，换版面（横向状态机 + 护栏节点），不替换该图。
+graph LR
+    subgraph LEVERS["可进化参数面 · 6 既有 + 1 提案"]
+        retrieval["retrieval_config<br/>→ 记忆检索权重"]
+        kstrategy["knowledge_strategy<br/>→ KB/KG 检索策略"]
+        skilltpl["skill_template<br/>→ 注入技能"]
+        toolcfg["builtin_tool_config<br/>→ 工具参数"]
+        mempipe["memory_pipeline_prompt<br/>→ 巩固质量"]
+        agentpr["agent_prompt<br/>→ 身份/角色"]
+        ctxstrat["context_strategy<br/>→ 预算比/接地数/信任权重"]
+    end
+    gate["单在途护栏<br/>每 target_ref ≤1 非终态提案<br/>FOR UPDATE SKIP LOCKED"]
+    subgraph SM["统一状态机 · evolution_proposals.status"]
+        draft["draft"] --> shadow["shadow_eval"]
+        shadow -->|"达标"| canary["canary / runtime_canary*"]
+        shadow -->|"达标 · 待审"| pending["pending_approval"]
+        shadow -->|"劣化"| rejected["rejected"]
+        canary --> promoted["promoted"]
+        canary --> rollback["rolled_back"]
+        pending -->|"批准"| promoted
+    end
+    retrieval --> gate
+    kstrategy --> gate
+    skilltpl --> gate
+    toolcfg --> gate
+    mempipe --> gate
+    agentpr --> gate
+    ctxstrat -.-> gate
+    gate -->|"提案入列"| draft

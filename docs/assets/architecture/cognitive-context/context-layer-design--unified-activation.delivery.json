@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7dfcf97e-2959-423c-85e7-c2918e636ad6",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/.archify/workflow-unified-activation-20261020-104853/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--unified-activation.html",
+  "specification": {
+    "sha256": "5d9e30b6ac281baebd93f1bee84d3f99886efb2f6fcb1b970ae6b71ac46d178d",
+    "bytes": 9121
+  },
+  "artifact": {
+    "sha256": "a9978fb36a1535da5e13052bc4e977f46b5467647165fab5779033a80c43e330",
+    "bytes": 768550
+  }
+}

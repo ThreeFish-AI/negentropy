@@ -1,0 +1,415 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Context Layer 三阶段治理：Collect → Enrich → Activate",
+    "locale": "zh-CN",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-design--three-stage-governance.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "665b76ba66e247cd01cb9e82a0fa5e10b7562a94"
+    },
+    "viewBox": [
+      1080,
+      520
+    ],
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "stages": [
+    {
+      "label": "Collect 汇聚"
+    },
+    {
+      "label": "交接 · Catalog"
+    },
+    {
+      "label": "Enrich 富化"
+    },
+    {
+      "label": "交接 · 受治理"
+    },
+    {
+      "label": "Activate 激活"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "connectors",
+      "type": "cloud",
+      "label": "跨系统元数据连接器",
+      "sublabel": "Wave 1 · 私有预览",
+      "tag": "§3.1",
+      "stage": 0,
+      "row": 0,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 252,
+          "label": "§3.1 上下文供给与富化"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "lineage",
+      "type": "messagebus",
+      "label": "OpenLineage 血缘",
+      "sublabel": "External lineage · GA",
+      "tag": "M5",
+      "stage": 0,
+      "row": 1,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 189,
+          "label": "M5 端到端列级血缘"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "osi",
+      "type": "external",
+      "label": "OSI 开放语义互换",
+      "sublabel": "Apache Ossie · 孵化中",
+      "tag": "§3.3",
+      "stage": 0,
+      "row": 2,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 280,
+          "label": "§3.3 生态与出口"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "catalog",
+      "type": "database",
+      "label": "Horizon Catalog",
+      "sublabel": "四层上下文信号",
+      "stage": 1,
+      "row": 0,
+      "width": 124,
+      "height": 342,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 244,
+          "label": "§3 收进 Horizon Catalog"
+        }
+      ],
+      "yOffset": -24
+    },
+    {
+      "id": "semanticview",
+      "type": "backend",
+      "label": "语义视图 Semantic Views",
+      "sublabel": "口径单点 · GA",
+      "tag": "M1",
+      "stage": 2,
+      "row": 0,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 113,
+          "label": "M1 语义视图"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "autodoc",
+      "type": "backend",
+      "label": "自动文档生成",
+      "sublabel": "Autopilot · GA",
+      "tag": "§3.1",
+      "stage": 2,
+      "row": 1,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 252,
+          "label": "§3.1 上下文供给与富化"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "columnlineage",
+      "type": "backend",
+      "label": "列级血缘 / 质量信号",
+      "sublabel": "引擎沉淀 · GA",
+      "tag": "M5",
+      "stage": 2,
+      "row": 2,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 189,
+          "label": "M5 端到端列级血缘"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "governed",
+      "type": "security",
+      "label": "AI-ready 上下文",
+      "sublabel": "受治理地供给",
+      "stage": 3,
+      "row": 0,
+      "width": 124,
+      "height": 342,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 244,
+          "label": "§3 三阶段是供给侧骨架"
+        }
+      ],
+      "yOffset": -24
+    },
+    {
+      "id": "search",
+      "type": "frontend",
+      "label": "Universal Search 混合排序",
+      "sublabel": "关键词+向量 · GA",
+      "tag": "§3.2",
+      "stage": 4,
+      "row": 0,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 270,
+          "label": "§3.2 检索与发现"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "mcp",
+      "type": "external",
+      "label": "MCP 对外暴露",
+      "sublabel": "官方 MCP Server · GA",
+      "tag": "§3.3",
+      "stage": 4,
+      "row": 1,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 280,
+          "label": "§3.3 生态与出口"
+        }
+      ],
+      "yOffset": 4
+    },
+    {
+      "id": "coco",
+      "type": "frontend",
+      "label": "CoCo 自动发现与查询",
+      "sublabel": "官方 Agent 矩阵",
+      "tag": "§3.3",
+      "stage": 4,
+      "row": 2,
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/011-horizon-context.md",
+          "line": 280,
+          "label": "§3.3 生态与出口"
+        }
+      ],
+      "yOffset": 4
+    }
+  ],
+  "flows": [
+    {
+      "id": "in-connectors",
+      "from": "connectors",
+      "to": "catalog",
+      "label": "元数据",
+      "variant": "default",
+      "route": "straight",
+      "labelAt": [
+        214,
+        218
+      ]
+    },
+    {
+      "id": "in-lineage",
+      "from": "lineage",
+      "to": "catalog",
+      "label": "血缘边",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        202,
+        263
+      ]
+    },
+    {
+      "id": "in-osi",
+      "from": "osi",
+      "to": "catalog",
+      "label": "语义规范",
+      "variant": "dashed",
+      "route": "straight",
+      "labelAt": [
+        214,
+        332
+      ]
+    },
+    {
+      "id": "en-semantic",
+      "from": "catalog",
+      "to": "semanticview",
+      "label": "入库",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        416,
+        218
+      ]
+    },
+    {
+      "id": "en-doc",
+      "from": "catalog",
+      "to": "autodoc",
+      "label": "起草源",
+      "variant": "dashed",
+      "route": "straight",
+      "labelAt": [
+        428,
+        263
+      ]
+    },
+    {
+      "id": "en-lineage",
+      "from": "catalog",
+      "to": "columnlineage",
+      "label": "沉淀源",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        416,
+        332
+      ]
+    },
+    {
+      "id": "gv-semantic",
+      "from": "semanticview",
+      "to": "governed",
+      "label": "定义",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        644,
+        218
+      ]
+    },
+    {
+      "id": "gv-doc",
+      "from": "autodoc",
+      "to": "governed",
+      "label": "文档",
+      "variant": "dashed",
+      "route": "straight",
+      "labelAt": [
+        632,
+        263
+      ]
+    },
+    {
+      "id": "gv-lineage",
+      "from": "columnlineage",
+      "to": "governed",
+      "label": "对账",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelAt": [
+        644,
+        332
+      ]
+    },
+    {
+      "id": "ac-search",
+      "from": "governed",
+      "to": "search",
+      "label": "检索",
+      "variant": "default",
+      "route": "straight",
+      "labelAt": [
+        846,
+        218
+      ]
+    },
+    {
+      "id": "ac-mcp",
+      "from": "governed",
+      "to": "mcp",
+      "label": "出口",
+      "variant": "dashed",
+      "route": "straight",
+      "labelAt": [
+        858,
+        263
+      ]
+    },
+    {
+      "id": "ac-coco",
+      "from": "governed",
+      "to": "coco",
+      "label": "发现",
+      "variant": "default",
+      "route": "straight",
+      "labelAt": [
+        846,
+        332
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "三阶段是供给，不是承重",
+      "items": [
+        "九格里只有语义视图（M1）与列级血缘（M5）由承重机制托底",
+        "其余为供给与出口，挂靠 011 §3.1–§3.3 专章，可替换",
+        "骨架管「通」，机制管「对」"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "相对旧版 Mermaid 的校准",
+      "items": [
+        "阶段内三项互不依赖，原 C1→C2→C3 串行链改并列",
+        "阶段间边落为两个交接节点（Catalog / 受治理上下文）",
+        "九个能力 label 逐字保留，成熟度与锚点只入 sublabel / tag"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "仍待校准的三处（011 同口径）",
+      "items": [
+        "「自动文档生成」「质量信号」在 011 全文仅此一处出处",
+        "「列级血缘」按 011 §2 属 M5，却落在 Enrich 阶段",
+        "「OSI 开放语义互换」按 §3.3 属出口面，却落在 Collect 阶段"
+      ]
+    }
+  ]
+}
