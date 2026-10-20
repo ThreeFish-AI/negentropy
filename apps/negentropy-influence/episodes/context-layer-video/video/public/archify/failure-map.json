@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.52,
- "story_sec": 22.2,
- "total_wall_sec": 65.7,
+ "lead_sec": 0.48,
+ "story_sec": 22.28,
+ "total_wall_sec": 85.12,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,8 +16,8 @@
    "end_still": "failure-map--fm2-open-end.png",
    "beats": 10,
    "dwell_ms": 1100,
-   "lead_sec": 0.52,
-   "story_sec": 11.05,
+   "lead_sec": 0.48,
+   "story_sec": 11.07,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c1_koujing",
@@ -43,7 +43,7 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 3.35,
+   "story_sec": 3.37,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c1_koujing",
@@ -61,8 +61,8 @@
    "end_still": "failure-map--fm2-supply-end.png",
    "beats": 4,
    "dwell_ms": 1100,
-   "lead_sec": 0.48,
-   "story_sec": 4.44,
+   "lead_sec": 0.52,
+   "story_sec": 4.51,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c4_yanzheng",
@@ -82,7 +82,7 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 3.36,
+   "story_sec": 3.33,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "c8_jiyi",
@@ -101,7 +101,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/failure-map.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/failure-map.html",
  "slug": "failure-map",
  "type": "architecture"
 }

@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.52,
- "story_sec": 25.38,
- "total_wall_sec": 87.8,
+ "story_sec": 25.43,
+ "total_wall_sec": 94.3,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 11,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 12.15,
+   "story_sec": 12.16,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "host-client",
@@ -44,7 +44,7 @@
    "beats": 3,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 3.33,
+   "story_sec": 3.36,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "host-client",
@@ -62,8 +62,8 @@
    "end_still": "blueprint--mcp-threat-model--tm2-plane-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.52,
-   "story_sec": 3.24,
+   "lead_sec": 0.6,
+   "story_sec": 3.26,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "governed-exec",
@@ -81,7 +81,7 @@
    "beats": 6,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 6.66,
+   "story_sec": 6.65,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "token-theft",
@@ -103,7 +103,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/blueprint--mcp-threat-model.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/blueprint--mcp-threat-model.html",
  "slug": "blueprint--mcp-threat-model",
  "type": "architecture"
 }
