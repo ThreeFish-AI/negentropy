@@ -48,12 +48,12 @@ export const P6Compounding: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-03', 'p6-06');
   const bC = w('p6-07', 'p6-08');
   const bD = w('p6-09', 'p6-12');
-  const bE = w('p6-13', 'p6-15');
+  const bE = w('p6-13', 'p6-15d');
   const bF = w('p6-16', 'p6-17');
   const bG = w('p6-17b', 'p6-19');
   const bH = w('p6-20', 'p6-21');
   const bI = w('p6-22', 'p6-23');
-  const bJ = w('p6-24');
+  const bJ = w('p6-24', 'p6-24b');
   const bK = w('p6-25', 'p6-26');
   const bL = w('p6-27', 'p6-28');
 
@@ -267,13 +267,13 @@ const BrokenLoop: React.FC<{at: number; grepAt: number; queueAt: number; fadeAt:
   const grepIn = useProgress(grepAt, 14);
   const queueIn = useProgress(queueAt, 14);
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 70}}>
+    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 70, paddingBottom: 150}}>
       {/* 三状态位只亮一盏（relative 盒给 LampTrio 的 AbsoluteFill 提供包含块） */}
       <div style={{position: 'relative', width: 860, height: 420}}>
         <LampTrio at={at} onAt={[6, null, null]} missingAt={14} />
       </div>
       {/* 右列：气泡消散 + grep + 队列 */}
-      <div style={{display: 'flex', flexDirection: 'column', gap: 20, width: 620}}>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 14, width: 620}}>
         {/* 补句气泡：到下一次会话就没了（消散） */}
         <div style={{opacity: 0.5 * (1 - ghost), transform: `translateY(${-ghost * 14}px)`, alignSelf: 'flex-end'}}>
           <span style={{padding: '8px 18px', border: `1.5px dashed ${theme.panelBorder}`, borderRadius: 10, fontSize: 18, color: theme.dim}}>

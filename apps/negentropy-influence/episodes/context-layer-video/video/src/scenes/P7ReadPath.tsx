@@ -873,7 +873,7 @@ const RecapSeven: React.FC<{a30: number; a31: number; a32: number; a32b: number;
   const gIntro = useProgress(a32b, 12);
   // 验收问卡逐卡钉上、问句打字机（hooks 顶层逐个调用）；结论入场时整组缓动让位
   const gEnters = [a32c, a32d, a32e].map((a) => clamp01(progress(frame, a, 14)));
-  const gYield = 1 - 0.6 * clamp01(progress(frame, a33, 14));
+  const gYield = 1 - clamp01(progress(frame, a33, 14));
   const gTyped = [
     useReveal(G_CARDS[0].q, {at: a32c, cps: 10}),
     useReveal(G_CARDS[1].q, {at: a32d, cps: 10}),
@@ -883,8 +883,8 @@ const RecapSeven: React.FC<{a30: number; a31: number; a32: number; a32b: number;
   const preview = useProgress(a34, 10);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {/* 五法则回扣引入条 + 验收问卡三连（画框外上带，避让七段横轨与结论位） */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 172, display: 'flex', justifyContent: 'center', opacity: gIntro, transform: `translateY(${(1 - gIntro) * 10}px)`}}>
+      {/* 七法则回扣引入条 + 验收问卡三连（五轴导航图与七段横轨之间的空带；结论入场时整组淡出） */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 384, display: 'flex', justifyContent: 'center', opacity: gIntro, transform: `translateY(${(1 - gIntro) * 10}px)`}}>
         <span style={{padding: '7px 24px', border: `1.5px dashed ${theme.dim}`, borderRadius: 999, fontSize: 18, color: theme.dim, background: withAlpha(theme.bg, 0.9)}}>
           七法则 · 挑三条贴着管线
         </span>
@@ -897,10 +897,10 @@ const RecapSeven: React.FC<{a30: number; a31: number; a32: number; a32b: number;
             key={c.g}
             style={{
               position: 'absolute',
-              left: 276 + i * 464,
-              top: 234,
-              width: 440,
-              height: 140,
+              left: 150 + i * 424,
+              top: 436,
+              width: 400,
+              height: 150,
               borderRadius: 12,
               border: `2px solid ${theme.concept}`,
               background: withAlpha(theme.bg, 0.92),
