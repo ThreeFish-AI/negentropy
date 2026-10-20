@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 ### Added
+### 013 蓝图用词整改收尾：「锚」字行话与自造词连图连兄弟文档统一（2026-10-20）
+
+- **[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) §2.2 补全论文定义 1–4**：按 arXiv 2510.26493 原文补上漏列的定义 2（交互），符号先给白话再给记号，并用论文自带的 Gemini CLI 例表落地实体→Char(e)→本蓝图来源类。
+- **去「锚」字行话与自造缩略**：「一手锚」→「一手信源」，证据锚/转锚/正锚/详锚等按出处、对应、依据、转引、正面实证改写；挂点→接入点、负发现→未接入项＋正面实证、进窗/入窗→进入窗口、实调用→实际调用等；「锚定」系技术术语与稳定名（现算、错数、双计、入账、对位等）保留。
+- **配图 8 张随字重渲**：assembly-economics / ingest-pipeline / injection-points / read-pipeline / failure-map / architecture / layer-mechanism-map / first-class-object 的 candidate 改字后 finalize 四门全过 + 双主题 PNG 重采；011 / mapping / knowledge-map 的「一角」「机制载荷」同步。
+- **三个自造词按默认方案处理，待作者确认**：信封→条目元数据、摘要梯→分级摘要、自供链→自动供给回路（M7，§3.3）。详见 [I-232](docs/.agents/issue.md#I-232)。分集媒体面（context-layer-video）旧词归 I-230 待收敛。
+
 ### issue.md 双层结构整改与 ID 命名空间迁移 ISSUE-NNN → I-NNN（2026-10-17）
 
 - **[issue.md](docs/.agents/issue.md) 双层结构整改**：按 AGENTS.md「术 · Issue」规范重构为头部五列索引表（ID / 标题 / 完成状态 / 完成时间 / 详情锚点）＋ 主体详情块（`<a id>` 锚点 + `## I-NNN：<标题>`）双层结构，全文按 ID 升序重排；7 组撞号重编（020/058/059/066/118/119×3/128 共 8 块后现顺延为 I-220~I-227，首现保留原号）、两条无 ID 日期标题条目补编 I-228/I-229、新登记 I-230 迁移条目；完成状态（✅×218 / 🔄×9）与完成时间（标题日期优先、缺失走 git 引入日期回溯）全量补齐；原明文 `NE_AUTH_TOKEN_SECRET` 值脱敏。

@@ -237,6 +237,7 @@
 | I-229 | Memory 浏览器实机验证 dev cookie 工具与 seed 数据备查 | ✅ 已完成 | 2026-05-04 | [详情](#I-229) |
 | I-230 | issue.md 双层结构整改与 ID 命名空间迁移（ISSUE-NNN → I-NNN） | 🔄 进行中 | — | [详情](#I-230) |
 | I-231 | Perceives Security Audit 复发（2026-10-17 增补 58 条）：docling 家族真升级 + 最小修复线收敛 + 一条无 fix 豁免 | ✅ 已完成 | 2026-10-17 | [详情](#I-231) |
+| I-232 | 013 蓝图用词整改收尾：「锚」字行话与挂点/负发现等自造词，连图与兄弟文档统一落改 | 🔄 进行中 | — | [详情](#I-232) |
 
 ---
 
@@ -5412,3 +5413,15 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **验证**：CI 同款 pip-audit（28 条 ignore）本地 exit 0；bandit exit 0；perceives 全量单测 2132 passed / 16 skipped（唯一残余 fail 为本机 `~/.negentropy/perceives.config.yaml` 开发档案穿透 `test_build_with_defaults_only` 的隔离 patch 错层——挪走该文件 100/100 过、CI 无此文件恒绿，与升级无关）；torch 2.10.0 / torchvision 0.25.0 / transformers 4.57.6 / pillow 12.3.0 邻接钉零牵动。
 - **后续防范**：升级传递依赖家族（docling* / mcp* 一类「主包 + 兄弟包」结构）时，必须连带冒烟兄弟包的**运行时导入面**（`python -c "import …"`）而非只看解析成功——上游约束欠紧只能靠执行期暴露；大版本（mcp 2.x）即便解析器放行也先锁最小修复线，等生态验证。
 - **同类问题影响**：主后端 `apps/negentropy/uv.lock` 的 litellm / mcp 若有独立钉版，其 Dependabot 告警另行核销（本条仅覆盖 perceives 面）；本机用户配置穿透测试隔离的问题属 test_config 既有缺陷，已在此留痕，修法（patch 目标改指 `_config_yaml` 重绑层）另行处理。
+
+---
+
+<a id="I-232"></a>
+
+## I-232：013 蓝图用词整改收尾：「锚」字行话与挂点/负发现等自造词，连图与兄弟文档统一落改
+
+- **表因**：评审指出 013 §2.2 的「一手锚」生硬刻意；全篇扫描发现同类问题成片：「锚」被当出处名词用（71 行，含「证据锚」列名、「转锚」「正锚」），另有「负发现」「挂点」「进窗/入窗」「实调用」「裸信号」「同判」等自造缩略与口癖，以及 §2.2 漏列论文定义 2（交互）、符号无白话释义。
+- **根因**：I-227 的去比喻整改只清了喻体词表，未清名词化行话与自造缩略；且术语在正文、表头、图源（`docs/diagrams/*.json` 与 `.mmd`）、兄弟文档（011 / mapping / knowledge-map）多面复制，单面改会让正文与配图分叉。
+- **处理方式**：①正文三轮：§2.2 按论文原文补全定义 1–4 并用 Gemini CLI 例表落地；「锚」按语义分类改写（出处/对应/依据/转引/正面实证，保留「锚定」系技术术语与「分布锚点」）；三路只读 Subagent 扫描后逐条核上下文与耦合再落改。②逐词裁决：挂点→接入点、负发现→未接入项＋正面实证、进窗/入窗→进入窗口、实调用→实际调用、分域→分库、窄化→覆盖不全、设计位/落档/撞名不同义/边界如实/盘上/一角/机制载荷等直述化；稳定名（现算、错数、双计、入账、对位、品类卖方、受覆盖题、回路缺件、落位、验收位）保留并在首现补释义。③配图 8 张（assembly-economics / ingest-pipeline / injection-points / read-pipeline / failure-map / architecture / layer-mechanism-map / first-class-object）按 candidate JSON → finalize 四门 → 双主题 PNG → `.mmd` 同步重出。④011 / mapping-negentropy / knowledge-map 的「一角」「机制载荷」同步。⑤三个自造词按默认方案处理：信封→条目元数据（依据 ingest-pipeline 图卡的作者定义句）、摘要梯→分级摘要、自供链→自动供给回路（M7，§3.3）。**三词为默认方案，待作者确认**；其中自供链置信度约 55–60%，仅 013 §3.2 一处，判错改回成本最低。
+- **后续防范**：改任何术语前先 grep 图源（`docs/diagrams/context-layer*/`、`docs/assets/mermaid/cognitive-context/`）与 011 / 014 / mapping 的出现数，已成稳定名或入图源的词不单面改；子串假阳性须用断言排除（「真实调用」含「实调用」、「进入窗口」含「入窗」、「磁盘上」含「盘上」）；lima 类新工作区重渲配图前先挪走旧 `*.browser-check.json`（回执记着旧工作区绝对路径，否则 `viewer/evidence-path-conflict`）。
+- **同类问题影响**：①horizon 六张旧图（2.17 产物、无 candidate，含「对位」「双计」「边界如实」）与其它体系图的同词异义不在本轮范围；②`apps/negentropy-influence/episodes/context-layer-video/` 的分集脚本与屏上字仍含旧词（挂点、入窗、信封、摘要梯等），归 I-230 媒体面待收敛；③`docs/assets/mermaid/README.md` 与 `doc-media-assets.md` 仍写「`.mmd` 是唯一可编辑源」，与 3.0 candidate 为 SSOT 的现状不符，另行整改。

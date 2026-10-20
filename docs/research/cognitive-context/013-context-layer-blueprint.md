@@ -11,7 +11,7 @@ description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（失效登
 > 文档族分工：
 >
 > - 013（本文）=设计 SSOT（规格、决策、路线）；
-> - [011 精读笔记](./011-horizon-context.md)=Horizon 全量机制载荷（连续 §1–§10）；
+> - [011 精读笔记](./011-horizon-context.md)=Horizon 全量机制细节（连续 §1–§10）；
 > - [014](./014-openviking.md)=OpenViking 精读；015 映射已并入[机制映射汇总](../mapping-negentropy.md) OV 域。
 >
 > **编号稳定键**：
@@ -73,7 +73,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 失效形态 | 证据出处 | 防护机制 | 验收判据 |
 | :-- | :-- | :-- | :-- |
 | fan trap：先 join 后聚合，$100 订单被 3 条事件放大成 $300 | 011 §2 M1 走查＋§6 D1（Jan 440 vs 对照 200） | M1 先聚后连不变量（映射 #4） | D1 反事实开关（机器门） |
-| 存量过期：算好的数字无陈旧提醒，底层数据一变即过期 | 011 §2 M1（docs 论证） | M1 执行半边：查询期重算，不存成数（物化仅加速，MAX_STALENESS≥120s 且治理压过性能） | 出数路径必经现算；掩码列上物化改写放弃（机器门） |
+| 存量过期：算好的数字无陈旧提醒，底层数据一变即过期 | 011 §2 M1（docs 论证） | M1 执行半边：查询期重算，不存成数（物化仅加速，MAX_STALENESS≥120s 且治理压过性能） | 出数路径必经现算（查询期按定义重算）；掩码列上物化改写放弃（机器门） |
 | 平均的平均：派生指标先除后加 | 011 §6 D7（122.22 vs 108.33） | M1 derived 先聚后除 | D7 反事实开关（机器门） |
 | distinct 双计：数行不数集合 | 011 §6 D2（[6,1,2] vs [3,1,2]） | M1 distinct_safe 集合计数语义 | D2 反事实开关（机器门） |
 | 半可加跨时间相加：余额类指标跨天求和重复计数 | 477 vs 48（typedef 转述生产实例，011 §8 第 4 条[8]）；玩具复现 D3（[11,6,7] vs [5,6,7]） | M1 NON ADDITIVE BY（人填声明）；上游预聚合导致明细 grain（粒度——数据被聚合到的粗细层级，如按天汇总）丢失时失效——验收位归 §10 | D3 反事实开关＋grain 契约测试（机器门＋人审） |
@@ -81,7 +81,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 ### 1.3 访问控制簇：上下文访问权限
 
-策略绕过、越权窗口、裁决失序与审批窄化：这一簇的共性是强制力挂错了位置或根本没有执法点。
+策略绕过、越权窗口、裁决失序与审批覆盖不全：这一簇的共性是强制力挂错了位置或根本没有执法点。
 
 | 失效形态 | 证据出处 | 防护机制 | 验收判据 |
 | :-- | :-- | :-- | :-- |
@@ -91,7 +91,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 快照式权限的越权窗口：回收后旧会话仍持权 | 011 §6 D9（ceiling=False→回收后仍持 select:orders） | M6 会话权限上界每查询实时求值（无快照）（映射 #15） | D9 反事实开关：回收后既有会话判定即刻失效（机器门） |
 | 分类≠保护：已打敏感标签仍明文可读 | 011 §2 M7＋§6 D10（映射置空→phone 仍明文） | M7 一次性映射校验门：机器判断与组织规则显式分开，未映射＝显式缺口（映射 #16） | D10 反事实开关＋未映射系统标签显式报缺口（机器门） |
 | 多数派错误压过正确口径：popularity 自动裁决让错误胜出 | 011 §6 D4（auto_popularity 让错误口径胜出；热度 200:5 为 lab 源码实测——horizon_context_lab.py popularity 字面量）＋§8 第 5 条①（同构现实风险） | 冲突浮出人工裁决（CONFLICT 卡无数值、拒答待裁）＋authority 主导排序——裁决权不自动化（G3）（映射 #8） | D4 反事实开关；冲突时输出 CONFLICT 面而非数值（机器门） |
-| 审批门窄化：拦截点散落，高危工具未纳入审批 | ingest.py:119、paper.py:343（should_request_approval 非测试调用仅 2 处；能跑主机命令的 invoke_claude_code 不在清单） | I-197 待办：统一 before_tool_callback 拦截＋高危清单与实际工具面定期对账 | 高危工具调用 100% 过审批门（机器门：拦截覆盖率测试） |
+| 审批门覆盖不全：拦截点散落，高危工具未纳入审批 | ingest.py:119、paper.py:343（should_request_approval 非测试调用仅 2 处；能跑主机命令的 invoke_claude_code 不在清单） | I-197 待办：统一 before_tool_callback 拦截＋高危清单与实际工具面定期对账 | 高危工具调用 100% 过审批门（机器门：拦截覆盖率测试） |
 | 元数据旁路：示例值（sample values）不走掩码 | 011 §2 M2 已知限制[14]（掩码作用于数据行不作用于元数据，官方仅建议慎开） | 机制面缺口如实登记：敏感列示例值开关进运营验收清单；本仓现状：无示例值面（缺口属对方平台） | 敏感列示例值开关状态可审计（人审） |
 | 多 Agent 委托链权限传播失效：RBAC/ABAC 在 delegation/aggregation/time 场景下不正确传播 | Colrows 引述两项研究：IBM 2025（97% 受 AI 数据泄露组织缺恰当 AI 访问控制）与多 Agent 授权传播研究（RBAC/ABAC 在 delegation/aggregation/time 下不正确携带权限——转述未具名，本行失效形态系后者） | 开放缺口：M6 只覆盖单会话权限上界，委托深度上的传播判据待设计（§5） | 多级委托下有效权限单调不增的可复现测试（待设计） |
 
@@ -101,7 +101,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 
 | 失效形态 | 证据出处 | 防护机制 | 验收判据 |
 | :-- | :-- | :-- | :-- |
-| governance ≠ verification：上游预聚合导致明细粒度（grain）丢失后，每步合法、算式正确、整体是错数 | 477 vs 48（typedef 转述，011 §8 第 4 条[8]）；NON ADDITIVE BY 系人填声明非系统推导；玩具同机制复现 D3 | grain 契约独立验收位（§10）＋VQR 补「锚定」一角；M1 管定义与聚合、不管上游「这么存对不对」 | 上游 grain 契约测试立项（§10 立规后人审＋机器门混布） |
+| governance ≠ verification：上游预聚合导致明细粒度（grain）丢失后，每步合法、算式正确、整体是错数 | 477 vs 48（typedef 转述，011 §8 第 4 条[8]）；NON ADDITIVE BY 系人填声明非系统推导；玩具同机制复现 D3 | grain 契约独立验收位（§10）＋VQR 补「锚定」这一项；M1 管定义与聚合、不管上游「这么存对不对」 | 上游 grain 契约测试立项（§10 立规后人审＋机器门混布） |
 | 模型正确引用定义的独立失效面：挑错表/错 join/错粒度，语法全对答案全错 | Spider 2.0 裸模型 GPT-4o 仅 10.1%（011 §1[28]）；最难失败是建错表而非写错 SQL | M4 VQR：命中短路重放已验证 SQL＋confidence 透出；无 governed 覆盖显式告警（三条出路无「静默臆测」）（映射 #10） | A1 verified 短路＋A1b 引擎重算==验证答案对账（机器门） |
 | 题库腐化：口径变了题库不重验，锚定住过时答案 | 011 §2 M4 已知限制 | 题库↔口径对账门（A1b）＋口径变更触发重验（映射 #10） | 口径版本变更后题库重验状态可查（机器门） |
 | 评测集噪声：基准标注错误使验收数字失真 | Colrows 引述 UIUC 2026（BIRD Mini-Dev 52.8%/Spider 2.0-Snow 62.8% 标注错误率） | 外部数字先问「谁测的、什么条件」，本仓验收以自跑日志为准＋eval 集锁版本运营（§8） | 入文数字「谁测的、什么条件」可答；eval 集版本化（人审） |
@@ -114,7 +114,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | :-- | :-- | :-- | :-- |
 | 定义供给覆盖率上限：人工建定义追不上数据增长 | 011 §3.1[5]（Snowflake 自家 9,685 张表语义视图覆盖 <5%） | 两条供给路径（Autopilot 显式人审＋Sense 隐式挖掘）＋覆盖率作持续度量指标（映射 #7） | 目录覆盖率可观测且随时间上升（机器门） |
 | 定义供给腐化：stale 定义仍被装配（离职维护者、BI 已不用、缺新产品线） | a16z 定名文 worked example（投资人观点文构造例） | freshness 信号进信任归一＋人审发布门＋定义漂移检测；错答回流到定义层（映射 #11） | 定义年龄/上游指纹变更可观测，超龄定义降权或下线（机器门＋人审） |
-| 检索库粒度失配：共享单库＝检索实现最差档 | FinanceBench 论文（GPT-4-Turbo 共享单库 19%/每文档分库 50%/Oracle 证据页 85%；Llama2 41% vs 19% 同趋势；150 题专家核验） | 检索分域＋三段管线（高召回初检→重排→top-k 截断控信噪比，§7）；本仓现状：分域与候选集治理无专项 | 检索分支在目标语言/分域设置下非全空（机器门：中文子串用例单独断言——CJK 实况见下行） |
+| 检索库粒度失配：共享单库＝检索实现最差档 | FinanceBench 论文（GPT-4-Turbo 共享单库 19%/每文档分库 50%/Oracle 证据页 85%；Llama2 41% vs 19% 同趋势；150 题专家核验） | 检索分库＋三段管线（高召回初检→重排→top-k 截断控信噪比，§7）；本仓现状：分库与候选集治理无专项 | 检索分支在目标语言/分库设置下非全空（机器门：中文子串用例单独断言——CJK 实况见下行） |
 | CJK 分词失效：english tsvector 把连续汉字切成单 token，中文关键词检索分支全空 | I-196（PG 16.14 实测单 token；知识库无回退） | I-196 待办：三候选——pg_trgm/pg_bigm 索引｜CJK bigram 预切分｜纯 CJK 查询路由 trigram/LIKE 回退（详解归 §7.5） | 中文子串用例单独断言（机器门，详 §7.5） |
 | 上下文顺序失效：Context-Last 在长证据后丢失任务本身 | FinanceBench 论文（LongContext 下 Context-First 78% vs Context-Last 25%；Claude2 76% vs 37%；Oracle 短证据无此效应） | 装配面排序契约：任务规约前置＋静/动分段（「会随轮变化的状态」画在动态边界，170–175）；本仓现状：分段纪律未落码 | 长证据装配时任务规约仍居前位（结构断言＋人审） |
 | 生态出口执行语义丢失：定义可携带≠被验证（导出桥静默丢 ASOF/RANGE 非等值关系） | 011 §3.3[21]（Datus 竞对实测） | 出口约束不弱化声明＋丢关系类型显式清单化（静默丢弃不可接受）；跨引擎执行验收登记为开放缺口（映射 #12） | 导出物携带保真度清单，丢类型显式报出（人审） |
@@ -141,7 +141,7 @@ Agent 的上下文系统出错，失效形态五花八门：同一个指标在�
 | 装配面已定义、未接入生产路径：机制命名存在、运行时不存在 | assemble() 生产调用 0；ContextGuard 目录不存在；HybridPlanner memory 种子未接、memory_enabled 零命中；unified_search 自述简化无 RRF；context_strategy 全仓零代码命中 | 代码实况对账由 §12.4 承载，对账结论以「未接入项」＋「正面实证」并立（root_agent 五个接入点、NegentropyPreloadMemoryTool 每轮注入、60s TTL fail-soft 机制及其治理旁路代价，§6/§12） | 蓝图每个机制可指认生产路径或如实标未启（grep 对账，随蓝图修订重跑） |
 | 技能三级披露的 L2/L3 激活悬空：L1 目录指示调用的工具从未挂载，模型驱动激活不可达 | I-194；expand_skill 等三件不在 TOOL_REGISTRY、五翼（五个 Faculty）零挂载、仅 __init__.py 导出 | I-194 待办（挂载/收回）＋挂载对账门：凡 prompt 写死工具名处须有「目录声明工具名 ∈ Agent 实际挂载工具名」同构集成测试 | 挂载对账同构测试进 CI（机器门） |
 | 会话巩固回路缺件：会话→长期记忆零转化 | I-195；add_session_to_memory 生产调用方 0；consolidation_jobs 只入队无消费者；水位列全仓零命中 | I-195 待办：三件套 trigger/consumer/watermark（复用 title_inspector 水位范式；提交点最后写水位） | 三件齐备且水位重放不重复（机器门）——回路「在线」判定标准 |
-| 物化只写不删：定义禁用后盘上旧目录残留，无退役路径 | harness_materializer.py:114-134 只写；全文件无 unlink/rmtree/delete——SK-M22 缺口 | 退役段立规（§9 L6/G6「退役路径必备」）：物化回收与注册登记成对 | 定义禁用后盘上投影同步回收（机器门） |
+| 物化只写不删：定义禁用后磁盘上旧目录残留，无退役路径 | harness_materializer.py:114-134 只写；全文件无 unlink/rmtree/delete——SK-M22 缺口 | 退役段立规（§9 L6/G6「退役路径必备」）：物化回收与注册登记成对 | 定义禁用后磁盘上投影同步回收（机器门） |
 
 ### 1.8 记忆安全簇：上下文意图与安全
 
@@ -278,7 +278,7 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 ### 2.4 分析单元：每轮装配事务
 
-把对象与定义落到可验收的单元，本蓝图取**每轮装配事务**：从「当轮输入到达」到「上下文窗口内容定型」之间发生的全部取数、过滤、排序、分段与预算分配。用 §2.2 的语言说：式 4 的 $f_{\mathrm{context}}(C) = \mathcal{F}(\varphi_1, \dots, \varphi_n)(C)$ 每被实调用一次，就是一次装配事务（式 3 的 $\mathrm{CE}: (C, \mathcal{T}) \to f_{\mathrm{context}}$ 是映射关系而非事件；「一次求值＝一个事务」是本文的分析单元约定）。
+把对象与定义落到可验收的单元，本蓝图取**每轮装配事务**：从「当轮输入到达」到「上下文窗口内容定型」之间发生的全部取数、过滤、排序、分段与预算分配。用 §2.2 的语言说：式 4 的 $f_{\mathrm{context}}(C) = \mathcal{F}(\varphi_1, \dots, \varphi_n)(C)$ 每被实际调用一次，就是一次装配事务（式 3 的 $\mathrm{CE}: (C, \mathcal{T}) \to f_{\mathrm{context}}$ 是映射关系而非事件；「一次求值＝一个事务」是本文的分析单元约定）。
 
 三个互相独立的证据指向同一结论。正确性与安全性的最后一道拦截在每次装配时求值，而非入库时判定一次便长期有效（入库门管结构与身份、装配门管当下行为，两道独立生效，见 G2）：
 
@@ -288,13 +288,13 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 由此得出三条推论：四类现象全部发生在装配事务内部（错口径被装配进窗口、错证据被装配进窗口、越权数据被装配进窗口；过量内容与缺失记忆同样是装配面事件——装了不该装的、没装该装的）；D1–D10 破坏实验（011 §6）大多是对装配事务的单点干预（D8 在 L1 摄取门、D6/D4/D10 落 L2 校验与裁决段，段位对账见 §9.2）；§12 映射表以装配事务为对账口径。装配面实况的完整对账（未接入项＋五个接入点的正面实证）由 §6 承载。
 
-![研究对象与分析单元：实体空间 ℰ 的相关子集 E_rel 经 Char 映射取并集得到原始上下文 C（式 2）；式 4 的 f_context 每被实调用一次＝一次装配事务——四类现象发生在事务内部，验收以事务为最小单位](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object-dark.png)
+![研究对象与分析单元：实体空间 ℰ 的相关子集 E_rel 经 Char 映射取并集得到原始上下文 C（式 2）；式 4 的 f_context 每被实际调用一次＝一次装配事务——四类现象发生在事务内部，验收以事务为最小单位](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object-dark.png)
 
 > 图源（可 diff 文本）：[`context-layer-blueprint--first-class-object.mmd`](../../assets/mermaid/cognitive-context/context-layer-blueprint--first-class-object.mmd) · 交互版（下载到本地打开）：[`context-layer-blueprint--first-class-object.html`](../../assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html)
 
 ### 2.5 研究范围
 
-- **定义域**：Agent 运行时上下文的供给与治理之设计判定。文档族分工：本篇（013）=设计 SSOT；[011](./011-horizon-context.md)=Horizon 机制载荷；[014](./014-openviking.md)=OpenViking 精读；015 映射已并入[机制映射汇总](../mapping-negentropy.md) OV 域；010=理论输入。
+- **定义域**：Agent 运行时上下文的供给与治理之设计判定。文档族分工：本篇（013）=设计 SSOT；[011](./011-horizon-context.md)=Horizon 机制细节；[014](./014-openviking.md)=OpenViking 精读；015 映射已并入[机制映射汇总](../mapping-negentropy.md) OV 域；010=理论输入。
 - **成立工况**：多源上下文（instruction / memory / knowledge / tools+skills / session 五类投影，见 §3.5 投影表）、LLM Agent 运行时、本仓 PostgreSQL 栈。
 - **Out-of-Scope**：identity resolution（多源身份归并）；长期记忆引擎本体（宿主承担）；替代各子系统检索算法（做统一路由与归一，不重写算法）；数据平面与训练；上游转换层的 grain 决策权（属 dbt 一侧）。
 
@@ -326,9 +326,9 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 
 - 资产轴 Asset（§4）：经营什么？受治理、可寻址、带权限的语境对象（definitions 四类、记忆、技能目录、KB、血缘边、verified 问答对、标签与策略对象）。
 - 权威轴 Authority（§5）：真值在哪、执法点在哪、谁在问？SSOT 与引用不拷贝、执法点分层（按强制时点排列：注册期门→装配期注册表→执行期引擎求值→编译期极端形态）、身份与会话权限上界（用户 RBAC ∩ RSS）。
-- 装配轴 Assembly（§6）：这一轮进窗什么、什么形态、什么顺序、花多少？时序四档（常驻/渐进披露/JIT/仅引用）、两级预算带、缓存感知分段、压缩四步。
+- 装配轴 Assembly（§6）：这一轮放进窗口什么、什么形态、什么顺序、花多少？时序四档（常驻/渐进披露/JIT/仅引用）、两级预算带、缓存感知分段、压缩四步。
 - 检索轴 Retrieval（§7）：候选从哪来、怎么排、怎么截？候选集性质、混合＋重排、VQR 路由、截断信噪校验门。
-- 沉淀轴 Consolidation（§8）：怎么随使用变好并守住不变量？巩固、冲突裁决、自供链、回滚。
+- 沉淀轴 Consolidation（§8）：怎么随使用变好并守住不变量？巩固、冲突裁决、自动供给回路（M7，见 §3.3）、回滚（§8.5）。
 
 独立性的可操作判据是「换 X 不动 Y」：变更影响面互不波及，而非名词差异。四例：
 
@@ -349,7 +349,7 @@ Atlan 官方 guide 给出五层口径（厂商营销内容、导向自家产品�
 | 检索 | 中文关键词检索分支零召回（english tsvector 整段单 token） | I-196 本仓实测 |
 | 沉淀 | 供给链断在最后一环：已分类未绑策略仍以明文流出（D10）；巩固环零生产调用（违反回路在线三条件的实例） | D10（011 §6）；I-195 |
 
-> [!WARNING] **正交不是无关**：「五轴独立定义」容易被读成「五轴互不相干」。预算是装配与检索共享的稀缺约束（同一枚 token 从进入候选到进窗消耗同一预算）；权威以过滤器形态组合进检索（检索面即治理面）与装配（enabled_tools 取自注册表）。轴的定义各自独立，跨轴组合正是机制所在（§3.3）——把正交读成孤立，会漏掉全部跨轴机制的验收位。
+> [!WARNING] **正交不是无关**：「五轴独立定义」容易被读成「五轴互不相干」。预算是装配与检索共享的稀缺约束（同一枚 token 从进入候选到进入窗口消耗同一预算）；权威以过滤器形态组合进检索（检索面即治理面）与装配（enabled_tools 取自注册表）。轴的定义各自独立，跨轴组合正是机制所在（§3.3）——把正交读成孤立，会漏掉全部跨轴机制的验收位。
 
 ### 3.3 机制＝多轴组合
 
@@ -395,7 +395,7 @@ Horizon 七个机制（M1–M7 的内容与实验键 D1–D10 定义于 [011](./
 | :-- | :-- | :-- |
 | ADR-1 | Context Catalog 用 PostgreSQL VIEW 实现，不建物理表（引用不拷贝） | 资产轴 §4 |
 | ADR-2 | 升级 HybridPlanner 为统一检索入口，不新建 Router 类；Memory 种子源为增量扩展（memory_enabled 全仓零命中，详 §7/§12） | 检索轴 §7 |
-| ADR-3 | 收敛语义：自动通道给接地摘要、按需通道给深度检索、共享归一排名 | 装配轴 §6＋检索轴 §7 |
+| ADR-3 | 收敛语义：自动通道给接地摘要（以 KB 内容为据）、按需通道给深度检索、共享归一排名 | 装配轴 §6＋检索轴 §7 |
 | ADR-5 | 五源分类法，作为资产子集与供给通道分类的投影 | 资产轴 §4 |
 | ADR-6 | 装配成本结构：上下文供给是成本结构决策（五个设计参数） | 装配轴 §6（细节组整组承接） |
 
@@ -405,9 +405,9 @@ Horizon 七个机制（M1–M7 的内容与实验键 D1–D10 定义于 [011](./
 
 结构面五轴的第一条回答「Context Layer 经营什么」：把 Agent 推理所需的每一类含义建模为受治理、可寻址、带出处的对象，让口径、可见性与验证信息随对象本身携带，不散落在各消费端各自复制。本章给出资产全集清单（§4.1）、对象字段纪律（§4.2）、常驻记忆对象的设计取舍（§4.3）、注册门实况（§4.4）、引用层决策 ADR-1（§4.5）与本仓对账表（§4.6）。
 
-资产轴的供给侧是一条纳管管线：素材经 Ingest 登记指针（对应 §9.2 L1「带出处入账」）→ Normalize 归一（Parser 四件套：章节路径 · 内容模块 · 多模态元素 · 摘要梯，不调用 LLM）→ Classify 分类（治理字段随对象落档，对应 §4.2）→ Tier 异步分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，目录级自底向上聚合）→ Tag/Index 打标与索引（信封 + L0/L1 向量化 + ctx:// URI）入目录。这条管线与 [014 编目相](./014-openviking.md)（资源入库 → 切分 → 自底向上摘要 → 向量化 → 新鲜度向上传播）的前四段同构，第 5 段新鲜度向上传播在本设计中无对应节点（新鲜度语义由 Ingest 的变更事件订阅与信封复核周期分摊）；产出的目录条目正是 §7 章首读路径 Retrieve 的取用对象，写读两图首尾相接。四处口径如实标注：其一，治理形态（五选一）、所属域（五选一）、效力与作用域（作为 Classify 治理字段；§4.2 对象模型仅 visibility 有字段载体）、Parser 四件套的章节路径 · 内容模块 · 多模态元素 · 摘要梯（014 的 Parser 仅明确「切分无 LLM」，四件套枚举为本设计自拟）、信封、复核周期、ctx:// 为 Context Engine 设计新词，仓内与两篇引用文档均无枚举依据；其二，L0/L1 阈值为 014 实值（`parser_config` 的 256/4000 字符软上限），但 014 的 L1 摘要各调 1 次 LLM，本设计把摘要梯放进不调用 LLM 的 Normalize，是显式口径差异；其三，L2 指针与 ADR-1「目录是引用层」同律（G5 指针不副本）；其四，整条管线是目标态，注册门与目录实况见 §4.4/§4.6。
+资产轴的供给侧是一条纳管管线：素材经 Ingest 登记指针（对应 §9.2 L1「带出处入账」）→ Normalize 归一（Parser 四件套：章节路径 · 内容模块 · 多模态元素 · 分级摘要，不调用 LLM）→ Classify 分类（治理字段随对象落档，对应 §4.2）→ Tier 异步按字符预算分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，目录级自底向上聚合）→ Tag/Index 打标与索引（条目元数据 + L0/L1 向量化 + ctx:// URI）入目录；条目元数据指随每条目录条目登记的版本、TTL、复核周期与溯源。这条管线与 [014 编目相](./014-openviking.md)（资源入库 → 切分 → 自底向上摘要 → 向量化 → 新鲜度向上传播）的前四段同构，第 5 段新鲜度向上传播在本设计中无对应节点（新鲜度语义由 Ingest 的变更事件订阅与条目元数据的复核周期分摊）；产出的目录条目正是 §7 章首读路径 Retrieve 的取用对象，写读两图首尾相接。四处口径如实标注：其一，治理形态（五选一）、所属域（五选一）、效力与作用域（作为 Classify 治理字段；§4.2 对象模型仅 visibility 有字段载体）、Parser 四件套的章节路径 · 内容模块 · 多模态元素 · 分级摘要（014 的 Parser 仅明确「切分无 LLM」，四件套枚举为本设计自拟）、条目元数据、复核周期、ctx:// 为 Context Engine 设计新词，仓内与两篇引用文档均无枚举依据；其二，L0/L1 阈值为 014 实值（`parser_config` 的 256/4000 字符软上限），但 014 的 L1 摘要各调 1 次 LLM，本设计把分级摘要（对同一内容由粗到细的多档摘要）放进不调用 LLM 的 Normalize，是显式口径差异；其三，L2 指针与 ADR-1「目录是引用层」同律（G5 指针不副本）；其四，整条管线是目标态，注册门与目录实况见 §4.4/§4.6。
 
-![Context Engine 纳管管线（目标态）：素材经 Ingest 登记指针 → Normalize 归一四件套（不调用 LLM）→ Classify 治理字段分类 → Tier 异步分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，自底向上聚合）→ Tag/Index 打标与索引（信封 · 向量化 · ctx:// URI）入目录](../../assets/architecture/cognitive-context/context-layer--ingest-pipeline-dark.png)
+![Context Engine 纳管管线（目标态）：素材经 Ingest 登记指针 → Normalize 归一四件套（不调用 LLM）→ Classify 治理字段分类 → Tier 异步按字符预算分级（L0 ≤256 / L1 ≤4000 字符 / L2 指针，自底向上聚合）→ Tag/Index 打标与索引（条目元数据 · 向量化 · ctx:// URI）入目录](../../assets/architecture/cognitive-context/context-layer--ingest-pipeline-dark.png)
 
 > 图源（可 diff 文本）：[`context-layer--ingest-pipeline.mmd`](../../assets/mermaid/cognitive-context/context-layer--ingest-pipeline.mmd) · 交互版（下载到本地打开）：[`context-layer--ingest-pipeline.html`](../../assets/architecture/cognitive-context/context-layer--ingest-pipeline.html) · archify 图源（candidate JSON）：[`context-layer--ingest-pipeline.json`](../../diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json)
 
@@ -425,7 +425,7 @@ Horizon 七个机制（M1–M7 的内容与实验键 D1–D10 定义于 [011](./
 | verified 问答对 | question / sql / verified_by / verified_at 四要素 | 011 M4——字段登记在本轴（在册），命中出示在检索轴（§7） | 巡检 done 文档未沉淀问答对（§8） |
 | 标签与策略对象 | 系统标签 → 治理标签一次性映射 → tag-based 策略 | 011 M2/M7 · 实验键 D10 | 无分类策略链 |
 
-读法：第三列是每类资产的机制载荷出处，M1–M7、D1–D10 等稳定键的定义都在 011，本文只引用不重定义；第四列是本仓现状：逐格给出已具备、部分具备或未具备的事实与指针。血缘边不单独设检索外的轴：它是资产内容 + 权威真值门（D8 三项入账校验）+ 事后回溯的组合，若单独立为一条轴，同一内容会被重复计入。
+读法：第三列是每类资产的机制出处，M1–M7、D1–D10 等稳定键的定义都在 011，本文只引用不重定义；第四列是本仓现状：逐格给出已具备、部分具备或未具备的事实与指针。血缘边不单独设检索外的轴：它是资产内容 + 权威真值门（D8 三项入账校验）+ 事后回溯的组合，若单独立为一条轴，同一内容会被重复计入。
 
 **ADR-5（投影注记）**：五源分类法（instruction / memory / knowledge / tools+skills / session）按其原定义沿用，在新结构中为上表的子集投影，instruction→定义对象与指令版本、memory→记忆、knowledge→KB/KG、tools+skills→技能目录与工具定义、session→会话状态（五源中唯一自产新上下文的源，沉淀链在 §8/§9）；血缘边、verified 问答对、标签策略对象落在五源之外（同 §3.5 投影表）。「每源有独立信任信号与治理面」的原则不变；信号归一落 §7，投影总表落 §3。
 
@@ -453,7 +453,7 @@ version: 12
 
 #### 4.2.1 Data Contract 五件套
 
-数据类资产的契约由五件构成：schema + 质量阈值 + 语义（绑 canonical 实体）+ lineage + 访问策略；per-agent 授权在交付点执行。破坏性变更走弃用纪律，不许静默改口径。边界如实：目前没有结构性工具在推理时原生强制语义契约。契约的强制力只能落在权威轴执行点（§5）与装配轴路径（§6）上，Data Contract 本身是声明。
+数据类资产的契约由五件构成：schema + 质量阈值 + 语义（绑 canonical 实体）+ lineage + 访问策略；per-agent 授权在交付点执行。破坏性变更走弃用纪律，不许静默改口径。边界：目前没有结构性工具在推理时原生强制语义契约。契约的强制力只能落在权威轴执行点（§5）与装配轴路径（§6）上，Data Contract 本身是声明。
 
 ### 4.3 常驻记忆对象的设计取舍：Core Block 三问
 
@@ -491,7 +491,7 @@ version: 12
 | synonyms / instructions / verified 三字段纪律 | `definitions.meta` JSONB 可承载、无纪律 |
 | 声明式聚合纪律（`NON ADDITIVE BY` 类） | 触发条件：出现「派生口径」类资产 |
 
-读法与判定：definitions 表已是 4 类定义的 SSOT，与语义视图元数据对象同构，「DB 为源、盘为投影」：整段源文本入库、编辑走库、注册期过 422 门，盘上文件是幂等生成物。差异集中在字段面：Horizon 把 Agent 检索面做成对象字段（synonyms / instructions / verified queries / visibility），本仓 meta 列可承载而无纪律，**三字段纪律是本仓资产轴最近可补的增量**。物化只写不删（定义禁用后盘上旧目录残留，harness_materializer.py 全文件无 unlink/rmtree/delete）属退役段失效，验收位在 §9。
+读法与判定：definitions 表已是 4 类定义的 SSOT，与语义视图元数据对象同构，「DB 为源、磁盘为投影」：整段源文本入库、编辑走库、注册期过 422 门，磁盘上文件是幂等生成物。差异集中在字段面：Horizon 把 Agent 检索面做成对象字段（synonyms / instructions / verified queries / visibility），本仓 meta 列可承载而无纪律，**三字段纪律是本仓资产轴最近可补的增量**。物化只写不删（定义禁用后磁盘上旧目录残留，harness_materializer.py 全文件无 unlink/rmtree/delete）属退役段失效，验收位在 §9。
 
 对象级状态流转（draft→governed→冲突裁决→superseded/retired）如下图，与轮内降级（可恢复）分口径标注（§9.2）：
 
@@ -577,16 +577,16 @@ M6 给出 Agent 身份的第二层：会话权限上界 = 用户 RBAC ∩ Restri
 
 ### 6.1 时序四档与两级加载预算带
 
-内容进窗口有四个时刻档位，档位之间差的是进窗成本与恢复成本：
+内容进窗口有四个时刻档位，档位之间差的是进入窗口的成本与恢复成本：
 
 | 档位 | 进场时机 | 形态 | 范本出处 |
 | :-- | :-- | :-- | :-- |
 | 常驻 | 每轮在场 | 身份段、技能目录、Core Block、记忆索引 | CC 官方文档 MEMORY.md 索引以「前 200 行或 25KB 先到者为准」常驻 |
 | 渐进披露 | 目录常驻、正文按需 | L1 目录行 + L2 正文（进场后成为对话历史） | CC 两级加载（本节） |
 | JIT | 当轮按需检索 / 加载 | 运行时加载器、每轮检索注入 | 本仓 NegentropyPreloadMemoryTool（§6.5） |
-| 仅引用 | 永不整份进窗 | 路径 + 预览占位、视图 + 指针 | CC 大结果落盘（§6.4）；ADR-1 指针纪律（与 §4.5 同一原则） |
+| 仅引用 | 永不整份进入窗口 | 路径 + 预览占位、视图 + 指针 | CC 大结果落盘（§6.4）；ADR-1 指针纪律（与 §4.5 同一原则） |
 
-读法：档位越靠下，进窗体积越小、按需恢复的成本越高；四档不是四选一。同一资产可在生命周期里沿档位下移，压缩（§6.4）就是系统化的下移动作。
+读法：档位越靠下，进入窗口的体积越小、按需恢复的成本越高；四档不是四选一。同一资产可在生命周期里沿档位下移，压缩（§6.4）就是系统化的下移动作。
 
 两级加载的预算带以 Claude Code 为范本。课程口径：目录每技能约 100 tokens 常驻、全文每技能约 2000 tokens 按需。两级相差一个数量级，常驻项要尽量小（170–175 课程正文估计；限定：官方文档能印证的是机制形态与 1536 截断，不能印证这两个数，[172 §11](../agent-harness/172-claude-code-planning-coordination.md) 边界第 4 条）。真实 CC 的口径：目录预算控制在上下文窗口的约 1%（上限 8,000 字符，第三方分析）；frontmatter 的 description 与 when_to_use 合计在技能清单里截断到 1,536 字符以控制上下文开销（官方文档）。目录要短，是因为目录自己是常驻内容，它为所有技能的「可被发现性」付每轮成本。
 
@@ -594,7 +594,7 @@ M6 给出 Agent 身份的第二层：会话权限上界 = 用户 RBAC ∩ Restri
 
 常驻面的守护有本仓实测支撑（[230 技能规范精读](../agent-infra/230-agent-skills-standard.md)，原 090 已并入）：渐进披露会话账本 2,321 vs 全量预载 39,222 tokens（16.9×，chars/4 近似口径只证方向；破坏实验 B1 同构复测 16.3×）；一条 12,159 字符的膨胀描述令目录从 1,206 涨到 4,285 tokens（+255%，单条等于其余 20 条之和的 2.4×，B3）。描述长度上限守护常驻面。进化面同守此界：本仓 prompt_template 有界变异约束即按「Decagon 4x 压缩经验：精炼优先」设界（[`engine/evolution/handlers/skill.py`](../../../apps/negentropy/src/negentropy/engine/evolution/handlers/skill.py):76/:233，厂商工程经验转述）。
 
-JIT 与预取的决策边界要显式声明，不要默认：静态约定与规范 up-front 入窗（如 CLAUDE.md 朴素入窗）、大体量事实走 JIT（轻量标识符 + 运行时加载器，引用元数据本身是行为信号，模型调用加载器这个动作已携带意图）；小知识库 <200K token（约 500 页）直接全量入窗并配 prompt caching（延迟 >2x、成本至多 −90%，Anthropic 口径）。判定依据只有一条：被用到的前提概率 × 每轮携带成本。
+JIT 与预取的决策边界要显式声明，不要默认：静态约定与规范 up-front 放进窗口（如 CLAUDE.md 朴素地全部放进窗口）、大体量事实走 JIT（轻量标识符 + 运行时加载器，引用元数据本身是行为信号，模型调用加载器这个动作已携带意图）；小知识库 <200K token（约 500 页）直接全量放进窗口并配 prompt caching（延迟 >2x、成本至多 −90%，Anthropic 口径）。判定依据只有一条：被用到的前提概率 × 每轮携带成本。
 
 ### 6.2 倒 U：预算即质量
 
@@ -659,7 +659,7 @@ JIT 与预取的决策边界要显式声明，不要默认：静态约定与规�
 
 装配轴（§6）决定谁在何时进窗口；检索轴回答候选从哪来、以什么质量来。检索是正确性的前置环节：模型不换、只换上下文供给方式，成绩可以差出四倍以上（§7.1 FinanceBench 三档）。本轴五个判定点：候选集性质律与「高召回初检 → 重排 → top-k 截断」（§7.1）、信任归一（§7.2）、统一检索入口 ADR-2/ADR-3 与 RRF 落点对账（§7.3）、resolve 契约（§7.4）、CJK 失效登记（§7.5）。其中 RRF（Reciprocal Rank Fusion）指把多路检索的结果按排名倒数加权，融合成一路排序；本仓真实落点与口径（三处引擎）在 §7.3 对账。在机制的跨轴组合上，本轴承接 M3（权威 × 检索：检索面过滤，详 §5）与 M4（检索 × 沉淀：验证问答的应答出示，本节），跨轴组合的定义详 §3。
 
-把本轴各判定点串成一条端到端读路径，就是下图的目标态总览：ContextRequest 经 ①Resolve（主体与可见性，对应 §5.3 会话权限上界）→ ②Plan（意图与各域预算比，对应 §6 预算带、§7.3 ADR-2）→ ③Retrieve 双范式并行（对应 §7.1 高召回初检、重排与 top-k 截断、§7.4 已验证查询）→ ④Fuse（RRF 融合与归一信任重排，对应 §7.2/§7.3）→ ⑤Guard 五项检查 → ⑥Compose（token 预算裁剪与排序）→ ⑦Emit 组装 ContextBundle，与 [230 客户域读链](../agent-infra/230-customer-domain-long-memory-2027-planning.md)（主体前缀检索 → RRF 信任重排 → Guard → 预算裁剪 → uri@version Bundle）同构。四处口径如实标注：其一，检索双范式的五类型（Facts / Instruction / Knowledge / Capability / Experience）是 Context Engine 的设计口径，**不是**本蓝图 §4.1 的五源投影（ADR-5 已把五源降为资产子集投影，勿混读）；其二，①段 Resolve 指入口的主体身份解析，与 §7.4 的 resolve 应答契约撞名不同义，②段 Plan 的产物 Context Pack 亦为设计新词，与同文 §7.4 的 ContextPackage（resolve 应答契约）、本仓巡检引擎的 ContextPack（`agent_inspection.py`）两处撞名均不同义；其三，Guard 与统一装配面是目标态，现状对账见 §12.4（`engine/context/` 不存在）与 §12.1（assemble() 生产调用 0）；其四，Guard 五项检查中可见性 / 作用域前缀 / 效力裁决 / PII 与 230 读链 Guard 枚举一致，「Instruction 越权」为该设计的增项：指令权先例在写路径侧（230 G4：记忆内容无指令权，不得被当作指令执行）。
+把本轴各判定点串成一条端到端读路径，就是下图的目标态总览：ContextRequest 经 ①Resolve（主体与可见性，对应 §5.3 会话权限上界）→ ②Plan（意图与各域预算比，对应 §6 预算带、§7.3 ADR-2）→ ③Retrieve 双范式并行（对应 §7.1 高召回初检、重排与 top-k 截断、§7.4 已验证查询）→ ④Fuse（RRF 融合与归一信任重排，对应 §7.2/§7.3）→ ⑤Guard 五项检查 → ⑥Compose（token 预算裁剪与排序）→ ⑦Emit 组装 ContextBundle，与 [230 客户域读链](../agent-infra/230-customer-domain-long-memory-2027-planning.md)（主体前缀检索 → RRF 信任重排 → Guard → 预算裁剪 → uri@version Bundle）同构。四处口径如实标注：其一，检索双范式的五类型（Facts / Instruction / Knowledge / Capability / Experience）是 Context Engine 的设计口径，**不是**本蓝图 §4.1 的五源投影（ADR-5 已把五源降为资产子集投影，勿混读）；其二，①段 Resolve 指入口的主体身份解析，与 §7.4 的 resolve 应答契约同名不同义，②段 Plan 的产物 Context Pack 亦为设计新词，与同文 §7.4 的 ContextPackage（resolve 应答契约）、本仓巡检引擎的 ContextPack（`agent_inspection.py`）两处撞名均不同义；其三，Guard 与统一装配面是目标态，现状对账见 §12.4（`engine/context/` 不存在）与 §12.1（assemble() 生产调用 0）；其四，Guard 五项检查中可见性 / 作用域前缀 / 效力裁决 / PII 与 230 读链 Guard 枚举一致，「Instruction 越权」为该设计的增项：指令权先例在写路径侧（230 G4：记忆内容无指令权，不得被当作指令执行）。
 
 ![Context Engine 读路径（目标态）：ContextRequest 经 ①Resolve 主体与可见性 → ②Plan 意图与预算 → ③Retrieve 双范式并行取用 → ④Fuse RRF 融合与归一信任重排 → ⑤Guard 五项引擎级检查点 → ⑥Compose 预算裁剪 → ⑦Emit 组装 ContextBundle（uri@version），越界项入 dropped/overrides 留痕](../../assets/architecture/cognitive-context/context-layer--read-pipeline-dark.png)
 
@@ -712,7 +712,7 @@ JIT 与预取的决策边界要显式声明，不要默认：静态约定与规�
 ### 7.3 统一检索入口与 RRF 落点对账（ADR-2/ADR-3 台账）
 
 > **ADR-2**：升级 HybridPlanner 为统一检索入口，不新建 Router 类，它已具备正确架构（Intent → 并行种子 → 图扩展 → RRF），Memory 作第 4 路种子源是增量扩展：`search_memory` 返回 clamp [0,1] 的 relevance_score，可映射 Candidate rank；缺的只有 `memory_enabled` 开关位与构造器注入槽。
-> **ADR-3**：收敛语义。自动通道给接地摘要（轻量必出）、按需通道给深度检索（显式触发），共享归一信任排名。
+> **ADR-3**：收敛语义。自动通道给接地摘要（以 KB 内容为据，轻量必出）、按需通道给深度检索（显式触发），共享归一信任排名。
 
 接入实况：`memory_enabled` 全仓零命中；[`hybrid_planner.py`](../../../apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py) 全文 memory 唯一命中是文献引用（:13）；`_seed_retrieval`（:322-373）的种子只来自 KB Corpus，插槽就绪、尚未接入，是三缺口之一（§12）。
 
@@ -842,7 +842,7 @@ Collect → Enrich → Activate（[011](./011-horizon-context.md) §3）是当�
 | L3 装配执法 | 合法对象在目录、调用者身份已知 | 当轮窗口合规且预算内：策略已求值、内容每轮重建 | 越权数据以明文返回（D5）；快照权限形成越权窗口（D9）；装配时固化成品、源变而窗口不知 | D5/D9 + M1 重算半边（011 M1） |
 | L4 应答锚定 | 装配完成的查询路径 | 三出路之一：题库短路/引擎现算/显式告警 | 静默臆测回归——错误答案以正常形态输出，无告警面 | A1/A1b、C1 |
 | L5 沉淀与回写 | 会话与行为信号已落账（事件水位） | 新受治理资产，或显式不沉淀 | 回路断在生产路径外：记忆供给停滞、会话价值不积累 | I-195 |
-| L6 衰减退役 | 对象不再适用（衰减/口径变更/禁用） | 显式退役有账（superseded/清理/重验） | 未退役对象：盘上残留、悬空挂载、题库锚定过时答案 | SK-M22/I-194 + 011 M4 已知限制 |
+| L6 衰减退役 | 对象不再适用（衰减/口径变更/禁用） | 显式退役有账（superseded/清理/重验） | 未退役对象：磁盘上残留、悬空挂载、题库锚定过时答案 | SK-M22/I-194 + 011 M4 已知限制 |
 
 表后读法：六行反事实没有一行是「效果变差」级别的笼统描述，每行都是可复现的具体失效。这是反事实存在性律在段级的落地（机制级 D1–D10 见 [011](./011-horizon-context.md) §6）。逐段展开如下，各段只讲段级增量，机制细节回指 §4–§8。
 
@@ -878,7 +878,7 @@ CE2 式 5–7 的对偶选择（$M_s$ 按时间权重高选、$M_l$ 恰要求时
 
 | 失效 | 形态 | 出处 |
 | :-- | :-- | :-- |
-| 物化只写不删 | 定义禁用/删除后盘上旧目录残留；`_write_to_disk` 幂等写入（:129-131 跳过已存在），全文件无 unlink/rmtree/delete | [`harness_materializer.py:114-134`](../../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) · [机制映射汇总](../mapping-negentropy.md) SK-M22 |
+| 物化只写不删 | 定义禁用/删除后磁盘上旧目录残留；`_write_to_disk` 幂等写入（:129-131 跳过已存在），全文件无 unlink/rmtree/delete | [`harness_materializer.py:114-134`](../../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) · [机制映射汇总](../mapping-negentropy.md) SK-M22 |
 | 挂载收回双向悬空 | 目录末行指令承诺 expand_skill 激活路径，三件工具从未进 TOOL_REGISTRY、任何 Agent 未持有；(a) 挂载/(b) 收回承诺均未落地 | I-194 |
 | 题库重验无触发 | 口径变更后 VQR 不重验，锚定住的是过时答案——有警示、无机制 | [011](./011-horizon-context.md) M4 已知限制（开放面） |
 
@@ -940,20 +940,20 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 
 ### 10.1 477 vs 48 全链路：每一步都对，整体是错
 
-先把这条链完整摆出来（机制载荷详 [011](./011-horizon-context.md) M1/§8；生产实例为 typedef 转述，赛道创业公司；玩具复现 D3 见第 4 步）：
+先把这条链完整摆出来（机制细节详 [011](./011-horizon-context.md) M1/§8；生产实例为 typedef 转述，赛道创业公司；玩具复现 D3 见第 4 步）：
 
 1. 上游转换层（dbt）把明细数据预聚合成日汇总，grain 决策发生在语义层视野之下，是合法的转换决策；
 2. 语义视图里 distinct 用户数的算式完全合法，口径单点也对，M1 两条不变量都成立；
 3. 引擎查询期重算忠实执行：distinct 计数按天相加得 477（重复计数），按底层明细重算得 48。**错因不在任何一步的执行，而在上游粒度已经丢失**；
 4. 玩具复现：D3 拆 `NON ADDITIVE` 后月值 [11,6,7]（对照 [5,6,7]）、全期口径：按月求和得 24（重复计数）、NON ADDITIVE 取末快照得 7（正确，即 477 vs 48 的同机制）；011 §5 的最小版本为「每日 2+2 相加得 4 vs 去重 3」。
 
-链上每一环各自「没错」，整体却是错的：粒度一旦在上游丢失就不可逆，下游任何合法算式都无法恢复它。由此可见三个「治理覆盖不到」的位置：`NON ADDITIVE BY` 是人填声明、非系统推导（声明半边依赖人知道「这个指标跨时间不可加」）；lineage 是「谁依赖谁」的观察记录、不校验「这么算是否合法」；M4 的 Verified Query Repository 只补了验证缺口的锚定一角，命中题库时走经人工核验的查询路径，题库外的长尾与一般性计算正确性仍是开放面（评测闭环 Cortex Agent Evaluations 是与 Autopilot 并列的独立发布环节，不属 Horizon Context，011 §8）。
+链上每一环各自「没错」，整体却是错的：粒度一旦在上游丢失就不可逆，下游任何合法算式都无法恢复它。由此可见三个「治理覆盖不到」的位置：`NON ADDITIVE BY` 是人填声明、非系统推导（声明半边依赖人知道「这个指标跨时间不可加」）；lineage 是「谁依赖谁」的观察记录、不校验「这么算是否合法」；M4 的 Verified Query Repository 只补了验证缺口里「锚定」这一项，命中题库时走经人工核验的查询路径，题库外的长尾与一般性计算正确性仍是开放面（评测闭环 Cortex Agent Evaluations 是与 Autopilot 并列的独立发布环节，不属 Horizon Context，011 §8）。
 
 > [!WARNING] **「有治理 + 有题库」不等于可信**。最常见也最危险的读法是把 M4 的存在当成验证半边已交付：477 vs 48 恰好发生在治理、血缘、题库三者都在场而上游粒度已丢失的位置。VQR 锚定的是「经人工确认的题答对了」，不是「一般性计算是对的」；两者混读会把治理检查通过误当成数字正确。
 
 ### 10.2 上游 grain 契约的独立验收位（争议③处置）
 
-验证缺口归属承接 011 §7.2 争议 3（两派原文：Snowflake FAQ 互补定调，dbt 管转换、语义视图管解释；typedef 指出两层之间责任无人承担，grain 决策在转换层、正确性承诺在语义层）。本文把该争议引申到验证维度：VQR 只补「锚定」一角（判定同 011 §8 第 4 条），一般性验证仍需独立验收位与上游 grain 契约。处置：grain 契约接口立为独立验收位；grain 决策权留在转换层（dbt 职责范围、Out-of-Scope），但 grain 契约接口在研究范围内。三条验收判据（设计要求，非已实现）：
+验证缺口归属承接 011 §7.2 争议 3（两派原文：Snowflake FAQ 互补定调，dbt 管转换、语义视图管解释；typedef 指出两层之间责任无人承担，grain 决策在转换层、正确性承诺在语义层）。本文把该争议引申到验证维度：VQR 只补「锚定」这一项（判定同 011 §8 第 4 条），一般性验证仍需独立验收位与上游 grain 契约。处置：grain 契约接口立为独立验收位；grain 决策权留在转换层（dbt 职责范围、Out-of-Scope），但 grain 契约接口在研究范围内。三条验收判据（设计要求，非已实现）：
 
 1. 注册期可校验的 grain 声明：每个聚合类资产声明最小粒度；上游供给粒度粗于声明粒度时注册期拒绝（与 422 门同构），把「跨时间可不可加」从人填声明变成可对账字段；
 2. 装配期粒度丢失警示：语义资产引用的上游列若来自预聚合表，装配期必须携带 grain 警示（对齐 M4 的 `no_governed_coverage` 显式告警形态，三条出路无静默臆测）；
@@ -970,7 +970,7 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 ### 10.4 批判边界（材料没证明的事）
 
 1. 「不可绕过」只在引擎周界内成立：直查底层数据库、导出数据即绕过；Ossie 决定定义携带、不解决别家引擎的执行，且官方导出桥静默丢 ASOF/RANGE 非等值关系（Datus 指出，011 §3.3）。
-2. governance ≠ verification：§10.1 全节；M4 只交付锚定一角，一般性计算正确性验证开放。
+2. governance ≠ verification：§10.1 全节；M4 只交付「锚定」这一项，一般性计算正确性验证开放。
 3. 排序可能放大多数派错误：popularity 权重下被 500 条查询使用的错误 join 模式压过 3 条的正确模式（011 §8 原例；lab D4 同构实测 200:5）；per-role context 尚未交付（私测期仅单角色全量）。
 4. 供给面安全检查有缺口：sample values 是元数据、不走掩码；隐形字符/伪字段注入实测成立；「无外部下载面=安全」是幸运而非设计。
 
@@ -1005,7 +1005,7 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 
 - Gartner 60%：到 2028 年，仅依赖 MCP 的 agentic analytics 项目将有 60% 因缺乏一致语义层而失败。Gartner 2026-02 Market Guide for Agentic Analytics 预测，经 Colrows 博客引述，原文在付费墙之后，自标「worth citing precisely as a projection」（projection 口径）。
 - Forrester（博客，2026-08-20，免费可得）：判断该市场尚未收敛到单一架构模式，正围绕两个子类成形，即平台/商业应用厂商与超大规模云厂商一类，以及来自图数据库、数据目录、元数据、语义层、湖池平台的通用目的厂商一类；landscape 报告计划 2026 年 Q4 末发布、随后跟进 Wave 评测（计划口径）。
-- 传输之战 vs 含义之战（Colrows 论断，销售 governed semantic layer 的厂商）：MCP 赢下的是传输之战而非语义之战：它给了 Agent 触达数据的标准通道，但生产环境 Agent 真正失败在含义这一层。Colrows 引 dbt Labs 2026 基准作其最硬单件证据：Claude Sonnet 4.6 裸写 90.0%→语义层编译 98.2%、GPT-5.3-Codex 84.1%→100.0%（品类卖方基准、受覆盖题口径）。
+- 传输之战 vs 含义之战（Colrows 论断，销售 governed semantic layer 的厂商）：MCP 赢下的是传输之战而非语义之战：它给了 Agent 触达数据的标准通道，但生产环境 Agent 真正失败在含义这一层。Colrows 引 dbt Labs 2026 基准作其最硬单件证据：Claude Sonnet 4.6 裸写 90.0%→语义层编译 98.2%、GPT-5.3-Codex 84.1%→100.0%（品类卖方基准、受覆盖题口径；品类卖方指销售同类产品的厂商，此处为 dbt Labs 自管的基准，受覆盖题指语义层覆盖到的那部分题，与全题集相对）。
 
 ### 11.3 增益窗口双指标判读（不立争议条目）
 
@@ -1027,7 +1027,7 @@ Claude Code 的五层 Harness 是这套嵌套尺度上现成的可对位结构�
 | Claude Code | 运行时装配纪律：五层依赖链（执行/规划/记忆/时机/协作）；每轮重装配、谓词驱动、渐进披露两级预算、四步压缩、写权收归 Harness、信任边界段、subagent 隔离 | 每一轮都从头重新装配上下文——看见什么从来不由模型自己决定 | [170–175](../agent-harness/170-claude-code-harness-overview.md) |
 | Hermes · Jev | 装配的缓存成本（三段式+唯一断点）；供给两端防注入；零 LLM 原文检索；置信量纲与弃权语义 | Built once per session and reused across turns（only context compression triggers a rebuild） | [190](../agent-harness/190-hermes-agent.md)（191 映射已并入[机制映射汇总](../mapping-negentropy.md) HM 域）、[200](../agent-infra/200-jev-system-one-model.md) |
 
-读法：四范本是四份互补的机制载荷，不是竞品对比。Horizon 给治理与验证词表、OpenViking 给会话记忆与身份判据、Claude Code 给装配纪律、Hermes/Jev 给缓存成本与置信语义；本仓蓝图在每个轴上分别向不同范本对齐。
+读法：四范本是四份互补的机制来源，不是竞品对比。Horizon 给治理与验证词表、OpenViking 给会话记忆与身份判据、Claude Code 给装配纪律、Hermes/Jev 给缓存成本与置信语义；本仓蓝图在每个轴上分别向不同范本对齐。
 
 Horizon 演进三阶段各一句（详见 011 §4.2）：①语义对象化：定义与校验门成为受治理对象；②治理内嵌与两条供给路径的富化：策略下沉引擎、Autopilot/Sense、2026-06-02 定名；③生态开放：Ossie 入 Apache、外部血缘 GA、共享数据随附自动生成的语义视图与 Agent。次序即方法论：先造对象、再装治理与富化、最后开生态。10-06 增量：lineage 覆盖 storage integrations、external tables、model monitors 与 Cortex Search services（2026-10-06，release notes 两页同录、仅条目标题无正文）。
 
@@ -1243,7 +1243,7 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 | 身份归因（agent_type→审计） | Agent 访问可归因到调用链（待办⑤） |
 | 交互式对话压缩层（#18/HM-M11） | num_recent_events 接生产调用方；技能内容同步豁免标记（待办⑥） |
 | CJK 检索分支修复（I-196 三候选） | 中文子串用例单独断言（#19；候选见 §7.5） |
-| 退役段立规（materializer 回收 + I-194 收回） | 禁用定义后盘上目录回收；挂载/收回双向机器可验 |
+| 退役段立规（materializer 回收 + I-194 收回） | 禁用定义后磁盘上目录回收；挂载/收回双向机器可验 |
 | Universal Search + 溯源 + per-role（部分落地或暂缓） | opt-in 端点；async 不阻塞；chunks 补 last_accessed_at；溯源日志 append-only |
 | Ossie 导入导出 | 触发：跨组织供给需求 |
 
