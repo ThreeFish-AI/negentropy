@@ -1,0 +1,415 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "统一激活：双通道路由 → 归一融合 → ContextGuard",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-design--unified-activation.html",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "665b76ba66e247cd01cb9e82a0fa5e10b7562a94"
+    }
+  },
+  "lanes": [
+    {
+      "id": "auto",
+      "label": "自动通道 · 接地摘要"
+    },
+    {
+      "id": "entry",
+      "label": "请求 · 路由 · 守卫"
+    },
+    {
+      "id": "ondemand",
+      "label": "按需通道 · 深度检索"
+    },
+    {
+      "id": "llm",
+      "label": "出口"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g_ground",
+      "label": "接地摘要（轻量必出）",
+      "lane": "auto",
+      "fromCol": 3,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "g_seed",
+      "label": "并行种子（显式触发）",
+      "lane": "ondemand",
+      "fromCol": 3,
+      "toCol": 3
+    }
+  ],
+  "mainPath": [
+    "q",
+    "router",
+    "ca",
+    "ca1",
+    "merge",
+    "guard",
+    "llm"
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "q"
+    ],
+    "allowedTerminals": [
+      "llm"
+    ],
+    "requiredEdges": [
+      {
+        "from": "router",
+        "to": "ca"
+      },
+      {
+        "from": "router",
+        "to": "hp"
+      },
+      {
+        "from": "merge",
+        "to": "guard"
+      },
+      {
+        "from": "rrf",
+        "to": "guard"
+      },
+      {
+        "from": "guard",
+        "to": "llm"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "q",
+      "lane": "entry",
+      "col": 0,
+      "type": "external",
+      "label": "用户请求",
+      "width": 104
+    },
+    {
+      "id": "router",
+      "lane": "entry",
+      "col": 1,
+      "type": "backend",
+      "label": "Context Router",
+      "sublabel": "route_context()",
+      "tag": "ADR-2 并入",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 697,
+          "label": "ADR-2 升级 HybridPlanner，不新建 Router 类"
+        }
+      ]
+    },
+    {
+      "id": "ca",
+      "lane": "auto",
+      "col": 2,
+      "type": "backend",
+      "label": "ContextAssembler",
+      "sublabel": "auto 自动注入",
+      "tag": "未接线",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 141,
+          "label": "assemble() 生产调用 0"
+        }
+      ]
+    },
+    {
+      "id": "ca1",
+      "lane": "auto",
+      "col": 3,
+      "type": "database",
+      "label": "记忆 + KG 摘要",
+      "width": 124,
+      "yOffset": -46,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 698,
+          "label": "ADR-3 自动通道给接地摘要"
+        }
+      ]
+    },
+    {
+      "id": "ca2",
+      "lane": "auto",
+      "col": 3,
+      "type": "database",
+      "label": "KB chunk 接地片段",
+      "sublabel": "top-3 · ~200 token",
+      "tag": "目标态",
+      "width": 124,
+      "yOffset": 46,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 1223,
+          "label": "接地摘要渐进开关 + fail-soft"
+        }
+      ]
+    },
+    {
+      "id": "merge",
+      "lane": "auto",
+      "col": 4,
+      "type": "backend",
+      "label": "归一信任排名",
+      "sublabel": "两通道共享",
+      "tag": "§7.2 设计态",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 698,
+          "label": "ADR-3 共享归一信任排名"
+        }
+      ]
+    },
+    {
+      "id": "hp",
+      "lane": "ondemand",
+      "col": 2,
+      "type": "backend",
+      "label": "HybridPlanner",
+      "sublabel": "on_demand 深度检索",
+      "tag": "统一入口",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 697,
+          "label": "ADR-2 统一检索入口"
+        }
+      ]
+    },
+    {
+      "id": "hp1",
+      "lane": "ondemand",
+      "col": 3,
+      "type": "database",
+      "label": "Memory hybrid_search",
+      "sublabel": "新增种子源",
+      "tag": "目标态",
+      "width": 150,
+      "yOffset": -86,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 141,
+          "label": "memory_enabled 零命中"
+        }
+      ]
+    },
+    {
+      "id": "hp2",
+      "lane": "ondemand",
+      "col": 3,
+      "type": "database",
+      "label": "KB hybrid_search",
+      "sublabel": "per-corpus",
+      "width": 150,
+      "yOffset": 0
+    },
+    {
+      "id": "hp3",
+      "lane": "ondemand",
+      "col": 3,
+      "type": "database",
+      "label": "KG 图扩展",
+      "width": 124,
+      "yOffset": 86
+    },
+    {
+      "id": "rrf",
+      "lane": "ondemand",
+      "col": 4,
+      "type": "backend",
+      "label": "RRF + Rerank",
+      "sublabel": "跨源融合",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 695,
+          "label": "§7.3 RRF 落点对账"
+        }
+      ]
+    },
+    {
+      "id": "guard",
+      "lane": "entry",
+      "col": 5,
+      "type": "security",
+      "label": "ContextGuard",
+      "sublabel": "PII 扫描 + corpus 校验",
+      "tag": "未落地",
+      "width": 130,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 141,
+          "label": "ContextGuard 目录不存在"
+        }
+      ]
+    },
+    {
+      "id": "llm",
+      "lane": "llm",
+      "col": 5,
+      "type": "external",
+      "label": "LLM Prompt",
+      "width": 124
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_q",
+      "from": "q",
+      "to": "router",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_auto",
+      "from": "router",
+      "to": "ca",
+      "label": "auto 自动注入",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_ondemand",
+      "from": "router",
+      "to": "hp",
+      "label": "on_demand 深度检索",
+      "role": "branch",
+      "labelSegment": 1
+    },
+    {
+      "id": "e_ca1",
+      "from": "ca",
+      "to": "ca1",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_ca2",
+      "from": "ca",
+      "to": "ca2",
+      "role": "branch"
+    },
+    {
+      "id": "e_m1",
+      "from": "ca1",
+      "to": "merge",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_m2",
+      "from": "ca2",
+      "to": "merge",
+      "role": "branch"
+    },
+    {
+      "id": "e_hp1",
+      "from": "hp",
+      "to": "hp1",
+      "role": "branch"
+    },
+    {
+      "id": "e_hp2",
+      "from": "hp",
+      "to": "hp2",
+      "role": "branch"
+    },
+    {
+      "id": "e_hp3",
+      "from": "hp",
+      "to": "hp3",
+      "role": "branch"
+    },
+    {
+      "id": "e_r1",
+      "from": "hp1",
+      "to": "rrf",
+      "role": "branch"
+    },
+    {
+      "id": "e_r2",
+      "from": "hp2",
+      "to": "rrf",
+      "role": "branch"
+    },
+    {
+      "id": "e_r3",
+      "from": "hp3",
+      "to": "rrf",
+      "role": "branch"
+    },
+    {
+      "id": "e_g1",
+      "from": "merge",
+      "to": "guard",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e_g2",
+      "from": "rrf",
+      "to": "guard",
+      "role": "branch"
+    },
+    {
+      "id": "e_llm",
+      "from": "guard",
+      "to": "llm",
+      "label": "所有路径含回退",
+      "variant": "emphasis",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "双通道统一（ADR-3）",
+      "items": [
+        "自动通道给接地摘要（轻量必出），按需通道给深度检索（显式触发）",
+        "两通道共享归一信任排名，所有路径（含回退）统一过 ContextGuard"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "相对旧版 Mermaid 的口径校准",
+      "items": [
+        "Router 命名：013 ADR-2 不新建 Router 类，路由并入升级后的 HybridPlanner",
+        "两处「新增」（KB 接地片段、Memory 种子源）统一标目标态，去掉装饰符号",
+        "label 逐字保留，状态只入 sublabel / tag"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "目标态口径（013 §12 对账）",
+      "items": [
+        "assemble() 生产调用 0；memory_enabled 全仓零命中；ContextGuard 目录不存在",
+        "生产实际的自动注入走 NegentropyPreloadMemoryTool 每轮注入，不经 ContextAssembler"
+      ]
+    }
+  ]
+}

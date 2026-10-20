@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e04d76e7-eecf-4b0b-90b8-767faa543170",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/.archify/architecture-evolution-levers-20261020-104853/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--evolution-levers.html",
+  "specification": {
+    "sha256": "f070975379f8ac970edf53308f3074cc7430d4c3ee39ad2961cd43367026cd84",
+    "bytes": 9971
+  },
+  "artifact": {
+    "sha256": "05fae1285fe71b66de9259eec027d1a75c19ba7f0e400f313e79f5bfb39d8331",
+    "bytes": 769653
+  }
+}

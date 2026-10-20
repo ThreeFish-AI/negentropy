@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/.archify/workflow-unified-activation-20261020-104853/candidate.json",
+    "sha256": "5d9e30b6ac281baebd93f1bee84d3f99886efb2f6fcb1b970ae6b71ac46d178d",
+    "bytes": 9121
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--unified-activation.html",
+    "sha256": "a9978fb36a1535da5e13052bc4e977f46b5467647165fab5779033a80c43e330",
+    "bytes": 768550
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--unified-activation.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--unified-activation.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--unified-activation.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2300,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e_ondemand",
+            "from": "router",
+            "to": "hp",
+            "label": "on_demand 深度检索",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "bends": 2,
+          "stretch": 1.625
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "router → hp needs 2 bends: move node router or hp so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

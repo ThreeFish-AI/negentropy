@@ -1,0 +1,459 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Context Layer 总览：横亘五子系统的治理层",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-design--runtime-overview.html",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "665b76ba66e247cd01cb9e82a0fa5e10b7562a94"
+    },
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "components": [
+    {
+      "id": "runtime",
+      "type": "frontend",
+      "label": "SubAgents + Workflow / Pipelines + Toolset",
+      "pos": [
+        760,
+        60
+      ],
+      "size": [
+        340,
+        56
+      ]
+    },
+    {
+      "id": "collect",
+      "type": "backend",
+      "label": "① Collect",
+      "sublabel": "Context Catalog · PG VIEW",
+      "tag": "ADR-1",
+      "pos": [
+        67,
+        230
+      ],
+      "size": [
+        220,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 463,
+          "label": "ADR-1 Catalog 用 PG VIEW，不建物理表"
+        }
+      ]
+    },
+    {
+      "id": "enrich",
+      "type": "backend",
+      "label": "② Enrich",
+      "sublabel": "信任归一 / 语义富化",
+      "tag": "§7.2 未落地",
+      "pos": [
+        347,
+        230
+      ],
+      "size": [
+        220,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 605,
+          "label": "§7.2 信任分（设计未落地）"
+        }
+      ]
+    },
+    {
+      "id": "activate",
+      "type": "backend",
+      "label": "③ Activate",
+      "sublabel": "Context Router + Guard",
+      "tag": "Guard 未落地",
+      "pos": [
+        627,
+        230
+      ],
+      "size": [
+        220,
+        72
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 141,
+          "label": "ContextGuard 目录不存在（装机对账）"
+        },
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 697,
+          "label": "ADR-2 升级 HybridPlanner，不新建 Router 类"
+        }
+      ]
+    },
+    {
+      "id": "memory",
+      "type": "database",
+      "label": "Memory",
+      "pos": [
+        102,
+        500
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "kb",
+      "type": "database",
+      "label": "Knowledge Base",
+      "pos": [
+        276,
+        500
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "kg",
+      "type": "database",
+      "label": "Knowledge Graph",
+      "pos": [
+        450,
+        500
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "database",
+      "label": "Tools",
+      "pos": [
+        624,
+        500
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "skills",
+      "type": "database",
+      "label": "Skills",
+      "pos": [
+        798,
+        500
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "pg",
+      "type": "cloud",
+      "label": "pgvector + Apache AGE + tsvector + pg_cron",
+      "pos": [
+        90,
+        700
+      ],
+      "size": [
+        870,
+        56
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Agent Runtime",
+      "wraps": [
+        "runtime"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Context Layer（上下文治理层）",
+      "wraps": [
+        "collect",
+        "enrich",
+        "activate"
+      ],
+      "pad": 64
+    },
+    {
+      "kind": "region",
+      "label": "子系统",
+      "wraps": [
+        "memory",
+        "kb",
+        "kg",
+        "tools",
+        "skills"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "PostgreSQL",
+      "wraps": [
+        "pg"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c-entry",
+      "from": "runtime",
+      "to": "activate",
+      "label": "统一入口",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "via": [
+        [
+          930,
+          266
+        ]
+      ],
+      "labelAt": [
+        930,
+        153
+      ]
+    },
+    {
+      "id": "c-1",
+      "from": "collect",
+      "to": "enrich",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "c-2",
+      "from": "enrich",
+      "to": "activate",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "c-back",
+      "from": "activate",
+      "to": "collect",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          737,
+          210
+        ],
+        [
+          177,
+          210
+        ]
+      ]
+    },
+    {
+      "id": "p-memory",
+      "from": "collect",
+      "to": "memory",
+      "label": "指针",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "p-kb",
+      "from": "collect",
+      "to": "kb",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          177,
+          428
+        ],
+        [
+          351,
+          428
+        ]
+      ]
+    },
+    {
+      "id": "p-kg",
+      "from": "collect",
+      "to": "kg",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          177,
+          414
+        ],
+        [
+          525,
+          414
+        ]
+      ]
+    },
+    {
+      "id": "p-tools",
+      "from": "collect",
+      "to": "tools",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          177,
+          400
+        ],
+        [
+          699,
+          400
+        ]
+      ]
+    },
+    {
+      "id": "p-skills",
+      "from": "collect",
+      "to": "skills",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          177,
+          386
+        ],
+        [
+          873,
+          386
+        ]
+      ]
+    },
+    {
+      "id": "s-memory",
+      "from": "memory",
+      "to": "pg",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          177,
+          650
+        ],
+        [
+          525,
+          650
+        ]
+      ]
+    },
+    {
+      "id": "s-kb",
+      "from": "kb",
+      "to": "pg",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          351,
+          634
+        ],
+        [
+          525,
+          634
+        ]
+      ]
+    },
+    {
+      "id": "s-kg",
+      "from": "kg",
+      "to": "pg",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "s-tools",
+      "from": "tools",
+      "to": "pg",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          699,
+          634
+        ],
+        [
+          525,
+          634
+        ]
+      ]
+    },
+    {
+      "id": "s-skills",
+      "from": "skills",
+      "to": "pg",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          873,
+          650
+        ],
+        [
+          525,
+          650
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "指针而非副本",
+      "items": [
+        "Context Catalog 是 PostgreSQL VIEW，子系统数据原地不动（013 ADR-1）",
+        "Collect 只持五个子系统的指针，Activate 经 Catalog 定位后再取用",
+        "五个子系统全部落在 PostgreSQL（含 Tools、Skills，builtin_tools 与 skills 均为 PG 表）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "相对旧版 Mermaid 的校准",
+      "items": [
+        "补全 Tools、Skills → PostgreSQL 两条持久化边（旧图只画 Memory / KB / KG）",
+        "Router 命名：013 ADR-2 不新建 Router 类，路由并入升级后的 HybridPlanner",
+        "三段是 Horizon 叙事；013 §9 把时间面细化为六段两环"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "目标态口径（如实标注）",
+      "items": [
+        "ContextGuard 目录不存在，Activate 的出口守卫是方案位（013 §12.4）",
+        "信任归一与语义富化的归一信任分处于设计态（013 §7.2）"
+      ]
+    }
+  ]
+}
