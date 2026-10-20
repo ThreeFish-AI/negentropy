@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6fc0a2fd-a630-43c4-8f9e-87913c3b4e48",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/.archify/dataflow-three-stage-20261020-104853/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--three-stage-governance.html",
+  "specification": {
+    "sha256": "d4e9854e54da556409862e1defd06c89208c709a0ddd439926407fe279ae849b",
+    "bytes": 9380
+  },
+  "artifact": {
+    "sha256": "d9f2278becf7d1c5e04b8f43996525c15e19781b915a967459c9c5c9e8bbe794",
+    "bytes": 767220
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/.archify/architecture-evolution-levers-20261020-104853/candidate.json",
+    "sha256": "f070975379f8ac970edf53308f3074cc7430d4c3ee39ad2961cd43367026cd84",
+    "bytes": 9971
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--evolution-levers.html",
+    "sha256": "05fae1285fe71b66de9259eec027d1a75c19ba7f0e400f313e79f5bfb39d8331",
+    "bytes": 769653
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--evolution-levers.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--evolution-levers.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--evolution-levers.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1863,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "sm-2",
+            "from": "shadow",
+            "to": "canary",
+            "label": "达标",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "sm-4",
+            "from": "shadow",
+            "to": "rejected",
+            "label": "劣化",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "sm-6",
+            "from": "canary",
+            "to": "rollback",
+            "label": "",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "gate has 7 relationships facing its left side, which fits 3 ports: make that side at least 116px, or move some of those neighbours so they face another side of gate.",
+      "shadow has 3 relationships facing its right side, which fits 2 ports: make that side at least 60px, or move some of those neighbours so they face another side of shadow.",
+      "shadow → canary needs 3 bends: move node shadow or canary so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "shadow → rejected needs 3 bends: move node shadow or rejected so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "canary → rollback needs 3 bends: move node canary or rollback so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
