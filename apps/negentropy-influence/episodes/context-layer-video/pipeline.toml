@@ -11,14 +11,17 @@ slug = "context-layer-video"
 [narration]
 # 口径提示——280 字/分是**含停顿的等效**口径，
 # 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-# v3 九幕 289 句实测 26.5 分钟（含时距）；窗口上沿 27.0 留 3 分钟余量到用户 30 分钟硬顶。
-target_minutes = [21.0, 27.0]
+# v7 增补后 8266 字（len 口径）：克隆 story 档 duration_factor≈0.90 ⇒ ≈282 字/分（显式覆写、
+# 待试听定档后复核）；成片估算 ≈29.3 分，窗口上沿 29.5 留余量到用户 30 分钟硬顶。
+target_minutes = [21.0, 29.5]
+chars_per_min = 282
 
 [tts]
 # v3（2026-10-15 用户指定）：edge 预置音色草渲——zh 缺省 zh-CN-YunxiNeural（+4%），
-# 秒级免样本。无 style 锚点＝实测时长门生效（edge 终声集口径，见 07-tts-voice.md）；
-# 可用克隆样本清单见工作区 voices/refs.toml（升档 indextts 属人工显式授权闸，不在本轮）。
+# 秒级免样本。v7（2026-10-21 用户显式点名）：升档 indextts + 本人克隆（story 档）终渲，
+# 挂终声档锚点（草声期实测时长门跳过，克隆完成后恢复执法）；ref 指纹见 voices/refs.toml。
 engine = "edge"
+style = "story"
 
 [archify]
 # v3 图集 12 张（重录 4 / 新录 2 / 退役 4——含本片未引用的 industry-landscape / 存活 5，蓝图三面重铸配套）。

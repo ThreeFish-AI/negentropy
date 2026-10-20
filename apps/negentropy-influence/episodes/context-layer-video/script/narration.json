@@ -3,13 +3,21 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是同一个模型的两次作答：一次只对百分之十九，一次对了百分之八十五，模型一个参数都没改。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.22,afraid:0.1"
+    }
   },
   {
     "id": "p0-02",
     "scene": "P0",
     "text": "评测是一百五十道金融问答题。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p0-03",
@@ -24,7 +32,11 @@
   {
     "id": "p0-05",
     "scene": "P0",
-    "text": "模型没换，题也没换，换的只是给它的上下文。"
+    "text": "模型没换，题也没换，换的只是给它的上下文。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p0-06",
@@ -35,7 +47,11 @@
     "id": "p0-07",
     "scene": "P0",
     "text": "我们拿一个具体请求，从头跟到尾。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15,afraid:0.1"
+    }
   },
   {
     "id": "p0-08",
@@ -51,7 +67,11 @@
     "id": "p0-10",
     "scene": "P0",
     "text": "第一种，同一个指标，两个数。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.14"
+    }
   },
   {
     "id": "p0-11",
@@ -66,13 +86,21 @@
   {
     "id": "p0-13",
     "scene": "P0",
-    "text": "官方案例里，同一季度的收入，两个人问出了两个数。"
+    "text": "官方案例里，同一季度的收入，两个人问出了两个数。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.14"
+    }
   },
   {
     "id": "p0-14",
     "scene": "P0",
     "text": "第二种，不给业务上下文，让代理直接对着数据库作答。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p0-15",
@@ -88,7 +116,11 @@
     "id": "p0-17",
     "scene": "P0",
     "text": "第三种失效，是越权。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12,calm:0.08"
+    }
   },
   {
     "id": "p0-18",
@@ -103,13 +135,21 @@
   {
     "id": "p0-20",
     "scene": "P0",
-    "text": "运营专员本不该看到它，它却原样进了模型这一轮能看到的全部内容。"
+    "text": "运营专员本不该看到它，它却原样进了模型这一轮能看到的全部内容。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12,calm:0.08"
+    }
   },
   {
     "id": "p0-21",
     "scene": "P0",
     "text": "三种错有个共同点：全程没有报错。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.14"
+    }
   },
   {
     "id": "p0-22",
@@ -119,39 +159,59 @@
   {
     "id": "p0-23",
     "scene": "P0",
-    "text": "业界调查说，九成七的人相信上下文决定 AI 成败，建成的只有百分之四。"
+    "text": "一家厂商的调查说，九成七的人相信上下文决定 AI 成败，建成的只有百分之四。"
   },
   {
     "id": "p0-24",
     "scene": "P0",
     "text": "蓝图处理这些失效的第一步，是把它们登记成一张表。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p0-25",
     "scene": "P0",
-    "text": "十类、四十九行，每行写四件事：怎么错、证据在哪、拿什么防、怎么验收。"
+    "text": "十类、四十九行，每行写四件事：怎么错、证据在哪、拿什么防、怎么验收。",
+    "ttsText": "十类、四十九<行|HANG2>，每<行|HANG2>写四件事：怎么错、证据在哪、拿什么防、怎么验收。"
   },
   {
     "id": "p0-26",
     "scene": "P0",
-    "text": "刚才这三种错，在表里各有自己的行。"
+    "text": "刚才这三种错，在表里各有自己的行，口径、验证、访问控制各管一类。",
+    "ttsText": "刚才这三种错，在表里各有自己的<行|HANG2>，口径、验证、访问控制各管一类。"
+  },
+  {
+    "id": "p0-26b",
+    "scene": "P0",
+    "text": "讲完这一期，我们回头逐条核对，这三种错各由谁来防。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p0-27",
     "scene": "P0",
-    "text": "下面逐层拆开，看每行由哪个组件负责。"
+    "text": "下面逐层拆开，看每行由哪个组件负责。",
+    "ttsText": "下面逐层拆开，看每<行|HANG2>由哪个组件负责。"
   },
   {
     "id": "p1-01",
     "scene": "P1",
     "text": "先说清上下文层指什么。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p1-02",
     "scene": "P1",
-    "text": "常被引用的定义分三步：先把散在各处的数据接起来。"
+    "text": "常被引用的定义分三步：先把散落的数据接起来。"
   },
   {
     "id": "p1-03",
@@ -161,13 +221,21 @@
   {
     "id": "p1-04",
     "scene": "P1",
-    "text": "落到每一轮，上下文就是这一次模型窗口里的全部内容。"
+    "text": "落到每一轮，上下文就是这一次模型窗口里的全部内容。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p1-05",
     "scene": "P1",
     "text": "往窗口里送内容的来源，常见分法有五类。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p1-06",
@@ -177,12 +245,16 @@
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "拿这个请求对一下：指标定义属于指令，提问人负责哪个区属于记忆。"
+    "text": "拿请求对一下：指标定义属于指令，负责哪个区属于记忆。"
   },
   {
     "id": "p1-08",
     "scene": "P1",
-    "text": "指标说明文档是知识，查库的工具是能力，这几轮对话就是会话。"
+    "text": "指标说明文档是知识，查库的工具属于工具与技能，这几轮对话就是会话。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p1-09",
@@ -192,38 +264,57 @@
   {
     "id": "p1-10",
     "scene": "P1",
-    "text": "每个数从哪几张表算出来，这个来路叫血缘；核准过的问答对、标签规则，也落在五类之外。"
+    "text": "每个数从哪几张表算出来，叫血缘；核准问答对、标签规则也在五类外。"
+  },
+  {
+    "id": "p1-10b",
+    "scene": "P1",
+    "text": "像重复购买率，就是订单表连着客户表。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p1-11",
     "scene": "P1",
-    "text": "蓝图不按来源组织，五类来源只作一个视角保留。"
+    "text": "蓝图不按来源组织，五类只当视角保留。"
   },
   {
     "id": "p1-12",
     "scene": "P1",
     "text": "蓝图用三个互相独立的面组织，每个面回答一个问题。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p1-13",
     "scene": "P1",
-    "text": "验收面回答防住了哪些失效，就是那张十类四十九行的表。"
+    "text": "验收面回答防住了哪些失效，就是那张十类四十九行的表。",
+    "ttsText": "验收面回答防住了哪些失效，就是那张十类四十九<行|HANG2>的表。"
   },
   {
     "id": "p1-14",
     "scene": "P1",
-    "text": "结构面回答设计沿哪几条独立的维度展开，一共五条轴。"
+    "text": "结构面回答设计沿哪几条独立维度展开，共五条轴。"
   },
   {
     "id": "p1-15",
     "scene": "P1",
-    "text": "时间面回答对象从注册到退役，要经过哪些阶段。"
+    "text": "时间面回答对象从注册到退役，要经过哪些阶段。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p1-16",
     "scene": "P1",
-    "text": "这个请求一旦答错，验收面告诉你它属于哪一行。"
+    "text": "这个请求一旦答错，验收面告诉你它属于哪一行。",
+    "ttsText": "这个请求一旦答错，验收面告诉你它属于哪一<行|HANG2>。"
   },
   {
     "id": "p1-17",
@@ -231,15 +322,49 @@
     "text": "结构面告诉你该改哪条轴，时间面告诉你错在哪一段。"
   },
   {
+    "id": "p1-17b",
+    "scene": "P1",
+    "text": "这行写了什么？拿第一种错拆一遍。",
+    "beatStart": true,
+    "ttsText": "这<行|HANG2>写了什么？拿第一种错拆一遍。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p1-17c",
+    "scene": "P1",
+    "text": "怎么错？定义散落多处，各报各的数，证据是官方案例。"
+  },
+  {
+    "id": "p1-17d",
+    "scene": "P1",
+    "text": "拿什么防？口径全公司只存一份。"
+  },
+  {
+    "id": "p1-17e",
+    "scene": "P1",
+    "text": "怎么验收？全库一搜，不许另存副本。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
     "id": "p1-18",
     "scene": "P1",
     "text": "先看五条轴，每条管一类问题。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p1-19",
     "scene": "P1",
-    "text": "资产轴管经营哪些受治理的对象。"
+    "text": "资产轴管的是，经营哪些受治理的对象。"
   },
   {
     "id": "p1-20",
@@ -249,7 +374,11 @@
   {
     "id": "p1-21",
     "scene": "P1",
-    "text": "装配轴管这一轮把什么、以什么形态、花多少 token 放进窗口。"
+    "text": "装配轴管这一轮把什么、以什么形态、花多少 token 放进窗口。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p1-22",
@@ -265,7 +394,11 @@
     "id": "p1-24",
     "scene": "P1",
     "text": "五条轴为什么要分开？判据是换掉一条，不动其他。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.08,calm:0.08"
+    }
   },
   {
     "id": "p1-25",
@@ -275,12 +408,16 @@
   {
     "id": "p1-26",
     "scene": "P1",
-    "text": "把执法点从应用层挪到引擎层，候选怎么生成不受影响。"
+    "text": "把执法点从应用层挪到引擎层，候选生成不受影响。"
   },
   {
     "id": "p1-27",
     "scene": "P1",
-    "text": "加一条回写回路，每一轮的装配也不用改。"
+    "text": "加一条回写回路，每轮的装配也不用改。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.08,calm:0.08"
+    }
   },
   {
     "id": "p1-28",
@@ -291,7 +428,11 @@
     "id": "p1-29",
     "scene": "P1",
     "text": "时间面上，一个对象要走六段。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p1-30",
@@ -306,7 +447,11 @@
   {
     "id": "p1-32",
     "scene": "P1",
-    "text": "答错的结果回去修定义，这是验证环。"
+    "text": "答错的结果回去修定义，这是验证环。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p1-33",
@@ -321,13 +466,21 @@
   {
     "id": "p1-35",
     "scene": "P1",
-    "text": "另有七条治理法则，落在段与段的转换上，后面会逐一碰到。"
+    "text": "七条治理法则落在段与段的转换上，后面逐一碰到。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p1-36",
     "scene": "P1",
     "text": "最后一条约束贯穿全片：窗口里放得越多，该找的反而越找不准。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p1-37",
@@ -342,13 +495,21 @@
   {
     "id": "p1-39",
     "scene": "P1",
-    "text": "下面从资产轴开始，看这个请求经过哪些组件。"
+    "text": "下面从资产轴开始，看这个请求经过哪些组件。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p2-01",
     "scene": "P2",
     "text": "资产轴回答：上下文层经营哪些对象。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p2-02",
@@ -361,15 +522,33 @@
     "text": "定义、记忆、技能目录、知识库、血缘、核准问答对、标签与策略。"
   },
   {
+    "id": "p2-03b",
+    "scene": "P2",
+    "text": "技能目录登记能调用的技能，用到才展开正文。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
+  },
+  {
+    "id": "p2-03c",
+    "scene": "P2",
+    "text": "知识库存文档和切好的资料块。"
+  },
+  {
     "id": "p2-04",
     "scene": "P2",
     "text": "这个请求一进来，就要动用其中五类。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1,calm:0.08"
+    }
   },
   {
     "id": "p2-05",
     "scene": "P2",
-    "text": "「重复购买率」的定义，题库里那条核准过的查询。"
+    "text": "「重复购买率」的定义，题库里那条人核对过的查询。"
   },
   {
     "id": "p2-06",
@@ -379,13 +558,31 @@
   {
     "id": "p2-07",
     "scene": "P2",
-    "text": "手机号上的敏感标签，还有提问人负责华东区这条记忆。"
+    "text": "手机号上的敏感标签，还有提问人负责华东区这条记忆。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1,calm:0.08"
+    }
+  },
+  {
+    "id": "p2-07b",
+    "scene": "P2",
+    "text": "剩下两类，装配和检索时会碰到。"
   },
   {
     "id": "p2-08",
     "scene": "P2",
-    "text": "这些对象怎么进来？蓝图画了一条五段的纳管管线，是目标态设计。",
-    "beatStart": true
+    "text": "这些对象怎么进来？蓝图有一条五段的纳管管线，是目标态设计。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
+  },
+  {
+    "id": "p2-08b",
+    "scene": "P2",
+    "text": "目录是引用层，只登记资产在哪、不存内容。"
   },
   {
     "id": "p2-09",
@@ -395,13 +592,21 @@
   {
     "id": "p2-10",
     "scene": "P2",
-    "text": "第一段登记：记下来源、提交人和时间，只存指针，原文留在原处。"
+    "text": "第一段登记：记来源、提交人、时间，只存指针，原文留在原处。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p2-11",
     "scene": "P2",
     "text": "第二段归一：拆出章节路径、内容模块、图表这类非文字元素。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p2-12",
@@ -412,13 +617,21 @@
     "id": "p2-13",
     "scene": "P2",
     "text": "第三段分类：落治理字段，归订单域，写明谁能看。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-14",
     "scene": "P2",
     "text": "第四段分级：短摘要两百五十六字符以内，长摘要四千字符以内。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1"
+    }
   },
   {
     "id": "p2-15",
@@ -428,14 +641,22 @@
   {
     "id": "p2-16",
     "scene": "P2",
-    "text": "第五段打标与索引：打上标签、算出按意思检索要用的向量，分配一个固定地址。",
-    "beatStart": true
+    "text": "第五段打标与索引：打标签、算出按意思检索的向量，分配固定地址。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p2-17",
     "scene": "P2",
     "text": "五段走完，产出一条带地址、带版本的目录条目。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1,calm:0.08"
+    }
   },
   {
     "id": "p2-18",
@@ -445,8 +666,12 @@
   {
     "id": "p2-19",
     "scene": "P2",
-    "text": "对象进来之后，资产轴最重要的纪律是：口径只存一份，用时现算。",
-    "beatStart": true
+    "text": "对象进来之后，资产轴的纪律是：口径只存一份，用时现算。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p2-20",
@@ -461,7 +686,11 @@
   {
     "id": "p2-22",
     "scene": "P2",
-    "text": "先连表再汇总，三条记录都挂上订单，一百块被记成三百。"
+    "text": "先连表再汇总，三条记录都挂上订单，一百块被记成三百。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p2-23",
@@ -477,38 +706,63 @@
     "id": "p2-25",
     "scene": "P2",
     "text": "先各自汇总再连接，答案才回到两百。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p2-26",
     "scene": "P2",
-    "text": "重复购买率同样要把订单和客户连起来算，会遇到同一个问题。"
+    "text": "重复购买率也要把订单和客户连起来算，会遇到同一个问题。"
   },
   {
     "id": "p2-27",
     "scene": "P2",
-    "text": "口径单点加查询时现算，同时涉及资产、权威、装配三条轴。"
+    "text": "口径只存一份、用时现算，同时涉及资产、权威、装配三条轴。"
   },
   {
     "id": "p2-28",
     "scene": "P2",
-    "text": "蓝图里的机制，大多这样跨在几条轴上。"
+    "text": "蓝图里的机制，大多这样跨在几条轴上。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p2-29",
     "scene": "P2",
-    "text": "注册时还要过结构校验：表和表之间的引用要对得上、不能绕成圈，指标必须写明怎么汇总。",
-    "beatStart": true
+    "text": "注册时还要过结构校验：表之间的引用要对得上、不能绕成圈，指标必须写明怎么汇总。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p2-29b",
+    "scene": "P2",
+    "text": "要是「重复购买率」没写怎么汇总，注册时就拒。"
   },
   {
     "id": "p2-30",
     "scene": "P2",
-    "text": "本仓已有这道校验门：四类定义收进同一张表，新建和更新都要校验。"
+    "text": "本仓有同类的一道门：技能、代理等四类定义收进同一张表，进出都过校验。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p2-31",
     "scene": "P2",
-    "text": "不合法的，接口直接返回 422，进不了库。"
+    "text": "不合法的，接口直接返回 422，进不了库。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-32",
@@ -519,12 +773,16 @@
     "id": "p2-33",
     "scene": "P2",
     "text": "资产里还有一类特殊对象：常驻画像块，每一轮都在窗口里。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1"
+    }
   },
   {
     "id": "p2-34",
     "scene": "P2",
-    "text": "提问人是运营专员、负责华东区，就记在这里，代理不用再问一遍。"
+    "text": "提问人是运营专员、负责华东区，就记在这里，代理不用再问。"
   },
   {
     "id": "p2-35",
@@ -534,24 +792,66 @@
   {
     "id": "p2-36",
     "scene": "P2",
-    "text": "写入有三条路，每次写都有记录；放开代理自己写之前，先要有防注入扫描。",
-    "beatStart": true
+    "text": "写入有三条路。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
+  },
+  {
+    "id": "p2-36b",
+    "scene": "P2",
+    "text": "代理用工具自己写、管理端改、往尾部追加。"
+  },
+  {
+    "id": "p2-36c",
+    "scene": "P2",
+    "text": "蓝图的判断是，先保证外来的文字不被当命令，再放开代理自己写。"
   },
   {
     "id": "p2-37",
     "scene": "P2",
-    "text": "防注入就是：外面送进来的文字夹带命令，一律不当命令执行。"
+    "text": "防注入就是：外面送进来的文字夹带命令，一律不当命令执行。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
+  },
+  {
+    "id": "p2-37b",
+    "scene": "P2",
+    "text": "不然注入内容写进常驻块，每一轮都跟着进窗口。"
+  },
+  {
+    "id": "p2-37c",
+    "scene": "P2",
+    "text": "写多大？两级预算。第一级在装配那边，记忆最多占三成。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1,calm:0.08"
+    }
+  },
+  {
+    "id": "p2-37d",
+    "scene": "P2",
+    "text": "这一级生产里用没用上，对账那一幕见。"
   },
   {
     "id": "p2-38",
     "scene": "P2",
-    "text": "单块上限两千零四十八 token，写满按比例截断并标记，不静默丢弃。"
+    "text": "第二级管单块，两千零四十八 token 封顶；写满按比例截断并标记，不静默丢弃。"
   },
   {
     "id": "p2-39",
     "scene": "P2",
     "text": "资产轴归结为一句：每个含义都已登记、可寻址、带版本。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p2-40",
@@ -562,7 +862,11 @@
     "id": "p3-01",
     "scene": "P3",
     "text": "权威轴回答三件事：真值在哪，谁能看，在哪里强制执行。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p3-02",
@@ -577,13 +881,21 @@
   {
     "id": "p3-04",
     "scene": "P3",
-    "text": "如果什么都拦不住，这条规则就没接入执行路径，只是写在那里。"
+    "text": "如果什么都拦不住，这条规则就没接入执行路径，只是写在那里。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p3-05",
     "scene": "P3",
     "text": "强制力不取决于规则写在哪，取决于在哪里求值。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p3-06",
@@ -591,15 +903,42 @@
     "text": "按强制发生的时点，执法点分四层：注册时、装配时、执行时，还有编译时。"
   },
   {
+    "id": "p3-06b",
+    "scene": "P3",
+    "text": "注册时：蓝图里，指标定义入库前先过校验，不合法返回 422。"
+  },
+  {
+    "id": "p3-06c",
+    "scene": "P3",
+    "text": "装配时：这一轮代理能用的工具只取自注册表，没注册的，模型看不到。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p3-06d",
+    "scene": "P3",
+    "text": "执行时：查询跑起来的那一刻，由引擎当场判定放行还是拒绝。"
+  },
+  {
     "id": "p3-07",
     "scene": "P3",
-    "text": "越往后排，能绕过去的余地越小。"
+    "text": "越往后余地越小；编译时最极端，意图编译成执行计划时越权即失败，本仓没有。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12,calm:0.08"
+    }
   },
   {
     "id": "p3-08",
     "scene": "P3",
     "text": "落到这个请求上，是两层拦截。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p3-09",
@@ -614,23 +953,31 @@
   {
     "id": "p3-11",
     "scene": "P3",
-    "text": "前一层管体验，后一层才是强制。"
+    "text": "前一层管体验，后一层才是强制。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p3-12",
     "scene": "P3",
-    "text": "原型实验里拆掉执行层，没权限的实习生直接查到了私有数据。"
+    "text": "原型实验拆掉执行层，没权限的实习生查到了私有数据；本仓引擎还没这层守卫。"
   },
   {
     "id": "p3-13",
     "scene": "P3",
-    "text": "第二个组件：会话权限上界。",
-    "beatStart": true
+    "text": "第二个组件：会话权限上界，管代理这次会话最多能做什么。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p3-14",
     "scene": "P3",
-    "text": "代理这次会话的权限，等于用户的角色权限和会话允许范围的交集。"
+    "text": "它等于用户的角色权限，和这次会话被明确放行范围的交集。"
   },
   {
     "id": "p3-15",
@@ -640,7 +987,11 @@
   {
     "id": "p3-16",
     "scene": "P3",
-    "text": "只减不增，每次查询实时求值。"
+    "text": "只减不增，每次查询实时求值。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p3-17",
@@ -656,27 +1007,49 @@
     "id": "p3-19",
     "scene": "P3",
     "text": "权威轴还管供给面：外部接进来的工具和技能。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p3-20",
     "scene": "P3",
-    "text": "第一条纪律：它们对自己的描述，默认不可信。"
+    "text": "第一条纪律：它们对自己的描述默认不可信，这条写在工具协议的官方安全指南里。"
   },
   {
     "id": "p3-21",
     "scene": "P3",
-    "text": "有人扫过将近十万份社区技能，一百五十七份恶意，六百多个漏洞。"
+    "text": "一篇论文扫过两大技能注册中心的将近十万份技能。"
+  },
+  {
+    "id": "p3-21b",
+    "scene": "P3",
+    "text": "其中一百五十七份是恶意的。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1,surprised:0.08"
+    }
+  },
+  {
+    "id": "p3-21c",
+    "scene": "P3",
+    "text": "另有六百三十二个漏洞，样本只是这两个中心，不代表全生态。"
   },
   {
     "id": "p3-22",
     "scene": "P3",
-    "text": "四家头部客户端，没有一家校验作者签名。"
+    "text": "四家头部客户端，没有一家验证签名，这是2026年9月的实测。"
   },
   {
     "id": "p3-23",
     "scene": "P3",
-    "text": "每接一个外部来源，就多一块攻击面。"
+    "text": "每接一个外部来源，就多一块攻击面。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p3-24",
@@ -686,8 +1059,12 @@
   {
     "id": "p3-25",
     "scene": "P3",
-    "text": "权威轴一句话：真值只有一处，执法点在必经的调用路径上。",
-    "beatStart": true
+    "text": "权威轴一句话：真值只有一处，只存指针不抄副本；执法点在必经的调用路径上。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.08,calm:0.08"
+    }
   },
   {
     "id": "p3-26",
@@ -698,18 +1075,26 @@
     "id": "p4-01",
     "scene": "P4",
     "text": "装配轴回答：这一轮把什么、以什么形态、花多少 token 放进窗口。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p4-02",
     "scene": "P4",
-    "text": "每一轮装配都是一次预算分配；token 是模型按字数计的计量单位，进窗口的每个都有机会成本。"
+    "text": "每一轮装配都是一次预算分配：token 按字数计，每个都有机会成本。"
   },
   {
     "id": "p4-03",
     "scene": "P4",
     "text": "第一个组件是时序四档：常驻、渐进披露、按需加载、仅引用。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p4-04",
@@ -724,7 +1109,11 @@
   {
     "id": "p4-06",
     "scene": "P4",
-    "text": "技能目录常驻，用到哪个技能才加载正文，是渐进披露。"
+    "text": "技能目录常驻，用到哪个技能才加载正文，是渐进披露。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p4-07",
@@ -739,13 +1128,55 @@
   {
     "id": "p4-09",
     "scene": "P4",
-    "text": "越往后，进窗越省，要用时取回越贵。"
+    "text": "越往后，进窗越省，要用时取回越贵。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p4-09b",
+    "scene": "P4",
+    "text": "举个构造的例子，把窗口按一万 token 拆一遍。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
+  },
+  {
+    "id": "p4-09c",
+    "scene": "P4",
+    "text": "常驻的身份、画像块和技能目录，约两千。"
+  },
+  {
+    "id": "p4-09d",
+    "scene": "P4",
+    "text": "按需的定义和核准查询约一千五。"
+  },
+  {
+    "id": "p4-09e",
+    "scene": "P4",
+    "text": "对话历史约一千，订单表只给一条地址。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
+  },
+  {
+    "id": "p4-09f",
+    "scene": "P4",
+    "text": "加起来四千五百多，不到一半，留着装答案。"
   },
   {
     "id": "p4-10",
     "scene": "P4",
     "text": "为什么不全带上？看一个实验。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p4-11",
@@ -760,13 +1191,26 @@
   {
     "id": "p4-13",
     "scene": "P4",
-    "text": "所以目录要短，正文按需取。"
+    "text": "所以目录要短，正文按需取。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p4-13b",
+    "scene": "P4",
+    "text": "官方建模建议同向：一套指标定义整体，控制在约十万 token。"
   },
   {
     "id": "p4-14",
     "scene": "P4",
     "text": "什么提前放、什么用到再取，蓝图要求显式划界。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12,happy:0.08"
+    }
   },
   {
     "id": "p4-15",
@@ -782,7 +1226,11 @@
     "id": "p4-17",
     "scene": "P4",
     "text": "第二个组件是缓存感知分段：不变的内容排前面，会变的排后面。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p4-18",
@@ -792,13 +1240,21 @@
   {
     "id": "p4-19",
     "scene": "P4",
-    "text": "这个请求里，身份说明在前，检索到的定义放在用户消息这一侧。"
+    "text": "这个请求里，身份说明在前，检索到的定义放在用户消息这一侧。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p4-20",
     "scene": "P4",
     "text": "第三个组件是压缩分级，便宜的步骤先跑。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p4-21",
@@ -813,7 +1269,11 @@
   {
     "id": "p4-23",
     "scene": "P4",
-    "text": "前三步都不调模型，还不够，才让模型写摘要。"
+    "text": "前三步都不调模型，还不够，才让模型写摘要。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p4-24",
@@ -823,24 +1283,55 @@
   {
     "id": "p4-24b",
     "scene": "P4",
-    "text": "这个请求是第一轮、内容不多，四步一步都不用跑；轮次一多，订单明细这类大结果才先落盘。"
+    "text": "这个请求是第一轮，内容不多，四步一步都不用跑；轮次多了才用上。"
   },
   {
     "id": "p4-25",
     "scene": "P4",
-    "text": "装配还有一条硬约束，叫倒 U：窗口填充过半，效果常常不升反降。",
-    "beatStart": true
+    "text": "装配还有条硬约束叫倒 U：窗口填充过半，效果常常不升反降，这是经验观察。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p4-25b",
+    "scene": "P4",
+    "text": "为什么？官方口径：token 越多，两两注意力的关系数按平方涨。"
   },
   {
     "id": "p4-26",
     "scene": "P4",
-    "text": "把任务要求拆到多轮里逐步给，不可靠性平均翻了一倍还多。"
+    "text": "模拟对话实验里，任务拆到多轮给，比一次给全平均差百分之三十九。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p4-26b",
+    "scene": "P4",
+    "text": "能力平均只降百分之十六，涨的是不可靠性；线索一断目标就偏。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p4-26c",
+    "scene": "P4",
+    "text": "对策是蓝图自己的设计判定：规约只存一处，派发与执行前完整复诵。"
   },
   {
     "id": "p4-27",
     "scene": "P4",
     "text": "预算管的不只是钱：任务说明放在长证据前面，成绩明显更高。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p4-28",
@@ -856,7 +1347,11 @@
     "id": "p5-01",
     "scene": "P5",
     "text": "检索轴回答：候选从哪来、怎么排、截到多少。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p5-02",
@@ -871,19 +1366,26 @@
   {
     "id": "p5-04",
     "scene": "P5",
-    "text": "检索方式本身，就是答对的前提。"
+    "text": "检索方式本身，就是答对的前提。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p5-05",
     "scene": "P5",
     "text": "第一个组件是三段式：高召回初检、重排、截断。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p5-06",
     "scene": "P5",
-    "text": "初检先求全，按语义召回一百五十条候选。",
-    "beatStart": true
+    "text": "初检先求全，按语义召回一百五十条候选。"
   },
   {
     "id": "p5-07",
@@ -893,7 +1395,11 @@
   {
     "id": "p5-08",
     "scene": "P5",
-    "text": "截断只留前面一小部分，评测口径取前二十。"
+    "text": "截断只留前面一小部分，评测口径取前二十。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p5-09",
@@ -909,7 +1415,11 @@
     "id": "p5-11",
     "scene": "P5",
     "text": "排序不只看相关度，第二个组件是信任排序，四个因子。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1"
+    }
   },
   {
     "id": "p5-12",
@@ -924,18 +1434,55 @@
   {
     "id": "p5-14",
     "scene": "P5",
-    "text": "两份「重复购买率」都被召回时，受治理的那份排在推断出来的那份前面。"
+    "text": "两份「重复购买率」都被召回时，受治理的那份排在推断出来的那份前面。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1"
+    }
   },
   {
     "id": "p5-15",
     "scene": "P5",
-    "text": "两路各自的分数不能直接比，就按排名合成：排得越靠前权重越大，不用管分数本身。"
+    "text": "候选常来自几路检索，各路的分数不在一个尺度上。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p5-15b",
+    "scene": "P5",
+    "text": "不看分数，只看名次，名次越靠前权重越大；尺度差再远也不碍事。"
+  },
+  {
+    "id": "p5-15c",
+    "scene": "P5",
+    "text": "举个构造的例子：两路都排第一的，排在只有一路第一的前面。"
+  },
+  {
+    "id": "p5-15d",
+    "scene": "P5",
+    "text": "本仓真正跑名次融合的有三处：规划器种子融合、记忆混合检索、知识库检索。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p5-15e",
+    "scene": "P5",
+    "text": "统一入口只做权限门和意图路由，不做融合，注释自称简化实现。"
   },
   {
     "id": "p5-16",
     "scene": "P5",
     "text": "第三个组件是应答契约，答案只有三条出路。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.1"
+    }
   },
   {
     "id": "p5-17",
@@ -950,7 +1497,11 @@
   {
     "id": "p5-19",
     "scene": "P5",
-    "text": "连受治理的定义都没有，就直说缺口，不猜。"
+    "text": "连受治理的定义都没有，就直说缺口，不猜。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.1"
+    }
   },
   {
     "id": "p5-20",
@@ -966,7 +1517,11 @@
     "id": "p5-22",
     "scene": "P5",
     "text": "但核准过、算式对，不等于答案对。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p5-23",
@@ -981,7 +1536,11 @@
   {
     "id": "p5-25",
     "scene": "P5",
-    "text": "治理管定义对，验证管结果对，两件事要分开落位。"
+    "text": "治理管定义对，验证管结果对，两件事要分开落位。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p5-26",
@@ -992,7 +1551,11 @@
     "id": "p5-27",
     "scene": "P5",
     "text": "再说一个中文检索的缺口。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p5-28",
@@ -1007,13 +1570,26 @@
   {
     "id": "p5-30",
     "scene": "P5",
-    "text": "知识库没有回退路径，中文关键词这一路全空。"
+    "text": "知识库没有回退路径，中文关键词这一路全空。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1,calm:0.08"
+    }
   },
   {
     "id": "p5-31",
     "scene": "P5",
     "text": "最后，探查类工作交给子代理，用完即弃。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
+  },
+  {
+    "id": "p5-31b",
+    "scene": "P5",
+    "text": "带回的是蒸馏后的摘要，官方口径约一两千 token。"
   },
   {
     "id": "p5-32",
@@ -1023,18 +1599,40 @@
   {
     "id": "p5-33",
     "scene": "P5",
-    "text": "隔离的是上下文，不是权限，也不是它做过的动作。"
+    "text": "隔离的是上下文，不是权限，也不是它做过的动作。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
+  },
+  {
+    "id": "p5-33b",
+    "scene": "P5",
+    "text": "原型实测：只回结论时，主对话只有一百四十七字符。"
+  },
+  {
+    "id": "p5-33c",
+    "scene": "P5",
+    "text": "改成回传全部子历史，涨到约十八倍。"
   },
   {
     "id": "p5-34",
     "scene": "P5",
-    "text": "这一轮找准了，下一个问题是：怎么越用越好。"
+    "text": "这一轮找准了，下一个问题是：怎么越用越好。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p6-01",
     "scene": "P6",
     "text": "沉淀轴回答：使用中产生的数据，怎么写回系统，让下一轮更好。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p6-02",
@@ -1045,7 +1643,11 @@
     "id": "p6-03",
     "scene": "P6",
     "text": "第一个组件是一条判定规则：回路在线三条件。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p6-04",
@@ -1056,7 +1658,11 @@
     "id": "p6-05",
     "scene": "P6",
     "text": "触发器决定什么时候开始，消费者负责执行。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p6-05b",
@@ -1072,12 +1678,16 @@
     "id": "p6-07",
     "scene": "P6",
     "text": "拿这个请求的会话看。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.08,calm:0.08"
+    }
   },
   {
     "id": "p6-08",
     "scene": "P6",
-    "text": "运营专员在对话里补了一句：我们说的复购，只算付款成功的订单。"
+    "text": "运营专员在对话里补了一句：复购只算付款成功的订单。"
   },
   {
     "id": "p6-09",
@@ -1087,7 +1697,11 @@
   {
     "id": "p6-10",
     "scene": "P6",
-    "text": "本仓这条会话到长期记忆的回路，三件缺两件。"
+    "text": "本仓这条会话回写的回路，三件缺两件。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.08,calm:0.08"
+    }
   },
   {
     "id": "p6-11",
@@ -1103,28 +1717,60 @@
     "id": "p6-13",
     "scene": "P6",
     "text": "修复设计已经给出：水位差够了、会话也空闲了，就触发。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p6-14",
     "scene": "P6",
-    "text": "消费者从队列取任务执行，最后才写水位线。"
+    "text": "消费者从队列取任务执行，成功之后才写水位线，那一笔是提交点。"
   },
   {
     "id": "p6-15",
     "scene": "P6",
-    "text": "为什么最后写？防止同一件事被记两遍。"
+    "text": "为什么最后写？防止同一件事被记两遍。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.08"
+    }
+  },
+  {
+    "id": "p6-15b",
+    "scene": "P6",
+    "text": "反过来先写：崩在半路，账上写着做完，重启后这批活就永远被跳过。"
+  },
+  {
+    "id": "p6-15c",
+    "scene": "P6",
+    "text": "最后写，崩了账上就没记，重启后整段重做。"
+  },
+  {
+    "id": "p6-15d",
+    "scene": "P6",
+    "text": "设计给出不等于在线：消费者和水位线都还没动工。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.08"
+    }
   },
   {
     "id": "p6-16",
     "scene": "P6",
     "text": "第二个组件是两条供给路径。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p6-17",
     "scene": "P6",
-    "text": "人工起草、审核后发布，是一条；从查询历史里挖使用习惯，是另一条。"
+    "text": "一条是人工起草、审核后发布；另一条从查询历史里挖使用习惯。"
   },
   {
     "id": "p6-17b",
@@ -1134,18 +1780,27 @@
   {
     "id": "p6-18",
     "scene": "P6",
-    "text": "只靠人工不够：某数据平台自家九千多张表，精修定义覆盖不到百分之五。"
+    "text": "只靠人工不够：某数据平台九千多张表，精修定义覆盖不到百分之五。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p6-19",
     "scene": "P6",
-    "text": "挖掘这一路只涉元数据和使用模式，不涉数据行。"
+    "text": "挖掘这一路只涉元数据和使用模式，不涉数据行。",
+    "ttsText": "挖掘这一路只涉元数据和使用模式，不涉数据<行|HANG2>。"
   },
   {
     "id": "p6-20",
     "scene": "P6",
     "text": "第三个组件：冲突浮出、人工裁决。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p6-21",
@@ -1155,34 +1810,84 @@
   {
     "id": "p6-22",
     "scene": "P6",
-    "text": "系统不自己挑，把两份定义并列摆出，不给数，等人来裁决。"
+    "text": "系统不自己挑：两份定义并列摆出，不给数，等人裁决。"
   },
   {
     "id": "p6-23",
     "scene": "P6",
-    "text": "实验里改成按热度自动挑，热度两百对五，错的那份赢了。"
+    "text": "实验里改成按热度自动挑，热度两百对五，错的那份赢了。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p6-24",
     "scene": "P6",
-    "text": "裁决之后，输的那份标记为被取代，留有记录，不是直接删掉。"
+    "text": "裁决之后，输的那份标记为被取代，留记录，不删除。"
+  },
+  {
+    "id": "p6-24b",
+    "scene": "P6",
+    "text": "这条纪律叫裁决权不自动化：机器判断要变成规矩，中间必须留人工检查点。"
   },
   {
     "id": "p6-25",
     "scene": "P6",
     "text": "沉淀轴还管调参数：本仓六个可进化参数面，接在同一个状态机上。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p6-25c",
+    "scene": "P6",
+    "text": "晋升要过三关。"
+  },
+  {
+    "id": "p6-25d",
+    "scene": "P6",
+    "text": "零命中率退化不能超过零点零一。"
+  },
+  {
+    "id": "p6-25e",
+    "scene": "P6",
+    "text": "有用比要净改进至少零点零二。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p6-25f",
+    "scene": "P6",
+    "text": "第三关看样本量，两组各满五十，不够不提案。"
+  },
+  {
+    "id": "p6-25g",
+    "scene": "P6",
+    "text": "如实说：有用比这关常量已定义，还没接进在线判定。"
   },
   {
     "id": "p6-26",
     "scene": "P6",
-    "text": "每次改动先旁路评估、再灰度，第七个面只是提案，还没有代码。"
+    "text": "每次改动先旁路评估、再灰度，第七个面只是提案，还没有代码。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p6-27",
     "scene": "P6",
     "text": "沉淀轴一句话：经营的是回路，回路要三件都在线。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.08,calm:0.08"
+    }
   },
   {
     "id": "p6-28",
@@ -1193,7 +1898,11 @@
     "id": "p7-01",
     "scene": "P7",
     "text": "先定一个分析单元：每轮装配事务。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p7-02",
@@ -1203,13 +1912,17 @@
   {
     "id": "p7-03",
     "scene": "P7",
-    "text": "开头三种错与过量缺失，全在事务里。"
+    "text": "开头三种错，加上过量与缺失，全在事务里。"
   },
   {
     "id": "p7-04",
     "scene": "P7",
     "text": "蓝图把这次事务画成一条读管线，七段。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12,surprised:0.08"
+    }
   },
   {
     "id": "p7-05",
@@ -1225,12 +1938,16 @@
     "id": "p7-07",
     "scene": "P7",
     "text": "第一段，解析主体：确认是谁在问、能看什么。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1,calm:0.08"
+    }
   },
   {
     "id": "p7-08",
     "scene": "P7",
-    "text": "核出来是运营专员：订单域可见，薪资域不可见。"
+    "text": "核出来是运营专员：订单域可见，客户手机号不可见。"
   },
   {
     "id": "p7-09",
@@ -1240,19 +1957,27 @@
   {
     "id": "p7-10",
     "scene": "P7",
-    "text": "第二段，定计划：判断意图，给各个域分预算。",
-    "beatStart": true
+    "text": "第二段，定计划：拿第一段核出的身份，判断意图，给各个域分预算。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p7-11",
     "scene": "P7",
-    "text": "意图是查一个指标的数，预算主要给定义和核准查询，知识文档少给。"
+    "text": "举个构造的例子：查指标的数，预算多给定义和核准查询，知识文档少给。"
   },
   {
     "id": "p7-12",
     "scene": "P7",
     "text": "第三段，取候选，两路并行。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1"
+    }
   },
   {
     "id": "p7-13",
@@ -1267,18 +1992,26 @@
   {
     "id": "p7-15",
     "scene": "P7",
-    "text": "两路取到的都是目录条目，就是纳管管线产出的那一条。"
+    "text": "两路取到的都是目录条目，就是纳管管线产出的那一条。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1"
+    }
   },
   {
     "id": "p7-16",
     "scene": "P7",
-    "text": "写入这边登记入册，读取这边按条目取用，两条管线在这里接上。"
+    "text": "写入那边登记入册，读取这边按条目取用，两条管线在这里接上。"
   },
   {
     "id": "p7-17",
     "scene": "P7",
     "text": "第四段，融合重排。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p7-18",
@@ -1294,7 +2027,11 @@
     "id": "p7-20",
     "scene": "P7",
     "text": "第五段，检查拦截，一共五项。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p7-21",
@@ -1309,7 +2046,11 @@
   {
     "id": "p7-23",
     "scene": "P7",
-    "text": "可见性和隐私两项都没过，拦下。"
+    "text": "可见性和隐私两项都没过，拦下。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,surprised:0.08"
+    }
   },
   {
     "id": "p7-24",
@@ -1320,7 +2061,16 @@
     "id": "p7-25",
     "scene": "P7",
     "text": "第六段，裁剪：按计划给的 token 预算排序、截断。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p7-25b",
+    "scene": "P7",
+    "text": "接着构造的例子走：定义和核准查询留下，排不进预算的报表说明被裁掉。"
   },
   {
     "id": "p7-26",
@@ -1331,7 +2081,11 @@
     "id": "p7-27",
     "scene": "P7",
     "text": "第七段，组装交付：输出一个上下文包。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.1,calm:0.08"
+    }
   },
   {
     "id": "p7-28",
@@ -1347,7 +2101,11 @@
     "id": "p7-30",
     "scene": "P7",
     "text": "问题从一头进，带地址和版本的上下文包从另一头出。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p7-31",
@@ -1360,9 +2118,43 @@
     "text": "计划和裁剪落在装配轴，取用的目录条目来自资产轴。"
   },
   {
+    "id": "p7-32b",
+    "scene": "P7",
+    "text": "还记得那七条治理法则吗？挑三条贴着管线的。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1"
+    }
+  },
+  {
+    "id": "p7-32c",
+    "scene": "P7",
+    "text": "绕开检查拦截这一段会发生什么？什么都拦不住，它就只是图上的一段。"
+  },
+  {
+    "id": "p7-32d",
+    "scene": "P7",
+    "text": "那答案算得对不对？归应答锚定和验证环管，治理验证分开落位。"
+  },
+  {
+    "id": "p7-32e",
+    "scene": "P7",
+    "text": "副本从哪产生？上下文包每项带地址加版本，窗口内容每轮重建。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1"
+    }
+  },
+  {
     "id": "p7-33",
     "scene": "P7",
-    "text": "这就是蓝图画的读管线。"
+    "text": "这就是蓝图画的读管线。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p7-34",
@@ -1373,7 +2165,11 @@
     "id": "p8-01",
     "scene": "P8",
     "text": "对账先定规矩，我管它叫判定面。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p8-02",
@@ -1389,12 +2185,16 @@
     "id": "p8-04",
     "scene": "P8",
     "text": "第一条：本仓有一个设计完整的上下文装配器。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1,melancholic:0.08"
+    }
   },
   {
     "id": "p8-05",
     "scene": "P8",
-    "text": "它按 token 预算给记忆、历史、系统指令分额度，注释写得清清楚楚。"
+    "text": "它按 token 预算给记忆、历史、系统指令分额度，画像块的份额也在这里预留。"
   },
   {
     "id": "p8-06",
@@ -1405,7 +2205,11 @@
     "id": "p8-07",
     "scene": "P8",
     "text": "真正每轮给模型送记忆的，是另一个工具。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
   },
   {
     "id": "p8-08",
@@ -1416,7 +2220,12 @@
     "id": "p8-09",
     "scene": "P8",
     "text": "第二条：技能目录最后一行写着，要用技能就调展开工具。",
-    "beatStart": true
+    "beatStart": true,
+    "ttsText": "第二条：技能目录最后一<行|HANG2>写着，要用技能就调展开工具。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1"
+    }
   },
   {
     "id": "p8-10",
@@ -1426,13 +2235,17 @@
   {
     "id": "p8-11",
     "scene": "P8",
-    "text": "依赖它的调用数据做在线考核的那一步，也一直拿不到样本。"
+    "text": "晋升的在线考核要靠它调用数据，这类考核恒为零，实际全靠离线复评裁决。"
   },
   {
     "id": "p8-12",
     "scene": "P8",
     "text": "第三条：读管线里拦手机号的检查段，仓库里还不存在。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p8-13",
@@ -1440,26 +2253,44 @@
     "text": "第四条：高危工具清单里有十个，只有两个接了审批。"
   },
   {
+    "id": "p8-13b",
+    "scene": "P8",
+    "text": "能跑主机命令的那个工具，根本不在这份清单里。"
+  },
+  {
     "id": "p8-14",
     "scene": "P8",
-    "text": "会话回写缺两件、中文检索全空，前面讲过。"
+    "text": "会话回写缺两件、知识库的中文关键词检索全空，前面讲过。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p8-15",
     "scene": "P8",
-    "text": "蓝图把机制和代码逐条对了二十行。",
-    "beatStart": true
+    "text": "蓝图把机制和代码逐条对了二十行，执行点空着的只算纸面设计。",
+    "beatStart": true,
+    "ttsText": "蓝图把机制和代码逐条对了二十<行|HANG2>，执行点空着的只算纸面设计。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.1,happy:0.08"
+    }
   },
   {
     "id": "p8-16",
     "scene": "P8",
-    "text": "跑通的几行集中在资产和权威，其余大多只有设计。"
+    "text": "跑通的集中在资产和权威，其余大多只有设计。"
   },
   {
     "id": "p8-17",
     "scene": "P8",
-    "text": "怎么补？蓝图给了顺序，伤害大的先修。",
-    "beatStart": true
+    "text": "怎么补？蓝图给了顺序，按对信任的伤害排，伤害大的先修。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p8-18",
@@ -1474,7 +2305,11 @@
   {
     "id": "p8-20",
     "scene": "P8",
-    "text": "第二步，执法点统一：审批收进同一个拦截位置。"
+    "text": "第二步，执法点统一：审批收进同一个拦截位置。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p8-21",
@@ -1489,7 +2324,11 @@
   {
     "id": "p8-23",
     "scene": "P8",
-    "text": "新能力按轴的依赖排序：先资产和权威，再装配，再检索，最后沉淀。"
+    "text": "新能力按轴的依赖排序：先资产和权威，再装配，再检索，最后沉淀。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p8-24",
@@ -1500,7 +2339,11 @@
     "id": "p8-25",
     "scene": "P8",
     "text": "回到开头那个请求，三种错各由谁来防。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1,melancholic:0.08"
+    }
   },
   {
     "id": "p8-26",
@@ -1515,28 +2358,81 @@
   {
     "id": "p8-28",
     "scene": "P8",
-    "text": "越权读到手机号：会话权限上界只减不增，检查拦截段拦下并留记录。"
+    "text": "越权读到手机号：会话权限上界只减不增，检查拦截段拦下并留记录。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.1,melancholic:0.08"
+    }
+  },
+  {
+    "id": "p8-28b",
+    "scene": "P8",
+    "text": "这个对账方法能带走：有人宣称，我们有语义层，治理不可绕过。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p8-28c",
+    "scene": "P8",
+    "text": "第一步，翻成失效形态，去登记簿找同类的错和已登记的反例。"
+  },
+  {
+    "id": "p8-28d",
+    "scene": "P8",
+    "text": "第二步，逐条追问拆掉它会出什么错，要可复现的证据。"
+  },
+  {
+    "id": "p8-28e",
+    "scene": "P8",
+    "text": "答不上来的机制，就是不存在。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.1"
+    }
+  },
+  {
+    "id": "p8-28f",
+    "scene": "P8",
+    "text": "第三步，按存在、接线、在线核生产路径：挂载点、调用方计数、消费者和水位。"
+  },
+  {
+    "id": "p8-28g",
+    "scene": "P8",
+    "text": "三步有一步不过，这个宣称就登记成新的一行。",
+    "ttsText": "三步有一步不过，这个宣称就登记成新的一<行|HANG2>。"
   },
   {
     "id": "p8-29",
     "scene": "P8",
     "text": "同一个模型，百分之十九和百分之八十五，差在上下文这一层。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12,happy:0.08"
+    }
   },
   {
     "id": "p8-30",
     "scene": "P8",
-    "text": "九成七的人相信这一层重要，百分之四的人建成了。"
+    "text": "那份调查里，九成七的人相信这一层重要，百分之四的人建成了。"
   },
   {
     "id": "p8-31",
     "scene": "P8",
-    "text": "差的不是认识，是这一层有没有真正接进生产路径。"
+    "text": "差的不是认识，是这一层有没有接进生产路径。"
   },
   {
     "id": "p8-32",
     "scene": "P8",
-    "text": "验收面管防住什么，结构面管怎么分工，时间面管对象从注册到退役。"
+    "text": "验收面管防住什么，结构面管怎么分工，时间面管对象从注册到退役。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p8-33",
