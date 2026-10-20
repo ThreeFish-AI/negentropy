@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "e6c41cae-c194-4e34-ac3a-ea026d9a01db",
+  "deliveryReceiptId": "3fa6d8f6-e2d0-44f7-98b3-c9459bf26056",
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--injection-points.html",
-    "sha256": "89832dafd26c8211fa55a601e425089e20a5ded43b564fdbaf1398dbeb619aaf",
-    "bytes": 765759
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.html",
+    "sha256": "1b1a2f1d400848dd103dc91dde8530b7e38390b563436d7ce3f06568ec3e29c5",
+    "bytes": 765903
   },
   "state": {
     "detail": "read",

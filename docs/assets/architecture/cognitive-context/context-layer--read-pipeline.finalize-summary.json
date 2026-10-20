@@ -6,13 +6,13 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--read-pipeline/context-layer--read-pipeline.json",
-    "sha256": "36b030aa732db9660bc13ae21b5674ddd1496a37665e0d62ae7e3efbdcc625fe",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--read-pipeline/context-layer--read-pipeline.json",
+    "sha256": "fd6ddaccb8a05e046b7198a7df6d03a3f838e3028e9b01b42ea4c68d032754cd",
     "bytes": 8595
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
-    "sha256": "2a81caa53cc761789b660bf9d9c01feb4b0e14e77d3fbebefe908d8098bd3b4d",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
+    "sha256": "3aa80290907e6364213c5158cac2106d7a5869c7149223183746b6e6072cd78b",
     "bytes": 769337
   },
   "gates": {
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2314,
+  "durationMs": 2654,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

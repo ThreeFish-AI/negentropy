@@ -6,14 +6,14 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--injection-points/context-layer--injection-points.json",
-    "sha256": "4f71f93d88e52db246cbd4a9c86f126c8d96b3a96faac6a645a1d88df3aee50e",
-    "bytes": 6862
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--injection-points/context-layer--injection-points.json",
+    "sha256": "aa5979e31737d9d74627d836a5308bf23299c2c3b2415bd2b3759f0205dc9436",
+    "bytes": 6886
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--injection-points.html",
-    "sha256": "89832dafd26c8211fa55a601e425089e20a5ded43b564fdbaf1398dbeb619aaf",
-    "bytes": 765759
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.html",
+    "sha256": "1b1a2f1d400848dd103dc91dde8530b7e38390b563436d7ce3f06568ec3e29c5",
+    "bytes": 765903
   },
   "gates": {
     "validate": "pass",
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--injection-points.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--injection-points.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--injection-points.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2127,
+  "durationMs": 3215,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {
