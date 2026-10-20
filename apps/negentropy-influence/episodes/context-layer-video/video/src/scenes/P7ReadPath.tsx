@@ -1,24 +1,29 @@
-/** P7 读管线（p7-01..p7-34，34 句；storyboard v4「P7 读管线」节）。
+/** P7 读管线（p7-01..p7-34 含 25b/32b..e，39 句；storyboard v5「P7 读管线」节）。
  *
- *  11 镜 / 29 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
+ *  11 镜 / 30 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
  *   7-A 分析单元（fco-txn@p7-01 + hold@02：算子群→装配事务框定）
  *   7-B 四类失效归位（fco-txn@p7-03 特写推进；承 7-A 链尾镜界背靠背 → lead=false）
  *   7-C 七段全貌（rp-open@p7-04 + hold@05/06，承 7-B → lead=false；p7-06 RequestCard
  *       变形 ContextRequest——Morph 卡→窄条→JSON，身份线索描边/圆角/标题位不变；
- *       Morph 窗内 recap 压至 0.12 让位（RecapDim，cue 时序不变））
+ *       Morph 窗内 recap 压暗让位（RecapDim，cue 时序不变））
+ *   7-D..J（v5 z 序修复）：装置写在 ArchifyRecap 之后（z 序在上），RecapDim 泛化——
+ *       链内首句满亮、自第二条 hold cue 起整框压到 0.16（纯 effects 通道），压暗的
+ *       画框成为装置暗底（WP2a 抽帧证实的修复模式；hold 重播由压暗一并掩掉）
  *   7-D Resolve（rp-resolve@p7-07 + hold@08/09；SevenStations① + 身份核验/权限上界装置）
- *   7-E Plan（rp-plan@p7-10 + hold@11；SevenStations② + 意图标签/各域预算比例条）
+ *   7-E Plan（rp-plan@p7-10 + hold@11；SevenStations② + 意图标签/各域预算比例条
+ *       + p7-11「构造示例」角标）
  *   7-F Retrieve（rp-retrieve@p7-12 + hold@13..16；SevenStations③ + 双路并行 + 目录条目卡
  *       自目录列表起飞落入 Retrieve 高亮框〔M-001 同物同形〕@p7-15 + 写读接头缝钢蓝闪@p7-16）
  *   7-G Fuse（rp-fuse@p7-17 + hold@18/19；SevenStations④ + RRF 角标 + 受治理定义行置顶）
  *   7-H Guard（rp-guard@p7-20 + hold@21..24；SevenStations⑤ + 五项检查灯 + 手机号表
  *       可见性/隐私双拒→橙分流进 dropped 盒（只进不改 X-001）+ 留痕记录行）
- *   7-I Compose（rp-compose@p7-25 + hold@26；SevenStations⑥ + 预算条按计划线填充/
- *       超线候选抽出 + 倒 U 小图压角）
+ *   7-I Compose（rp-compose@p7-25 + hold@25b/26；SevenStations⑥ + 预算条按计划线填充/
+ *       超线候选抽出（p7-25b 报表说明条抽出·接 4-X 构造例）+ 倒 U 小图压角）
  *   7-J Emit（rp-emit@p7-27 + hold@28/29；SevenStations⑦ + ContextBundle 三列展开
  *       uri@version 双标 + 版本号回溯箭头）
  *   7-K 轴归位（SevenStations 全亮回望 + FiveAxisMap 叠放 passedCount=5 + 七段轴色归类
- *       权威橙/供给蓝@p7-31..32 + 首尾对接箭头@p7-30 + 结论@p7-33 + 对账预告@p7-34）
+ *       权威橙/供给蓝@p7-31..32 + 首尾对接箭头@p7-30 + 验收问卡三连 G1/G4/G5@p7-32b..e
+ *       + 结论@p7-33 + 对账预告@p7-34）
  *  「蓝图·目标态 · 非仓库现状」角标自 p7-05 挂起至 7-J 幕内尾句。
  */
 import React from 'react';
@@ -26,7 +31,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {clamp01, progress, useDraw, useEnter, useFlowDash, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {clamp01, progress, useDraw, useEnter, useFlowDash, useImpulse, useProgress, useReveal, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {CatalogCard} from '../components/CatalogCard';
@@ -92,33 +97,46 @@ export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
         </Sequence>
       </Sequence>
 
-      {/* 7-D Resolve：站点① + 身份核验/权限上界（recap 后置遮盖） */}
+      {/* 7-D Resolve：recap 在下（首句满亮、自 hold 起压暗），装置在其上 */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="7-D">
+        <RecapDim from={at('p7-08') - bD.from} dur={dur('p7-08', 'p7-09')}>
+          <ArchifyRecap slug="read-pipeline" caption="读管线 · ① Resolve" lead={false} cues={[
+            {chapterId: 'rp-resolve', at: at('p7-07') - bD.from, durationInFrames: dur('p7-07')},
+            {chapterId: 'rp-resolve', at: at('p7-08') - bD.from, durationInFrames: dur('p7-08'), fit: 'hold'},
+            {chapterId: 'rp-resolve', at: at('p7-09') - bD.from, durationInFrames: dur('p7-09'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <SevenStations at={at('p7-07') - bD.from} station={1} />
         <ResolveStage
           a07={at('p7-07') - bD.from}
           a08={at('p7-08') - bD.from}
           a09={at('p7-09') - bD.from}
         />
-        <ArchifyRecap slug="read-pipeline" caption="读管线 · ① Resolve" lead={false} cues={[
-          {chapterId: 'rp-resolve', at: at('p7-07') - bD.from, durationInFrames: dur('p7-07')},
-          {chapterId: 'rp-resolve', at: at('p7-08') - bD.from, durationInFrames: dur('p7-08'), fit: 'hold'},
-          {chapterId: 'rp-resolve', at: at('p7-09') - bD.from, durationInFrames: dur('p7-09'), fit: 'hold'},
-        ]} />
       </Sequence>
 
-      {/* 7-E Plan：站点② + 意图/各域预算（recap 后置遮盖） */}
+      {/* 7-E Plan：recap 在下（首句满亮、p7-11 起压暗），装置在其上 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="7-E">
+        <RecapDim from={at('p7-11') - bE.from} dur={dur('p7-11')}>
+          <ArchifyRecap slug="read-pipeline" caption="读管线 · ② Plan" lead={false} cues={[
+            {chapterId: 'rp-plan', at: at('p7-10') - bE.from, durationInFrames: dur('p7-10')},
+            {chapterId: 'rp-plan', at: at('p7-11') - bE.from, durationInFrames: dur('p7-11'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <SevenStations at={at('p7-10') - bE.from} station={2} />
         <PlanStage a10={at('p7-10') - bE.from} a11={at('p7-11') - bE.from} />
-        <ArchifyRecap slug="read-pipeline" caption="读管线 · ② Plan" lead={false} cues={[
-          {chapterId: 'rp-plan', at: at('p7-10') - bE.from, durationInFrames: dur('p7-10')},
-          {chapterId: 'rp-plan', at: at('p7-11') - bE.from, durationInFrames: dur('p7-11'), fit: 'hold'},
-        ]} />
       </Sequence>
 
-      {/* 7-F Retrieve：站点③ + 双路并行 + 目录条目卡接头飞行（recap 后置遮盖） */}
+      {/* 7-F Retrieve：recap 在下（首句满亮、自 hold 起压暗），装置在其上 */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="7-F">
+        <RecapDim from={at('p7-13') - bF.from} dur={dur('p7-13', 'p7-16')}>
+          <ArchifyRecap slug="read-pipeline" caption="读管线 · ③ Retrieve" lead={false} cues={[
+            {chapterId: 'rp-retrieve', at: at('p7-12') - bF.from, durationInFrames: dur('p7-12')},
+            {chapterId: 'rp-retrieve', at: at('p7-13') - bF.from, durationInFrames: dur('p7-13'), fit: 'hold'},
+            {chapterId: 'rp-retrieve', at: at('p7-14') - bF.from, durationInFrames: dur('p7-14'), fit: 'hold'},
+            {chapterId: 'rp-retrieve', at: at('p7-15') - bF.from, durationInFrames: dur('p7-15'), fit: 'hold'},
+            {chapterId: 'rp-retrieve', at: at('p7-16') - bF.from, durationInFrames: dur('p7-16'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <SevenStations at={at('p7-12') - bF.from} station={3} />
         <DualRetrieve
           a12={at('p7-12') - bF.from}
@@ -127,28 +145,32 @@ export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
           a15={at('p7-15') - bF.from}
           a16={at('p7-16') - bF.from}
         />
-        <ArchifyRecap slug="read-pipeline" caption="读管线 · ③ Retrieve" lead={false} cues={[
-          {chapterId: 'rp-retrieve', at: at('p7-12') - bF.from, durationInFrames: dur('p7-12')},
-          {chapterId: 'rp-retrieve', at: at('p7-13') - bF.from, durationInFrames: dur('p7-13'), fit: 'hold'},
-          {chapterId: 'rp-retrieve', at: at('p7-14') - bF.from, durationInFrames: dur('p7-14'), fit: 'hold'},
-          {chapterId: 'rp-retrieve', at: at('p7-15') - bF.from, durationInFrames: dur('p7-15'), fit: 'hold'},
-          {chapterId: 'rp-retrieve', at: at('p7-16') - bF.from, durationInFrames: dur('p7-16'), fit: 'hold'},
-        ]} />
       </Sequence>
 
-      {/* 7-G Fuse：站点④ + RRF/信任重排 + 受治理行置顶（recap 后置遮盖） */}
+      {/* 7-G Fuse：recap 在下（首句满亮、自 hold 起压暗），装置在其上 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="7-G">
+        <RecapDim from={at('p7-18') - bG.from} dur={dur('p7-18', 'p7-19')}>
+          <ArchifyRecap slug="read-pipeline" caption="读管线 · ④ Fuse" lead={false} cues={[
+            {chapterId: 'rp-fuse', at: at('p7-17') - bG.from, durationInFrames: dur('p7-17')},
+            {chapterId: 'rp-fuse', at: at('p7-18') - bG.from, durationInFrames: dur('p7-18'), fit: 'hold'},
+            {chapterId: 'rp-fuse', at: at('p7-19') - bG.from, durationInFrames: dur('p7-19'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <SevenStations at={at('p7-17') - bG.from} station={4} />
         <FuseStage a17={at('p7-17') - bG.from} a18={at('p7-18') - bG.from} a19={at('p7-19') - bG.from} />
-        <ArchifyRecap slug="read-pipeline" caption="读管线 · ④ Fuse" lead={false} cues={[
-          {chapterId: 'rp-fuse', at: at('p7-17') - bG.from, durationInFrames: dur('p7-17')},
-          {chapterId: 'rp-fuse', at: at('p7-18') - bG.from, durationInFrames: dur('p7-18'), fit: 'hold'},
-          {chapterId: 'rp-fuse', at: at('p7-19') - bG.from, durationInFrames: dur('p7-19'), fit: 'hold'},
-        ]} />
       </Sequence>
 
-      {/* 7-H Guard：站点⑤ + 五项检查灯 + 双拒分流 dropped（recap 后置遮盖） */}
+      {/* 7-H Guard：recap 在下（首句满亮、自 hold 起压暗），装置在其上 */}
       <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="7-H">
+        <RecapDim from={at('p7-21') - bH.from} dur={dur('p7-21', 'p7-24')}>
+          <ArchifyRecap slug="read-pipeline" caption="读管线 · ⑤ Guard" lead={false} cues={[
+            {chapterId: 'rp-guard', at: at('p7-20') - bH.from, durationInFrames: dur('p7-20')},
+            {chapterId: 'rp-guard', at: at('p7-21') - bH.from, durationInFrames: dur('p7-21'), fit: 'hold'},
+            {chapterId: 'rp-guard', at: at('p7-22') - bH.from, durationInFrames: dur('p7-22'), fit: 'hold'},
+            {chapterId: 'rp-guard', at: at('p7-23') - bH.from, durationInFrames: dur('p7-23'), fit: 'hold'},
+            {chapterId: 'rp-guard', at: at('p7-24') - bH.from, durationInFrames: dur('p7-24'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <SevenStations at={at('p7-20') - bH.from} station={5} />
         <GuardStage
           a20={at('p7-20') - bH.from}
@@ -157,42 +179,44 @@ export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
           a23={at('p7-23') - bH.from}
           a24={at('p7-24') - bH.from}
         />
-        <ArchifyRecap slug="read-pipeline" caption="读管线 · ⑤ Guard" lead={false} cues={[
-          {chapterId: 'rp-guard', at: at('p7-20') - bH.from, durationInFrames: dur('p7-20')},
-          {chapterId: 'rp-guard', at: at('p7-21') - bH.from, durationInFrames: dur('p7-21'), fit: 'hold'},
-          {chapterId: 'rp-guard', at: at('p7-22') - bH.from, durationInFrames: dur('p7-22'), fit: 'hold'},
-          {chapterId: 'rp-guard', at: at('p7-23') - bH.from, durationInFrames: dur('p7-23'), fit: 'hold'},
-          {chapterId: 'rp-guard', at: at('p7-24') - bH.from, durationInFrames: dur('p7-24'), fit: 'hold'},
-        ]} />
       </Sequence>
 
-      {/* 7-I Compose：站点⑥ + 预算条裁剪 + 倒 U 压角（recap 后置遮盖） */}
+      {/* 7-I Compose：recap 在下（首句满亮、p7-25b 起压暗），装置在其上 */}
       <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="7-I">
+        <RecapDim from={at('p7-25b') - bI.from} dur={dur('p7-25b', 'p7-26')}>
+          <ArchifyRecap slug="read-pipeline" caption="读管线 · ⑥ Compose" lead={false} cues={[
+            {chapterId: 'rp-compose', at: at('p7-25') - bI.from, durationInFrames: dur('p7-25')},
+            {chapterId: 'rp-compose', at: at('p7-25b') - bI.from, durationInFrames: dur('p7-25b'), fit: 'hold'},
+            {chapterId: 'rp-compose', at: at('p7-26') - bI.from, durationInFrames: dur('p7-26'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <SevenStations at={at('p7-25') - bI.from} station={6} />
-        <ComposeStage a25={at('p7-25') - bI.from} a26={at('p7-26') - bI.from} />
-        <ArchifyRecap slug="read-pipeline" caption="读管线 · ⑥ Compose" lead={false} cues={[
-          {chapterId: 'rp-compose', at: at('p7-25') - bI.from, durationInFrames: dur('p7-25')},
-          {chapterId: 'rp-compose', at: at('p7-26') - bI.from, durationInFrames: dur('p7-26'), fit: 'hold'},
-        ]} />
+        <ComposeStage a25={at('p7-25') - bI.from} a25b={at('p7-25b') - bI.from} a26={at('p7-26') - bI.from} />
       </Sequence>
 
-      {/* 7-J Emit：站点⑦ + ContextBundle 三列 uri@version + 版本回溯（recap 后置遮盖） */}
+      {/* 7-J Emit：recap 在下（首句满亮、自 hold 起压暗），装置在其上 */}
       <Sequence from={bJ.from} durationInFrames={bJ.durationInFrames} name="7-J">
+        <RecapDim from={at('p7-28') - bJ.from} dur={dur('p7-28', 'p7-29')}>
+          <ArchifyRecap slug="read-pipeline" caption="读管线 · ⑦ Emit" lead={false} cues={[
+            {chapterId: 'rp-emit', at: at('p7-27') - bJ.from, durationInFrames: dur('p7-27')},
+            {chapterId: 'rp-emit', at: at('p7-28') - bJ.from, durationInFrames: dur('p7-28'), fit: 'hold'},
+            {chapterId: 'rp-emit', at: at('p7-29') - bJ.from, durationInFrames: dur('p7-29'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <SevenStations at={at('p7-27') - bJ.from} station={7} />
         <EmitStage a27={at('p7-27') - bJ.from} a28={at('p7-28') - bJ.from} a29={at('p7-29') - bJ.from} />
-        <ArchifyRecap slug="read-pipeline" caption="读管线 · ⑦ Emit" lead={false} cues={[
-          {chapterId: 'rp-emit', at: at('p7-27') - bJ.from, durationInFrames: dur('p7-27')},
-          {chapterId: 'rp-emit', at: at('p7-28') - bJ.from, durationInFrames: dur('p7-28'), fit: 'hold'},
-          {chapterId: 'rp-emit', at: at('p7-29') - bJ.from, durationInFrames: dur('p7-29'), fit: 'hold'},
-        ]} />
       </Sequence>
 
-      {/* 7-K 轴归位：SevenStations 全亮 + FiveAxisMap 叠放 + 轴色归类 + 首尾对接 */}
+      {/* 7-K 轴归位：SevenStations 全亮 + FiveAxisMap 叠放 + 轴色归类 + 首尾对接 + 验收问卡三连 */}
       <Sequence from={bK.from} durationInFrames={bK.durationInFrames} name="7-K">
         <RecapSeven
           a30={at('p7-30') - bK.from}
           a31={at('p7-31') - bK.from}
           a32={at('p7-32') - bK.from}
+          a32b={at('p7-32b') - bK.from}
+          a32c={at('p7-32c') - bK.from}
+          a32d={at('p7-32d') - bK.from}
+          a32e={at('p7-32e') - bK.from}
           a33={at('p7-33') - bK.from}
           a34={at('p7-34') - bK.from}
         />
@@ -201,12 +225,20 @@ export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
   );
 };
 
-/** recap 让位包装（7-C Morph 专用）：Morph 窗内图回放压到 0.12（装置全屏可读），
- *  窗外满亮——纯 effects 通道（铁律③），cue 时序不受影响，仅显示层让位。 */
-const RecapDim: React.FC<{from: number; dur: number; children: React.ReactNode}> = ({from, dur, children}) => {
+/** recap 让位包装（RecapDim，7-D..J 泛化 / 7-C Morph 同源）：包装窗内图回放压到
+ *  `to`（默认 0.16，WP2a 抽帧证实的暗底档），窗外满亮——链内首句满亮、自第二条
+ *  hold cue 起整框压暗，hold 重播由压暗一并掩掉。纯 effects 通道（铁律③）：句界
+ *  10 帧缓变、禁弹簧；cue 时序不受影响，仅显示层让位。z 序契约：wrapper 包住
+ *  ArchifyRecap，装置 JSX 写在其后（装置落在画框区域内也可读，画框即装置暗底）。 */
+export const RecapDim: React.FC<{from: number; dur: number; to?: number; children: React.ReactNode}> = ({
+  from,
+  dur,
+  to = 0.16,
+  children,
+}) => {
   const frame = useCurrentFrame();
   const cover = progress(frame, from, 10) * (1 - progress(frame, from + dur - 12, 12));
-  return <AbsoluteFill style={{opacity: 1 - 0.88 * clamp01(cover)}}>{children}</AbsoluteFill>;
+  return <AbsoluteFill style={{opacity: 1 - (1 - to) * clamp01(cover)}}>{children}</AbsoluteFill>;
 };
 
 /** 7-D 解析主体：核出运营专员 + 域可见双检 + 会话权限上界实时求值。 */
@@ -241,7 +273,7 @@ const ResolveStage: React.FC<{a07: number; a08: number; a09: number}> = ({a07, a
         <div style={{display: 'flex', gap: 20, marginTop: 26}}>
           {[
             {t: '订单域 · 可见', ok: true},
-            {t: '薪资域 · 不可见', ok: false},
+            {t: '客户手机号 · 不可见', ok: false},
           ].map((d, i) => (
             <span
               key={d.t}
@@ -322,6 +354,23 @@ const PlanStage: React.FC<{a10: number; a11: number}> = ({a10, a11}) => {
           ))}
         </div>
         <div style={{marginTop: 14, fontSize: 15, color: theme.dim, opacity: segs[2]}}>预算主要给定义和核准查询 · 知识文档少给</div>
+        {/* p7-11 构造示例角标 */}
+        <span
+          style={{
+            position: 'absolute',
+            right: 20,
+            top: 20,
+            padding: '4px 14px',
+            border: `1.5px dashed ${theme.dim}`,
+            borderRadius: 999,
+            fontSize: 15,
+            fontFamily: theme.mono,
+            color: theme.dim,
+            opacity: segs[2],
+          }}
+        >
+          构造示例
+        </span>
       </div>
     </AbsoluteFill>
   );
@@ -668,13 +717,15 @@ const GuardStage: React.FC<{a20: number; a21: number; a22: number; a23: number; 
   );
 };
 
-/** 7-I 裁剪：窗口 token 预算条按计划线填充、超线候选项依序抽出 + 倒 U 小图压角。 */
-const ComposeStage: React.FC<{a25: number; a26: number}> = ({a25, a26}) => {
+/** 7-I 裁剪：窗口 token 预算条按计划线填充、超线候选项依序抽出（p7-25b 报表说明条
+ *  抽出·接 4-X 构造例）+ 倒 U 小图压角。 */
+const ComposeStage: React.FC<{a25: number; a25b: number; a26: number}> = ({a25, a25b, a26}) => {
   const frame = useCurrentFrame();
   const enter = useProgress(a25, 10);
   const fill = clamp01(progress(frame, a25 + 6, 26));
   const pull1 = clamp01(progress(frame, a25 + 26, 12));
-  const pull2 = clamp01(progress(frame, a25 + 34, 12));
+  const pull2 = clamp01(progress(frame, a25b, 12));
+  const exIn = clamp01(progress(frame, a25b, 10));
   const pulse = useImpulse({at: a26, dur: 24, peak: 1});
   const iconIn = clamp01(progress(frame, a26, 10));
   const rows = [
@@ -688,6 +739,23 @@ const ComposeStage: React.FC<{a25: number; a26: number}> = ({a25, a26}) => {
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: 560, top: 210, width: 800, height: 400, borderRadius: 12, border: `1.5px solid ${theme.panelBorder}`, background: theme.panel, padding: 24, boxSizing: 'border-box', opacity: enter}}>
         <div style={{fontSize: 20, color: theme.dim}}>第 6 段 Compose · 裁剪</div>
+        {/* p7-25b 构造例续标（接 4-X 一万 token 走查） */}
+        <span
+          style={{
+            position: 'absolute',
+            right: 20,
+            top: 20,
+            padding: '4px 14px',
+            border: `1.5px dashed ${theme.dim}`,
+            borderRadius: 999,
+            fontSize: 15,
+            fontFamily: theme.mono,
+            color: theme.dim,
+            opacity: exIn,
+          }}
+        >
+          构造例 · 续 4-X
+        </span>
         {/* 预算条：填到计划线即止 */}
         <div style={{marginTop: 18, fontSize: 15, color: theme.dim}}>窗口 token 预算 · 计划线</div>
         <div style={{position: 'relative', marginTop: 8, height: 26, borderRadius: 7, border: `1.5px solid ${theme.panelBorder}`, background: theme.bg, overflow: 'hidden'}}>
@@ -773,10 +841,28 @@ const EmitStage: React.FC<{a27: number; a28: number; a29: number}> = ({a27, a28,
   );
 };
 
-/** 7-K 轴归位：全轨回望 + FiveAxisMap 叠放 + 七段轴色归类 + 首尾对接 + 结论 + 预告。 */
+/** 7-K 轴归位：全轨回望 + FiveAxisMap 叠放 + 七段轴色归类 + 首尾对接 + 验收问卡三连
+ *  （G1/G4/G5，接 p1-35 七法则点名）+ 结论 + 预告。 */
 const AXIS_TAGS = ['权威', '装配', '检索', '检索', '权威', '装配', '装配'] as const;
 
-const RecapSeven: React.FC<{a30: number; a31: number; a32: number; a33: number; a34: number}> = ({a30, a31, a32, a33, a34}) => {
+/** 验收问卡三连（p7-32b 引入 + p7-32c/d/e 各一卡；问句打字机、卡随句钉上）。 */
+const G_CARDS = [
+  {g: 'G1 执法点绑定', q: '绕开检查拦截会怎样？', a: '拦不住 ⇒ 只是图上的一段'},
+  {g: 'G4 治理-验证分落位', q: '答案算得对不对？', a: '应答锚定 ＋ 验证环'},
+  {g: 'G5 指针不副本', q: '副本从哪产生？', a: 'uri@version · 每轮重建'},
+] as const;
+
+const RecapSeven: React.FC<{a30: number; a31: number; a32: number; a32b: number; a32c: number; a32d: number; a32e: number; a33: number; a34: number}> = ({
+  a30,
+  a31,
+  a32,
+  a32b,
+  a32c,
+  a32d,
+  a32e,
+  a33,
+  a34,
+}) => {
   const frame = useCurrentFrame();
   // 横轨稳态回望：at 预锚 -70（入场+落章早已完成）——七段全亮是「状态」非「动作」
   const arrow = useDraw(a30, 24);
@@ -784,10 +870,58 @@ const RecapSeven: React.FC<{a30: number; a31: number; a32: number; a33: number; 
   const tagsA = useStagger(4, {stride: 7, at: a31});
   const tagsB = useStagger(3, {stride: 7, at: a32});
   const assetTag = useProgress(a32 + 14, 10);
+  const gIntro = useProgress(a32b, 12);
+  // 验收问卡逐卡钉上、问句打字机（hooks 顶层逐个调用）；结论入场时整组缓动让位
+  const gEnters = [a32c, a32d, a32e].map((a) => clamp01(progress(frame, a, 14)));
+  const gYield = 1 - 0.6 * clamp01(progress(frame, a33, 14));
+  const gTyped = [
+    useReveal(G_CARDS[0].q, {at: a32c, cps: 10}),
+    useReveal(G_CARDS[1].q, {at: a32d, cps: 10}),
+    useReveal(G_CARDS[2].q, {at: a32e, cps: 10}),
+  ];
   const conclusion = useEnter('rise', {at: a33, dur: 16});
   const preview = useProgress(a34, 10);
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
+      {/* 五法则回扣引入条 + 验收问卡三连（画框外上带，避让七段横轨与结论位） */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 172, display: 'flex', justifyContent: 'center', opacity: gIntro, transform: `translateY(${(1 - gIntro) * 10}px)`}}>
+        <span style={{padding: '7px 24px', border: `1.5px dashed ${theme.dim}`, borderRadius: 999, fontSize: 18, color: theme.dim, background: withAlpha(theme.bg, 0.9)}}>
+          七法则 · 挑三条贴着管线
+        </span>
+      </div>
+      {G_CARDS.map((c, i) => {
+        const k = gEnters[i] * gYield;
+        const typed = gTyped[i];
+        return (
+          <div
+            key={c.g}
+            style={{
+              position: 'absolute',
+              left: 276 + i * 464,
+              top: 234,
+              width: 440,
+              height: 140,
+              borderRadius: 12,
+              border: `2px solid ${theme.concept}`,
+              background: withAlpha(theme.bg, 0.92),
+              padding: '16px 22px',
+              boxSizing: 'border-box',
+              opacity: k,
+              transform: `translateY(${(1 - gEnters[i]) * 14}px)`,
+            }}
+          >
+            <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+              <span style={{padding: '2px 10px', border: `1.5px solid ${theme.ok}`, borderRadius: 6, fontSize: 14, fontFamily: theme.mono, color: theme.ok}}>{c.g.slice(0, 2)}</span>
+              <span style={{fontSize: 17, color: theme.dim}}>{c.g.slice(3)}</span>
+            </div>
+            <div style={{marginTop: 10, fontSize: 21, color: theme.text}}>
+              {typed}
+              <span style={{opacity: typed.length >= c.q.length ? 0 : 1, color: theme.concept}}>▍</span>
+            </div>
+            <div style={{marginTop: 8, fontSize: 16, color: theme.concept, fontFamily: theme.mono, opacity: typed.length >= c.q.length ? 1 : 0}}>⇒ {c.a}</div>
+          </div>
+        );
+      })}
       {/* FiveAxisMap 叠放（上）+ SevenStations 全亮（下） */}
       <FiveAxisMap built passedCount={5} at={0} />
       <SevenStations at={-70} station={7} />

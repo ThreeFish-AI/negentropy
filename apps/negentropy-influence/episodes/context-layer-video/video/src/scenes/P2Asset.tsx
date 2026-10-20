@@ -1,30 +1,36 @@
-/** P2 资产轴（p2-01..p2-40，40 句；storyboard v4「P2 资产轴」节）。
+/** P2 资产轴（p2-01..p2-40 含 03b/c、07b、08b、29b、36b/c、37b..d，50 句；
+ *  storyboard v5「P2 资产轴」节）。
  *
- *  15 镜 / 15 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
+ *  15 镜 / 16 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
  *   2-A 开轴（FiveAxisMap highlight=asset 幕首重锚 + 七类资产卡入列@p2-02..03，
- *       每卡带「固定地址 · 带出处 · 带权限」三小标）
+ *       每卡带「固定地址 · 带出处 · 带权限」三小标 + p2-03b/c 技能目录/知识库白话小卡）
  *   2-B 请求连五类（装置：RequestCard〔M-001〕连出五线到资产卡@p2-05..07 + 卡缘
- *       「已动用」小签累积）
- *   2-C ig-open@p2-08 + ig-ingest@p2-09 + hold@10（IntakeLine① + 登记三字段/指针线
- *       连回原文；「蓝图·目标态」角标自 p2-08 挂起至 2-G）
- *   2-D ig-normalize@p2-11 + hold@12（IntakeLine② + 三格拆解/摘要梯/无 LLM 角标；
- *       承 2-C 链尾背靠背 → lead=false）
- *   2-E ig-classify@p2-13（IntakeLine③ + 治理字段三格落档；lead=false）
- *   2-F ig-tier@p2-14 + hold@15（IntakeLine④ + 三级标尺/体积分流入级、原文卡淡出、
- *       指针卡留守；lead=false）
- *   2-G ig-tag@p2-16 + hold@17/18（IntakeLine⑤ + 打标/向量/地址三步 + CatalogCard
- *       弹出→飞落目录列表——全片接头锚〔M-001 同物同形〕；lead=false）
+ *       「已动用」小签累积 + p2-07b 技能目录/知识库灰置卡待亮）
+ *   2-C ig-open@p2-08 + hold@08b + ig-ingest@p2-09 + hold@10。**取舍（简报「反过来」）**：
+ *       纳管走查 narration 与 ig-* 章图解逐句对应（八图已随 v7 字重渲），archify 章是
+ *       讲解主体 → 自研登记装置删除、recap 全亮为画面主体；p2-08b「目录＝引用层」
+ *       标牌缩为画框外右带补注。「蓝图·目标态」角标自 p2-08 挂起至 2-G
+ *   2-D ig-normalize@p2-11 + hold@12（同上取舍：归一装置删除；「归一不调用 LLM」
+ *       角标缩为画框外左带补注@p2-12；承 2-C 链尾背靠背 → lead=false）
+ *   2-E ig-classify@p2-13（同上取舍：分类装置删除；lead=false）
+ *   2-F ig-tier@p2-14 + hold@15（同上取舍：分级装置删除；lead=false）
+ *   2-G ig-tag@p2-16 + hold@17/18（半反过来：p2-16 章图全亮承「打标/向量/地址」；
+ *       p2-17 起压暗暗底，CatalogCard 弹出→飞落目录列表——全片接头锚〔M-001 同物
+ *       同形〕移到 recap 之后 z 序在上；RecapDimSpan 泛化；lead=false）
  *   2-H 口径纪律（装置：算什么/按什么次序算双栏卡 + 「口径只存一份 · 用时现算」章
  *       + 实验预告槽）
  *   2-I fan trap 破坏实验（消融对照：¥100 订单 ×3 事件先连后聚 → ¥300、整月 200/440
  *       对撞 + 实心徽 + 「查询语法完全合法」对勾常亮）
  *   2-J 正确次序（先聚后连回 ¥200 绿 + 回扣条@p2-26）
  *   2-K lmm-seam@p2-27 + hold@28（跨轴组合；M1 角标走画框外左余量）
- *   2-L 代码走廊①（CodePane：definitions 表四类定义 + 校验 422 + 实心徽 + 渲染产物
+ *   2-L 代码走廊①（CodePane：definitions 表四类定义 + 校验 422 + 实心徽 + p2-29b
+ *       422 回扣行「重复购买率 · 汇总式缺失 → 注册即拒（目标态）」 + 渲染产物
  *       投影箭头@p2-32）
  *   2-M 常驻块三问（Core Block 挂窗口顶部 + 示例行写入@p2-34 + 三问标签@p2-35）
- *   2-N 写入纪律（三写入路径汇入 + 审计行 + 防注入扫描@p2-37 + 2048 上限条截断标记
- *       @p2-38）
+ *   2-N 写入纪律（三条写入路径＝代理工具自写/管理端修改/尾部追加@p2-36..36b +
+ *       「先扫描 · 后自编」时序小标@p2-36c + 防注入扫描@p2-37 + 注入样例试写入
+ *       被拦@p2-37b + 两级预算第一级「记忆 ≤ 30% 硬帽（装配侧）」角标@p2-37c +
+ *       「对账见 P8」钩子标@p2-37d + 2048 单块封顶截断标记@p2-38）
  *   2-O ol-gov@p2-39 + hold@40（三标签收束前景 + FiveAxisMap 推进 passedCount=1
  *       权威轴待亮转场）
  */
@@ -33,14 +39,22 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {clamp01, progress, useDraw, useEnter, useFlowDash, useImpulse, useProgress, usePushIn, useReveal, useSpring, useStagger} from '../motion';
+import {clamp01, progress, useEnter, useFlowDash, useImpulse, useProgress, usePushIn, useReveal, useSpring, useStagger} from '../motion';
 import {Counter, SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {CatalogCard} from '../components/CatalogCard';
-import {IntakeLine} from '../components/IntakeLine';
 import {FiveAxisMap} from '../components/FiveAxisMap';
 import {RequestCard} from '../components/RequestCard';
+
+/** recap 让位包装（RecapDim 泛化，承 P7ReadPath 同形 helper）：from 句界起 10 帧缓暗、
+ *  to 句界止 12 帧缓回（纯 effects 通道·铁律③，禁弹簧）——首句满亮、其余句画框压至
+ *  0.16 作装置暗底；cue 时序不动，仅显示层让位。 */
+const RecapDimSpan: React.FC<{from: number; to: number; children: React.ReactNode}> = ({from, to, children}) => {
+  const frame = useCurrentFrame();
+  const cover = progress(frame, from, 10) * (1 - progress(frame, to, 12));
+  return <AbsoluteFill style={{opacity: 1 - 0.84 * clamp01(cover)}}>{children}</AbsoluteFill>;
+};
 
 /** 目录条目卡地址（纳管产出的固定地址；P7 接头飞行取同一张卡）。 */
 export const CATALOG_ADDRESS = 'ctx://kb/metric/repurchase-rate';
@@ -51,8 +65,8 @@ export const P2Asset: React.FC<{scene: SceneRange}> = ({scene}) => {
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   // 各镜窗口（from 为幕内帧）。镜内 cue/装置锚点一律「at(句id) - 所在镜.from」——
   // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
-  const bA = w('p2-01', 'p2-03');
-  const bB = w('p2-04', 'p2-07');
+  const bA = w('p2-01', 'p2-03c');
+  const bB = w('p2-04', 'p2-07b');
   const bC = w('p2-08', 'p2-10');
   const bD = w('p2-11', 'p2-12');
   const bE = w('p2-13');
@@ -76,69 +90,70 @@ export const P2Asset: React.FC<{scene: SceneRange}> = ({scene}) => {
         <BlueprintTag at={0} />
       </Sequence>
 
-      {/* 2-A 开轴：FiveAxisMap 高亮资产轴 + 七类资产卡入列 */}
+      {/* 2-A 开轴：FiveAxisMap 高亮资产轴 + 七类资产卡入列 + 白话小卡@p2-03b/c */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="2-A">
         <FiveAxisMap built highlight="asset" at={6} />
         <SevenAssets a02={at('p2-02') - bA.from} a03={at('p2-03') - bA.from} />
+        <PlainCards a03b={at('p2-03b') - bA.from} a03c={at('p2-03c') - bA.from} />
       </Sequence>
 
-      {/* 2-B 请求连五类：RequestCard 五线 + 卡缘「已动用」小签累积 */}
+      {/* 2-B 请求连五类：RequestCard 五线 + 卡缘「已动用」小签累积 + 灰置卡@p2-07b */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="2-B">
         <RequestFiveAssets
           a04={at('p2-04') - bB.from}
           a05={at('p2-05') - bB.from}
         />
+        <PendingAssets a07b={at('p2-07b') - bB.from} />
       </Sequence>
 
-      {/* 2-C 纳管总览与登记：ig-open → ig-ingest hold 链 + IntakeLine① + 登记装置 */}
+      {/* 2-C 纳管总览与登记：ig-open（p2-08b hold 补锚）→ ig-ingest；archify 章为讲解
+          主体（取舍「反过来」，见文件头）——登记装置删除，p2-08b 引用层标牌走右带补注 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="2-C">
-        <IntakeLine station={1} at={at('p2-10') - bC.from} />
-        <RegistryDesk a10={at('p2-10') - bC.from} />
-        <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 登记段" cues={[
+        <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 总览与登记" cues={[
           {chapterId: 'ig-open', at: at('p2-08') - bC.from, durationInFrames: dur('p2-08')},
+          {chapterId: 'ig-open', at: at('p2-08b') - bC.from, durationInFrames: dur('p2-08b'), fit: 'hold'},
           {chapterId: 'ig-ingest', at: at('p2-09') - bC.from, durationInFrames: dur('p2-09')},
           {chapterId: 'ig-ingest', at: at('p2-10') - bC.from, durationInFrames: dur('p2-10'), fit: 'hold'},
         ]} />
+        <ReferenceLayerTag a08b={at('p2-08b') - bC.from} />
       </Sequence>
 
-      {/* 2-D 归一段：ig-normalize 锚 + hold（承 2-C 链尾背靠背 → lead=false） */}
+      {/* 2-D 归一段：ig-normalize 锚 + hold（同上取舍：装置删除，无 LLM 角标走左带补注；
+          承 2-C 链尾背靠背 → lead=false） */}
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="2-D">
-        <IntakeLine station={2} at={at('p2-11') - bD.from} />
-        <NormalizeBench a11={at('p2-11') - bD.from} a12={at('p2-12') - bD.from} />
         <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 归一段" lead={false} cues={[
           {chapterId: 'ig-normalize', at: at('p2-11') - bD.from, durationInFrames: dur('p2-11')},
           {chapterId: 'ig-normalize', at: at('p2-12') - bD.from, durationInFrames: dur('p2-12'), fit: 'hold'},
         ]} />
+        <MarginNote at={at('p2-12') - bD.from} title="归一 · 不调用 LLM" sub="蓝图设计" />
       </Sequence>
 
-      {/* 2-E 分类段：ig-classify 锚（承 2-D 链尾背靠背 → lead=false） */}
+      {/* 2-E 分类段：ig-classify 锚（同上取舍：装置删除；承 2-D 链尾背靠背 → lead=false） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="2-E">
-        <IntakeLine station={3} at={at('p2-13') - bE.from} />
-        <ClassifyDesk a13={at('p2-13') - bE.from} />
         <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 分类段" lead={false} cues={[
           {chapterId: 'ig-classify', at: at('p2-13') - bE.from, durationInFrames: dur('p2-13')},
         ]} />
       </Sequence>
 
-      {/* 2-F 分级段：ig-tier 锚 + hold（承 2-E 链尾背靠背 → lead=false） */}
+      {/* 2-F 分级段：ig-tier 锚 + hold（同上取舍：装置删除；承 2-E 链尾背靠背 → lead=false） */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="2-F">
-        <IntakeLine station={4} at={at('p2-14') - bF.from} />
-        <TierDesk a14={at('p2-14') - bF.from} a15={at('p2-15') - bF.from} />
         <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 分级段" lead={false} cues={[
           {chapterId: 'ig-tier', at: at('p2-14') - bF.from, durationInFrames: dur('p2-14')},
           {chapterId: 'ig-tier', at: at('p2-15') - bF.from, durationInFrames: dur('p2-15'), fit: 'hold'},
         ]} />
       </Sequence>
 
-      {/* 2-G 入册段：ig-tag 锚 + hold 链（p2-18 留给目录条目卡接头锚的落位与双闪） */}
+      {/* 2-G 入册段：ig-tag 锚 + hold 链。p2-16 章图全亮承「打标/向量/地址」；p2-17 起
+          压暗暗底，目录条目卡接头锚（〔M-001 同物同形〕弹出→飞落目录列表）后置在上 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="2-G">
-        <IntakeLine station={5} at={at('p2-16') - bG.from} />
-        <IndexDesk a16={at('p2-16') - bG.from} a17={at('p2-17') - bG.from} a18={at('p2-18') - bG.from} />
-        <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 打标索引段" lead={false} cues={[
-          {chapterId: 'ig-tag', at: at('p2-16') - bG.from, durationInFrames: dur('p2-16')},
-          {chapterId: 'ig-tag', at: at('p2-17') - bG.from, durationInFrames: dur('p2-17'), fit: 'hold'},
-          {chapterId: 'ig-tag', at: at('p2-18') - bG.from, durationInFrames: dur('p2-18'), fit: 'hold'},
-        ]} />
+        <RecapDimSpan from={at('p2-17') - bG.from} to={at('p2-18') - bG.from + dur('p2-18')}>
+          <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 打标索引段" lead={false} cues={[
+            {chapterId: 'ig-tag', at: at('p2-16') - bG.from, durationInFrames: dur('p2-16')},
+            {chapterId: 'ig-tag', at: at('p2-17') - bG.from, durationInFrames: dur('p2-17'), fit: 'hold'},
+            {chapterId: 'ig-tag', at: at('p2-18') - bG.from, durationInFrames: dur('p2-18'), fit: 'hold'},
+          ]} />
+        </RecapDimSpan>
+        <CatalogEmit a17={at('p2-17') - bG.from} a18={at('p2-18') - bG.from} />
       </Sequence>
 
       {/* 2-H 口径纪律 */}
@@ -170,7 +185,7 @@ export const P2Asset: React.FC<{scene: SceneRange}> = ({scene}) => {
         ]} />
       </Sequence>
 
-      {/* 2-L 注册校验：代码走廊①（真实仓码） */}
+      {/* 2-L 注册校验：代码走廊①（真实仓码）+ p2-29b 422 回扣行（目标态） */}
       <Sequence from={bL.from} durationInFrames={bL.durationInFrames} name="2-L">
         <CodePane
           at={at('p2-29') - bL.from}
@@ -183,6 +198,7 @@ export const P2Asset: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
           badge={{level: 'filled', note: '本仓校验门 · 422'}}
         />
+        <GateCallbackRow a29b={at('p2-29b') - bL.from} />
         <TableToPage a32={at('p2-32') - bL.from} />
       </Sequence>
 
@@ -195,11 +211,16 @@ export const P2Asset: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 2-N 写入纪律：三路径 + 审计 + 防注入 + 2048 截断 */}
+      {/* 2-N 写入纪律：三路径点名 + 先扫描后自编 + 防注入拦截 + 30% 硬帽/P8 钩子 + 2048 截断 */}
       <Sequence from={bN.from} durationInFrames={bN.durationInFrames} name="2-N">
         <CoreBlockDiscipline
           a36={at('p2-36') - bN.from}
+          a36b={at('p2-36b') - bN.from}
+          a36c={at('p2-36c') - bN.from}
           a37={at('p2-37') - bN.from}
+          a37b={at('p2-37b') - bN.from}
+          a37c={at('p2-37c') - bN.from}
+          a37d={at('p2-37d') - bN.from}
           a38={at('p2-38') - bN.from}
         />
       </Sequence>
@@ -355,6 +376,80 @@ const SevenAssets: React.FC<{a02: number; a03: number}> = ({a02, a03}) => {
   );
 };
 
+/** 2-A 白话小卡：技能目录（用到才展开正文）/ 知识库（文档 + 资料块）随卡浮出（p2-03b/c）。
+ *  悬在对应资产卡正上方（卡 x 对齐、卡顶 496 之上的空档），随句弹入。 */
+const PlainCards: React.FC<{a03b: number; a03c: number}> = ({a03b, a03c}) => {
+  const frame = useCurrentFrame();
+  const cards = [
+    {t: '技能目录', s: '用到才展开正文', x: 972, k: clamp01(progress(frame, a03b, 12))},
+    {t: '知识库', s: '文档 ＋ 资料块', x: 1226, k: clamp01(progress(frame, a03c, 12))},
+  ];
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      {cards.map((c) => (
+        <div
+          key={c.t}
+          style={{
+            position: 'absolute',
+            left: c.x,
+            top: 458,
+            width: 230,
+            height: 34,
+            borderRadius: 7,
+            border: `1.5px solid ${theme.concept}`,
+            background: withAlpha(theme.concept, 0.1),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            opacity: c.k,
+            transform: `translateY(${(1 - c.k) * -10}px)`,
+          }}
+        >
+          <span style={{fontSize: 15, color: theme.concept}}>{c.t}</span>
+          <span style={{fontSize: 14, color: theme.dim}}>{c.s}</span>
+        </div>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
+/** 2-B 灰置卡：技能目录 / 知识库两类待亮（装配/检索幕再点亮，p2-07b）。 */
+const PendingAssets: React.FC<{a07b: number}> = ({a07b}) => {
+  const ins = useStagger(2, {stride: 12, at: a07b});
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      {[
+        {t: '技能目录', note: '装配幕点亮'},
+        {t: '知识库', note: '检索幕点亮'},
+      ].map((c, i) => (
+        <div
+          key={c.t}
+          style={{
+            position: 'absolute',
+            left: 680 + i * 300,
+            top: 700,
+            width: 260,
+            height: 64,
+            borderRadius: 9,
+            border: `1.5px dashed ${theme.panelBorder}`,
+            background: theme.panel,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            opacity: ins[i],
+            transform: `translateY(${(1 - ins[i]) * 12}px)`,
+          }}
+        >
+          <span style={{fontSize: 19, color: theme.dim}}>{c.t}</span>
+          <span style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, opacity: 0.8}}>{c.note}</span>
+        </div>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
 /** 2-B 请求连五类：RequestCard 连出五线逐一被资产卡接住，卡缘「已动用」小签累积。 */
 const REQ_TARGETS = ['定义', '核准问答对', '血缘', '标签与策略', '记忆'] as const;
 
@@ -416,365 +511,69 @@ const RequestFiveAssets: React.FC<{a04: number; a05: number}> = ({a04, a05}) => 
   );
 };
 
-/** 2-C 登记段：来源/提交人/时间三字段入账 + 指针虚线连回原文（原文留在原处）。 */
-const REG_ROWS = ['来源 · 运营知识库', '提交人 · 数据平台', '时间 · 2026-Q3'] as const;
-
-const RegistryDesk: React.FC<{a10: number}> = ({a10}) => {
-  const frame = useCurrentFrame();
-  const enter = useProgress(a10, 10);
-  const flow = useFlowDash({dash: 7, gap: 10, period: 26});
+/** 2-C 目录＝引用层标牌（p2-08b，画框外右带补注——管线末端在画框内，标牌从框缘
+ *  引出细线示意挂接；ADR-1 指针不副本）。 */
+const ReferenceLayerTag: React.FC<{a08b: number}> = ({a08b}) => {
+  const enter = useEnter('slideR', {at: a08b, dur: 16});
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div
         style={{
+          ...enter,
           position: 'absolute',
-          left: 460,
-          top: 400,
-          width: 1000,
-          height: 400,
-          borderRadius: 12,
-          border: `1.5px solid ${theme.panelBorder}`,
+          left: 1640,
+          top: 470,
+          width: 250,
+          padding: '14px 16px',
+          borderRadius: 10,
+          border: `2px solid ${theme.concept}`,
           background: theme.panel,
-          opacity: enter,
-          padding: 20,
           boxSizing: 'border-box',
         }}
       >
-        <div style={{fontSize: 19, color: theme.dim}}>第 1 段 Ingest · 登记</div>
-        {/* 指标说明文档（本体不动） */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 30,
-            top: 130,
-            width: 130,
-            height: 100,
-            borderRadius: 8,
-            border: `2px solid ${theme.concept}`,
-            background: withAlpha(theme.concept, 0.12),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 15,
-            color: theme.concept,
-            textAlign: 'center',
-          }}
-        >
-          指标说明文档
-          <br />
-          原文 · 留在原处
-        </div>
-        {/* 三字段逐项入账 */}
-        {REG_ROWS.map((r, i) => {
-          const rowIn = clamp01(progress(frame, a10 + 6 + i * 9, 10));
-          const sweep = clamp01(progress(frame, a10 + 12 + i * 9, 16));
-          return (
-            <div key={r} style={{position: 'absolute', left: 210, top: 66 + i * 66, width: 430, height: 48, opacity: rowIn}}>
-              <div style={{fontSize: 19, color: theme.text, marginBottom: 5}}>{r}</div>
-              <div style={{position: 'relative', width: '100%', height: 12, borderRadius: 6, background: withAlpha(theme.concept, 0.1)}}>
-                <div style={{position: 'absolute', left: 0, top: 0, width: `${sweep * 100}%`, height: '100%', borderRadius: 6, background: theme.concept, opacity: 0.8}} />
-              </div>
-            </div>
-          );
-        })}
-        {/* 台账：指针入账一行 */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 690,
-            top: 70,
-            width: 270,
-            height: 210,
-            borderRadius: 9,
-            border: `1.5px solid ${theme.panelBorder}`,
-            background: theme.bg,
-            padding: 16,
-            boxSizing: 'border-box',
-            opacity: clamp01(progress(frame, a10 + 34, 10)),
-          }}
-        >
-          <div style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim, marginBottom: 12}}>登记台账</div>
-          <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.ok}}>指针 · 1 行入账</div>
-          <div style={{marginTop: 14, fontSize: 15, color: theme.dim}}>只存指针 · 不搬原文</div>
-        </div>
-        {/* 指针虚线：台账 → 原文 */}
-        <svg width={1000} height={400} style={{position: 'absolute', inset: 0, opacity: clamp01(progress(frame, a10 + 40, 12))}}>
-          <path d="M 700 250 C 560 275, 330 275, 168 230" fill="none" stroke={theme.ok} strokeWidth={2} strokeDasharray="6 9" />
-          <path d="M 700 250 C 560 275, 330 275, 168 230" fill="none" stroke={theme.ok} strokeWidth={2} opacity={0.7} {...flow} />
-        </svg>
+        <div style={{fontSize: 22, color: theme.concept}}>目录 ＝ 引用层</div>
+        <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginTop: 10}}>ADR-1 · 指针不副本</div>
+        <div style={{fontSize: 14, color: theme.dim, marginTop: 6}}>指针统一登记于此</div>
       </div>
+      {/* 挂接细线：标牌 → 画框右缘（311..1609 为 archify 画框带） */}
+      <svg width={1920} height={1080} style={{position: 'absolute', inset: 0}}>
+        <line x1={1609} y1={506} x2={1640} y2={506} stroke={theme.concept} strokeWidth={2} strokeDasharray="4 5" />
+      </svg>
     </AbsoluteFill>
   );
 };
 
-/** 2-D 归一段：章节路径/内容模块/非文字元素三格 + 摘要梯（粗→细）+ 无 LLM 角标。 */
-const NORM_CELLS = ['章节路径', '内容模块', '非文字元素'] as const;
-
-const NormalizeBench: React.FC<{a11: number; a12: number}> = ({a11, a12}) => {
-  const frame = useCurrentFrame();
-  const grid = useStagger(3, {stride: 8, at: a11});
-  const blocks = useStagger(6, {stride: 5, at: a11 + 6});
-  const ladder = useStagger(3, {stride: 7, at: a12});
-  const tagIn = clamp01(progress(frame, a12 + 16, 12));
-  const SPREAD = [
-    {sx: 480, sy: 360}, {sx: 1420, sy: 350}, {sx: 620, sy: 830},
-    {sx: 1320, sy: 840}, {sx: 880, sy: 340}, {sx: 1080, sy: 830},
-  ];
+/** 画框外左带补注（2-D「归一不调用 LLM」角标的缩置形态——archify 章为讲解主体，
+ *  装置缩为框外细条）。 */
+const MarginNote: React.FC<{at: number; title: string; sub?: string}> = ({at, title, sub}) => {
+  const enter = useEnter('rise', {at, dur: 16});
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {NORM_CELLS.map((c, j) => {
-        const gx = 420 + j * 360;
-        return (
-          <div
-            key={c}
-            style={{
-              position: 'absolute',
-              left: gx,
-              top: 420,
-              width: 330,
-              height: 170,
-              borderRadius: 10,
-              border: `2px dashed ${grid[j] > 0.2 ? theme.concept : theme.panelBorder}`,
-              background: theme.panel,
-              opacity: grid[j],
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 23,
-              color: theme.text,
-              transform: `translateY(${(1 - grid[j]) * 18}px)`,
-            }}
-          >
-            {c}
-          </div>
-        );
-      })}
-      {SPREAD.map((b, i) => {
-        const j = Math.floor(i / 2);
-        const gx = 420 + j * 360 + 60 + (i % 2) * 160;
-        const gy = 480;
-        const k = blocks[i];
-        return (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: b.sx + (gx - b.sx) * k,
-              top: b.sy + (gy - b.sy) * k,
-              width: 110,
-              height: 52,
-              borderRadius: 7,
-              border: `1.5px solid ${theme.panelBorder}`,
-              background: theme.bg,
-              opacity: 0.4 + 0.6 * k,
-            }}
-          />
-        );
-      })}
-      {/* 摘要梯（粗→细） */}
-      <div style={{position: 'absolute', left: 1560, top: 420, width: 260, opacity: ladder[0]}}>
-        <div style={{fontSize: 16, color: theme.dim, marginBottom: 10}}>分级摘要 · 由粗到细</div>
-        {['粗摘要', '中摘要', '细摘要'].map((t, i) => (
-          <div
-            key={t}
-            style={{
-              height: 30,
-              width: `${100 - i * 24}%`,
-              borderRadius: 6,
-              border: `1.5px solid ${theme.concept}`,
-              background: withAlpha(theme.concept, 0.1),
-              marginBottom: 10,
-              display: 'flex',
-              alignItems: 'center',
-              paddingLeft: 12,
-              fontSize: 14,
-              color: theme.concept,
-              opacity: ladder[i],
-            }}
-          >
-            {t}
-          </div>
-        ))}
-      </div>
       <div
         style={{
+          ...enter,
           position: 'absolute',
-          left: 790,
-          top: 810,
-          fontSize: 19,
-          color: theme.ok,
+          left: 36,
+          top: 520,
+          width: 250,
+          padding: '12px 14px',
+          borderRadius: 8,
           border: `1.5px solid ${theme.ok}`,
-          borderRadius: 8,
-          padding: '6px 18px',
           background: theme.panel,
-          opacity: tagIn,
+          boxSizing: 'border-box',
         }}
       >
-        归一不调用 LLM · 蓝图设计 ✓
+        <div style={{fontSize: 17, color: theme.ok, lineHeight: 1.6}}>{title} ✓</div>
+        {sub ? <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginTop: 6}}>{sub}</div> : null}
       </div>
     </AbsoluteFill>
   );
 };
 
-/** 2-E 分类段：治理字段三格落档——形态 / 所属域（订单域）/ 可见性（谁能看）。 */
-const CLASSIFY_CELLS = [
-  {t: '形态', s: '指标说明文档'},
-  {t: '所属域', s: '订单域'},
-  {t: '可见性', s: '写明谁能看'},
-] as const;
-
-const ClassifyDesk: React.FC<{a13: number}> = ({a13}) => {
-  const drops = useStagger(3, {stride: 13, at: a13, dur: 16});
-  return (
-    <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{position: 'absolute', left: 435, top: 428, width: 1050, height: 12, borderRadius: 6, background: theme.panelBorder}} />
-      {CLASSIFY_CELLS.map((c, i) => {
-        const k = drops[i];
-        return (
-          <div key={c.t} style={{position: 'absolute', left: 435 + i * 360, top: 440, opacity: Math.min(1, k * 2)}}>
-            <div
-              style={{
-                width: 330,
-                height: 170,
-                borderRadius: 9,
-                border: `2px solid ${k > 0.5 ? theme.concept : theme.panelBorder}`,
-                background: theme.panel,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-                transform: `translateY(${(1 - Math.max(0, k)) * -54}px)`,
-              }}
-            >
-              <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>治理字段 {i + 1}</span>
-              <span style={{fontSize: 27, color: theme.text}}>{c.t}</span>
-              <span style={{fontSize: 17, color: theme.concept}}>{c.s}</span>
-            </div>
-          </div>
-        );
-      })}
-    </AbsoluteFill>
-  );
-};
-
-/** 2-F 分级段：三级标尺（L0 ≤256 / L1 ≤4000 字符 / L2 指针）；两摘要按体积分流入级，
- *  原文卡淡出、目录里只留指针卡。 */
-const TierDesk: React.FC<{a14: number; a15: number}> = ({a14, a15}) => {
+/** 2-G 入册段：目录条目卡弹出→盖章→飞落目录列表（M-001 接头锚，p2-17..18 压暗暗底
+ *  之上的前景装置）；打标/向量/地址三步由 ig-tag 章图全亮段（p2-16）承担。 */
+const CatalogEmit: React.FC<{a17: number; a18: number}> = ({a17, a18}) => {
   const frame = useCurrentFrame();
-  const layers = useStagger(3, {stride: 9, at: a14});
-  const flowShort = clamp01(progress(frame, a14 + 20, 16));
-  const flowLong = clamp01(progress(frame, a14 + 30, 16));
-  const originalFade = 1 - clamp01(progress(frame, a15, 18));
-  const pointerIn = clamp01(progress(frame, a15 + 8, 14));
-  const layersDef = [
-    {name: 'L0 · 短摘要', sub: '≤ 256 字符', y: 420},
-    {name: 'L1 · 长摘要', sub: '≤ 4000 字符', y: 546},
-    {name: 'L2 · 指针', sub: '原文不进目录', y: 672},
-  ];
-  return (
-    <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {layersDef.map((l, i) => (
-        <div
-          key={l.name}
-          style={{
-            position: 'absolute',
-            left: 330,
-            top: l.y,
-            width: 720,
-            height: 108,
-            borderRadius: 10,
-            border: `2px solid ${layers[i] > 0.2 ? theme.concept : theme.panelBorder}`,
-            background: theme.panel,
-            opacity: layers[i],
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 26px',
-            boxSizing: 'border-box',
-          }}
-        >
-          <span style={{fontSize: 24, color: theme.text}}>{l.name}</span>
-          <span style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim}}>{l.sub}</span>
-        </div>
-      ))}
-      {/* 两摘要按体积分流入级 */}
-      {[
-        {label: '短摘要', y: layersDef[0].y + 34, k: flowShort, ok: true},
-        {label: '长摘要', y: layersDef[1].y + 34, k: flowLong, ok: true},
-      ].map((it) => (
-        <div
-          key={it.label}
-          style={{
-            position: 'absolute',
-            left: 120 + (350 - 120) * it.k,
-            top: 640 + (it.y - 640) * it.k,
-            width: 150,
-            height: 44,
-            borderRadius: 7,
-            border: `1.5px solid ${theme.ok}`,
-            color: theme.ok,
-            background: theme.panel,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 16,
-            opacity: 0.35 + 0.65 * it.k,
-          }}
-        >
-          {it.label}
-        </div>
-      ))}
-      {/* 原文卡淡出 / 指针卡留守（p2-15） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 120,
-          top: 700,
-          width: 180,
-          height: 56,
-          borderRadius: 8,
-          border: `1.5px solid ${theme.panelBorder}`,
-          color: theme.dim,
-          background: theme.panel,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 16,
-          opacity: 0.9 * originalFade,
-        }}
-      >
-        原文卡
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          left: 390,
-          top: layersDef[2].y + 30,
-          width: 200,
-          height: 48,
-          borderRadius: 8,
-          border: `1.5px dashed ${theme.conceptDeep}`,
-          color: theme.conceptDeep,
-          background: theme.panel,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 16,
-          opacity: pointerIn,
-        }}
-      >
-        指针卡 · 留守
-      </div>
-    </AbsoluteFill>
-  );
-};
-
-/** 2-G 入册段：打标/向量/地址三步 + 目录条目卡弹出→飞落目录列表（M-001 接头锚）。 */
-const IndexDesk: React.FC<{a16: number; a17: number; a18: number}> = ({a16, a17, a18}) => {
-  const frame = useCurrentFrame();
-  const steps = useStagger(3, {stride: 8, at: a16});
-  const addr = useReveal(CATALOG_ADDRESS, {at: a16 + 26, cps: 16});
   const cardPop = clamp01(progress(frame, a17, 12));
   const stampFlash = useImpulse({at: a17 + 14, dur: 18, peak: 1});
   const fly = useSpring('settle', {at: a17 + 26, dur: 30});
@@ -786,32 +585,6 @@ const IndexDesk: React.FC<{a16: number; a17: number; a18: number}> = ({a16, a17,
   const fy = 544 + (447 - 544) * fly - Math.sin(Math.PI * fly) * 90;
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {/* 三步：打上标签 / 算出向量 / 分配固定地址 */}
-      {['打上标签', '算出向量', '分配固定地址'].map((t, i) => (
-        <div
-          key={t}
-          style={{
-            position: 'absolute',
-            left: 300 + i * 250,
-            top: 420,
-            width: 220,
-            height: 56,
-            borderRadius: 8,
-            border: `1.5px solid ${theme.concept}`,
-            background: theme.panel,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 19,
-            color: theme.text,
-            opacity: steps[i],
-            transform: `translateY(${(1 - steps[i]) * 14}px)`,
-          }}
-        >
-          {t}
-        </div>
-      ))}
-      <div style={{position: 'absolute', left: 300, top: 500, fontFamily: theme.mono, fontSize: 18, color: theme.ok, opacity: clamp01(progress(frame, a16 + 30, 10))}}>{addr}</div>
       {/* 目录条目卡：末端弹出（地址/版次双标）→ 盖章 → 飞落目录列表 */}
       <div style={{position: 'absolute', left: 900, top: 470, opacity: cardPop * (1 - landed)}}>
         <CatalogCard at={a17} address={CATALOG_ADDRESS} />
@@ -847,7 +620,7 @@ const IndexDesk: React.FC<{a16: number; a17: number; a18: number}> = ({a16, a17,
         <CatalogCard address={CATALOG_ADDRESS} />
       </div>
       {/* 目录列表：首件入库 */}
-      <CatalogList count={Math.round(landed)} at={a16} style={{left: 1470, top: 360}} />
+      <CatalogList count={Math.round(landed)} at={a17} style={{left: 1470, top: 360}} />
       <div
         style={{
           position: 'absolute',
@@ -1134,6 +907,44 @@ const SeamMarginTag: React.FC<{a27: number}> = ({a27}) => {
   );
 };
 
+/** 2-L 422 回扣行（p2-29b）：校验门回扣「重复购买率」示意行——没写怎么汇总 → 注册即拒
+ *  （目标态，蓝图设计口径；与本仓 CodePane 的 422 门同形对读）。 */
+const GateCallbackRow: React.FC<{a29b: number}> = ({a29b}) => {
+  const enter = useEnter('rise', {at: a29b, dur: 16});
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div
+        style={{
+          ...enter,
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 742,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
+        <span style={{fontSize: 19, color: theme.concept, border: `1.5px solid ${theme.concept}`, borderRadius: 8, padding: '7px 16px', background: theme.panel}}>
+          重复购买率
+        </span>
+        <span style={{fontSize: 17, color: theme.dim}}>汇总式缺失</span>
+        <svg width={64} height={22}>
+          <line x1={0} y1={11} x2={50} y2={11} stroke={theme.conceptDeep} strokeWidth={2.5} />
+          <path d="M 50 5 L 62 11 L 50 17 Z" fill={theme.conceptDeep} />
+        </svg>
+        <span style={{fontFamily: theme.mono, fontSize: 21, color: theme.conceptDeep, border: `2px solid ${theme.conceptDeep}`, borderRadius: 8, padding: '6px 16px', background: withAlpha(theme.conceptDeep, 0.1)}}>
+          422 · 注册即拒
+        </span>
+        <span style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, border: `1.5px dashed ${theme.dim}`, borderRadius: 6, padding: '4px 10px', background: theme.panel}}>
+          目标态 · 蓝图
+        </span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 /** 2-L 表 → 盘上技能文件投影箭头（渲染产物口径）。 */
 const TableToPage: React.FC<{a32: number}> = ({a32}) => {
   const k = useProgress(a32, 14);
@@ -1220,20 +1031,47 @@ const CoreBlockSetup: React.FC<{a33: number; a34: number; a35: number}> = ({a33,
   );
 };
 
-/** 2-N 写入纪律：三条写入路径汇入 + 审计行 + 防注入扫描 + 2048 上限条截断标记。 */
-const WRITE_PATHS = ['会话内', '工具回写', '人工维护'] as const;
+/** 2-N 写入纪律：三条写入路径（代理工具自写 / 管理端修改 / 尾部追加）逐一点名汇入
+ *  块体 + p2-36c「先扫描 · 后自编」时序小标 + 防注入扫描与 p2-37b 注入样例试写入被拦
+ *  + p2-37c/d 两级预算第一级「记忆 ≤ 30% 硬帽（装配侧）」角标与「对账见 P8」钩子标
+ *  + p2-38 第二级 2048 单块封顶截断（metadata.truncated，不静默丢弃）。 */
+const WRITE_PATHS = ['代理 · 工具自写', '管理端 · 修改', '尾部 · 追加'] as const;
 
-const CoreBlockDiscipline: React.FC<{a36: number; a37: number; a38: number}> = ({a36, a37, a38}) => {
+const CoreBlockDiscipline: React.FC<{
+  a36: number; a36b: number; a36c: number; a37: number; a37b: number; a37c: number; a37d: number; a38: number;
+}> = ({a36, a36b, a36c, a37, a37b, a37c, a37d, a38}) => {
   const frame = useCurrentFrame();
   const paths = useStagger(3, {stride: 8, at: a36});
+  const named = useStagger(3, {stride: 10, at: a36b});
+  const orderIn = clamp01(progress(frame, a36c, 12));
   const audits = useStagger(3, {stride: 8, at: a36 + 18});
   const scan = useProgress(a37, 12);
-  const blockFlash = useImpulse({at: a37 + 12, dur: 20, peak: 0.8});
+  const attempt = clamp01(progress(frame, a37b, 10));
+  const blockFlash = useImpulse({at: a37b + 8, dur: 20, peak: 0.8});
+  const capIn = clamp01(progress(frame, a37c, 12));
+  const hookIn = clamp01(progress(frame, a37d, 12));
   const fill = clamp01(progress(frame, a38, 20));
   const truncated = clamp01(progress(frame, a38 + 22, 12));
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      {/* 三条写入路径汇入块体 */}
+      {/* 「先扫描 · 后自编」时序小标（p2-36c：放开自写得排在防注入之后） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 200,
+          top: 244,
+          fontSize: 16,
+          color: theme.concept,
+          border: `1.5px solid ${theme.concept}`,
+          borderRadius: 7,
+          padding: '5px 14px',
+          background: theme.panel,
+          opacity: orderIn,
+        }}
+      >
+        ① 防注入扫描 → ② 代理自写
+      </div>
+      {/* 三条写入路径汇入块体（p2-36 建卡 · p2-36b 逐一点名提亮） */}
       {WRITE_PATHS.map((p, i) => (
         <React.Fragment key={p}>
           <div
@@ -1244,14 +1082,14 @@ const CoreBlockDiscipline: React.FC<{a36: number; a37: number; a38: number}> = (
               width: 220,
               height: 60,
               borderRadius: 8,
-              border: `1.5px solid ${theme.panelBorder}`,
-              background: theme.panel,
+              border: `1.5px solid ${named[i] > 0.3 ? theme.concept : theme.panelBorder}`,
+              background: named[i] > 0.3 ? withAlpha(theme.concept, 0.1) : theme.panel,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 19,
-              color: theme.text,
-              opacity: paths[i],
+              color: named[i] > 0.3 ? theme.concept : theme.text,
+              opacity: 0.55 * paths[i] + 0.45 * named[i] * paths[i],
             }}
           >
             {p}
@@ -1272,7 +1110,7 @@ const CoreBlockDiscipline: React.FC<{a36: number; a37: number; a38: number}> = (
           borderRadius: 10,
           border: `2.5px solid ${theme.concept}`,
           background: withAlpha(theme.concept, 0.08),
-          boxShadow: `0 0 ${18 * blockFlash}px ${withAlpha(theme.concept, 0.4)}`,
+          boxShadow: `0 0 ${18 * blockFlash}px ${withAlpha(theme.conceptDeep, 0.5)}`,
           padding: '16px 20px',
           boxSizing: 'border-box',
         }}
@@ -1289,7 +1127,7 @@ const CoreBlockDiscipline: React.FC<{a36: number; a37: number; a38: number}> = (
           metadata.truncated
         </div>
       </div>
-      {/* 防注入扫描：外部文字夹带命令 → 一律不当命令执行 */}
+      {/* 防注入扫描：外部文字夹带命令 → 一律不当命令执行；p2-37b 注入样例试写入被拦 */}
       <div
         style={{
           position: 'absolute',
@@ -1308,16 +1146,49 @@ const CoreBlockDiscipline: React.FC<{a36: number; a37: number; a38: number}> = (
         <div style={{fontSize: 18, color: theme.conceptDeep, border: `1.5px dashed ${theme.conceptDeep}`, borderRadius: 7, padding: '8px 12px'}}>
           外部文字 · 夹带命令
         </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 14}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 12}}>
           <span style={{fontSize: 22, color: theme.ok}}>→</span>
           <span style={{fontSize: 18, color: theme.ok, border: `1.5px solid ${theme.ok}`, borderRadius: 7, padding: '6px 14px', background: withAlpha(theme.ok, 0.1)}}>
             不当命令执行 ✓
           </span>
         </div>
+        <div style={{marginTop: 12, opacity: attempt}}>
+          <div style={{fontSize: 15, color: theme.conceptDeep, border: `1.5px dashed ${theme.conceptDeep}`, borderRadius: 6, padding: '4px 10px', display: 'inline-block'}}>
+            样例 · 试写入常驻块
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 14}}>
+            <span style={{fontSize: 20, color: theme.conceptDeep}}>→</span>
+            <span style={{fontSize: 16, color: theme.conceptDeep, border: `2px solid ${theme.conceptDeep}`, borderRadius: 7, padding: '4px 12px', background: withAlpha(theme.conceptDeep, 0.12)}}>
+              ✗ 拦下 · 不进窗口
+            </span>
+          </div>
+        </div>
       </div>
-      {/* 2048 token 上限条 + 按比例截断 */}
+      {/* 两级预算 · 第一级在装配侧：记忆 ≤ 30% 硬帽（p2-37c）+ 对账见 P8 钩子标（p2-37d） */}
+      <div style={{position: 'absolute', left: 1270, top: 588, width: 400, opacity: capIn}}>
+        <div style={{fontSize: 15, color: theme.dim, marginBottom: 8}}>两级预算 · 第一级在装配侧</div>
+        <div style={{border: `2px solid ${theme.conceptDeep}`, borderRadius: 9, padding: '10px 16px', background: theme.panel, display: 'flex', alignItems: 'baseline', gap: 12}}>
+          <span style={{fontFamily: theme.mono, fontSize: 26, color: theme.conceptDeep}}>记忆 ≤ 30%</span>
+          <span style={{fontSize: 15, color: theme.dim}}>装配侧硬帽</span>
+        </div>
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 15,
+            color: theme.dim,
+            border: `1.5px dashed ${theme.dim}`,
+            borderRadius: 8,
+            padding: '6px 14px',
+            background: theme.panel,
+            opacity: hookIn,
+          }}
+        >
+          生产里用没用上 → 对账见 P8
+        </div>
+      </div>
+      {/* 第二级：单块 2048 token 上限条 + 按比例截断（p2-38） */}
       <div style={{position: 'absolute', left: 710, top: 640, width: 460}}>
-        <div style={{fontSize: 15, color: theme.dim, marginBottom: 8}}>单块上限 · 2048 token</div>
+        <div style={{fontSize: 15, color: theme.dim, marginBottom: 8}}>第二级 · 单块上限 2048 token</div>
         <div style={{position: 'relative', height: 26, borderRadius: 7, border: `1.5px solid ${theme.panelBorder}`, background: theme.bg, overflow: 'hidden'}}>
           <div style={{width: `${Math.min(100, fill * 118)}%`, height: '100%', background: withAlpha(fill > 0.84 ? theme.conceptDeep : theme.concept, 0.55)}} />
           <div style={{position: 'absolute', left: '84%', top: 0, bottom: 0, width: 2.5, background: theme.conceptDeep}} />
