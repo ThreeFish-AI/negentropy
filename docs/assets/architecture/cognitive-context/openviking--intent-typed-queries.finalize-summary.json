@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--intent-typed-queries-20261022-003214/candidate.json",
+    "sha256": "3da0dea244ca560ae6f2b07f0698569364fdc5d1bef02dcc509ed439993df2b6",
+    "bytes": 4197
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
+    "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
+    "bytes": 757964
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1897,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2,
+      "routesOverSuggestedStretch": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e-gate-merge",
+            "from": "gate",
+            "to": "merge",
+            "label": "无会话 · 原问题",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 3,
+          "stretch": 1.466,
+          "directCorridorBlockers": [
+            {
+              "id": "an",
+              "label": "意图分析",
+              "box": [
+                400.8,
+                217,
+                148,
+                52
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "e-qskill-merge",
+            "from": "qskill",
+            "to": "merge",
+            "label": "独立全局召回+精排",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 3,
+          "stretch": 2.193
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "qskill → merge needs 3 bends: move node qskill or merge so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

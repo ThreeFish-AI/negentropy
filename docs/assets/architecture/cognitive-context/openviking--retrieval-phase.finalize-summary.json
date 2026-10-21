@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--retrieval-phase-20261022-003214/candidate.json",
+    "sha256": "079193d4d46ce424a67e488c63af1b6dda7691324c2fcbd210b8ce1faf1ad47d",
+    "bytes": 6022
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html",
+    "sha256": "413f3bfaf2fe37dc3cf24a2695d04318b7e885a7921cc95bd0c8c1862ded607c",
+    "bytes": 767902
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2116,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e-mode-pool",
+            "from": "mode",
+            "to": "pool",
+            "label": "是 · 配了 rerank",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.104
+        },
+        {
+          "relationship": {
+            "id": "e-quick-out",
+            "from": "quick",
+            "to": "out",
+            "label": "plain 模式直接返回",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "bends": 3,
+          "stretch": 1.058
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "mode → pool needs 3 bends: move node mode or pool so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "quick → out needs 3 bends: move node quick or out so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

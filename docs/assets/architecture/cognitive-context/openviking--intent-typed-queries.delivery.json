@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d255ec28-e519-4f7e-8041-5dca153eee2d",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--intent-typed-queries-20261022-003214/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
+  "specification": {
+    "sha256": "3da0dea244ca560ae6f2b07f0698569364fdc5d1bef02dcc509ed439993df2b6",
+    "bytes": 4197
+  },
+  "artifact": {
+    "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
+    "bytes": 757964
+  }
+}

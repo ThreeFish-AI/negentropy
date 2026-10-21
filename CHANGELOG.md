@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 ### Added
+
+### 014 OpenViking 精读换代重写（2026-10-22）
+
+- **[014 精读笔记](docs/research/cognitive-context/014-openviking.md) 换代重写**（/guided-learn §7 再精读协议；钉点 `14a7b81`→`6227af51`，v0.4.21→v0.5.1.1，390 commits）：上游 **#5450 删除目录递归检索**（检索相重写为「全局召回 2×limit 池 → URI 去重 → 单遍精排读 abstract → 阈值后置」+ context 六域装配）、Working Memory 默认关闭、User/Peer 归属模型一等化、Gateway 模型代理（Beta）与治理面（多租户/ACL/信封加密/隐私配置/git 快照/OVPack v3/多写 V2）成章；旧八条文档 vs 代码矛盾六条上游已修复（ClawWork 算术错改原始数口径），新增营销页滞后矛盾清单 N1–N5；旧五规律重铸第 3 条（池边界取代导航门）、争议 1 因上游自我改判重述；总类比（图书馆剧场）按现行规约拆除、局部类比五条经遴选续任，费曼实录移存会话 lab。
+- **配套更新**：[openviking_lab.py](docs/research/cognitive-context/assets/openviking_lab.py) v2（检索段按新算法重写、新增 S7 peer 归属与 S8 六域装配场景；B2/B5 随上游机制删除退役，B1 重铸为「拔摘要→精排致盲」、新增 B7 候选池边界）；archify 三图重绘（retrieval-phase 换代版 / intent-typed-queries / lab-break-matrix）；[机制映射](docs/research/mapping-negentropy.md) OV 域 13→15 条四桶重验（OV-5 检索改判、新增 OV-14 归属模型 🔶 与 OV-15 网关代理 ⏸）。
+
 ### issue.md 双层结构整改与 ID 命名空间迁移 ISSUE-NNN → I-NNN（2026-10-17）
 
 - **[issue.md](docs/.agents/issue.md) 双层结构整改**：按 AGENTS.md「术 · Issue」规范重构为头部五列索引表（ID / 标题 / 完成状态 / 完成时间 / 详情锚点）＋ 主体详情块（`<a id>` 锚点 + `## I-NNN：<标题>`）双层结构，全文按 ID 升序重排；7 组撞号重编（020/058/059/066/118/119×3/128 共 8 块后现顺延为 I-220~I-227，首现保留原号）、两条无 ID 日期标题条目补编 I-228/I-229、新登记 I-230 迁移条目；完成状态（✅×218 / 🔄×9）与完成时间（标题日期优先、缺失走 git 引入日期回溯）全量补齐；原明文 `NE_AUTH_TOKEN_SECRET` 值脱敏。
