@@ -1,6 +1,6 @@
 # 《拆解 Agent Context Layer：上下文怎么供给、治理、装配》科普视频工程
 
-> 交付状态：**v7 增补稿·画面补缺·克隆终渲准备中**（2026-10-21）：逐字稿 v7（351 句 8290 字，三路缺口增补 + ④⑤独立评审清零）、分镜 v5（101 镜 / 137 cue）、画面 z 序修复（13 镜装置被 archify 画框遮盖，RecapDim 泛化）+ 四新镜装置；配音台本 `script/narration.cues.toml` 首配；时长窗口 [21, 29.5]、cpm=282（克隆 story df≈0.90，试听定档后复核）。终渲走 IndexTTS-2.5 本人声音克隆（用户 2026-10-21 显式授权，实跑带 `--final-voice`）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v1 已交付**（2026-10-21 终渲归档）：`~/Documents/video/context-layer/拆解 Agent Context Layer：上下文怎么供给、治理、装配 v1.mp4`（1080p30 h264+aac，时长 = 49553 帧 @30fps = 1651.77s = 27:31.77，窗口 [21,29.5] 内、余量 148s）。逐字稿 v7（351 句 8291 字，三路缺口增补 + ④⑤独立评审清零）、分镜 v5（101 镜 / 137 cue）、画面 z 序修复 + 新增装置（登记行解剖 / 预算走查 / RankFusion / AuditCard 等）；终声＝IndexTTS-2.5 本人克隆 story 档 df=1.0（用户显式授权 `--final-voice`），`--plan` 口径 148 块全量缓存。全幕抽帧 QA FAIL 0 / WARN 0（含尾幕）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
