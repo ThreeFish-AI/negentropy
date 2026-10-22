@@ -3,6 +3,12 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### 视频文案「拆/失效」词族整改：14 集口播/屏上字与前置文档语义位分档落改（I-234，2026-10-22）
+
+- **口径**：「拆」按语义位分档（分析→拆解、切分→拆成/拆分、消融→关掉/去掉/移除、字面与成熟隐喻保留、误用成语改写）；「失效」名词位→问题族（三种问题/问题卡/问题类型/问题登记簿）、与「提问」撞义句用错误/出错方式、动词位保留。改写只动汉字，数字/句 id/读音标记/引文/日志转录/代码注释零触碰。
+- **落改面**：448 处（12 集台词四面同步 narration.md/narration.json/chapters.json/cues、tsx 屏上字串、storyboard/planning/README/research、上游精读 170–176/200/220/230/011/013/014/140–144/mapping、series.json topic/statusNote、series.md、live 项目、docs/research/readme + knowledge-map 索引同步）；442 处判定保留（标准复合词、门牌房隐喻、冻结面）。改名概念全仓追引用（问题登记簿等）。
+- **验证**：门禁基线对比零新增 FAIL（逐集 check --check-scenes / verify_skeleton / check_series 均与改前一致）；台词四面 lockstep 对账全绿；残留未裁决 0。11 集状态三处标「旁白/屏上字已改（I-234）、成片待重制」；图示/录制资产（archify json/views/manifest、docs/diagrams、docs/assets 共 160 文件）只登记待重录清单（issue I-234），未改动。
+
 ### Added
 ### Context Layer 第 2 集克隆终声成片交付：v7 增补 + v1 首交付与评审修复 v2/v3 重渲（2026-10-21/22）
 
