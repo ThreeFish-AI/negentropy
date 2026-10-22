@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "084b8433-9755-495e-82c4-09c9460612f6",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/.archify/workflow-openviking--causal-chain-20261022-231307/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+  "specification": {
+    "sha256": "e9a9ad26289779d2c77115a8a5ecca24a4ebff21386e403cfa540b8d7691a13c",
+    "bytes": 13972
+  },
+  "artifact": {
+    "sha256": "291800afa1bc4e58b0204de647d68177fba81a0bdb03f5a1d5de51c9caf539cb",
+    "bytes": 784992
+  }
+}

@@ -1,0 +1,564 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "OpenViking 因果脉络链：观察 → 规格 → 机制 → 证据",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "ae6247c5bb796cbd7fa33792d69a9867bb7a8b41"
+    },
+    "legend": {
+      "entries": {
+        "external": {
+          "label": "外部观察与证据"
+        },
+        "backend": {
+          "label": "归因与机制加工"
+        },
+        "frontend": {
+          "label": "设计规格（§1 六条）"
+        },
+        "database": {
+          "label": "统一命名空间基座"
+        },
+        "messagebus": {
+          "label": "网关代理"
+        },
+        "security": {
+          "label": "治理面"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "l_base",
+      "label": "基座 · 寻址归属"
+    },
+    {
+      "id": "l_write",
+      "label": "写路径"
+    },
+    {
+      "id": "l_read",
+      "label": "读路径"
+    },
+    {
+      "id": "l_mem",
+      "label": "记忆路径"
+    },
+    {
+      "id": "l_ag",
+      "label": "代理与治理"
+    }
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "obs_scatter",
+      "obs_flat",
+      "obs_lost",
+      "obs_bus"
+    ],
+    "allowedTerminals": [
+      "ev_vendor",
+      "ev_upstream",
+      "ev_lab",
+      "tree",
+      "path_gw",
+      "path_gov"
+    ],
+    "requiredEdges": [
+      {
+        "from": "obs_scatter",
+        "to": "attr"
+      },
+      {
+        "from": "obs_flat",
+        "to": "attr"
+      },
+      {
+        "from": "obs_lost",
+        "to": "attr"
+      },
+      {
+        "from": "obs_bus",
+        "to": "attr"
+      },
+      {
+        "from": "spec_addr_owner",
+        "to": "tree"
+      },
+      {
+        "from": "spec_layer",
+        "to": "path_write"
+      },
+      {
+        "from": "spec_search",
+        "to": "path_read"
+      },
+      {
+        "from": "spec_writeback",
+        "to": "path_mem"
+      },
+      {
+        "from": "spec_gov",
+        "to": "path_gw"
+      },
+      {
+        "from": "spec_gov",
+        "to": "path_gov"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "obs_scatter",
+      "lane": "l_write",
+      "col": 0,
+      "type": "external",
+      "label": "观察 · 散",
+      "sublabel": "散在记忆库/向量库/prompt",
+      "width": 154,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 观察：上下文散在四处"
+        }
+      ]
+    },
+    {
+      "id": "obs_flat",
+      "lane": "l_read",
+      "col": 0,
+      "type": "external",
+      "label": "观察 · 钝",
+      "sublabel": "平铺变钝 · 漏召回精排救不回",
+      "width": 166,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 观察：平铺变钝"
+        }
+      ]
+    },
+    {
+      "id": "obs_lost",
+      "lane": "l_mem",
+      "col": 0,
+      "type": "external",
+      "label": "观察 · 丢",
+      "sublabel": "跨工具跨会话就丢",
+      "width": 138,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 观察：跨工具跨会话就丢"
+        }
+      ]
+    },
+    {
+      "id": "obs_bus",
+      "lane": "l_ag",
+      "col": 0,
+      "type": "external",
+      "label": "观察 · 总线",
+      "sublabel": "多Agent半份上下文·人肉总线",
+      "width": 162,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 观察：人肉总线"
+        }
+      ]
+    },
+    {
+      "id": "attr",
+      "lane": "l_read",
+      "col": 1,
+      "type": "backend",
+      "label": "归因 · 三个缺口",
+      "sublabel": "信息组织 · 归属 · 提交点三缺口",
+      "width": 158,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 归因"
+        }
+      ]
+    },
+    {
+      "id": "spec_addr_owner",
+      "lane": "l_base",
+      "col": 2,
+      "type": "frontend",
+      "label": "可寻址 · 可归属",
+      "sublabel": "位置可指认·属主对象正交",
+      "width": 150,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§1 设计规格表：可寻址"
+        },
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§1 设计规格表：可归属"
+        }
+      ]
+    },
+    {
+      "id": "spec_layer",
+      "lane": "l_write",
+      "col": 2,
+      "type": "frontend",
+      "label": "可分层",
+      "sublabel": "先看一句话标签再读全文",
+      "width": 160,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§1 设计规格表：可分层"
+        }
+      ]
+    },
+    {
+      "id": "spec_search",
+      "lane": "l_read",
+      "col": 2,
+      "type": "frontend",
+      "label": "可检索",
+      "sublabel": "全局召回 + 可选精排",
+      "width": 152,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§1 设计规格表：可检索"
+        }
+      ]
+    },
+    {
+      "id": "spec_writeback",
+      "lane": "l_mem",
+      "col": 2,
+      "type": "frontend",
+      "label": "可回写",
+      "sublabel": "接待完用户记忆自动更新",
+      "width": 160,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§1 设计规格表：可回写"
+        }
+      ]
+    },
+    {
+      "id": "spec_gov",
+      "lane": "l_ag",
+      "col": 2,
+      "type": "frontend",
+      "label": "可治理",
+      "sublabel": "钥匙·锁·备份·回放",
+      "width": 142,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§1 设计规格表：可治理"
+        }
+      ]
+    },
+    {
+      "id": "tree",
+      "lane": "l_base",
+      "col": 3,
+      "type": "database",
+      "label": "viking:// 统一命名空间",
+      "sublabel": "resources/user（含peers）/agent",
+      "width": 170,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 机制 · §3 寻址与归属"
+        }
+      ]
+    },
+    {
+      "id": "path_write",
+      "lane": "l_write",
+      "col": 3,
+      "type": "backend",
+      "label": "写路径 · L0/L1 编目",
+      "sublabel": "自底向上 + 新鲜度冒泡",
+      "width": 162,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§4 编目相"
+        }
+      ]
+    },
+    {
+      "id": "path_read",
+      "lane": "l_read",
+      "col": 3,
+      "type": "backend",
+      "label": "读路径 · 召回+单遍精排",
+      "sublabel": "2×limit·阈值0.1后置·六域装配",
+      "width": 164,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§5 检索相（换代）"
+        }
+      ]
+    },
+    {
+      "id": "path_mem",
+      "lane": "l_mem",
+      "col": 3,
+      "type": "backend",
+      "label": "记忆路径 · 两阶段提交",
+      "sublabel": "身份判据 + .done 提交点",
+      "width": 162,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§6 会话与记忆提炼"
+        }
+      ]
+    },
+    {
+      "id": "path_gw",
+      "lane": "l_ag",
+      "col": 3,
+      "type": "messagebus",
+      "label": "代理路径 · Gateway",
+      "sublabel": "五步一轮·逐字回放·滞后保存",
+      "width": 166,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§7 Gateway（v0.5 新增）"
+        }
+      ]
+    },
+    {
+      "id": "path_gov",
+      "lane": "l_ag",
+      "col": 4,
+      "type": "security",
+      "label": "治理路径 · 租户与安全",
+      "sublabel": "三角色·ACL·快照·OVPack",
+      "width": 160,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§8 治理面"
+        }
+      ]
+    },
+    {
+      "id": "ev_upstream",
+      "lane": "l_write",
+      "col": 4,
+      "type": "external",
+      "label": "上游自我修正（§9.3）",
+      "sublabel": "ClawWork 改口径 · 递归撤回",
+      "width": 170,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§9.3 矛盾清单"
+        }
+      ]
+    },
+    {
+      "id": "ev_vendor",
+      "lane": "l_read",
+      "col": 4,
+      "type": "external",
+      "label": "厂商自报（§9）",
+      "sublabel": "LoCoMo 24.20%→82.08%·负向仍在",
+      "width": 178,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 证据 · §9.1 厂商自报基准"
+        }
+      ]
+    },
+    {
+      "id": "ev_lab",
+      "lane": "l_mem",
+      "col": 4,
+      "type": "external",
+      "label": "本仓 lab 破坏实验（§10）",
+      "sublabel": "池边界·身份漂移·精排致盲·重复提炼",
+      "width": 198,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§10 动手实验室"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_s_attr",
+      "from": "obs_scatter",
+      "to": "attr"
+    },
+    {
+      "id": "e_f_attr",
+      "from": "obs_flat",
+      "to": "attr"
+    },
+    {
+      "id": "e_l_attr",
+      "from": "obs_lost",
+      "to": "attr"
+    },
+    {
+      "id": "e_b_attr",
+      "from": "obs_bus",
+      "to": "attr"
+    },
+    {
+      "id": "e_attr_ao",
+      "from": "attr",
+      "to": "spec_addr_owner"
+    },
+    {
+      "id": "e_attr_layer",
+      "from": "attr",
+      "to": "spec_layer"
+    },
+    {
+      "id": "e_attr_search",
+      "from": "attr",
+      "to": "spec_search"
+    },
+    {
+      "id": "e_attr_writeback",
+      "from": "attr",
+      "to": "spec_writeback"
+    },
+    {
+      "id": "e_attr_gov",
+      "from": "attr",
+      "to": "spec_gov"
+    },
+    {
+      "id": "e_ao_tree",
+      "from": "spec_addr_owner",
+      "to": "tree",
+      "label": "§3 寻址归属",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_layer_w",
+      "from": "spec_layer",
+      "to": "path_write",
+      "label": "§4 分层编目",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_search_r",
+      "from": "spec_search",
+      "to": "path_read",
+      "label": "§5 召回精排",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_writeback_m",
+      "from": "spec_writeback",
+      "to": "path_mem",
+      "label": "§6 会话提交",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_gov_g",
+      "from": "spec_gov",
+      "to": "path_gw",
+      "label": "§7 网关代理",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_gov_v",
+      "from": "spec_gov",
+      "to": "path_gov",
+      "label": "§8 租户治理",
+      "variant": "emphasis",
+      "route": "bottom-channel",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    },
+    {
+      "id": "e_w_r",
+      "from": "path_write",
+      "to": "path_read",
+      "label": "L0/L1 摘要供精排读",
+      "variant": "dashed"
+    },
+    {
+      "id": "e_r_ev1",
+      "from": "path_read",
+      "to": "ev_vendor",
+      "label": "单轮 RAG 基准",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e_r_ev2",
+      "from": "path_read",
+      "to": "ev_upstream",
+      "label": "递归撤回 #5450",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "e_m_ev1",
+      "from": "path_mem",
+      "to": "ev_vendor",
+      "label": "LoCoMo 基准",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "id": "e_m_ev3",
+      "from": "path_mem",
+      "to": "ev_lab",
+      "label": "身份漂移/无提交点",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "怎么读这张图",
+      "items": [
+        "自左向右五个阶段：观察 → 归因 → 设计规格 → 机制 → 证据；六条泳道即机制谱系，规格与机制同泳道垂直对应",
+        "§1 六条设计规格中可寻址与可归属同落 viking:// 树（合并展示），可治理一分为二覆盖代理与治理两条路径",
+        "读路径的 #5450 注记：上游删除目录递归后早剪风险移到 2×limit 候选池池边界；提交说明未给理由，「导航门成本大于收益」系反推（§5）",
+        "证据边只落在读与记忆两条路径（读：单轮 RAG 基准 / 递归撤回；记忆：LoCoMo 基准 / 身份漂移·无提交点）——写、代理、治理暂无独立检验，是实况不是画漏；lab 的精排致盲与池边界实验属读路径，见证据节点与 §10"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "数字口径（钉点 6227af51）",
+      "items": [
+        "LoCoMo 24.20%→82.08%；单轮 RAG 五数据集均值 66.87% < LightRAG 76.00%——自报材料里唯一负向，换代后仍在（§9.1，全部厂商自报【三】、无消融）",
+        "读路径 2×limit 候选池（RERANK_CANDIDATE_MULTIPLIER=2）与精排阈值 0.1 后置均为代码实值（§5.3）"
+      ]
+    }
+  ]
+}
