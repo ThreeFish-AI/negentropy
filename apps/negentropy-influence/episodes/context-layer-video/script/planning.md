@@ -9,9 +9,9 @@
 
 | 维度 | 设定 |
 |---|---|
-| 平台 | B 站/YouTube 中长视频（本轮 edge 草渲 960×540，终渲 1080p30 待人工指令） |
+| 平台 | B 站/YouTube 中长视频（草渲 960×540；1080p30 已交付 v1/v2，交付状态以 [README](../README.md) 为准） |
 | 时长目标 | ~27 分钟（窗口 [21.0, 29.5]，以 pipeline.toml 为 SSOT；30 分钟为用户硬顶；克隆 story 档 df=1.0 试听实测纯语音 356 字/分、含时距等效 ≈304 字/分，v7 稿 8291 字估 27.3 分） |
-| 形态 | AI 配音（edge zh-CN-YunxiNeural +4%）+ Remotion 代码动画 + archify 组件图逐章回放，无真人 |
+| 形态 | AI 配音（草渲 edge zh-CN-YunxiNeural；终声 IndexTTS-2.5 本人克隆 story 档 df=1.0）+ Remotion 代码动画 + archify 组件图逐章回放，无真人 |
 | 受众 | 做过或用过 Agent 的工程师与技术管理者：懂 API、数据库、权限、检索的基本概念，不懂语义层与上下文工程也能跟上 |
 | 核心内容范围 | 013 §1–§3（失效登记簿 / 问题定义与分析单元 / 三面五轴六段两环）+ §4–§8 每轴一幕（纳管管线并入资产轴幕）+ §7 章首读管线独立一幕 + §10.1 477 vs 48 + §12 现状对账 + §14 修复序；§11 业界格局只取一句 |
 
@@ -61,7 +61,7 @@
 |---|---|---|---|---|---|
 | P0 | 2.1 min | 三种失效 | 同模型 19%/85% 钩子；贯穿请求登场；它可能出的三种错（同一指标两个数 / 裸问答错 10.1% / 越权读到手机号）；97/4；失效被登记成十类 49 行的表 | RequestCard 首现；证据徽；failure-map | 窗口（模型每轮能看到的全部内容） |
 | P1 | 3.2 min | 三面蓝图 | 五类来源（指令/记忆/知识/工具技能/会话）先认清、再说明为何不按来源分类；三面各答一问；五轴与「换 X 不动 Y」；六段两环；G 法则点名；有限预算公理 | FiveAxisMap 建立；architecture；lifecycle | 三面、五条轴、六段 |
-| P2 | 3.9 min | 资产轴 | 七类资产；纳管管线 5 段（请求要用的「重复购买率」定义怎么入库）；fan trap 440 vs 200；definitions 注册表 + 422；Core Block 三问；对象状态流转 | IntakeLine；ingest-pipeline；object-lifecycle；代码走廊① | 注册表、常驻画像块 |
+| P2 | 3.9 min | 资产轴 | 七类资产；纳管管线 5 段（请求要用的「重复购买率」定义怎么入库）；fan trap 440 vs 200；definitions 注册表 + 422；Core Block 三问；对象状态流转 | ingest-pipeline；object-lifecycle；代码走廊① | 注册表、常驻画像块 |
 | P3 | 2.6 min | 权威轴 | 绕开测试与未接入执行路径的治理；执法点分层；会话权限上界 RBAC∩RSS（运营专员能看订单不能看手机号）；实时求值与回收即失效；供给面威胁 98380/157 | VennShrink；mcp-threat-model | 角色权限∩会话允许范围 |
 | P4 | 3.1 min | 装配轴 | 时序四档；token 预算与最小够用；46/19 工具实验；预取与按需的边界；缓存感知分段；四步压缩；倒 U | 窗口 token 预算条；assembly-economics | token（按字数计的计量单位）预算 |
 | P5 | 3.2 min | 检索轴 | 150→rerank→20；四因子信任排序；CJK 分词缺口；resolve 三条出路（核准答案/现算/明告缺口）；477 vs 48 与治理≠验证；子代理隔离 | WideFunnel；代码走廊②；failure-map | 名次倒数加权、重排 |
@@ -77,8 +77,8 @@ flowchart LR
     A --> B["逐字稿 narration.md v7<br/>（★SSOT）"]
     G --> B
     B --> D["narration.json<br/>（build 派生）"]
-    D --> E["TTS edge 云希"]
-    B --> F["storyboard.md v4<br/>镜↔句↔画面↔动效"]
+    D --> E["TTS IndexTTS 克隆终声"]
+    B --> F["storyboard.md v5<br/>镜↔句↔画面↔动效"]
     F --> H["archify 组件图回放<br/>+ 真实数据结构装置 + 代码走廊"]
     E --> I["Remotion scenes P0–P8"]
     H --> I
