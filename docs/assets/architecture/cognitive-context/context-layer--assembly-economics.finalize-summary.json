@@ -6,14 +6,14 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--assembly-economics/context-layer--assembly-economics.json",
-    "sha256": "0070013b89642ef83c89a753c2a85a9b77a3e29bfe74f969979f106b7d9cd468",
-    "bytes": 4955
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--assembly-economics/context-layer--assembly-economics.json",
+    "sha256": "77078a2705cb9fa63df30535d5910bea9434a02e89da27894ec7207870e2fd62",
+    "bytes": 4985
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html",
-    "sha256": "72ea0152ba9017f6c42d36bd9b133af7a6da99bf86d4256b2c763ab34b288300",
-    "bytes": 759089
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html",
+    "sha256": "c6081621c40661053a150577aba962e6621392abeb729ba04e6fa31d370ce0e5",
+    "bytes": 759209
   },
   "gates": {
     "validate": "pass",
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 1810,
+  "durationMs": 2217,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

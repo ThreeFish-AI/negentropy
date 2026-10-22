@@ -1,6 +1,6 @@
-/** P1 三面蓝图（p1-01..p1-39，39 句；storyboard v4「P1 三面蓝图」节）。
+/** P1 三面蓝图（p1-01..p1-39 含 10b/17b..e，44 句；storyboard v5「P1 三面蓝图」节）。
  *
- *  11 镜 / 18 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
+ *  12 镜 / 22 条 archify cue（镜内锚点一律 at(句id) − 所在镜.from，ArchifyRecap 契约）：
  *   1-A 窗口定义（装置：模型窗口框 + 三动词标签 tie together/add/package@p1-02..03
  *       + token 阵列点亮@p1-04 + 角标「上下文＝采样时纳入的 token 集合」）
  *   1-B 五类来源（装置：RequestCard〔M-001〕居中 + 五类标签@p1-05..06 + 对应物连线
@@ -8,9 +8,15 @@
  *   1-C 来源之外（装置：五类标签收拢压缩为投影行 + 血缘/核准问答对两卡 fall@p1-10
  *       + 「视角之一」章@p1-11）
  *   1-D arc-facets@p1-12 + hold@13/14/15（三面各答一问）
- *   1-E RequestCard 回屏 + 三指线指三面缩略（装置；arc-facets@p1-16 + hold@17 recap
- *       后置遮盖，承 1-D 尾镜界背靠背 → lead=false）
- *   1-F arc-axes@p1-18 + hold@19..23（五轴点名；承 1-E 链尾背靠背 → lead=false）
+ *   1-E RequestCard 回屏 + 三指线指三面缩略（装置；arc-facets@p1-16 + hold@17；
+ *       承 1-D 尾镜界背靠背 → lead=false。装置承担主叙事 → RecapDim recover={false}：
+ *       链内首句 p1-16 满亮、p1-17 起画框压至 0.16 暗底，装置 JSX 移到 recap 之后
+ *       （z 序在上），p1-17 三指线同步微闪）
+ *   1-Eb 登记行解剖（fm2-def@p1-17b + hold@17c/17d/17e；装置＝49 行表推近
+ *       「同一指标两个数」行，四列逐列点亮@p1-17c..e + p1-17d「口径全公司只存一份」
+ *       钢蓝图章；recap 首句满亮、17c 起压暗暗底承装置——同 RecapDim recover={false}；
+ *       承 1-E 镜界跨图背靠背 → lead=false）
+ *   1-F arc-axes@p1-18 + hold@19..23（五轴点名；承 1-Eb 镜界跨图背靠背 → lead=false）
  *   1-G FiveAxisMap 首建（built=false 建立面生长，Map-First 主锚）+「换 X 不动 Y」
  *       四行对照@p1-25..27 + 拔轴消融演示@p1-28（警示红 · 破坏实验）
  *   1-H lc2-open@p1-29 + hold@30/31（六段总览；1-G 装置镜空窗后重现 → 默认 lead）
@@ -25,13 +31,14 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {clamp01, progress, useDim, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {clamp01, progress, useDim, useEnter, useImpulse, useProgress, usePushIn, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {QuoteCard} from '../components/cards';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {InvertedU} from '../components/InvertedU';
 import {FiveAxisMap, FIVE_AXIS_GEOM} from '../components/FiveAxisMap';
 import {RequestCard} from '../components/RequestCard';
+import {RecapDim} from '../components/RecapDim';
 
 export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
@@ -44,6 +51,7 @@ export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p1-09', 'p1-11');
   const bD = w('p1-12', 'p1-15');
   const bE = w('p1-16', 'p1-17');
+  const bEb = w('p1-17b', 'p1-17e');
   const bF = w('p1-18', 'p1-23');
   const bG = w('p1-24', 'p1-28');
   const bH = w('p1-29', 'p1-31');
@@ -92,13 +100,33 @@ export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
         ]} />
       </Sequence>
 
-      {/* 1-E 面到请求：RequestCard + 三指线（装置）+ arc-facets recap 后置遮盖 */}
+      {/* 1-E 面到请求：arc-facets recap（p1-16 满亮 → p1-17 压暗暗底）+ 装置后置在上 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="1-E">
+        <RecapDim from={at('p1-17') - bE.from} dur={dur('p1-17')} recover={false}>
+          <ArchifyRecap slug="blueprint--architecture" caption="三面蓝图 · 面到请求" lead={false} cues={[
+            {chapterId: 'arc-facets', at: at('p1-16') - bE.from, durationInFrames: dur('p1-16')},
+            {chapterId: 'arc-facets', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17'), fit: 'hold'},
+          ]} />
+        </RecapDim>
         <FacetPointers a16={at('p1-16') - bE.from} a17={at('p1-17') - bE.from} />
-        <ArchifyRecap slug="blueprint--architecture" caption="三面蓝图 · 面到请求" lead={false} cues={[
-          {chapterId: 'arc-facets', at: at('p1-16') - bE.from, durationInFrames: dur('p1-16')},
-          {chapterId: 'arc-facets', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17'), fit: 'hold'},
-        ]} />
+      </Sequence>
+
+      {/* 1-Eb 登记行解剖：fm2-def 锚 + hold 链（p1-17b 满亮 → 17c..e 压暗暗底）+ 行解剖装置后置在上 */}
+      <Sequence from={bEb.from} durationInFrames={bEb.durationInFrames} name="1-Eb">
+        <RecapDim from={at('p1-17c') - bEb.from} dur={at('p1-17e') + dur('p1-17e') - at('p1-17c')} recover={false}>
+          <ArchifyRecap slug="failure-map" caption="三面蓝图 · 登记行解剖" lead={false} cues={[
+            {chapterId: 'fm2-def', at: at('p1-17b') - bEb.from, durationInFrames: dur('p1-17b')},
+            {chapterId: 'fm2-def', at: at('p1-17c') - bEb.from, durationInFrames: dur('p1-17c'), fit: 'hold'},
+            {chapterId: 'fm2-def', at: at('p1-17d') - bEb.from, durationInFrames: dur('p1-17d'), fit: 'hold'},
+            {chapterId: 'fm2-def', at: at('p1-17e') - bEb.from, durationInFrames: dur('p1-17e'), fit: 'hold'},
+          ]} />
+        </RecapDim>
+        <RegistryRowAnatomy
+          a17b={at('p1-17b') - bEb.from}
+          a17c={at('p1-17c') - bEb.from}
+          a17d={at('p1-17d') - bEb.from}
+          a17e={at('p1-17e') - bEb.from}
+        />
       </Sequence>
 
       {/* 1-F 五轴点名：arc-axes 锚 + hold 链 */}
@@ -416,11 +444,12 @@ const OutsideSources: React.FC<{a09: number; a10: number; a11: number}> = ({a09,
   );
 };
 
-/** 1-E 面到请求：RequestCard 回屏 + 三指线指向三面缩略。 */
+/** 1-E 面到请求：RequestCard 回屏 + 三指线指向三面缩略（p1-17 三指线同步微闪）。 */
 const FacetPointers: React.FC<{a16: number; a17: number}> = ({a16, a17}) => {
   const thumbs = useStagger(3, {stride: 10, at: a16});
   const lines = useStagger(3, {stride: 14, at: a16 + 6});
   const lift = useProgress(a17, 14);
+  const flash = useImpulse({at: a17, dur: 22, peak: 1});
   const FACETS = [
     {t: '验收面', s: '属于哪一行', y: 260},
     {t: '结构面', s: '该改哪条轴', y: 430},
@@ -438,7 +467,7 @@ const FacetPointers: React.FC<{a16: number; a17: number}> = ({a16, a17}) => {
               d={`M 1268 ${356} C 1420 ${356}, 1500 ${f.y + 34}, 1636 ${f.y + 34}`}
               fill="none"
               stroke={theme.concept}
-              strokeWidth={2.5}
+              strokeWidth={2.5 + 1.5 * flash}
               pathLength={1}
               strokeDasharray={lines[i]}
               strokeDashoffset={1 - lines[i]}
@@ -473,6 +502,102 @@ const FacetPointers: React.FC<{a16: number; a17: number}> = ({a16, a17}) => {
           {f.t}
         </div>
       ))}
+    </AbsoluteFill>
+  );
+};
+
+/** 1-Eb 登记行解剖：49 行登记表推近「口径簇 · 同一指标两个数」行，四列逐列点亮
+ *  （怎么错 / 证据在哪 / 拿什么防 / 怎么验收）；p1-17d「口径全公司只存一份」盖钢蓝图章。
+ *  列点亮锚数组（p1-17c 两列 / 17d 防法 / 17e 验收）——map 内禁 hook，逐列纯函数 progress。 */
+const REG_COLS = [
+  {h: '怎么错', s: '定义散落 · 各报各数'},
+  {h: '证据在哪', s: '官方案例'},
+  {h: '拿什么防', s: '只存一份'},
+  {h: '怎么验收', s: '全库搜 · 禁副本'},
+] as const;
+
+const RegistryRowAnatomy: React.FC<{a17b: number; a17c: number; a17d: number; a17e: number}> = ({a17b, a17c, a17d, a17e}) => {
+  const frame = useCurrentFrame();
+  const push = usePushIn(a17b, {scale: 0.06, dur: 36});
+  const enter = useProgress(a17b, 10);
+  const colAnchors = [a17c, a17c + 16, a17d, a17e];
+  const stamp = useSpring('snap', {at: a17d + 8, dur: 14});
+  const stampGlow = useImpulse({at: a17d + 8, dur: 22, peak: 0.8});
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <div style={{position: 'absolute', inset: 0, opacity: enter, transform: push}}>
+        {/* 49 行表上下文：推近行的邻行（虚淡轮廓） */}
+        {[336, 384].map((y, i) => (
+          <div
+            key={y}
+            style={{position: 'absolute', left: 420, top: y, width: 1080, height: 36, borderRadius: 7, border: `1.5px dashed ${theme.panelBorder}`, opacity: 0.32 - i * 0.1}}
+          />
+        ))}
+        <div style={{position: 'absolute', left: 420, top: 692, width: 1080, height: 36, borderRadius: 7, border: `1.5px dashed ${theme.panelBorder}`, opacity: 0.3}} />
+        {/* 主行：口径簇「同一指标两个数」+ 四列解剖 */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 380,
+            top: 444,
+            width: 1160,
+            height: 232,
+            borderRadius: 12,
+            border: `2.5px solid ${theme.concept}`,
+            background: theme.panel,
+            boxShadow: `0 0 ${10 + 18 * stampGlow}px ${withAlpha(theme.concept, 0.25)}`,
+            padding: '16px 20px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{display: 'flex', justifyContent: 'space-between'}}>
+            <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim}}>登记行 · 口径簇</span>
+            <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim}}>49 行表 · 其中一行</span>
+          </div>
+          <div style={{fontSize: 26, color: theme.text, marginTop: 4}}>同一指标两个数</div>
+          <div style={{display: 'flex', gap: 14, marginTop: 16}}>
+            {REG_COLS.map((c, i) => {
+              const k = clamp01(progress(frame, colAnchors[i], 14));
+              return (
+                <div
+                  key={c.h}
+                  style={{
+                    flex: 1,
+                    borderRadius: 8,
+                    border: `1.5px solid ${k > 0.3 ? theme.conceptDeep : theme.panelBorder}`,
+                    background: theme.bg,
+                    padding: '10px 12px',
+                    opacity: 0.25 + 0.75 * k,
+                    transform: `translateY(${(1 - k) * 10}px)`,
+                  }}
+                >
+                  <div style={{fontSize: 18, color: k > 0.3 ? theme.conceptDeep : theme.dim}}>{c.h}</div>
+                  <div style={{fontSize: 15, color: theme.text, marginTop: 8, lineHeight: 1.5, opacity: k}}>{c.s}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {/* 钢蓝图章（p1-17d 重音） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 1044,
+            top: 398,
+            padding: '8px 18px',
+            border: `3px solid ${theme.concept}`,
+            borderRadius: 9,
+            fontSize: 21,
+            color: theme.concept,
+            background: withAlpha(theme.concept, 0.12),
+            transform: `rotate(-6deg) scale(${stamp})`,
+            opacity: stamp,
+            boxShadow: `0 0 ${18 * stampGlow}px ${withAlpha(theme.concept, 0.5)}`,
+          }}
+        >
+          口径全公司只存一份
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };
@@ -621,7 +746,7 @@ const RulePins: React.FC<{a35: number}> = ({a35}) => {
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       <div style={{position: 'absolute', left: 0, right: 0, top: 420, textAlign: 'center', fontSize: 20, color: theme.dim, opacity: cells[0]}}>
-        七条治理法则 · 落在段与段的转换上
+        七条治理法则 · G1–G7
       </div>
       {STAGES6.map((s, i) => (
         <div

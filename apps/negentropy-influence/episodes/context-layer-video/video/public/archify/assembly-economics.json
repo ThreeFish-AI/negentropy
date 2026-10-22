@@ -1,11 +1,11 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.48,
- "story_sec": 31.4,
- "total_wall_sec": 135.38,
+ "lead_sec": 0.0,
+ "story_sec": 31.46,
+ "total_wall_sec": 138.16,
  "started_playback": true,
- "clapper_found": true,
+ "clapper_found": false,
  "measured_fps": 25.0,
  "chapters": [
   {
@@ -16,14 +16,14 @@
    "end_still": "assembly-economics--ae-k1-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.48,
-   "story_sec": 3.22,
+   "lead_sec": 0.0,
+   "story_sec": 3.24,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "k1"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 63.0
   },
   {
    "id": "ae-k2",
@@ -33,8 +33,8 @@
    "end_still": "assembly-economics--ae-k2-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.52,
-   "story_sec": 3.25,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "k2"
@@ -50,8 +50,8 @@
    "end_still": "assembly-economics--ae-k3-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.52,
-   "story_sec": 3.23,
+   "lead_sec": 0.44,
+   "story_sec": 3.27,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "k3"
@@ -67,8 +67,8 @@
    "end_still": "assembly-economics--ae-k4-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.52,
-   "story_sec": 3.2,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "k4"
@@ -84,14 +84,14 @@
    "end_still": "assembly-economics--ae-k5-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.52,
-   "story_sec": 3.23,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "k5"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 62.0
   },
   {
    "id": "ae-ch",
@@ -101,15 +101,15 @@
    "end_still": "assembly-economics--ae-ch-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.68,
-   "story_sec": 3.2,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "ch1",
     "ch2"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 63.0
+   "capture_fps": 62.0
   },
   {
    "id": "ae-guard",
@@ -119,15 +119,15 @@
    "end_still": "assembly-economics--ae-guard-end.png",
    "beats": 2,
    "dwell_ms": 1600,
-   "lead_sec": 0.48,
-   "story_sec": 3.26,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "fuse",
     "guard"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 63.0
   },
   {
    "id": "ae-llm",
@@ -137,14 +137,14 @@
    "end_still": "assembly-economics--ae-llm-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.48,
-   "story_sec": 3.25,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "llm"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 62.0
   },
   {
    "id": "ae-knobs",
@@ -154,8 +154,8 @@
    "end_still": "assembly-economics--ae-knobs-end.png",
    "beats": 5,
    "dwell_ms": 1100,
-   "lead_sec": 0.48,
-   "story_sec": 5.56,
+   "lead_sec": 0.44,
+   "story_sec": 5.55,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "k1",
@@ -176,7 +176,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/assembly-economics.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/assembly-economics.html",
  "slug": "assembly-economics",
  "type": "workflow"
 }

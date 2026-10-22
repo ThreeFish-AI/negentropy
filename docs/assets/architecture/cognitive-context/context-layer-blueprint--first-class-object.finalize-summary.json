@@ -6,14 +6,14 @@
   "type": "dataflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--first-class-object/context-layer-blueprint--first-class-object.json",
-    "sha256": "1a1c99daf9441c86a911509d8dd15878cab8ef99626f37bf7347511209f803ff",
-    "bytes": 6174
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer-blueprint--first-class-object/context-layer-blueprint--first-class-object.json",
+    "sha256": "335dad5928f6335ed3ec21a0ec80898de3a523743e0c47010f0cfd212dfa6f89",
+    "bytes": 6195
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
-    "sha256": "1b8b3967e35fee285166941ce7d86189c34bd31b908f4af6e7d31ca80c4e5497",
-    "bytes": 760885
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
+    "sha256": "3715e7094c1edb43accffa825cd99d2aa9320654d85b1b4dcf352f3f2d305772",
+    "bytes": 760942
   },
   "gates": {
     "validate": "pass",
@@ -28,10 +28,10 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2540
+  "durationMs": 2649
 }

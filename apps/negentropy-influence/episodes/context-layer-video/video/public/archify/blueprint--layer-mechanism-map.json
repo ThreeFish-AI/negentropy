@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.52,
- "story_sec": 22.11,
- "total_wall_sec": 62.83,
+ "story_sec": 22.08,
+ "total_wall_sec": 69.04,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -17,7 +17,7 @@
    "beats": 12,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 13.29,
+   "story_sec": 13.3,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "axis_asset",
@@ -45,14 +45,14 @@
    "beats": 2,
    "dwell_ms": 1600,
    "lead_sec": 0.48,
-   "story_sec": 3.26,
+   "story_sec": 3.24,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "m2_row_policy",
     "m6_agent_identity"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 63.0
   },
   {
    "id": "lmm-seam",
@@ -63,7 +63,7 @@
    "beats": 5,
    "dwell_ms": 1100,
    "lead_sec": 0.52,
-   "story_sec": 5.56,
+   "story_sec": 5.54,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "m1_semantic_view",
@@ -84,7 +84,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/blueprint--layer-mechanism-map.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/blueprint--layer-mechanism-map.html",
  "slug": "blueprint--layer-mechanism-map",
  "type": "architecture"
 }

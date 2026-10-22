@@ -1,6 +1,6 @@
 # 《拆解 Agent Context Layer：上下文怎么供给、治理、装配》科普视频工程
 
-> 交付状态：**v4 零类比重制·edge 草渲待审**（2026-10-17 收敛轮重渲：013 式 5–7 LaTeX 统一、三症状→四类失效全链清零、p7-03 等长改写并入重配（共 5 句）、4 图章节素材重录＋lead/manifest 再生、draft.mp4 重渲过 beat-heads×4 全片＋尾幕渐黑共五项体检（FAIL 0·WARN 0；十项全量体检为 2026-10-16 版结论，终渲前重跑）；此前 2026-10-16 v4 零类比重制，组件直讲：组件名+白话+贯穿请求走查；RequestCard 恒定锚/FiveAxisMap 导航/双管线真名走查；2026-10-19 评审轮已修屏上术语（跨轴组合/沉淀轴段名）与 8-M lead（另同步组件注释术语；p0-09/p0-17/p0-24 口播等长改词、音轨待重配），draft 未随之重渲、终渲前须重渲重配并重跑体检）。终渲与交付待人工确认。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**v3 已交付**（2026-10-22 lead 裁决重渲归档）：`~/Documents/video/context-layer/拆解 Agent Context Layer：上下文怎么供给、治理、装配 v3.mp4`（1080p30 h264+aac，时长 = 49553 帧 @30fps = 1651.77s = 27:31.77，窗口 [21,29.5] 内、距 30 分钟硬顶余量 148s）。v1（2026-10-21）克隆终声首交付后经 review-once 评审修复四处画面缺陷并重渲：P4 幕级角标锚点误减镜偏移（Snowflake/n² 角标提前可见）、P7 7-K 引入条未随结论淡出、P0 0-G 补 p0-26b hold cue（cue 136→137 与分镜对齐、消漏窗与重入弹簧）、RecapDim 三份实现收敛 components/ 单源（P1/P2 可见行为不变，v1/v2 A/B 对拍 0.0%）；v3 按作者裁决给 1-Eb 镜首补 lead={false}，与全片跨实例背靠背惯例统一（v2/v3 对拍差异仅在 p1-17b 镜界、其余抽样 0.0%）；逐字稿 v7（351 句 8291 字，三路缺口增补 + ④⑤独立评审清零）、分镜 v5（101 镜 / 137 cue）、画面 z 序修复 + 新增装置（登记行解剖 / 预算走查 / RankFusion / AuditCard 等）；终声＝IndexTTS-2.5 本人克隆 story 档 df=1.0（用户显式授权 `--final-voice`），`--plan` 口径 148 块全量缓存。全幕抽帧 QA FAIL 0 / WARN 0（含尾幕；beat-heads×4 全片）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -34,8 +34,8 @@ uv run --with playwright python $T/scripts/record_archify_all.py --project $P   
 uv run --no-project --with pillow $T/scripts/archify_lead.py --project $P      # 漏跑=白闪进片
 uv run --no-project $T/scripts/archify_manifest.py --project $P
 
-# ③ 配音（edge 草渲档；参数全部取自 pipeline.toml）
-uv run --no-project $T/scripts/pipeline.py --project $P tts          # 秒级；改稿后重配亦秒级
+# ③ 配音（当前冻结档＝IndexTTS-2.5 本人克隆终声 story 档，实跑须带 --final-voice 具名授权；参数全部取自 pipeline.toml）
+uv run --no-project $T/scripts/pipeline.py --project $P tts          # 克隆合成非秒级；块级全量缓存后增量恢复分钟级
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit

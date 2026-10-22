@@ -6,10 +6,10 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "1221612e-aea5-4cd2-a67b-fd6090c4decd",
+  "deliveryReceiptId": "dcc67e3a-26cb-4286-a280-563642530014",
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
-    "sha256": "2a81caa53cc761789b660bf9d9c01feb4b0e14e77d3fbebefe908d8098bd3b4d",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
+    "sha256": "3aa80290907e6364213c5158cac2106d7a5869c7149223183746b6e6072cd78b",
     "bytes": 769337
   },
   "state": {

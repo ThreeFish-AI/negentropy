@@ -1,9 +1,9 @@
 {
  "schema": 2,
  "mode": "chapter",
- "lead_sec": 0.48,
- "story_sec": 29.41,
- "total_wall_sec": 125.46,
+ "lead_sec": 0.52,
+ "story_sec": 29.46,
+ "total_wall_sec": 140.24,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -16,7 +16,7 @@
    "end_still": "lifecycle--lc2-open-end.png",
    "beats": 6,
    "dwell_ms": 1100,
-   "lead_sec": 0.48,
+   "lead_sec": 0.52,
    "story_sec": 6.67,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -38,7 +38,7 @@
    "end_still": "lifecycle--lc2-l1-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.48,
+   "lead_sec": 0.52,
    "story_sec": 3.22,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -56,7 +56,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.52,
-   "story_sec": 3.24,
+   "story_sec": 3.23,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l2"
@@ -73,7 +73,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.52,
-   "story_sec": 3.24,
+   "story_sec": 3.25,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l3"
@@ -89,8 +89,8 @@
    "end_still": "lifecycle--lc2-l4-end.png",
    "beats": 1,
    "dwell_ms": 3200,
-   "lead_sec": 0.56,
-   "story_sec": 3.25,
+   "lead_sec": 0.48,
+   "story_sec": 3.24,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l4"
@@ -107,7 +107,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.52,
-   "story_sec": 3.24,
+   "story_sec": 3.25,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l5"
@@ -124,7 +124,7 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.52,
-   "story_sec": 3.22,
+   "story_sec": 3.27,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "l6"
@@ -140,7 +140,7 @@
    "end_still": "lifecycle--lc2-loops-end.png",
    "beats": 3,
    "dwell_ms": 1100,
-   "lead_sec": 0.52,
+   "lead_sec": 0.56,
    "story_sec": 3.33,
    "beat_offsets_sec": [],
    "beat_nodes": [
@@ -160,7 +160,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/lifecycle.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/lifecycle.html",
  "slug": "lifecycle",
  "type": "dataflow"
 }

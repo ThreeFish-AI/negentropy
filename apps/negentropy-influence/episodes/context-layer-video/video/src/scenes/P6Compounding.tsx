@@ -1,23 +1,28 @@
-/** P6 沉淀轴（p6-01..p6-28 含 05b/17b，30 句；storyboard v4「P6 沉淀轴」节）。
+/** P6 沉淀轴（p6-01..p6-28 含 05b/15b..d/17b/24b/25c..g，39 句；storyboard v5「P6 沉淀轴」节）。
  *
- *  12 镜 / 10 条 archify cue（lc2-l5 ×2 + ol-draft ×3 + ol-conflict ×2 + ol-super ×1 +
- *  el-six ×1 + el-sm ×1；ol-super/el-six/el-sm 均承前链尾背靠背 → lead={false}）：
+ *  12 镜 / 15 条 archify cue（lc2-l5 ×2 + ol-draft ×3 + ol-conflict ×2 + ol-super ×1 +
+ *  el-six ×1 + el-sm ×6；ol-super/el-six/el-sm 均承前链尾背靠背 → lead={false}）：
  *   6-A 开轴回写（p6-01..02）：lc2-l5 锚 p6-01 → hold p6-02；前景判词条 chip
  *       + 「沉淀轴」轴签（Map-First 幕首被 cue 窗占用，v3 同款让位——详见头注报告）
  *   6-B 三在线（p6-03..06）：LampTrio 三灯座（白话小标随灯名）+ 全亮验证闪
  *   6-C 会话案例（p6-07..08）：会话窗口 + 补句气泡高亮
  *   6-D 断链证据（p6-09..12）：LampTrio 只亮一盏（缺二）+ grep 实心徽三行 + 队列滞留
  *       + 补句气泡消散
- *   6-E 修复时序（p6-13..15）：trigger → consumer → watermark 三拍点亮 + 最后写落章
+ *   6-E 修复时序（p6-13..15 含 15b/c/d）：trigger → consumer → watermark 三拍点亮
+ *       + 最后写落章@p6-15 + 双时序对照小图（先写·崩溃整批跳过·红 ‖ 最后写·重做·绿）
+ *       @p6-15b/c + 「设计 ≠ 在线」灰标@p6-15d
  *   6-F 两条路径（p6-16..17）：人工起草审核 ‖ 查询历史挖掘 双列
  *   6-G 起草一路（p6-17b..19）：ol-draft 锚 p6-17b → hold 18/19；前景 9,685<5% 覆盖条塌落
  *       + 虚线徽 + 挖掘路元数据签
  *   6-H 冲突并列（p6-20..21）：CONFLICT 卡（数值留空 · 拒答等裁决）
  *   6-I 裁决实验（p6-22..23）：ol-conflict 锚 p6-22 → hold p6-23；前景 D4 消融
  *       （热度 200:5 对比条）+ 实心徽
- *   6-J 被取代（p6-24）：ol-super 锚（lead={false}）；前景 superseded 盖章卡
- *   6-K 参数面（p6-25..26）：el-six 锚（lead={false}）→ el-sm 锚（lead={false}）；
- *       前景第七面虚框签
+ *   6-J 被取代（p6-24 含 24b）：ol-super 锚（lead={false}）；前景 superseded 盖章卡
+ *       + G3 裁决权不自动化徽章@p6-24b
+ *   6-K 参数面（p6-25..26 含 25c..g）：el-six 锚（lead={false}）→ el-sm 链
+ *       p6-25c 锚 → hold 25d..26；RecapDim 自第二条 cue 起压暗、晋升三关装置置顶
+ *       （z 序：装置 JSX 在 recap 之后）；三关@25d/e/f 逐条 + 「有用比」灰显角标@25g
+ *       + 状态机走位签 + 第七面虚框签@p6-26
  *   6-L 轴收束（p6-27..28）：FiveAxisMap 五轴全亮（passedCount=5）+ 判词条 + 读管线预告
  */
 import React from 'react';
@@ -25,12 +30,13 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import type {SceneRange} from '../types';
 import {beatWindow} from '../timing';
 import {theme, withAlpha} from '../design/theme';
-import {useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {useEnter, useImpulse, useProgress, useSpring} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {FiveAxisMap} from '../components/FiveAxisMap';
 import {LampTrio} from '../components/LampTrio';
+import {RecapDim} from '../components/RecapDim';
 
 export const P6Compounding: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
@@ -42,12 +48,12 @@ export const P6Compounding: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bB = w('p6-03', 'p6-06');
   const bC = w('p6-07', 'p6-08');
   const bD = w('p6-09', 'p6-12');
-  const bE = w('p6-13', 'p6-15');
+  const bE = w('p6-13', 'p6-15d');
   const bF = w('p6-16', 'p6-17');
   const bG = w('p6-17b', 'p6-19');
   const bH = w('p6-20', 'p6-21');
   const bI = w('p6-22', 'p6-23');
-  const bJ = w('p6-24');
+  const bJ = w('p6-24', 'p6-24b');
   const bK = w('p6-25', 'p6-26');
   const bL = w('p6-27', 'p6-28');
 
@@ -98,12 +104,15 @@ export const P6Compounding: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      {/* 6-E 修复时序：三拍点亮 + 最后写落章 */}
+      {/* 6-E 修复时序：三拍点亮 + 最后写落章 + 双时序对照 + 「设计 ≠ 在线」灰标 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="6-E">
         <RepairTimeline
           at={at('p6-13') - bE.from}
           consumerAt={at('p6-14') - bE.from}
           watermarkAt={at('p6-15') - bE.from}
+          firstAt={at('p6-15b') - bE.from}
+          lastAt={at('p6-15c') - bE.from}
+          offlineAt={at('p6-15d') - bE.from}
         />
       </Sequence>
 
@@ -140,27 +149,39 @@ export const P6Compounding: React.FC<{scene: SceneRange}> = ({scene}) => {
         <D4Ablation at={at('p6-23') - bI.from} />
       </Sequence>
 
-      {/* 6-J 被取代：ol-super（承 6-I 链尾跨镜背靠背 → lead={false}）+ 盖章卡 */}
+      {/* 6-J 被取代：ol-super（承 6-I 链尾跨镜背靠背 → lead={false}）+ 盖章卡 + G3 徽章 */}
       <Sequence from={bJ.from} durationInFrames={bJ.durationInFrames} name="6-J">
         <ArchifyRecap slug="blueprint--object-lifecycle" caption="对象生命周期 · 被取代" cues={[
           {chapterId: 'ol-super', at: at('p6-24') - bJ.from, durationInFrames: dur('p6-24')},
         ]} lead={false} />
-        <SupersededCard at={at('p6-24') - bJ.from + 10} />
+        <SupersededCard at={at('p6-24') - bJ.from + 10} g3At={at('p6-24b') - bJ.from} />
       </Sequence>
 
-      {/* 6-K 参数面：el-six → el-sm（均承前背靠背 → lead={false}）+ 第七面签 */}
+      {/* 6-K 参数面：el-six → el-sm 链（均承前背靠背 → lead={false}）；
+          RecapDim 自第二条 cue 起压暗画框、晋升三关装置置顶（z 序：装置在 recap 后） */}
       <Sequence from={bK.from} durationInFrames={bK.durationInFrames} name="6-K">
         <ArchifyRecap slug="evolution-levers" caption="进化杠杆 · 六面" cues={[
           {chapterId: 'el-six', at: at('p6-25') - bK.from, durationInFrames: dur('p6-25')},
         ]} lead={false} />
-        <ArchifyRecap slug="evolution-levers" caption="进化杠杆 · 状态机" cues={[
-          {chapterId: 'el-sm', at: at('p6-26') - bK.from, durationInFrames: dur('p6-26')},
-        ]} lead={false} />
-        <div style={{position: 'absolute', top: 148, right: 80}}>
-          <span style={{padding: '7px 18px', border: `1.5px dashed ${theme.conceptDeep}`, borderRadius: 999, fontSize: 18, fontFamily: theme.mono, color: theme.conceptDeep, background: withAlpha(theme.bg, 0.9)}}>
-            第七面 · 仅提案 · 无代码
-          </span>
-        </div>
+        <RecapDim from={at('p6-25d') - bK.from} dur={dur('p6-25d', 'p6-26')}>
+          <ArchifyRecap slug="evolution-levers" caption="进化杠杆 · 状态机" cues={[
+            {chapterId: 'el-sm', at: at('p6-25c') - bK.from, durationInFrames: dur('p6-25c')},
+            {chapterId: 'el-sm', at: at('p6-25d') - bK.from, durationInFrames: dur('p6-25d'), fit: 'hold'},
+            {chapterId: 'el-sm', at: at('p6-25e') - bK.from, durationInFrames: dur('p6-25e'), fit: 'hold'},
+            {chapterId: 'el-sm', at: at('p6-25f') - bK.from, durationInFrames: dur('p6-25f'), fit: 'hold'},
+            {chapterId: 'el-sm', at: at('p6-25g') - bK.from, durationInFrames: dur('p6-25g'), fit: 'hold'},
+            {chapterId: 'el-sm', at: at('p6-26') - bK.from, durationInFrames: dur('p6-26'), fit: 'hold'},
+          ]} lead={false} />
+        </RecapDim>
+        <PromotionGates
+          introAt={at('p6-25c') - bK.from}
+          g1At={at('p6-25d') - bK.from}
+          g2At={at('p6-25e') - bK.from}
+          g3At={at('p6-25f') - bK.from}
+          noteAt={at('p6-25g') - bK.from}
+          smAt={at('p6-26') - bK.from}
+        />
+        <SeventhChip at={at('p6-26') - bK.from} />
       </Sequence>
 
       {/* 6-L 轴收束：FiveAxisMap 五轴全亮 + 判词条 + 读管线预告 */}
@@ -246,13 +267,13 @@ const BrokenLoop: React.FC<{at: number; grepAt: number; queueAt: number; fadeAt:
   const grepIn = useProgress(grepAt, 14);
   const queueIn = useProgress(queueAt, 14);
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 70}}>
+    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 70, paddingBottom: 150}}>
       {/* 三状态位只亮一盏（relative 盒给 LampTrio 的 AbsoluteFill 提供包含块） */}
       <div style={{position: 'relative', width: 860, height: 420}}>
         <LampTrio at={at} onAt={[6, null, null]} missingAt={14} />
       </div>
       {/* 右列：气泡消散 + grep + 队列 */}
-      <div style={{display: 'flex', flexDirection: 'column', gap: 20, width: 620}}>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 14, width: 620}}>
         {/* 补句气泡：到下一次会话就没了（消散） */}
         <div style={{opacity: 0.5 * (1 - ghost), transform: `translateY(${-ghost * 14}px)`, alignSelf: 'flex-end'}}>
           <span style={{padding: '8px 18px', border: `1.5px dashed ${theme.panelBorder}`, borderRadius: 10, fontSize: 18, color: theme.dim}}>
@@ -289,26 +310,39 @@ const BrokenLoop: React.FC<{at: number; grepAt: number; queueAt: number; fadeAt:
   );
 };
 
-/** 6-E：修复时序三拍 trigger → consumer → watermark。 */
-const RepairTimeline: React.FC<{at: number; consumerAt: number; watermarkAt: number}> = ({at, consumerAt, watermarkAt}) => {
+/** 6-E：修复时序三拍 trigger → consumer → watermark + p6-15b/c 双时序对照小图
+ *  （先写·崩溃整批跳过·红 ‖ 最后写·重启重做·绿）+ p6-15d「设计 ≠ 在线」灰标。 */
+const RepairTimeline: React.FC<{at: number; consumerAt: number; watermarkAt: number; firstAt: number; lastAt: number; offlineAt: number}> = ({
+  at,
+  consumerAt,
+  watermarkAt,
+  firstAt,
+  lastAt,
+  offlineAt,
+}) => {
   const enter = useProgress(at, 14);
   const c = useProgress(consumerAt, 12);
   const wm = useProgress(watermarkAt, 12);
   const stamp = useSpring('snap', {at: watermarkAt + 14, dur: 14});
+  const first = useProgress(firstAt, 14);
+  const last = useProgress(lastAt, 14);
+  const offline = useProgress(offlineAt, 14);
+  // 对照入场后，三拍时序退为前提（suppression 压暗；落章保留——它是右侧绿卡的答案）
+  const stagesDim = 1 - 0.55 * Math.max(first, last);
   const stages = [
     {t: 'trigger', s: '水位差 ≥Δ · 空闲 ≥T', a: 1},
     {t: 'consumer', s: 'SKIP LOCKED 出队执行', a: c},
     {t: 'watermark', s: '提交点 · 最后写', a: wm},
   ];
   return (
-    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 44, opacity: enter}}>
-      <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
+    <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30, opacity: enter}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 20, opacity: stagesDim}}>
         {stages.map((s, i) => (
           <div key={s.t} style={{display: 'flex', alignItems: 'center', gap: 20}}>
             <div
               style={{
-                width: 300,
-                padding: '18px 24px',
+                width: 290,
+                padding: '14px 22px',
                 border: `2.5px solid ${s.a > 0.4 ? theme.ok : theme.panelBorder}`,
                 borderRadius: 12,
                 background: theme.panel,
@@ -316,8 +350,8 @@ const RepairTimeline: React.FC<{at: number; consumerAt: number; watermarkAt: num
                 transform: `translateY(${(1 - s.a) * 12}px)`,
               }}
             >
-              <div style={{fontSize: 24, fontFamily: theme.mono, color: s.a > 0.4 ? theme.ok : theme.dim}}>{s.t}</div>
-              <div style={{fontSize: 17, color: theme.dim, fontFamily: theme.mono, marginTop: 6}}>{s.s}</div>
+              <div style={{fontSize: 23, fontFamily: theme.mono, color: s.a > 0.4 ? theme.ok : theme.dim}}>{s.t}</div>
+              <div style={{fontSize: 16, color: theme.dim, fontFamily: theme.mono, marginTop: 6}}>{s.s}</div>
             </div>
             {i < 2 ? <span style={{fontSize: 26, color: theme.dim, opacity: stages[i + 1].a}}>→</span> : null}
           </div>
@@ -325,10 +359,10 @@ const RepairTimeline: React.FC<{at: number; consumerAt: number; watermarkAt: num
       </div>
       <span
         style={{
-          padding: '8px 24px',
+          padding: '7px 22px',
           border: `3px solid ${theme.ok}`,
           borderRadius: 10,
-          fontSize: 22,
+          fontSize: 21,
           color: theme.ok,
           transform: `rotate(-7deg) scale(${stamp})`,
           opacity: Math.min(1, stamp),
@@ -336,7 +370,76 @@ const RepairTimeline: React.FC<{at: number; consumerAt: number; watermarkAt: num
       >
         最后写 · 防同一件事记两遍
       </span>
+      {/* p6-15b/c 双时序对照：先写（红）‖ 最后写（绿） */}
+      <div style={{display: 'flex', alignItems: 'stretch', gap: 34}}>
+        <TimingCard
+          title="先写水位线"
+          tone="bad"
+          steps={['写账 ✓', '干到一半 ✗ 崩', '账上写着做完']}
+          end="整批被跳过 · 永不重做"
+          enter={first}
+          dim={1 - 0.35 * last}
+        />
+        <TimingCard
+          title="最后写"
+          tone="good"
+          steps={['干活', '崩 ✗', '账上没记']}
+          end="重启 → 整段重做"
+          enter={last}
+          dim={1}
+        />
+      </div>
+      {/* p6-15d 灰标：设计给出 ≠ 在线 */}
+      <span
+        style={{
+          padding: '7px 22px',
+          border: `1.5px dashed ${theme.dim}`,
+          borderRadius: 999,
+          fontSize: 18,
+          fontFamily: theme.mono,
+          color: theme.dim,
+          background: withAlpha(theme.bg, 0.9),
+          opacity: offline,
+          transform: `translateY(${(1 - offline) * 10}px)`,
+        }}
+      >
+        设计 ≠ 在线 · 消费者与水位线未动工
+      </span>
     </AbsoluteFill>
+  );
+};
+
+/** 6-E 对照小卡：三步小流 + 终态行（红=账先记活没干 / 绿=账没记可重做）。 */
+const TimingCard: React.FC<{title: string; tone: 'bad' | 'good'; steps: string[]; end: string; enter: number; dim: number}> = ({title, tone, steps, end, enter, dim}) => {
+  const c = tone === 'bad' ? theme.danger : theme.ok;
+  return (
+    <div
+      style={{
+        width: 560,
+        padding: '14px 22px',
+        border: `2px solid ${c}`,
+        borderRadius: 12,
+        background: theme.panel,
+        opacity: enter * dim,
+        transform: `translateY(${(1 - enter) * 14}px)`,
+      }}
+    >
+      <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+        <span style={{width: 10, height: 10, borderRadius: 5, background: c}} />
+        <span style={{fontSize: 20, color: c, fontFamily: theme.mono}}>{title}</span>
+      </div>
+      <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap'}}>
+        {steps.map((s, i) => (
+          <span key={s} style={{display: 'flex', alignItems: 'center', gap: 10}}>
+            <span style={{padding: '5px 12px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 7, fontSize: 16, color: theme.text, background: theme.terminalBg, whiteSpace: 'nowrap'}}>
+              {s}
+            </span>
+            {i < steps.length - 1 ? <span style={{fontSize: 17, color: theme.dim}}>→</span> : null}
+          </span>
+        ))}
+      </div>
+      <div style={{marginTop: 12, fontSize: 18, color: c}}>{end}</div>
+    </div>
   );
 };
 
@@ -463,10 +566,13 @@ const D4Ablation: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 6-J 前景：superseded 盖章卡（灰化归档 · 留记录不删除）。 */
-const SupersededCard: React.FC<{at: number}> = ({at}) => {
+/** 6-J 前景：superseded 盖章卡（灰化归档 · 留记录不删除）+ p6-24b G3 徽章
+ *  （裁决权不自动化 · 人工检查点亮）。 */
+const SupersededCard: React.FC<{at: number; g3At: number}> = ({at, g3At}) => {
   const seal = useSpring('snap', {at, dur: 16});
   const gray = useProgress(at, 20);
+  const g3 = useEnter('pop', {at: g3At, dur: 18});
+  const g3Pulse = useImpulse({at: g3At + 8, dur: 26, peak: 0.7});
   return (
     <div style={{position: 'absolute', top: 330, left: '50%', transform: 'translateX(-50%)'}}>
       <div style={{position: 'relative', width: 360, padding: '20px 26px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 12, background: theme.panel, opacity: 1 - gray * 0.45}}>
@@ -494,6 +600,130 @@ const SupersededCard: React.FC<{at: number}> = ({at}) => {
       <div style={{textAlign: 'center', marginTop: 14, fontSize: 18, color: theme.dim, fontFamily: theme.mono, opacity: gray}}>
         留记录 · 不是直接删掉
       </div>
+      {/* p6-24b 人工检查点徽章（G3） */}
+      <div style={{display: 'flex', justifyContent: 'center', marginTop: 16}}>
+        <span
+          style={{
+            ...g3,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '9px 24px',
+            border: `2.5px solid ${theme.ok}`,
+            borderRadius: 999,
+            fontSize: 20,
+            color: theme.ok,
+            background: withAlpha(theme.bg, 0.9),
+            boxShadow: `0 0 ${14 * g3Pulse}px ${withAlpha(theme.ok, 0.5)}`,
+          }}
+        >
+          <span style={{fontFamily: theme.mono, border: `1.5px solid ${theme.ok}`, borderRadius: 6, padding: '1px 8px', fontSize: 16}}>G3</span>
+          裁决权不自动化 · 人工检查点
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/** 6-K 前景：晋升三关逐条（关一零命中率退化 ≤0.01 / 关二有用比净改进 ≥0.02 /
+ *  关三两组样本各 ≥50·不够不提案）+ p6-25g「有用比」灰显角标 + p6-26 状态机走位签。 */
+const PromotionGates: React.FC<{introAt: number; g1At: number; g2At: number; g3At: number; noteAt: number; smAt: number}> = ({introAt, g1At, g2At, g3At, noteAt, smAt}) => {
+  const intro = useProgress(introAt, 12);
+  const gates = [useProgress(g1At, 14), useProgress(g2At, 14), useProgress(g3At, 14)];
+  const note = useEnter('rise', {at: noteAt, dur: 14});
+  const sm = useProgress(smAt, 12);
+  const rows = [
+    {n: '关 1', t: '零命中率退化', v: '≤ 0.01'},
+    {n: '关 2', t: '有用比净改进', v: '≥ 0.02', flag: true},
+    {n: '关 3', t: '两组样本各', v: '≥ 50 · 不够不提案'},
+  ];
+  return (
+    <div style={{position: 'absolute', left: 0, right: 0, top: 190, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18}}>
+      <span
+        style={{
+          padding: '8px 26px',
+          border: `2px solid ${theme.ok}`,
+          borderRadius: 999,
+          fontSize: 21,
+          color: theme.ok,
+          background: withAlpha(theme.bg, 0.92),
+          opacity: intro,
+          transform: `translateY(${(1 - intro) * 10}px)`,
+        }}
+      >
+        可进化参数 · 晋升三关
+      </span>
+      {rows.map((r, i) => (
+        <div
+          key={r.n}
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 20,
+            width: 720,
+            padding: '13px 24px',
+            border: `2px solid ${gates[i] > 0.4 ? theme.ok : theme.panelBorder}`,
+            borderRadius: 12,
+            background: withAlpha(theme.bg, 0.92),
+            opacity: 0.25 + gates[i] * 0.75,
+            transform: `translateX(${(1 - gates[i]) * -26}px)`,
+          }}
+        >
+          <span style={{padding: '2px 12px', border: `1.5px solid ${theme.ok}`, borderRadius: 6, fontSize: 15, fontFamily: theme.mono, color: theme.ok}}>{r.n}</span>
+          <span style={{fontSize: 21, color: theme.text}}>{r.t}</span>
+          <span style={{marginLeft: 'auto', fontSize: 22, fontFamily: theme.mono, color: theme.ok, fontVariantNumeric: 'tabular-nums'}}>{r.v}</span>
+          {r.flag ? (
+            <span
+              style={{
+                position: 'absolute',
+                right: 14,
+                bottom: -16,
+                padding: '3px 14px',
+                border: `1.5px dashed ${theme.dim}`,
+                borderRadius: 999,
+                fontSize: 14,
+                fontFamily: theme.mono,
+                color: theme.dim,
+                background: withAlpha(theme.bg, 0.95),
+                opacity: note.opacity,
+                transform: note.transform,
+              }}
+            >
+              常量已定义 · 未接在线判定
+            </span>
+          ) : null}
+        </div>
+      ))}
+      {/* p6-26 状态机走位签（回放内状态机的画面锚） */}
+      <span
+        style={{
+          marginTop: 12,
+          padding: '6px 20px',
+          border: `1.5px solid ${theme.concept}`,
+          borderRadius: 999,
+          fontSize: 17,
+          fontFamily: theme.mono,
+          color: theme.concept,
+          background: withAlpha(theme.bg, 0.92),
+          opacity: sm,
+          transform: `translateY(${(1 - sm) * 8}px)`,
+        }}
+      >
+        旁路评估 → 灰度 → 晋升 / 否决 / 回滚
+      </span>
+    </div>
+  );
+};
+
+/** 6-K：第七面虚框签（p6-26 锚定入场）。 */
+const SeventhChip: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('fade', {at, dur: 14});
+  return (
+    <div style={{position: 'absolute', top: 148, right: 80, ...enter}}>
+      <span style={{padding: '7px 18px', border: `1.5px dashed ${theme.conceptDeep}`, borderRadius: 999, fontSize: 18, fontFamily: theme.mono, color: theme.conceptDeep, background: withAlpha(theme.bg, 0.9)}}>
+        第七面 · 仅提案 · 无代码
+      </span>
     </div>
   );
 };

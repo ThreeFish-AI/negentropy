@@ -2,8 +2,8 @@
  "schema": 2,
  "mode": "chapter",
  "lead_sec": 0.44,
- "story_sec": 20.71,
- "total_wall_sec": 89.53,
+ "story_sec": 20.66,
+ "total_wall_sec": 108.0,
  "started_playback": true,
  "clapper_found": true,
  "measured_fps": 25.0,
@@ -35,13 +35,13 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.25,
+   "story_sec": 3.23,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "ingest"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 62.0
+   "capture_fps": 61.0
   },
   {
    "id": "ig-normalize",
@@ -52,13 +52,13 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.26,
+   "story_sec": 3.25,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "normalize"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 65.0
   },
   {
    "id": "ig-classify",
@@ -69,13 +69,13 @@
    "beats": 1,
    "dwell_ms": 3200,
    "lead_sec": 0.44,
-   "story_sec": 3.24,
+   "story_sec": 3.25,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "classify"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 62.0
   },
   {
    "id": "ig-tier",
@@ -86,7 +86,7 @@
    "beats": 4,
    "dwell_ms": 1100,
    "lead_sec": 0.44,
-   "story_sec": 4.46,
+   "story_sec": 4.43,
    "beat_offsets_sec": [],
    "beat_nodes": [
     "tier",
@@ -95,7 +95,7 @@
     "l2"
    ],
    "measured_fps": 25.0,
-   "capture_fps": 61.0
+   "capture_fps": 62.0
   },
   {
    "id": "ig-tag",
@@ -123,7 +123,7 @@
   "fps": 25,
   "out_h": 1440
  },
- "source": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/ingest-pipeline.html",
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/ingest-pipeline.html",
  "slug": "ingest-pipeline",
  "type": "workflow"
 }

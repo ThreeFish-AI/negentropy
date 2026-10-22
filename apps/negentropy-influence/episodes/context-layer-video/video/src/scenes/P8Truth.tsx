@@ -1,23 +1,30 @@
-/** P8 现状对账（p8-01..p8-33，33 句；storyboard v4「P8 现状对账」节）。
+/** P8 现状对账（p8-01..p8-33 含 13b/28b..g，40 句；storyboard v5「P8 现状对账」节）。
  *
- *  13 镜 / 8 条 archify cue（ip-assembler ×1 + ip-memory ×2 + ip-full ×3 + arc-facets ×2；
- *  ip-memory 承 ip-assembler 链尾跨镜背靠背 → lead={false}）：
+ *  14 镜 / 15 条 archify cue（ip-assembler ×1 + ip-memory ×2 + ip-full ×4 +
+ *  fm2-open ×6 + arc-facets ×2；ip-memory 承 ip-assembler 链尾跨镜背靠背 → lead={false}；
+ *  fm2-open 隔 14 句空窗重现 → 默认 lead 入场）：
  *   8-A 判定面（p8-01..03）：判据卡铸字 + 「文档存在 vs 生产路径在用」对照
  *       （ScrollVsBelt 迁移改写：代码文件灰静止 ‖ 调用线绿跑动）
  *   8-B 走廊③（p8-04..05）：CodePane·assemble() 源码段 + token 预算注释行高亮 + 标题小卡
+ *       + p8-05 追加注释行「画像块的份额也在这里预留」（与 P2 两级预算呼应）
  *   8-C 零调用（p8-06）：ip-assembler 锚；前景计数器 0 @impulse + 实心徽
  *   8-D 记忆真锚（p8-07..08）：ip-memory 锚 p8-07 → hold p8-08（lead={false}）；前景
  *       链路 mini + NegentropyPreloadMemoryTool 参数签
  *   8-E 走廊④（p8-09..11）：CodePane·expand_skill 目录行 × TOOL_REGISTRY 挂载对拍
- *       命中 0 + 在线考核计数 0 + I-194
- *   8-F 三四条（p8-12..14）：ip-full 锚 p8-12 → hold 13/14；前景 engine/context/ 空缺框
- *       + 10/2 审批徽 + I-195/196 回扣
+ *       命中 0 + 在线考核计数 0 + I-194 + 「晋升 ＝ 离线复评」结论标@p8-11
+ *   8-F 三四条（p8-12..14 含 13b）：ip-full 锚 p8-12 → hold 13/13b/14；前景
+ *       engine/context/ 空缺框 + 10/2 审批徽 + I-195/196 回扣 + 主机命令签@p8-13b
  *   8-G 映射表（p8-15..16）：20 行机制↔代码三色行滚动 + 已落地行 #2/#3/#7 钉亮
+ *       + 执行点空列灰显签@p8-15
  *   8-H 修复一二步（p8-17..20）：三步梯前两级 + 防注入前提角标 + 梯顶标题
  *   8-I 第三步（p8-21..22）：退役段立规特写 + 「不加新能力」结论条
  *   8-J 依赖序（p8-23..24）：轴依赖箭头链 + 三标（只增不改·带开关·出错降级）
  *   8-K 三错对策（p8-25..28）：RequestCard 回中央（全 passed 终态）+ 三失效卡被
  *       组件标签逐一覆盖（资产＋沉淀 / 检索 / 权威）
+ *   8-L2 审计三步（p8-28b..g）：fm2-open 锚 p8-28b → hold 28c..g（RecapDim 自第二条
+ *       cue 起压暗，AuditCard 置顶——z 序：装置在 recap 之后）；AuditCard 三步
+ *       （宣言气泡→翻失效形态找同形簇 / 拆掉会出什么错·可复现证据 / 存在·接线·在线
+ *       核生产路径→任一不过登记成新的一行）
  *   8-L 差距复现（p8-29..31）：19/85 双条复现 + 97/4 并排 + 结论打字机
  *   8-M 终幕（p8-32..33）：arc-facets 锚 p8-32 → hold p8-33；三面标签归位 + 系列卡
  *       （seriesLayers.next ·「下期」仅此卡）+ 末镜推导渐黑
@@ -30,10 +37,12 @@ import {theme, withAlpha} from '../design/theme';
 import {progress, useEnter, useFadeOut, useFlowDash, useImpulse, useProgress, useReveal, useSpring, useStagger} from '../motion';
 import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
+import {AuditCard} from '../components/AuditCard';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {RequestCard} from '../components/RequestCard';
 import {CodePane} from './P5Retrieval';
 import {RatioBars, ScoreDuo} from './P0Errors';
+import {RecapDim} from '../components/RecapDim';
 import seriesLayers from '../series-layers.json';
 
 /** FiveAxisMap 五轴 id（RequestCard 终态 passed 收束用，与组 A 高亮词表同源）。 */
@@ -56,6 +65,7 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bI = w('p8-21', 'p8-22');
   const bJ = w('p8-23', 'p8-24');
   const bK = w('p8-25', 'p8-28');
+  const bL2 = w('p8-28b', 'p8-28g');
   const bL = w('p8-29', 'p8-31');
   const bM = w('p8-32', 'p8-33');
 
@@ -73,19 +83,22 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
         </Sequence>
       </Sequence>
 
-      {/* 8-B 走廊③：assemble() 源码段 + 预算注释行 */}
+      {/* 8-B 走廊③：assemble() 源码段 + 预算注释行 + p8-05 画像块份额注释行 */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="8-B">
         <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30}}>
           <TitleChip at={at('p8-04') - bB.from} text="第一条 · 设计完整的上下文装配器" />
-          <CodePane
-            at={at('p8-04') - bB.from + 10}
-            lines={[
-              'context_assembler.py · assemble(self, request: ContextRequest)',
-              '  # 按 token 预算给 memory / history / system 分额度   ← 注释',
-              '  budgets = plan.allocate(request.domains)',
-              '  return ContextBundle(items=[…])   # 每项 uri@version',
-            ]}
-          />
+          <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+            <CodePane
+              at={at('p8-04') - bB.from + 10}
+              lines={[
+                'context_assembler.py · assemble(self, request: ContextRequest)',
+                '  # 按 token 预算给 memory / history / system 分额度   ← 注释',
+                '  budgets = plan.allocate(request.domains)',
+                '  return ContextBundle(items=[…])   # 每项 uri@version',
+              ]}
+            />
+            <ProfileShareLine at={at('p8-05') - bB.from} />
+          </div>
         </AbsoluteFill>
       </Sequence>
 
@@ -125,25 +138,32 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
             I-194
           </span>
         </div>
+        {/* p8-11 结论标：晋升实际全靠离线复评裁决 */}
+        <div style={{position: 'absolute', bottom: 190, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+          <OfflineVerdict at={at('p8-11') - bE.from} />
+        </div>
       </Sequence>
 
-      {/* 8-F 三四条：ip-full hold 链 + 前景空缺框/10-of-2/回扣 */}
+      {/* 8-F 三四条：ip-full hold 链（含 p8-13b）+ 前景空缺框/10-of-2/回扣/主机命令签 */}
       <Sequence from={bF.from} durationInFrames={bF.durationInFrames} name="8-F">
         <ArchifyRecap slug="injection-points" caption="注入点 · 装配面全景" cues={[
           {chapterId: 'ip-full', at: at('p8-12') - bF.from, durationInFrames: dur('p8-12')},
           {chapterId: 'ip-full', at: at('p8-13') - bF.from, durationInFrames: dur('p8-13'), fit: 'hold'},
+          {chapterId: 'ip-full', at: at('p8-13b') - bF.from, durationInFrames: dur('p8-13b'), fit: 'hold'},
           {chapterId: 'ip-full', at: at('p8-14') - bF.from, durationInFrames: dur('p8-14'), fit: 'hold'},
         ]} />
         <GapBadges
           gapAt={at('p8-12') - bF.from}
           approvalAt={at('p8-13') - bF.from}
+          hostAt={at('p8-13b') - bF.from}
           recallAt={at('p8-14') - bF.from}
         />
       </Sequence>
 
-      {/* 8-G 映射表：20 行三色滚动 + 已落地钉亮 */}
+      {/* 8-G 映射表：20 行三色滚动 + 已落地钉亮 + 执行点空列灰显签 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="8-G">
         <MappingTable20 at={at('p8-15') - bG.from} pinAt={at('p8-16') - bG.from} />
+        <EmptyColChip at={at('p8-15') - bG.from + 12} />
       </Sequence>
 
       {/* 8-H 修复一二步：三步梯前两级 + 前提角标 */}
@@ -173,6 +193,29 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           row1At={at('p8-26') - bK.from}
           row2At={at('p8-27') - bK.from}
           row3At={at('p8-28') - bK.from}
+        />
+      </Sequence>
+
+      {/* 8-L2 审计三步：fm2-open 锚（隔 14 句空窗重现 → 默认 lead 做入场）→ hold 28c..g；
+          RecapDim 自第二条 cue 起压暗画框，AuditCard 置顶（z 序：装置在 recap 之后） */}
+      <Sequence from={bL2.from} durationInFrames={bL2.durationInFrames} name="8-L2">
+        <RecapDim from={at('p8-28c') - bL2.from} dur={dur('p8-28c', 'p8-28g')}>
+          <ArchifyRecap slug="failure-map" caption="失效登记簿 · 审计三步" cues={[
+            {chapterId: 'fm2-open', at: at('p8-28b') - bL2.from, durationInFrames: dur('p8-28b')},
+            {chapterId: 'fm2-open', at: at('p8-28c') - bL2.from, durationInFrames: dur('p8-28c'), fit: 'hold'},
+            {chapterId: 'fm2-open', at: at('p8-28d') - bL2.from, durationInFrames: dur('p8-28d'), fit: 'hold'},
+            {chapterId: 'fm2-open', at: at('p8-28e') - bL2.from, durationInFrames: dur('p8-28e'), fit: 'hold'},
+            {chapterId: 'fm2-open', at: at('p8-28f') - bL2.from, durationInFrames: dur('p8-28f'), fit: 'hold'},
+            {chapterId: 'fm2-open', at: at('p8-28g') - bL2.from, durationInFrames: dur('p8-28g'), fit: 'hold'},
+          ]} />
+        </RecapDim>
+        <AuditCard
+          claimAt={at('p8-28b') - bL2.from}
+          s1At={at('p8-28c') - bL2.from}
+          s2At={at('p8-28d') - bL2.from}
+          s2xAt={at('p8-28e') - bL2.from}
+          s3At={at('p8-28f') - bL2.from}
+          rowAt={at('p8-28g') - bL2.from}
         />
       </Sequence>
 
@@ -266,6 +309,55 @@ const TitleChip: React.FC<{at: number; text: string}> = ({at, text}) => {
   );
 };
 
+/** 8-B p8-05：assemble() 预算注释的追加行「画像块的份额也在这里预留」
+ *  （与 P2 两级预算呼应；CodePane 是他组 scene 导出件、不动其行内时序，故单列一行）。 */
+const ProfileShareLine: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('rise', {at, dur: 14});
+  return (
+    <div
+      style={{
+        ...enter,
+        display: 'flex',
+        alignItems: 'center',
+        width: 1040,
+        boxSizing: 'border-box',
+        background: theme.terminalBg,
+        border: `1.5px dashed ${theme.conceptDeep}`,
+        borderRadius: 8,
+        padding: '10px 24px',
+        fontFamily: theme.mono,
+        fontSize: 21,
+      }}
+    >
+      <span style={{color: theme.dim, marginRight: 14}}>05</span>
+      <span style={{color: theme.conceptDeep}}># 画像块的份额也在这里预留</span>
+      <span style={{color: theme.dim, marginLeft: 18, fontSize: 16}}>← 与 P2 两级预算呼应</span>
+    </div>
+  );
+};
+
+/** 8-E p8-11：在线考核恒零的落点结论标。 */
+const OfflineVerdict: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('rise', {at, dur: 16});
+  return (
+    <span style={{...enter, padding: '9px 26px', border: `2.5px solid ${theme.ok}`, borderRadius: 10, fontSize: 22, color: theme.ok, letterSpacing: 2, background: withAlpha(theme.bg, 0.9)}}>
+      晋升 ＝ 离线复评
+    </span>
+  );
+};
+
+/** 8-G p8-15：执行点空列＝纸面设计 灰显签。 */
+const EmptyColChip: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('fade', {at, dur: 14});
+  return (
+    <div style={{position: 'absolute', right: 150, top: 250, ...enter}}>
+      <span style={{padding: '7px 18px', border: `1.5px dashed ${theme.dim}`, borderRadius: 999, fontSize: 17, fontFamily: theme.mono, color: theme.dim, background: withAlpha(theme.bg, 0.9)}}>
+        执行点空列 ⇒ 纸面设计
+      </span>
+    </div>
+  );
+};
+
 /** 8-C：grep 计数器大字 0 @impulse（回放窗侧前景）。 */
 const ZeroCounter: React.FC<{at: number}> = ({at}) => {
   const enter = useEnter('rise', {at, dur: 14});
@@ -343,10 +435,12 @@ const RegistrySlots: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 8-F 前景：engine/context/ 空缺框 + 10/2 审批徽 + ISSUE 回扣（画框外侧栏）。 */
-const GapBadges: React.FC<{gapAt: number; approvalAt: number; recallAt: number}> = ({gapAt, approvalAt, recallAt}) => {
+/** 8-F 前景：engine/context/ 空缺框 + 10/2 审批徽 + 主机命令签（p8-13b）+ ISSUE 回扣
+ *  （画框外侧栏）。 */
+const GapBadges: React.FC<{gapAt: number; approvalAt: number; hostAt: number; recallAt: number}> = ({gapAt, approvalAt, hostAt, recallAt}) => {
   const gap = useEnter('rise', {at: gapAt, dur: 14});
   const approval = useEnter('rise', {at: approvalAt, dur: 14});
+  const host = useEnter('rise', {at: hostAt, dur: 14});
   const recall = useStagger(2, {stride: 12, at: recallAt});
   return (
     <>
@@ -357,6 +451,10 @@ const GapBadges: React.FC<{gapAt: number; approvalAt: number; recallAt: number}>
         <div style={{...approval, padding: '12px 16px', border: `2px solid ${theme.conceptDeep}`, borderRadius: 10, background: withAlpha(theme.bg, 0.85)}}>
           <div style={{fontSize: 34, color: theme.conceptDeep, fontVariantNumeric: 'tabular-nums', fontFamily: theme.mono}}>10 / 2</div>
           <div style={{fontSize: 16, color: theme.dim, marginTop: 4}}>高危工具 · 已接审批</div>
+        </div>
+        {/* p8-13b 主机命令工具不在清单 */}
+        <div style={{...host, padding: '12px 16px', border: `2px dashed ${theme.danger}`, borderRadius: 10, fontSize: 17, fontFamily: theme.mono, color: theme.danger, background: withAlpha(theme.bg, 0.85)}}>
+          主机命令工具 · 不在清单
         </div>
       </div>
       <div style={{position: 'absolute', right: 36, top: 230, width: 256, display: 'flex', flexDirection: 'column', gap: 14}}>
