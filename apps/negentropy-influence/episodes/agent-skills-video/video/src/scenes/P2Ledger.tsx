@@ -73,7 +73,7 @@ const HitPulse: React.FC<{askAt: number; hitAt: number}> = ({askAt, hitAt}) => {
           background: theme.panel,
         }}
       >
-        帮我拆这份 PDF 报表
+        帮我拆解这份 PDF 报表
       </div>
       <div style={{fontSize: 30, color: theme.dim}}>↓ 模型扫目录</div>
       <div

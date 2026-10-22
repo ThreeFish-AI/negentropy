@@ -281,12 +281,12 @@ const StackReturn: React.FC<{at07: number; at10: number; at12: number}> = ({at07
         {'Claude Code Harness Engineering'}
       </div>
 
-      {/* p6-10 空窗回落：收台侧标注（便宜先跑／配对不拆）；p6-12 前让位给登记簿侧 */}
+      {/* p6-10 空窗回落：收台侧标注（便宜先跑／配对不拆分）；p6-12 前让位给登记簿侧 */}
       <div style={{position: 'absolute', left: 1120, top: 388, opacity: annA.opacity * (1 - annAOut), transform: annA.transform}}>
         <div style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim, letterSpacing: 2}}>{'收台侧'}</div>
         <div style={{display: 'flex', gap: 18, marginTop: 14}}>
           <Pill color={theme.mech}>{'便宜先跑'}</Pill>
-          <Pill color={theme.mech}>{'配对不拆'}</Pill>
+          <Pill color={theme.mech}>{'配对不拆分'}</Pill>
         </div>
       </div>
 

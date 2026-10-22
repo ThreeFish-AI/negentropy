@@ -778,7 +778,7 @@ export const P7Laws: React.FC<{scene: SceneRange}> = ({scene}) => {
         <QuestionStack baseAt={at('p7-18') - bG.from} />
         <ArchifyRecap
           slug="three-claims-stack"
-          caption="三问拆宣称"
+          caption="三问拆解宣称"
           cues={[
             {chapterId: 'guess-only', at: at('p7-17') - bG.from, durationInFrames: dur('p7-17')},
             {chapterId: 'governed-trust', at: at('p7-18') - bG.from, durationInFrames: dur('p7-18')},

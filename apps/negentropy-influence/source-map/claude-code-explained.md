@@ -87,7 +87,7 @@ ep5 于 2026-10-02 **换题完全重制**（《多 Agent 平台：七件设施�
 | s12 Task System | `s10_task_system` | 改号不改内容 |
 | s13 Background Tasks | `s11_background_tasks` | 改号不改内容 |
 | s14 Cron Scheduler | `s12_cron_scheduler` | 改号不改内容 |
-| s15+s16+s17+s18（团队四课） | `s13_agent_teams`（单章 12 节） | 整合且有真增量：事件模型重构（结果与 IDLE 拆两事件）、认领两步化（发现与认领分离+原子执行）、worktree 语义加固（收归宿主侧+租约）、约束闭环（assignment version 使旧审批失效） |
+| s15+s16+s17+s18（团队四课） | `s13_agent_teams`（单章 12 节） | 整合且有真增量：事件模型重构（结果与 IDLE 拆成两事件）、认领两步化（发现与认领分离+原子执行）、worktree 语义加固（收归宿主侧+租约）、约束闭环（assignment version 使旧审批失效） |
 | s19 MCP Plugin | `s14_mcp_plugin` | 改号不改内容 |
 | s20 Comprehensive | `s15_integrated_harness` | 对应并被扩写（diff ~218 行；main 增量 = s08 新压缩管线 + s13 加固语义回灌） |
 | —— | `s16_workflow_runtime` | main 新增，本系列不覆盖（精读归 174 附录） |

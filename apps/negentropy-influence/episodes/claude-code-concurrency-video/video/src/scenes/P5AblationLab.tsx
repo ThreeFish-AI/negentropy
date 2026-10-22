@@ -1,4 +1,4 @@
-/** P5 拆机实验室（p5-01..26，7 镜 7 cue）——分镜 5-A…5-G，全片高潮：红绿消融对拍。
+/** P5 机制实验室（p5-01..26，7 镜 7 cue）——分镜 5-A…5-G，全片高潮：红绿消融对拍。
  *
  *  cue 清单（archify full，单行字面 at / dur 求和形态）与 lead 判定：
  *   5-A p5-01..04 ablation-panel / bench-open   —— 默认 lead：本幕首 cue，上一 cue 在
@@ -16,7 +16,7 @@
  *        背靠背（p5-20 末→p5-21 首紧邻）；p5-26 留作窗外收句。
  *
  *  ★要点：
- *  - 红绿专属语义（C 型素材映射契约 3）：ok=「机制在位」基线 / danger=「拆掉后」
+ *  - 红绿专属语义（C 型素材映射契约 3）：ok=「机制在位」基线 / danger=「关掉后」
  *    崩溃态，只给实验对拍与判读；SceneTag 走 mech（机制实验室），计费条 accent 金
  *    （P0 计费母题在 e5 复燃）。零 Lottie（I-202）。
  *  - 对拍面板主体由 ablation-panel / knock-walk-away 录制章承担（全屏独占 v4）；
@@ -113,11 +113,11 @@ const LabInstruments: React.FC<{
   const legend = useStagger(2, {at: legendAt, stride: 7, dur: DUR.f4});
   const legendRows = [
     {c: theme.ok, t: '机制在位'},
-    {c: theme.danger, t: '拆掉后'},
+    {c: theme.danger, t: '关掉后'},
   ] as const;
   return (
     <AbsoluteFill style={{opacity: fade}}>
-      {/* 顶部红绿图例（p5-04「绿色是基线，红色是拆掉之后」；画框顶 150 之上） */}
+      {/* 顶部红绿图例（p5-04「绿色是基线，红色是关掉之后」；画框顶 150 之上） */}
       <div style={{position: 'absolute', right: 28, top: 80, display: 'flex', gap: 28}}>
         {legendRows.map((ch, i) => (
           <div
@@ -482,7 +482,7 @@ const RedLane: React.FC<{win: number}> = ({win}) => {
     <Panel accent={theme.danger} style={{width: 740, height: 420, boxSizing: 'border-box', position: 'relative', overflow: 'hidden'}}>
       <div style={{position: 'absolute', inset: 0, background: withAlpha(theme.danger, 0.045), borderRadius: 12}} />
       <div style={{position: 'relative', padding: '18px 24px 0'}}>
-        <span style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 700, color: theme.danger}}>{'拆掉 · 硬注入 0 让行'}</span>
+        <span style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 700, color: theme.danger}}>{'关掉 · 硬注入 0 让行'}</span>
       </div>
       <div style={{position: 'absolute', left: 0, top: 0, width: 740, height: 420, overflow: 'hidden'}}>
         <div style={{position: 'absolute', left: 40, top: 195, width: 660, height: 2, background: theme.panelBorder}} />
@@ -800,7 +800,7 @@ export const P5AblationLab: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
-      <SceneTag chapter="P5" tagline="拆机实验室" accent={theme.mech} />
+      <SceneTag chapter="P5" tagline="机制实验室" accent={theme.mech} />
 
       <Sequence {...bLab} name="5-AF 实验台仪器层">
         <LabInstruments
@@ -817,17 +817,17 @@ export const P5AblationLab: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* 本幕首 cue；上一 cue 在 P4 镜内（跨幕隔 SceneFade）⇒ 默认 lead */}
         <ArchifyRecap
           slug="ablation-panel"
-          caption="拆机面板"
+          caption="开关面板"
           cues={[{chapterId: 'bench-open', at: at('p5-01') - bA.from, durationInFrames: dur('p5-01') + dur('p5-02') + dur('p5-03') + dur('p5-04')}]}
         />
-        <Footnote delay={at('p5-03') - bA.from}>{'e1–e5 · 一次只拆一个'}</Footnote>
+        <Footnote delay={at('p5-03') - bA.from}>{'e1–e5 · 一次只关一个'}</Footnote>
       </Sequence>
 
       <Sequence {...bB} name="5-B 开关一·兜错">
         {/* kill-thread 与 5-A bench-open 同 slug 跨镜背靠背（p5-04 末→p5-05 首紧邻）⇒ lead={false} */}
         <ArchifyRecap
           slug="ablation-panel"
-          caption="拆机面板"
+          caption="开关面板"
           lead={false}
           cues={[{chapterId: 'kill-thread', at: at('p5-05') - bB.from, durationInFrames: dur('p5-05') + dur('p5-06') + dur('p5-07') + dur('p5-08')}]}
         />
@@ -848,7 +848,7 @@ export const P5AblationLab: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* date-slip 同 slug 跨镜背靠背（p5-08→p5-09）⇒ lead={false} */}
         <ArchifyRecap
           slug="ablation-panel"
-          caption="拆机面板"
+          caption="开关面板"
           lead={false}
           cues={[{chapterId: 'date-slip', at: at('p5-09') - bC.from, durationInFrames: dur('p5-09') + dur('p5-10')}]}
         />
@@ -869,7 +869,7 @@ export const P5AblationLab: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* silent-miss 同 slug 跨镜背靠背（p5-10→p5-11）⇒ lead={false} */}
         <ArchifyRecap
           slug="ablation-panel"
-          caption="拆机面板"
+          caption="开关面板"
           lead={false}
           cues={[{chapterId: 'silent-miss', at: at('p5-11') - bD.from, durationInFrames: dur('p5-11') + dur('p5-12') + dur('p5-13')}]}
         />
@@ -918,7 +918,7 @@ export const P5AblationLab: React.FC<{scene: SceneRange}> = ({scene}) => {
             ⇒ 非紧邻同图，恢复入场（默认 lead） */}
         <ArchifyRecap
           slug="ablation-panel"
-          caption="拆机面板"
+          caption="开关面板"
           cues={[{chapterId: 'burn-wait', at: at('p5-17') - bF.from, durationInFrames: dur('p5-17') + dur('p5-18') + dur('p5-19') + dur('p5-20')}]}
         />
         <VerdictCard
@@ -941,7 +941,7 @@ export const P5AblationLab: React.FC<{scene: SceneRange}> = ({scene}) => {
             ⇒ lead={false}；cue 窗止于 p5-25 末，p5-26 留给收句 */}
         <ArchifyRecap
           slug="ablation-panel"
-          caption="拆机面板"
+          caption="开关面板"
           lead={false}
           cues={[{chapterId: 'timeout-crash', at: at('p5-21') - bG.from, durationInFrames: dur('p5-21') + dur('p5-22') + dur('p5-23') + dur('p5-24') + dur('p5-25')}]}
         />

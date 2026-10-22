@@ -379,7 +379,7 @@ export const P3LedgerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* cue 5/9：b4 跨句扩窗盖整镜（翻烧饼三连红） */}
         <ArchifyRecap
           slug="receipt-ledger"
-          caption="拆核验·翻烧饼"
+          caption="关掉核验·翻烧饼"
           cues={[
             {chapterId: 'b4', at: at('p3-10') - bC.from, durationInFrames: dur('p3-10') + dur('p3-11') + dur('p3-12')},
           ]}
@@ -418,7 +418,7 @@ export const P3LedgerClock: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* cue 9/9：b5 跨句扩窗盖整镜；与 3-E 末章（timeout@p3-19）镜界紧邻 → lead={false} */}
         <ArchifyRecap
           slug="duty-clock-loop"
-          caption="拆超时·钟不停"
+          caption="去掉超时·钟不停"
           cues={[
             {chapterId: 'b5', at: at('p3-20') - bF.from, durationInFrames: dur('p3-20') + dur('p3-21')},
           ]}

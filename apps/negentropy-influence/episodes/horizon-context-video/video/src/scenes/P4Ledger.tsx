@@ -69,7 +69,7 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       <SceneTag chapter="P4" tagline="背书与血缘" accent={theme.conceptDeep} />
 
       {/* 4-A 失效面：两章接力（链首入场） */}
-      <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="4-A 失效面">
+      <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="4-A 问题面">
         <ArchifyRecap slug="valid-sql-wrong-answer" caption="语法对 · 答案错" cues={[
           {chapterId: 'syntax-pass', at: at('p4-01') - bA.from, durationInFrames: dur('p4-01')},
           {chapterId: 'business-fail', at: at('p4-02') - bA.from, durationInFrames: dur('p4-02')},
@@ -177,13 +177,13 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 4-H 拆闸消融：fake-event@20 → gate-removed@21 → living-ledger@22（跨镜续链）。
           AblationPair 红绿同屏 = 基底层（被画框整镜遮盖，4-D② 范式）；页缘幽灵边呼吸
           chip（@breathe）+ 实心徽承担红绿对照的可见读出 */}
-      <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="4-H 拆闸消融">
+      <Sequence from={bH.from} durationInFrames={bH.durationInFrames} name="4-H 关闸消融">
         <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
           <AblationPair
             width={1240}
             at={at('p4-20') - bH.from}
             left={{
-              tag: 'D8 · 拆闸',
+              tag: 'D8 · 关闸',
               title: '解析闸关掉',
               lines: ['虚构事件推入摄取口', 'gate 缺位 · 未解析放行', 'ghost_edge 写入账本'],
               meter: {label: '虚构边入账', from: 0, to: 1, suffix: ' 条', at: at('p4-21') - bH.from},
@@ -200,9 +200,9 @@ export const P4Ledger: React.FC<{scene: SceneRange}> = ({scene}) => {
         </AbsoluteFill>
         <GhostEdge at={at('p4-21') - bH.from} />
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
-          <EvidenceBadge level="filled" at={at('p4-21') - bH.from} note="D8 · 拆闸对照" />
+          <EvidenceBadge level="filled" at={at('p4-21') - bH.from} note="D8 · 关闸对照" />
         </div>
-        <ArchifyRecap slug="ghost-edge-pollution" caption="幽灵边污染 · 拆闸" cues={[
+        <ArchifyRecap slug="ghost-edge-pollution" caption="幽灵边污染 · 关闸" cues={[
           {chapterId: 'fake-event', at: at('p4-20') - bH.from, durationInFrames: dur('p4-20')},
           {chapterId: 'gate-removed', at: at('p4-21') - bH.from, durationInFrames: dur('p4-21')},
         ]} lead={false} />

@@ -40,7 +40,7 @@
 | 2-F 平均的平均 | p2-14..15 | evidence：·**archify full**：calc-discipline-matrix 章 `divide-after-agg`@p2-14+mean-of-means 章 `wrong-avg-of-avg`@p2-15 | 图回放两章接力（16 vs 4.8 数字对撞） |
 | 2-G 半可加 | p2-16 | evidence：·**archify full**：last-snapshot-gate 章 `semi-additive` | 图回放（500+500≠1000） |
 | 2-H Ann 走查 | p2-18..22 | device：**Animated State Trace 签名镜**——Ann 三张订单卡进入引擎，本表聚合收敛一行（300），事件表全程灰置；右半屏朴素路径六行复制（600）翻红；证据徽（实心·本仓复算）；·**archify full**：event-fanout 章 `hundred-three`@p2-21+fan-trap 章 `measured-440`@p2-22 | 状态逐拍变换`@travel`+`@count`（300/600 翻牌）；两路对比高亮；图回放两章接力 |
-| 2-I 拆门消融 | p2-23..24 | device：**红绿消融同屏**（p2-23 主画面）——左红：外键指向非键列、垃圾定义入库；右绿：注册期拦截 + 拦截日志（referenced column is not PRIMARY KEY）；证据徽（实心）；·**archify full**：definition-registration 章 `nonkey-rejected`@p2-24 | 左右同屏`@stagger`；红侧崩溃链路`@flowDash`；图回放 |
+| 2-I 关门消融 | p2-23..24 | device：**红绿消融同屏**（p2-23 主画面）——左红：外键指向非键列、垃圾定义入库；右绿：注册期拦截 + 拦截日志（referenced column is not PRIMARY KEY）；证据徽（实心）；·**archify full**：definition-registration 章 `nonkey-rejected`@p2-24 | 左右同屏`@stagger`；红侧崩溃链路`@flowDash`；图回放 |
 | 2-J 物化与收口 | p2-25..28 | device：**Baseline-Anchored Bar**——59×–91× 动态增长条（`useCount`）+ 基线标尺与工况角标（TPC-DS 4 查询 · 359GB→120MB · 虚线徽）；·**archify full**：on-demand-recompute 章 `grain-recompute`@p2-26；p2-28 金句卡（衬线体）：「SQL 合法 ≠ 答案对」 | 增长条`@count`；金句卡`@enter:pop`+微光〔M-003〕 |
 
 ## P3 规则与执法（p3-01..p3-21，21 句）
@@ -53,7 +53,7 @@
 | 3-D 两细节 | p3-05..06 | evidence：·**archify full**：multi-entry-single-truth 章 `single-point-bind`+`whoever-asks`；定义卡母题：**策略挂扣件扣上（紫）** | 图回放两章接力；扣件落位`@spring` |
 | 3-E Agent 开关 | p3-07..09 | evidence：·**archify full**：query-time-policy 章 `agent-recognized`@p3-08+row-column-policy 章 `agentface`@p3-09；同屏上下对照：人工=明文 / Agent=星号 | 图回放两章接力；星号遮罩扫过`@reveal` |
 | 3-F 走查 | p3-10..12 | device：实习生查手机号四步状态走查（请求→命中策略→按主人规则判定→带星号出引擎）；步骤指示灯逐亮 | 状态流转`@travel`；指示灯`@stagger` |
-| 3-G 拆执行层 | p3-13..14 | device：**红绿消融同屏**——左红：[90,560] 明文泄露；右绿：blocked；证据徽（实心）；·**archify full**：hidden-vs-blocked 章 `teardown-leak`@p3-13+`hide-not-block`@p3-14 | 泄露数字翻牌`@count`（红）；绿侧拦截墙落锁`@spring`；图回放两章接力 |
+| 3-G 去掉执行层 | p3-13..14 | device：**红绿消融同屏**——左红：[90,560] 明文泄露；右绿：blocked；证据徽（实心）；·**archify full**：hidden-vs-blocked 章 `teardown-leak`@p3-13+`hide-not-block`@p3-14 | 泄露数字翻牌`@count`（红）；绿侧拦截墙落锁`@spring`；图回放两章接力 |
 | 3-H 执法位置 | p3-15..17 | evidence：·**archify full**：engine-governance 章 `sign-vs-wall`@p3-16+`governed-path`@p3-17；外挂拓扑（两系统对账，虚线抖动）vs 内嵌拓扑（引擎一跳） | 图回放两章接力（外挂抖动=漂移感） |
 | 3-I 双层防线 | p3-18..19 | evidence：·**archify full**：forced-query-intercept 章 `guessed-name`@p3-18+engine-governance 章 `two-layer-defense`@p3-19 | 图回放两章接力 |
 | 3-J 规律金句 | p3-20..21 | device：金句卡（衬线体）「强制力来自执行点」+ 检验三连问角标；定义卡母题短暂回照 | 金句卡`@enter:pop`；回照微光`@breathe` |
@@ -62,14 +62,14 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
-| 4-A 失效面 | p4-01..02 | evidence：·**archify full**：valid-sql-wrong-answer 章 `syntax-pass`+`business-fail`；语法绿灯/答案红灯对照 | 图回放两章接力 |
+| 4-A 问题面 | p4-01..02 | evidence：·**archify full**：valid-sql-wrong-answer 章 `syntax-pass`+`business-fail`；语法绿灯/答案红灯对照 | 图回放两章接力 |
 | 4-B 核准题库 | p4-04..05 | evidence：·**archify full**：one-checkpoint 章 `sign-vs-checkpoint`@p4-04+vqr-lifecycle 章 `signed-stamped`@p4-05；**定义卡母题：签名盖章位（青）**；四要素卡（题/查询/验证人/日期） | 图回放两章接力；盖章落印`@enter:fall`+青色印记脉冲 |
 | 4-C 命中短路 | p4-06..08 | evidence：·**archify full**：resolve-activation 章 `hit-reconcile`@p4-07+one-checkpoint 章 `shared-checkpoint`@p4-06 | 图回放两章接力（命中路由亮线`@flowDash`） |
 | 4-D 对账走查 | p4-09..10 | device：题库返回 200/150/300 与引擎重算并排滚动对账，逐月打勾；证据徽（实心·本仓复算） | 双列计数`@count`；对勾错峰`@stagger` |
 | 4-E 三条出路 | p4-11..14 | evidence：·**archify full**：resolve-activation 章 `miss-fallback`+`outside-eval`；代价角标（至多 4 次 / 超 20 条拖慢 · 虚线徽·官方文档） | 图回放两章接力 |
 | 4-F 血缘账本 | p4-15..17 | evidence：·**archify full**：lineage-ledger 章 `engine-lane`@p4-16+`ledger-and-blind`@p4-17；列级边逐条入账；角标 OpenLineage | 图回放两章接力（边生长`@draw`） |
 | 4-G 三道闸 | p4-17b..19 | evidence：·**archify full**：lineage-ledger 章 `ingest-lane`@p4-17b+ghost-edge-pollution 章 `rejected`@p4-18+upstream-traceback 章 `three-seconds`@p4-19；闸门三连（鉴权/可解析/对象可解析） | 图回放三章接力（闸门逐道落锁`@spring`） |
-| 4-H 拆闸消融 | p4-20..22 | device：**红绿消融同屏**——左红：虚构边 ghost 入账污染；右绿：三道全拒；证据徽（实心）；·**archify full**：ghost-edge-pollution 章 `fake-event`@p4-20+`gate-removed`@p4-21 + upstream-traceback 章 `living-ledger`@p4-22 | 图回放三章接力；红侧幽灵边闪烁`@breathe` |
+| 4-H 关闸消融 | p4-20..22 | device：**红绿消融同屏**——左红：虚构边 ghost 入账污染；右绿：三道全拒；证据徽（实心）；·**archify full**：ghost-edge-pollution 章 `fake-event`@p4-20+`gate-removed`@p4-21 + upstream-traceback 章 `living-ledger`@p4-22 | 图回放三章接力；红侧幽灵边闪烁`@breathe` |
 
 ## P5 身份与纳管（p5-01..p5-23，23 句）
 
@@ -80,11 +80,11 @@
 | 5-C 天花板 | p5-06..07 | evidence：·**archify full**：agent-identity 章 `ceiling`+`strict`；角标 Restricted Session Scope | 图回放两章接力（天花板压下`@spring`） |
 | 5-D 交集 | p5-08..09 | evidence：·**archify full**：venn-intersection 章 `two-iron-rules`@p5-08+zero-window-sequence 章 `dynamic-intersect`@p5-09；用户权限∩天花板，交集区金亮、只减不增箭头 | 图回放两章接力（交集区脉冲`@impulse`） |
 | 5-E 时间线走查 | p5-10..11 | device：十分钟时间轴（10:00 设顶/10:02 开会话/10:05 回收/10:06 拒绝），事件点逐个落位、10:06 交集塌缩为空；证据徽（实线·第三方实测）；·**archify full**：zero-window-sequence 章 `experiment-risk`@p5-10+revocation-timeline 章 `realtime-ceiling`@p5-11 | 时间轴游标推进；交集塌缩动画；图回放两章接力 |
-| 5-F 拆天花板 | p5-12..14 | device：**红绿消融同屏**——左红：快照冻结、回收后仍持权（越权窗口红区展开）；右绿：实时求值即刻失效；证据徽（实心）；·**archify full**：agent-identity 章 `snapshot-vs-live`@p5-12+revocation-timeline 章 `static-snapshot`@p5-13 + zero-window-sequence 章 `zero-window`@p5-14 | 图回放三章接力；红区窗口扩张`@count` |
+| 5-F 去掉天花板 | p5-12..14 | device：**红绿消融同屏**——左红：快照冻结、回收后仍持权（越权窗口红区展开）；右绿：实时求值即刻失效；证据徽（实心）；·**archify full**：agent-identity 章 `snapshot-vs-live`@p5-12+revocation-timeline 章 `static-snapshot`@p5-13 + zero-window-sequence 章 `zero-window`@p5-14 | 图回放三章接力；红区窗口扩张`@count` |
 | 5-G 焦虑 | p5-15..16 | master：数据表网格持续新增（+phone/+ssn 浮起），人工标签员图标追不上（渐疲）;分类引擎扫描波次扫过；·**archify full**：classification-tagging 章 `honest-limit`@p5-16 | 网格增殖动画；扫描波`@flowDash`；图回放 |
 | 5-H 四步纳管 | p5-17..18 | evidence：·**archify full**：tag-gate-linkage 章 `seventh-mechanism`@p5-17+classification-tagging 章 `tag-driven`@p5-18；夜里新表→扫描→打标→次日打码四步走查 | 图回放两章接力（四步灯逐亮） |
 | 5-I 映射闸 | p5-19..20 | evidence：·**archify full**：tag-gate-linkage 章 `intake-test`；「机器管发现，人管定规」对章卡；一次性映射桥接动画 | 图回放；桥接线描画`@draw` |
-| 5-J 拆映射 | p5-21..23 | device：**红绿消融同屏**——左红：已贴系统标签仍明文出楼（裸奔警示）；右绿：映射在位自动打码；证据徽（实心）；·**archify full**：classification-tagging 章 `explicit-gap`@p5-22 | 图回放；明文/星号对照扫过`@reveal` |
+| 5-J 去掉映射 | p5-21..23 | device：**红绿消融同屏**——左红：已贴系统标签仍明文出楼（裸奔警示）；右绿：映射在位自动打码；证据徽（实心）；·**archify full**：classification-tagging 章 `explicit-gap`@p5-22 | 图回放；明文/星号对照扫过`@reveal` |
 
 ## P6 供给与生态（p6-01..p6-18，18 句）
 
@@ -94,7 +94,7 @@
 | 6-B 缺口 | p6-03..05 | device：9,685 格表海（暗格），金亮格不足 5%（虚线徽）；两条生产线传送带展开；·**archify full**：dictionary-drift 章 `stale-manual`@p6-03+autopilot-loop 章 `valgate`@p6-04+`inputs`@p6-05 | 表海滚动；亮格占比计量`@count`；图回放三章接力 |
 | 6-C 隐式轨 | p6-06..07 | evidence：·**archify full**：four-factor-ranking 章 `factors`+`signals`；角标 Cortex Sense（私预） | 图回放两章接力（四因子天平） |
 | 6-D 冲突裁决 | p6-08..09 | device：CONFLICT 卡阵列（几十种「日活」定义卡互相推挤），裁决章卡浮出人工裁决印章 | 卡阵推挤抖动`@enter:pop`；印章落`@enter:fall` |
-| 6-E 拆给热度 | p6-10..11 | device：**红绿消融同屏**——左红：声量柱 200 vs 5，错误口径碾压（角标 200:5 inferred vs governed）；右绿：冲突浮出人工裁决；证据徽（实心）；·**archify full**：majority-shortcut 章 `popularity-wins`@p6-11 | 声量柱对决`@count`；「习惯≠真理」金句浮出 |
+| 6-E 交给热度 | p6-10..11 | device：**红绿消融同屏**——左红：声量柱 200 vs 5，错误口径碾压（角标 200:5 inferred vs governed）；右绿：冲突浮出人工裁决；证据徽（实心）；·**archify full**：majority-shortcut 章 `popularity-wins`@p6-11 | 声量柱对决`@count`；「习惯≠真理」金句浮出 |
 | 6-F 检索 | p6-12 | evidence：·**archify full**：four-factor-ranking 章 `topk`；增益角标（0.22→0.59 · 虚线徽·自报） | 图回放（排序漏斗收缩） |
 | 6-G 出口三路 | p6-13..15 | evidence：·**archify full**：open-interop 章 `portable`+`feedback`+`socket`；p6-15 证据徽（实线·第三方指出：非等值关系静默丢弃） | 图回放三章接力（导出桥断点闪红`@impulse`） |
 | 6-H 演进 | p6-16..18 | evidence：·**archify full**：evolution-timeline 章 `stage-objects`+`stage-governed-enrich`+`stage-ecosystem`；金句卡「没有对象化的开放＝换个格式分发混乱」 | 图回放三章接力（里程碑快闪）；金句卡`@enter:pop` |

@@ -101,7 +101,7 @@ export const P5Identity: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ArchifyRecap slug="revocation-timeline" caption="回收即时生效" lead={false} cues={[{chapterId: 'realtime-ceiling', at: at('p5-11') - bE.from, durationInFrames: dur('p5-11')}]} />
       </Sequence>
 
-      <Sequence {...bF} name="5-F 拆天花板">
+      <Sequence {...bF} name="5-F 去掉天花板">
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
           <EvidenceBadge level="filled" at={at('p5-12') - bF.from} note="D9 · 快照 vs 实时" />
         </div>
@@ -127,9 +127,9 @@ export const P5Identity: React.FC<{scene: SceneRange}> = ({scene}) => {
         <MappingBridge at={at('p5-20') - bI.from} />
       </Sequence>
 
-      <Sequence {...bJ} name="5-J 拆映射">
+      <Sequence {...bJ} name="5-J 去掉映射">
         <div style={{position: 'absolute', bottom: 150, left: 80}}>
-          <EvidenceBadge level="filled" at={at('p5-21') - bJ.from} note="D10 · 拆映射" />
+          <EvidenceBadge level="filled" at={at('p5-21') - bJ.from} note="D10 · 去掉映射" />
         </div>
         <ArchifyYield cues={[{at: at('p5-22') - bJ.from, durationInFrames: dur('p5-22')}]}>
           <TeardownStage at21={at('p5-21') - bJ.from} at23={at('p5-23') - bJ.from} />
@@ -588,7 +588,7 @@ const TeardownStage: React.FC<{at21: number; at23: number}> = ({at21, at23}) => 
       minHeight={430}
       left={{
         tag: 'D10',
-        title: '拆掉映射 · 只分类不绑策略',
+        title: '去掉映射 · 只分类不绑策略',
         lines: ['新列 phone → 系统标签 CONTACT_INFO', '系统标签 → 治理标签：无映射', '查询命中 → 明文出楼'],
         flow: {},
       }}

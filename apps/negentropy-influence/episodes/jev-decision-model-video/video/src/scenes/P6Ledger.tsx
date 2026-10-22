@@ -672,7 +672,7 @@ const ExamCompare: React.FC<{a13: number; a15: number; a16: number}> = ({a13, a1
         <Panel style={{padding: '16px 24px', width: 620}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
             <BadgeMark kind="field" label={'外测·distil'} />
-            <span style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim}}>{'付款逐行拆问'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 17, color: theme.dim}}>{'付款逐行提问'}</span>
           </div>
           <div style={{display: 'flex', gap: 40, marginTop: 10, fontFamily: theme.mono, fontSize: 21}}>
             <span style={{color: theme.ok}}>{'批准 32/32 全对'}</span>

@@ -1,4 +1,4 @@
-/** P5 我们亲手拆坏它（p5-01..19）——danger 红压场（幕基调切换）：
+/** P5 我们亲手弄坏它（p5-01..19）——danger 红压场（幕基调切换）：
  *  5-A 工具箱开箱 D1–D5 · 5-B/C/D 三张拆解图（archify）· 5-E D2/D3 快闪 + 收幕金句。 */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -99,14 +99,14 @@ export const P5Teardown: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill style={{background: theme.bg}}>
       <Backdrop tint={theme.danger} opacity={0.07} />
-      <SceneTag chapter="P5" tagline="我们亲手拆坏它" accent={theme.danger} />
+      <SceneTag chapter="P5" tagline="我们亲手弄坏它" accent={theme.danger} />
       <Sequence {...w('p5-01', 'p5-02')} name="5-A 拆解宣言">
         <Toolbox />
       </Sequence>
-      <Sequence {...b5B} name="5-B 拆保险（D1）">
+      <Sequence {...b5B} name="5-B 去掉保险（D1）">
         <ArchifyRecap
           slug="teardown-d1-guard"
-          caption="D1 · 拆掉防回退保险"
+          caption="D1 · 去掉防回退保险"
           cues={[
             {chapterId: 'intact', at: at('p5-03') - b5B.from, durationInFrames: dur('p5-03')},
             {chapterId: 'removed', at: at('p5-04') - b5B.from, durationInFrames: dur('p5-04')},
@@ -114,11 +114,11 @@ export const P5Teardown: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
         />
       </Sequence>
-      <Sequence {...b5C} name="5-C 拆规矩（D4）">
-        <BeatHeadline title="D4 · 拆重放的规矩" until={at('p5-07') - b5C.from} accent={theme.danger} />
+      <Sequence {...b5C} name="5-C 去掉规矩（D4）">
+        <BeatHeadline title="D4 · 去掉重放的规矩" until={at('p5-07') - b5C.from} accent={theme.danger} />
         <ArchifyRecap
           slug="teardown-d4-peek"
-          caption="D4 · 拆重放的规矩"
+          caption="D4 · 去掉重放的规矩"
           lead={false}
           cues={[
             {chapterId: 'legal', at: at('p5-07') - b5C.from, durationInFrames: dur('p5-07')},
@@ -128,7 +128,7 @@ export const P5Teardown: React.FC<{scene: SceneRange}> = ({scene}) => {
           ]}
         />
       </Sequence>
-      <Sequence {...b5D} name="5-D 拆用法（D5）">
+      <Sequence {...b5D} name="5-D 换用法（D5）">
         <ArchifyRecap
           slug="teardown-d5-lockin"
           caption="D5 · 换一种用历史的办法"

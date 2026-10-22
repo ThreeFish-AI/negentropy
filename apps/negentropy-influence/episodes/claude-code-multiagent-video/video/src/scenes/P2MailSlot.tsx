@@ -419,7 +419,7 @@ export const P2MailSlot: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* cue 3-4/4：mailslot-consume（唤醒回路→红侧读两遍）；隔两镜空窗 → 默认入场 */}
         <ArchifyRecap
           slug="mailslot-consume"
-          caption="拆消费语义"
+          caption="去掉消费语义"
           cues={[
             {chapterId: 'wake', at: at('p2-16') - bE.from, durationInFrames: dur('p2-16')},
             {chapterId: 'b3', at: at('p2-17') - bE.from, durationInFrames: dur('p2-17')},

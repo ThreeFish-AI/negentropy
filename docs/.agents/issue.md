@@ -239,6 +239,7 @@
 | I-231 | Perceives Security Audit 复发（2026-10-17 增补 58 条）：docling 家族真升级 + 最小修复线收敛 + 一条无 fix 豁免 | ✅ 已完成 | 2026-10-17 | [详情](#I-231) |
 | I-232 | 013 蓝图用词整改收尾：「锚」字行话与挂点/负发现等自造词，连图与兄弟文档统一落改 | ✅ 已完成 | 2026-10-22 | [详情](#I-232) |
 | I-233 | archify 文档仍称「`.mmd` 是唯一可编辑源」，与 3.0 candidate JSON 为 SSOT 的现状不符 | 🔄 进行中 | — | [详情](#I-233) |
+| I-234 | 视频文案与前置文档「拆/失效」词族整改：语义位分档落改 + 图示资产待重录登记 | ✅ 已完成 | 2026-10-22 | [详情](#I-234) |
 
 ---
 
@@ -5438,3 +5439,188 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：待整改——按现行管线改写上述四处表述，并核对 doc-media-assets 流程步骤顺序（candidate 编辑 → finalize 四门 → 双主题 PNG → `.mmd` 投影同步）；改写前先确认 2.17 遗留图（无 candidate）的例外口径。
 - **后续防范**：管线 SSOT 方向变更时，同批 grep「唯一可编辑源」「SSOT」等声明面。
 - **同类问题影响**：由 I-232 移交；仅影响文档说明，不影响已入库图产物。
+
+<a id="I-234"></a>
+## I-234：视频文案与前置文档「拆/失效」词族整改
+
+**问题描述**：14 集视频的口播、屏上字与前置文档（分集 planning/storyboard/README/research + 上游精读 170–176/200/220/230/011/013/014/140–144/mapping）里，单字「拆」混用作分析、切分、消融三种语义（「这一期就拆上下文这一层」「再拆一次」「拆过源码的作者」），「失效」被当可数名词（「三种失效」「失效卡」「失效形态」「失效登记簿」），口播读出生硬。
+
+**表因根因**：I-217 把「坏法」机械替换成「失效形态」族——动词义词塞进名词位，产生二次生硬；agents.md plain-language V8 正例本身推荐「失效形态」放大了扩散（规约修订走 RSI 回流）。单字「拆」是同类病灶：动词位口语词承担了三种语义。
+
+**处理方式**（2026-10-22，语义位分档替换）：
+- 「拆」五档：分析位→拆解；切分位→拆成/拆分/分成；消融位按对象选动词（闸/门/校验/检查/锁→关掉，规则/提醒/字段/保险→去掉，层/组件/模块→移除/去掉），序数「第一拆」→「第一项」；字面/成熟隐喻保留（拆封、门牌房隐喻内「拆房/拒拆/默认不拆」）；误用成语改写（拆台→较真、强拆→强制删除）。
+- 「失效」三档：名词位→问题族（三种问题/问题卡/问题类型/问题登记簿）；与「提问」撞义句（context-layer 贯穿请求）→错误/出错方式；动词位（缓存失效、权限收回即失效、双门失效）保留。
+- 落改：448 处文本面（12 集 narration 四面同步：narration.md/narration.json/chapters.json/cues [say]；tsx 只改字符串字面量；标准复合词 拆解/拆成/拆开/拆除/拆散/拆出 与 C4/C5/C6 冻结面共 442 处保留）。改名概念全仓追引用同步（问题登记簿：013/011/planning/tsx/readme/knowledge-map）。
+- 验证：门禁基线对比零新增 FAIL（逐集 check --check-scenes、verify_skeleton 43 处存量漂移不变、check_series FAIL 0 WARN 3 不变）；残留扫描 394→0 未裁决；horizon 存量 md/json 错位（161/156 句）按改前快照豁免、镜像句全同步；双轮对抗核验 + 跨块一致化 + 成文复审。
+- 交付状态三处同步：11 集分集 README、series.json statusNote、series.md 状态列标「旁白/屏上字已改（I-234）、成片待重制」（剧本 v3 待审集标「I-234 用词整改」）。
+
+**待重录资产登记**（文本层已改，下列仍带旧词；重录/重渲时按提议改字，story 档 TTS 按块失效需重配）：
+
+
+- `apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/ablation-panel.json` — 拆×2 失效×0；提议：拆兜错·线程死→去兜错·线程死
+- `apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/ablation-panel.html` — 拆×73 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/spec-two-promises.html` — 拆×14 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/two-waiting-deaths.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/views/ablation-panel.json` — 拆×6 失效×0；提议：一次只拆一个→一次只关一个；红=拆掉之后→红=关掉之后
+- `apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/views/spec-two-promises.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-concurrency-video/video/src/archify.manifest.ts` — 拆×2 失效×0；提议：拆兜错·线程死→去兜错·线程死
+- `apps/negentropy-influence/episodes/claude-code-explained-video/video/public/archify/fence-to-intercom.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-explained-video/video/public/archify/views/fence-to-intercom.json` — 拆×3 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-explained-video/video/public/archify/views/five-layer-dependency.json` — 拆×1 失效×0；提议：随时可拆的装置→随时可移除的装置
+- `apps/negentropy-influence/episodes/claude-code-explained-video/video/src/archify.manifest.ts` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-memory-video/video/public/archify/views/memory-panorama.json` — 拆×1 失效×0；提议：配对不拆→配对不拆分
+- `apps/negentropy-influence/episodes/claude-code-memory-video/video/public/archify/views/pair-guard.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/claim-guards-break.json` — 拆×2 失效×0；提议：拆守卫三→关掉守卫三
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/duty-clock-loop.json` — 拆×1 失效×0；提议：拆超时→去掉超时
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/claim-guards-break.html` — 拆×30 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/duty-clock-loop.html` — 拆×9 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/five-layer-dependency.html` — 拆×5 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/mailslot-consume.html` — 拆×12 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/receipt-ledger.html` — 拆×4 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/room-teardown.html` — 拆×71 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/mailslot-consume.json` — 拆×1 失效×0；提议：拆消费语义→去掉消费语义
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/receipt-ledger.json` — 拆×1 失效×0；提议：拆核验→关掉核验
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/room-teardown.json` — 拆×2 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/views/claim-guards-break.json` — 拆×2 失效×0；提议：拆守卫三→关掉守卫三
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/views/duty-clock-loop.json` — 拆×1 失效×0；提议：拆超时→去掉超时
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/views/mailslot-consume.json` — 拆×1 失效×0；提议：拆消费语义→去掉消费语义
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/views/receipt-ledger.json` — 拆×1 失效×0；提议：拆核验→关掉核验
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/views/room-teardown.json` — 拆×8 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-multiagent-video/video/src/archify.manifest.ts` — 拆×7 失效×0；提议：拆守卫三→关掉守卫三
+- `apps/negentropy-influence/episodes/claude-code-planning-video/video/public/archify/plan-skill-layers.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-planning-video/video/public/archify/views/plan-panorama.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-planning-video/video/public/archify/views/plan-skill-layers.json` — 拆×2 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/claude-code-planning-video/video/src/archify.manifest.ts` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/context-layer-video/video/public/archify/views/blueprint--architecture.json` — 拆×0 失效×1；提议：防住失效→防住错误
+- `apps/negentropy-influence/episodes/context-layer-video/video/public/archify/views/blueprint--first-class-object.json` — 拆×0 失效×1；提议：四类失效→四类错误
+- `apps/negentropy-influence/episodes/context-layer-video/video/public/archify/views/failure-map.json` — 拆×0 失效×2；提议：失效登记簿→问题登记簿；防住哪些失效→防住哪些错误
+- `apps/negentropy-influence/episodes/dream-rsi-video/video/public/archify/evidence-162x-caliber.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/dream-rsi-video/video/public/archify/teardown-d1-guard.json` — 拆×1 失效×0；提议：拆掉：矮子拔将军→去掉：矮子拔将军
+- `apps/negentropy-influence/episodes/dream-rsi-video/video/public/archify/views/evidence-162x-caliber.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/dream-rsi-video/video/public/archify/views/teardown-d1-guard.json` — 拆×1 失效×0；提议：拆掉：矮子拔将军→去掉：矮子拔将军
+- `apps/negentropy-influence/episodes/dream-rsi-video/video/src/archify.manifest.ts` — 拆×2 失效×0；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/ghost-edge-pollution.json` — 拆×1 失效×0；提议：拆掉解析闸→关掉解析闸
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/hidden-vs-blocked.json` — 拆×1 失效×0；提议：拆除即泄露→关掉即泄露
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/mechanism-experiment-matrix.json` — 拆×1 失效×0；提议：十次拆坏预告→十次破坏预告
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/perimeter-loss.json` — 拆×0 失效×1；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/views/agent-identity.json` — 拆×0 失效×1；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/views/fan-trap.json` — 拆×1 失效×0；提议：拆掉「先聚后联」→去掉「先聚后联」
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/views/ghost-edge-pollution.json` — 拆×2 失效×0；提议：拆掉解析闸→关掉解析闸
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/views/hidden-vs-blocked.json` — 拆×2 失效×0；提议：拆除即泄露→关掉即泄露
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/views/mechanism-experiment-matrix.json` — 拆×1 失效×0；提议：十次拆坏预告→十次破坏预告
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/views/perimeter-loss.json` — 拆×0 失效×2；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/horizon-context-video/video/public/archify/views/zero-window-sequence.json` — 拆×0 失效×1；提议：（判定保留，见 keeps.json）
+- `apps/negentropy-influence/episodes/horizon-context-video/video/src/archify.manifest.ts` — 拆×3 失效×1；提议：拆掉解析闸→关掉解析闸
+- `apps/negentropy-influence/episodes/openviking-video/video/public/archify/intent-typed-queries.json` — 拆×1 失效×0；提议：拆单→拆分
+- `apps/negentropy-influence/episodes/openviking-video/video/public/archify/views/intent-typed-queries.json` — 拆×2 失效×0；提议：拆单→拆分
+- `apps/negentropy-influence/episodes/openviking-video/video/src/archify.manifest.ts` — 拆×1 失效×0；提议：拆单→拆分
+- `apps/negentropy-influence/episodes/skills-supply-chain-video/video/public/archify/views/ious-route.json` — 拆×0 失效×1；提议：（判定保留，见 keeps.json）
+- `docs/assets/architecture/agent-harness/claude-code--ablation-panel.html` — 拆×67 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--apprentice-watch.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--claim-guards-break.html` — 拆×28 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--clock-four-layers.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--consolidation-txn.html` — 拆×5 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--duty-clock-loop.html` — 拆×8 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--fence-to-intercom.html` — 拆×12 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--mailslot-consume.html` — 拆×11 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--pair-guard.html` — 拆×12 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--pairing-interlock.html` — 拆×5 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--plan-prompt-sections.html` — 拆×4 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--plan-skill-layers.html` — 拆×10 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--receipt-ledger.html` — 拆×3 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--room-teardown.browser-check.json` — 拆×12 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/architecture/agent-harness/claude-code--room-teardown.finalize-summary.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/architecture/agent-harness/claude-code--room-teardown.finalize.json` — 拆×13 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/architecture/agent-harness/claude-code--room-teardown.html` — 拆×63 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--spec-two-promises.html` — 拆×13 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--two-waiting-deaths.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--unseen-guard.html` — 拆×9 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code--worktree-teardown.finalize-summary.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/architecture/agent-harness/claude-code--worktree-teardown.finalize.json` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/architecture/agent-harness/claude-code--worktree-teardown.html` — 拆×54 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code-memory--memory-panorama.html` — 拆×6 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-harness/claude-code-tooling--execution-panorama.html` — 拆×24 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/agent-skills--experiment-scan-order.html` — 拆×13 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/agent-skills--shadow-warning.html` — 拆×0 失效×5；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/agent-skills--teardown-identity-budget.html` — 拆×28 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/agent-skills--teardown-parse-escape.html` — 拆×18 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/agent-skills-std-lifecycle.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/jev--three-city-architectures.html` — 拆×4 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/jev--two-deliveries.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/supply-chain--ious-route.html` — 拆×0 失效×5；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/agent-infra/supply-chain--version-gates.html` — 拆×0 失效×3；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/context-layer--failure-map.html` — 拆×0 失效×14；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/context-layer--lifecycle.html` — 拆×0 失效×2；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/context-layer-blueprint--architecture.html` — 拆×0 失效×12；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html` — 拆×0 失效×5；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html` — 拆×3 失效×8；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.html` — 拆×1 失效×1；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--agent-identity.html` — 拆×0 失效×1；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--calc-discipline-matrix.html` — 拆×5 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--declaration-execution.html` — 拆×0 失效×3；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--dedup-safety.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--dictionary-drift.html` — 拆×0 失效×5；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--dual-challenge-fork.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--dual-path-disambiguation.html` — 拆×6 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--fan-trap.html` — 拆×6 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--five-laws.html` — 拆×0 失效×1；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--forced-query-intercept.html` — 拆×3 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--ghost-edge-pollution.html` — 拆×7 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--governance-demolition.html` — 拆×24 失效×33；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--hidden-vs-blocked.html` — 拆×17 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--injection-threat.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--mechanism-experiment-matrix.html` — 拆×24 失效×5；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--perimeter-loss.html` — 拆×0 失效×10；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--seal-off-caliber.html` — 拆×0 失效×4；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--tag-gate-linkage.html` — 拆×8 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--upstream-traceback.html` — 拆×4 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--venn-intersection.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--water-pipe-ledger.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--wrong-page-failure.html` — 拆×0 失效×19；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/horizon-context--zero-window-sequence.html` — 拆×2 失效×5；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html` — 拆×18 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/openviking--lab-break-matrix.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html` — 拆×4 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/self-evolution/dream-rsi--evidence-162x-caliber.html` — 拆×1 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/self-evolution/dream-rsi--teardown-d1-guard.html` — 拆×26 失效×0；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/architecture/self-evolution/dream-rsi--teardown-d4-peek.html` — 拆×0 失效×2；提议：派生 HTML：改同名源 json 后重渲自动同步
+- `docs/assets/mermaid/agent-harness/claude-code-memory--memory-panorama.mmd` — 拆×1 失效×0；提议：配对不拆→配对不拆分
+- `docs/assets/mermaid/agent-harness/claude-code-tooling--execution-panorama.mmd` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/agent-infra/agent-skills--teardown-identity-budget.mmd` — 拆×2 失效×0；提议：拆 1→第 1 项
+- `docs/assets/mermaid/agent-infra/agent-skills--teardown-parse-escape.mmd` — 拆×2 失效×0；提议：拆 3→第 3 项
+- `docs/assets/mermaid/agent-infra/agent-skills-shadow-warning.mmd` — 拆×0 失效×2；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/agent-infra/supply-chain-ious-route.mmd` — 拆×0 失效×1；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/context-layer--failure-map.mmd` — 拆×0 失效×8；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/context-layer-blueprint--architecture.mmd` — 拆×0 失效×2；提议：拦截哪些失效→拦截哪些问题
+- `docs/assets/mermaid/cognitive-context/context-layer-blueprint--first-class-object.mmd` — 拆×0 失效×3；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/context-layer-blueprint--layer-mechanism-map.mmd` — 拆×1 失效×1；提议：专属失效→专属问题
+- `docs/assets/mermaid/cognitive-context/context-layer-design--evolution-levers.mmd` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/context-layer-design--unified-activation.mmd` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--amnesia-intern.mmd` — 拆×0 失效×3；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--declaration-execution.mmd` — 拆×0 失效×1；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--dual-path-disambiguation.mmd` — 拆×3 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--engine-governance.mmd` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--evolution-timeline.mmd` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--fan-trap.mmd` — 拆×2 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--governance-demolition.mmd` — 拆×5 失效×6；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--injection-threat.mmd` — 拆×2 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--perimeter-loss.mmd` — 拆×0 失效×1；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--resolve-activation.mmd` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--row-column-policy.mmd` — 拆×1 失效×0；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/horizon-context--wrong-page-failure.mmd` — 拆×0 失效×5；提议：（判定保留，见 keeps.json）
+- `docs/assets/mermaid/cognitive-context/openviking--intent-typed-queries.mmd` — 拆×3 失效×0；提议：LLM 拆单→LLM 分单
+- `docs/assets/mermaid/cognitive-context/openviking--retrieval-phase.mmd` — 拆×1 失效×0；提议：拆 typed query→拆分 typed query
+- `docs/assets/mermaid/self-evolution/dream-rsi--teardown-d1-guard.mmd` — 拆×2 失效×0；提议：拆除→去掉
+- `docs/diagrams/context-layer--failure-map/context-layer--failure-map.json` — 拆×0 失效×4；提议：失效登记簿→问题登记簿；失效形态→问题类型
+- `docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json` — 拆×0 失效×2；提议：第六行的失效→第六行的问题
+- `docs/diagrams/context-layer-blueprint--architecture/context-layer-blueprint--architecture.json` — 拆×0 失效×4；提议：失效登记簿→问题登记簿
+- `docs/diagrams/context-layer-blueprint--first-class-object/context-layer-blueprint--first-class-object.json` — 拆×0 失效×2；提议：四类失效→四类问题
+- `docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json` — 拆×1 失效×3；提议：专属失效→专属问题
+- `docs/diagrams/context-layer-blueprint--object-lifecycle/context-layer-blueprint--object-lifecycle.json` — 拆×1 失效×1；提议：（判定保留，见 keeps.json）
+
+
+**成文复审轮（33 单元双视角 + 终检，91 条 findings）**：修复 1 must-fix + 18 should-fix——真漏改 4（horizon planning「拆解析门」——`拆(?!解)` 正则对「拆+解析门」误判为「拆解」前缀而漏检、context-layer planning 半改行、horizon p6-10「拆开看看」改判「试一次看看」与同集兄弟句式对齐、013:851 散文位 D8 引用）；同屏/同行半新半旧统一 6（horizon D5 面板四点统一「去掉」、concurrency P5「拆机面板→开关面板、拆机实验室→机制实验室」7 处、dream-rsi/agent-skills/memory/planning 注释随渲染字符串同步）；量词语病（011「两条独立的问题」→「两个」）；三集 README 模板句分岔（「分句结果」→「按句拆分的结果」）；knowledge-map 镜像行随 230 description 对齐；200-jev「分对/分错对象」→「问对/问错对象」与剧集口径统一。**许可替换词全表**（超出题面五词的登记项）：拆给你看→演示给你看、拆完→做完、第一拆→第一项、拆段→分段、拆两步→分两步、拆单→拆分、拆法→分法、拆出来→挪出来（时间）、拆→动（原型动了三处）、拆→回收/兑现（伏笔义）、「配对不可拆→配对不可拆分」；**教训**：①行级 decisions 若一行多命中只编辑首处会留半改行，落改断言须校验该行无残余旧词族命中；②负向先行断言 `拆(?!解)` 存在「拆+解析」盲区，扫描词表须枚举相邻字歧义；③注释引用已改字符串时注释须随改（引文型注释非独立冻结面）。66 条 note 多为复审员未见完整规则文本的词表误报（做/演示/拆分等均在 sweep 规则内），已逐条核对无需改动。
+
+**后续防范**：口播与屏上字新句禁用单字「拆」与名词位「失效」；vibe-video skill 的归属句模板与 PIPELINE 示例仍在示范旧句式（`references/01-source-extraction.md:112`「作者拆过源码，他说…」、`check_series.py:35`、`references/PIPELINE.md:92`「失效形态」），已登 RSI backlog 待回流。
+
+**同类问题影响**：后续新分集起草、以及任何从上游精读转写口播的场景；规约层修订经 ThreeFish-AI/agents.md V8 回流后生效。

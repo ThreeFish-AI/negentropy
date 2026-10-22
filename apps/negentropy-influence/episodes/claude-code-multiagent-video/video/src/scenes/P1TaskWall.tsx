@@ -401,7 +401,7 @@ export const P1TaskWall: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* cue 8-11/15：claim-guards-break 逐章（三闸→拆依赖→拆无主/状态→对照在位） */}
         <ArchifyRecap
           slug="claim-guards-break"
-          caption="拆守卫对照"
+          caption="关掉守卫对照"
           cues={[
             // fit='trim' 留痕：rate 1.351 恰越 1.35 界（窗 4.1s vs story 5.54s，裁尾 26%）
             {chapterId: 'three-gates', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17'), fit: 'trim'},

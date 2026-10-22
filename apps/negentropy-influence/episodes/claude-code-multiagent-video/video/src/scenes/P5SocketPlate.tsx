@@ -364,7 +364,7 @@ export const P5SocketPlate: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
 
-      <Sequence {...bC} name="5-C 拆缓存的账">
+      <Sequence {...bC} name="5-C 去掉缓存的账">
         {/* 空窗 p5-08..10：缓存账本对比装置 */}
         <ArchifyYield
           cues={[
@@ -377,7 +377,7 @@ export const P5SocketPlate: React.FC<{scene: SceneRange}> = ({scene}) => {
         {/* cue 3-4/4：socket-pool（每轮重组→旧清单叫空） */}
         <ArchifyRecap
           slug="socket-pool"
-          caption="拆缓存的账"
+          caption="去掉缓存的账"
           cues={[
             {chapterId: 'rebuild', at: at('p5-11') - bC.from, durationInFrames: dur('p5-11')},
             {chapterId: 'stale', at: at('p5-12') - bC.from, durationInFrames: dur('p5-12')},

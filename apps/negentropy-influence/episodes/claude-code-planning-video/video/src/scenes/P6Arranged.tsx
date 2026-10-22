@@ -182,8 +182,8 @@ const BalanceOpen: React.FC<{at14: number; at15: number}> = ({at14, at15}) => {
         />
       </svg>
 
-      {/* 左盘：随模型进步逐件拆掉 / 右盘：本来就长在工坊身上（两头都无彩——不站队） */}
-      {pan(endL, left, '脚手架', '逐件拆掉', '随模型进步')}
+      {/* 左盘：随模型进步逐件移除 / 右盘：本来就长在工坊身上（两头都无彩——不站队） */}
+      {pan(endL, left, '脚手架', '逐件移除', '随模型进步')}
       {pan(endR, right, '工坊', '长在工坊身上', '结构自带')}
 
       {/* 官方两头后手注记条（dim 页样——同一文档里两头都留了后手） */}
@@ -240,7 +240,7 @@ const BalanceOpen: React.FC<{at14: number; at15: number}> = ({at14, at15}) => {
           opacity: verdict,
         }}
       >
-        <span style={{color: theme.dim}}>{'拆还是留'}</span>
+        <span style={{color: theme.dim}}>{'移除还是留'}</span>
         <span style={{color: theme.dim}}>{' · '}</span>
         <span style={{color: theme.text, fontWeight: 700}}>{'值得盯'}</span>
       </div>
