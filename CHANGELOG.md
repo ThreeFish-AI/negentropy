@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 ### Added
+### Context Layer 第 2 集克隆终声成片交付：v7 增补 + v1 首交付与评审修复 v2 重渲（2026-10-21/22）
+
+- **[分集 README](apps/negentropy-influence/episodes/context-layer-video/README.md) v1→v2 交付**：逐字稿 v7 增补（351 句 8291 字：开环承诺、登记行解剖、两级预算、执法点四层、倒 U 分解、RRF 机制、晋升三关、G 法则验收、三步审计等缺口，过④⑤独立评审清零）＋分镜 v5（101 镜 / 137 cue）＋配音台本 narration.cues.toml 首配；画面 v7：z 序修复（RecapDim 泛化）＋四新镜装置（登记行解剖 / 预算走查 / RankFusion / AuditCard）；archify 12 图 63 章本 worktree 重录；终声＝IndexTTS-2.5 本人克隆 story 档 df=1.0（用户显式授权 `--final-voice`），`--plan` 口径 148 块全量缓存；v1 成片 27:31.77（2026-10-21 归档）。
+- **review-once 评审修复 v2 重渲归档（2026-10-22）**：P4 幕级角标锚点误减镜偏移（角标提前可见）、P7 7-K 引入条漏随结论淡出、P0 0-G 补 p0-26b hold cue（cue 136→137 与分镜对齐、消漏窗与重入弹簧）、RecapDim 三份实现收敛 components/ 单源（P1/P2 可见行为不变）；帧数/时长与 v1 一致（49553 帧 / 1651.77s），全幕抽帧 QA FAIL 0 / WARN 0（含尾幕）。
+
 ### 013 蓝图用词整改收尾：「锚」字行话与自造词连图连兄弟文档统一（2026-10-20）
 
 - **[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) §2.2 补全论文定义 1–4**：按 arXiv 2510.26493 原文补上漏列的定义 2（交互），符号先给白话再给记号，并用论文自带的 Gemini CLI 例表落地实体→Char(e)→本蓝图来源类。
