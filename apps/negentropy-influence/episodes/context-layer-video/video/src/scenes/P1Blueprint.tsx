@@ -15,7 +15,7 @@
  *   1-Eb 登记行解剖（fm2-def@p1-17b + hold@17c/17d/17e；装置＝49 行表推近
  *       「同一指标两个数」行，四列逐列点亮@p1-17c..e + p1-17d「口径全公司只存一份」
  *       钢蓝图章；recap 首句满亮、17c 起压暗暗底承装置——同 RecapDim recover={false}；
- *       1-Eb 承 1-E 暗底背靠背未压 lead，首章保留默认 12 帧引导入场作暗底→满亮过门）
+ *       承 1-E 镜界跨图背靠背 → lead=false）
  *   1-F arc-axes@p1-18 + hold@19..23（五轴点名；承 1-Eb 镜界跨图背靠背 → lead=false）
  *   1-G FiveAxisMap 首建（built=false 建立面生长，Map-First 主锚）+「换 X 不动 Y」
  *       四行对照@p1-25..27 + 拔轴消融演示@p1-28（警示红 · 破坏实验）
@@ -114,7 +114,7 @@ export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 1-Eb 登记行解剖：fm2-def 锚 + hold 链（p1-17b 满亮 → 17c..e 压暗暗底）+ 行解剖装置后置在上 */}
       <Sequence from={bEb.from} durationInFrames={bEb.durationInFrames} name="1-Eb">
         <RecapDim from={at('p1-17c') - bEb.from} dur={at('p1-17e') + dur('p1-17e') - at('p1-17c')} recover={false}>
-          <ArchifyRecap slug="failure-map" caption="三面蓝图 · 登记行解剖" cues={[
+          <ArchifyRecap slug="failure-map" caption="三面蓝图 · 登记行解剖" lead={false} cues={[
             {chapterId: 'fm2-def', at: at('p1-17b') - bEb.from, durationInFrames: dur('p1-17b')},
             {chapterId: 'fm2-def', at: at('p1-17c') - bEb.from, durationInFrames: dur('p1-17c'), fit: 'hold'},
             {chapterId: 'fm2-def', at: at('p1-17d') - bEb.from, durationInFrames: dur('p1-17d'), fit: 'hold'},
