@@ -14,7 +14,7 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 
 | 域（H2） | 前缀 | 来源精读 | 基线概要 |
 | --- | --- | --- | --- |
-| 认知与上下文 | `HZ`（Horizon）、`OV`（OpenViking）、`OV-D`（漂移清单） | [011](./cognitive-context/011-horizon-context.md)、[014](./cognitive-context/014-openviking.md) | HZ：分支重评选，2026-09-17；OV：HEAD `a924fadd`，上游钉 `14a7b812` |
+| 认知与上下文 | `HZ`（Horizon）、`OV`（OpenViking）、`OV-D`（漂移清单） | [011](./cognitive-context/011-horizon-context.md)、[014](./cognitive-context/014-openviking.md) | HZ：分支重评选，2026-09-17；OV：HEAD `a924fadd`，上游钉 `6227af51`（2026-10-22 复验，v0.5.1.1） |
 | Agent 基础设施：Skills | `SK-M`（规范映射）、`SK-A`（供应链） | [230](./agent-infra/230-agent-skills-standard.md)（含 090 一代吸收）、[220](./agent-infra/220-skills-supply-chain.md) | 091：分支无哈希；211：`95f5a532` @ 2026-09-26；221：2026-09-28 + 外部钉点 |
 | Agent 基础设施：Jev | `JV` | [200](./agent-infra/200-jev-system-one-model.md) | HEAD `95f5a532e` @ 2026-09-26 |
 | 自进化 | `PG`、`DR` | [142](./self-evolution/142-procedural-graphs.md)、[144](./self-evolution/144-dream-rsi.md) | 均为分支名，无本仓基线哈希与核验日 |
@@ -85,18 +85,18 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 | PG-M4 / DR-M1 重放模拟器 / DR-M6 | 步骤乱序成主因；序列决策编排层成为进化对象等三条件；语义注入边界警示 |
 | HZ-4 / HZ-7 / HZ-12 / HZ-14 / HZ-16 | 派生口径资产；显式定义覆盖不足；跨系统语义模型；定义派生血缘需求；对外供给治理 |
 | AN-10/11 / AN-13 / AN-14/17 / AN-7 | 第三方依赖与不可信代码或跨用户；拒绝文本反复猜测；生产动作与凭证；知识库过期冲突条目 |
-| OV-1 / OV-4 / OV-5 / OV-8 档 / OV-13 | 统一 URI 与 013 ADR-1 冲突只取寻址；typed query 待多源统一检索；目录递归待深层语义目录；去重 LLM 档待规模；目录递归同前 |
+| OV-1 / OV-4 / OV-5 / OV-8 档 / OV-13 / OV-15 | 统一 URI 与 013 ADR-1 冲突只取寻址；typed query 待多源统一检索；单遍精排引入时以池边界教训为必读反例（上游已自删目录递归，014 §10-B7）；去重 LLM 档待规模；经验桥接待 I-194；网关代理待对外供记忆的产品需求 |
 
 ## 认知与上下文
 
 > 核验基线：
 >
 > - Horizon | 分支 `ThreeFish-AI/horizon-context-recalibrate`，无本仓基线哈希 | 2026-09-17 | 源文档未标注外部钉点
-> - OpenViking | 工作区 HEAD `a924fadd` | 源文档未标注核验日 | `volcengine/OpenViking@14a7b812`（2026-09-23，AGPL-3.0）
+> - OpenViking | 工作区 HEAD `a924fadd`（OV 上游钉点与条目改判于 2026-10-22 复验；本仓锚点沿用 a924fadd 基线未复跑） | 2026-10-22 | `volcengine/OpenViking@6227af51`（2026-10-21，v0.5.1.1，AGPL-3.0；上游 #5450 已删除目录递归检索，OV-5 等条目随换代改判）
 >
 > 两份锚点均经 `grep -n` 实测，只分析不改码；OV 锚点中 `ng/` = `apps/negentropy/src/negentropy/`。材料出处：Horizon 见 [Horizon Context 精读笔记](./cognitive-context/011-horizon-context.md)（机制详解、实验室、批判性边界、重评审记录），HZ 条目内的 M1–M7 标记取自该笔记经全局重评选后的新口径，背景调研见 [Snowflake 数据云调研 §D7 Horizon Catalog](./retrieval-storage/034-snowflake-data-cloud.md)；OpenViking 见 [OpenViking 精读笔记](./cognitive-context/014-openviking.md)（机制细节与证据分级）。设计 SSOT 是 [Context Layer 技术蓝图：Agent 系统的上下文供给与治理](./cognitive-context/013-context-layer-blueprint.md)（三面蓝图 + 本仓实例化总装，是 HZ-13、HZ-1 的展开；2026-09-27 完全重铸）。
 
-Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架同构物本仓已有（definitions registry 与 parse_definition 422 门、patrol/Judge 评估-修正闭环、skills_injector 三层渐进披露、CatalogService/GlobalSearchService），真增量集中在验证问答、定义内嵌同义词与指令、冲突浮出人工裁决、四因子信任归一、代理会话权限上界、MCP 供给面六处。OpenViking 的 13 条映射为 ✅4 / 🔶5 / ⏸4：能力大多已有等价物，只是形态为 Postgres 表加 JSONB 元数据；最大真增量是 OV-7 会话两阶段提交，对准「交互式对话 → 长期记忆」链路零触发方的断链（OV-D2），OV-1 统一 URI 因副本式存储与 013 ADR-1 冲突而只取寻址格式。取证副产物中 OV-D2、OV-D3、OV-D6 优先级最高，OV-D6 须在 I-194 方案落地前先修。两份映射的落点都在 013 蓝图：HZ-1、HZ-13 是其展开，OV 的回写建议见 OV 蓝图对位。
+Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架同构物本仓已有（definitions registry 与 parse_definition 422 门、patrol/Judge 评估-修正闭环、skills_injector 三层渐进披露、CatalogService/GlobalSearchService），真增量集中在验证问答、定义内嵌同义词与指令、冲突浮出人工裁决、四因子信任归一、代理会话权限上界、MCP 供给面六处。OpenViking 的 15 条映射为 ✅4 / 🔶6 / ⏸5（2026-10-22 随 014 换代重写四桶重验：检索类条目改判、身份/两阶段/分层类保留、新增 OV-14 归属模型与 OV-15 网关代理两条）：能力大多已有等价物，只是形态为 Postgres 表加 JSONB 元数据；最大真增量是 OV-7 会话两阶段提交，对准「交互式对话 → 长期记忆」链路零触发方的断链（OV-D2），OV-1 统一 URI 因副本式存储与 013 ADR-1 冲突而只取寻址格式。取证副产物中 OV-D2、OV-D3、OV-D6 优先级最高，OV-D6 须在 I-194 方案落地前先修。两份映射的落点都在 013 蓝图：HZ-1、HZ-13 是其展开，OV 的回写建议见 OV 蓝图对位。
 
 ### HZ 与 OV 映射总表
 
@@ -125,19 +125,21 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 | # | OpenViking 机制（014 出处） | 本仓对应 | 锚点（实测） | 判定 |
 | --- | --- | --- | --- | --- |
-| OV-1 | M-a 统一 URI 命名空间 `viking://{resources,user,agent}`（§2） | 无路径式 URI；多维分面寻址 `app_name × user_id × memory_type × metadata`；异构资源靠 typed pointer `{type,ref}` | `ng/engine/routine/patrol_memory.py:61` · `ng/agents/tools/skill_resources.py:84` | ⏸ |
-| OV-2 | M-b 目录级 L0/L1/L2 分层 sidecar（§3） | 四种「两级形态」：Skills L1/L2/L3、画像摘要→原文、KB parent/child chunk、KG 多 level 社区摘要 | `ng/agents/skills_injector.py:342` · `ng/engine/consolidation/memory_summarizer.py:93` · `ng/knowledge/service.py:3680` | 🔶（部分） |
-| OV-3 | M-b 自底向上生成 + 父级按变化比例刷新（§3.3） | 画像摘要是 24h TTL（不感知源变化）；KG 摘要二值 dirty + 全量重建；会话标题已有「事件增量 ≥20 才刷新」水位范式 | `ng/engine/consolidation/memory_summarizer.py:38,95` · `ng/engine/title_inspector.py:99,191` | 🔶 |
-| OV-4 | M-c 意图分析拆 typed query（§4.1） | 单意图分类：记忆侧 `primary+boost_types` 加权；KB 侧五意图正则路由；不拆子查询 | `ng/engine/utils/query_intent.py:54` · `ng/knowledge/retrieval/unified_search.py:28` | ⏸ |
-| OV-5 | M-c 全局定起点 → 优先队列下钻 → 分数传播 → 收敛 → rerank（§4.2） | 无目录递归；最近等价物：KB child→parent lift（单层）、HybridPlanner 四阶段、记忆 PPR `alpha^d` 衰减 | `ng/knowledge/service.py:3692` · `ng/agents/tools/hybrid_planner.py:218` · `ng/engine/adapters/postgres/association_service.py:518` | ⏸ |
-| OV-6 | M-d 同步归档消息（§5.1） | `append_event` 同步写 `events`（全局 `sequence_num`） | `ng/engine/adapters/postgres/session_service.py:228` · `ng/models/pulse.py:48` | ✅ |
-| OV-7 | M-d 异步摘要 + 记忆提炼（commit 第二阶段，§5.2） | **交互式对话零触发**：`add_session_to_memory` 无调用方；`consolidation_jobs` 只入队无消费者；仅 Routine 路径有 fire-and-forget 提炼 | `ng/engine/adapters/postgres/memory_service.py:84` · `ng/db/migrations/versions/0043_memory_automation_sql_functions_static.py:104` · `ng/engine/routine/orchestrator.py:1393` | 🔶（最高优先） |
-| OV-8 | M-d 候选去重合并（§5.3） | 全阈值/规则、无 LLM 裁决：写入期 cos≥0.85（0.80–0.85 加 Jaccard≥0.7）判重；写后 DedupMerge cos≥0.90 合并 soft-delete；事实同 key 规则化 supersede/keep_both | `ng/engine/adapters/postgres/memory_service.py:62,558` · `ng/engine/consolidation/pipeline/steps/dedup_merge_step.py:191` · `ng/engine/governance/conflict_resolver.py:134` | ✅ 主干 / ⏸ LLM 档 |
-| OV-9 | M-d memory_diff 审计（§5.4） | 审计分三处且不覆盖自动巩固：`memory_audit_logs`（人工）、`memory_conflicts`（事实）、`metadata.merged_from`（合并） | `ng/engine/governance/memory.py:298` · `ng/engine/tools/memory_tools.py:223` | 🔶 |
-| OV-10 | M-d `.done` 幂等水位（§5.5） | per-thread advisory lock 防并发，但**无「已巩固到第 N 条事件」水位**，重跑整段重做 LLM 提取 | `ng/engine/adapters/postgres/memory_service.py:221` · `ng/engine/title_inspector.py:191`（可复用范式） | 🔶 |
-| OV-11 | 九类记忆类型学（§5.3 表） | 6 类 `memory_type` + 4 类 `fact_type` + `subtype=reflection` + Core Block label + Patrol tag，逐项见 014 §5.3 对照表 | `ng/engine/governance/memory.py:37,69` | ✅ |
-| OV-12 | M-e 检索轨迹可追溯（§4.5） | 分通道齐全：`memory_retrieval_logs` 落库含每条 `search_level/score_type/raw_score/intent_boost`；KB PlannerResult 回传延迟与桥接证据链 | `ng/engine/adapters/postgres/retrieval_tracker.py:58` · `ng/memory_service.py:1411` · `ng/agents/tools/hybrid_planner.py:129` | ✅ |
-| OV-13 | M-f experiences → Agent Evolution（§5.6） | 两端都在、无桥接：经验侧 Routine 提炼 procedural 记忆已回注；进化侧 6 个 handler 不读经验记忆 | `ng/engine/routine/memory_extractor.py:40` · `ng/engine/evolution/handlers/skill.py:120` | ⏸ |
+| OV-1 | M-a 统一 URI 命名空间 `viking://{resources,user(含 peers 子树),agent}`（§3） | 无路径式 URI；多维分面寻址 `app_name × user_id × memory_type × metadata`；异构资源靠 typed pointer `{type,ref}` | `ng/engine/routine/patrol_memory.py:61` · `ng/agents/tools/skill_resources.py:84` | ⏸ |
+| OV-2 | M-b 目录级 L0/L1/L2 分层 sidecar（§4） | 四种「两级形态」：Skills L1/L2/L3、画像摘要→原文、KB parent/child chunk、KG 多 level 社区摘要 | `ng/agents/skills_injector.py:342` · `ng/engine/consolidation/memory_summarizer.py:93` · `ng/knowledge/service.py:3680` | 🔶（部分） |
+| OV-3 | M-b 自底向上生成 + 父级按变化比例刷新（§4 冒泡段） | 画像摘要是 24h TTL（不感知源变化）；KG 摘要二值 dirty + 全量重建；会话标题已有「事件增量 ≥20 才刷新」水位范式 | `ng/engine/consolidation/memory_summarizer.py:38,95` · `ng/engine/title_inspector.py:99,191` | 🔶 |
+| OV-4 | M-c 意图分析拆 typed query（§5.2） | 单意图分类：记忆侧 `primary+boost_types` 加权；KB 侧五意图正则路由；不拆子查询 | `ng/engine/utils/query_intent.py:54` · `ng/knowledge/retrieval/unified_search.py:28` | ⏸ |
+| OV-5 | M-c 全局召回 2×limit 池 → URI 去重 → 单遍精排（读 abstract）→ 阈值后置（§5.3；上游 #5450 已删除目录递归/父分传播/收敛刹车） | 无目录递归；最近等价物：KB child→parent lift（单层）、HybridPlanner 四阶段、记忆 PPR `alpha^d` 衰减 | `ng/knowledge/service.py:3692` · `ng/agents/tools/hybrid_planner.py:218` · `ng/engine/adapters/postgres/association_service.py:518` | ⏸ |
+| OV-6 | M-d 同步归档消息（§6.1） | `append_event` 同步写 `events`（全局 `sequence_num`） | `ng/engine/adapters/postgres/session_service.py:228` · `ng/models/pulse.py:48` | ✅ |
+| OV-7 | M-d 异步摘要 + 记忆提炼（commit 第二阶段，§6.1/6.2；Working Memory v0.5.0 起默认关闭，归档与摘要进一步解耦） | **交互式对话零触发**：`add_session_to_memory` 无调用方；`consolidation_jobs` 只入队无消费者；仅 Routine 路径有 fire-and-forget 提炼 | `ng/engine/adapters/postgres/memory_service.py:84` · `ng/db/migrations/versions/0043_memory_automation_sql_functions_static.py:104` · `ng/engine/routine/orchestrator.py:1393` | 🔶（最高优先） |
+| OV-8 | M-d 候选去重合并（§6.2 写集 / §6.3 身份判据） | 全阈值/规则、无 LLM 裁决：写入期 cos≥0.85（0.80–0.85 加 Jaccard≥0.7）判重；写后 DedupMerge cos≥0.90 合并 soft-delete；事实同 key 规则化 supersede/keep_both | `ng/engine/adapters/postgres/memory_service.py:62,558` · `ng/engine/consolidation/pipeline/steps/dedup_merge_step.py:191` · `ng/engine/governance/conflict_resolver.py:134` | ✅ 主干 / ⏸ LLM 档 |
+| OV-9 | M-d memory_diff 审计（§6.5；现被多批次提炼内部读取、对外仍无回滚 API） | 审计分三处且不覆盖自动巩固：`memory_audit_logs`（人工）、`memory_conflicts`（事实）、`metadata.merged_from`（合并） | `ng/engine/governance/memory.py:298` · `ng/engine/tools/memory_tools.py:223` | 🔶 |
+| OV-10 | M-d `.done` 幂等水位（§6.1） | per-thread advisory lock 防并发，但**无「已巩固到第 N 条事件」水位**，重跑整段重做 LLM 提取 | `ng/engine/adapters/postgres/memory_service.py:221` · `ng/engine/title_inspector.py:191`（可复用范式） | 🔶 |
+| OV-11 | 九类记忆类型学与身份字段表（§6.3/6.4） | 6 类 `memory_type` + 4 类 `fact_type` + `subtype=reflection` + Core Block label + Patrol tag，逐项见 014 §6 的类型与合并语义条目 | `ng/engine/governance/memory.py:37,69` | ✅ |
+| OV-12 | M-e 检索轨迹可追溯（§5.8；`query_plan` 为意图分析活链路随结果返回；`ThinkingTrace` 事件类仍在 SDK 类型层、检索主路径不再写事件——现存=query_plan+provenance+计数器） | 分通道齐全：`memory_retrieval_logs` 落库含每条 `search_level/score_type/raw_score/intent_boost`；KB PlannerResult 回传延迟与桥接证据链 | `ng/engine/adapters/postgres/retrieval_tracker.py:58` · `ng/memory_service.py:1411` · `ng/agents/tools/hybrid_planner.py:129` | ✅ |
+| OV-13 | M-f experiences → Agent Evolution（§6.4；上游召回侧已通：context 模式 experiences 配额=1，旧「只写不用」断言过时） | 两端都在、无桥接：经验侧 Routine 提炼 procedural 记忆已回注；进化侧 6 个 handler 不读经验记忆 | `ng/engine/routine/memory_extractor.py:40` · `ng/engine/evolution/handlers/skill.py:120` | ⏸ |
+| OV-14 | M-a′ User/Peer 归属模型：数据属主与交互对象正交、写窄读宽、跨 peer 降权（§3；v0.4.1 引入、换代后一等化） | 属主维度同构：`app_name × user_id × memory_type` 分面即「谁的哪类记忆」；交互对象维度无显式对应（子代理隔离靠 routine workspace 而非记忆子树） | `ng/engine/routine/patrol_memory.py:61`（同 OV-1 锚点）· `ng/engine/adapters/postgres/memory_service.py:84` | 🔶（属主 ✅／交互对象缺位） |
+| OV-15 | M-g Gateway 模型代理：改 Base URL 即得记忆、五步一轮、逐字节回放保缓存（§7；v0.5 Beta） | 无模型代理层；记忆注入都在本仓进程内（hooks/技能层） | —（全仓无 reverse-proxy/模型网关组件，2026-10-22 `grep -rn 'base_url.*proxy\|model.*gateway' apps/negentropy/src` 零命中） | ⏸ |
 
 ### HZ 与 OV 逐条说明
 
@@ -183,25 +185,29 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 **OV-3 新鲜度（🔶）**。`get_or_generate_summary` 的 24h TTL 不感知源数据变化；且 SummarizeStep 传入的 `force_refresh` 因签名不符抛 TypeError 被降级吞掉（OV-D3）。**绑定 OV-7 同批**：OV-7 落地后 summarize step 每次巩固真实执行，TTL 失真随即暴露；修法是把 TTL 换成「源水位差」判据，范式直接复用 `title_inspector.py:191`。
 
-**OV-4 typed query（⏸）**。拆分收益取决于「多源统一检索」先存在。**触发**：013 §7.3 ADR-2（HybridPlanner 接 Memory 第 4 路种子；2026-10-10 版节号；原注 §8.4）落地后，把 intent 升级为「按源 typed sub-query」。OpenViking 自己的教训（014 §4.1：priority/intent 字段不参与排序、无会话即不触发）说明这条机制的实际收益并未被验证，不必抢跑。
+**OV-4 typed query（⏸）**。拆分收益取决于「多源统一检索」先存在。**触发**：013 §7.3 ADR-2（HybridPlanner 接 Memory 第 4 路种子；2026-10-10 版节号；原注 §8.4）落地后，把 intent 升级为「按源 typed sub-query」。OpenViking 自己的现状（014 §5：无会话即不做意图分析、typed query 结果直接拼接不去重不归一）说明拆分的实际收益并未被上游验证，不必抢跑。
 
-**OV-5 目录递归（⏸）**。需要一棵「语义化的深层目录树」。本仓记忆扁平、KB 目录是人工组织、`navigation` 意图只返回 corpus 列表，现在引入递归等于先造树再检索，YAGNI。**触发**：检索评测出现「建错目录/选错 corpus」类失败占比显著，或 catalog 深度 ≥3 且 Agent 需要按目录浏览。OpenViking 的两条实测教训（014 §4.2：默认部署不触发递归；α=1.0 后层级只影响可达性不影响排序）是引入前必读的反例。
+**OV-5 检索形态（⏸，换代改判）**。上游 #5450 已自己删掉目录递归（成本大于收益），现行为「全局召回 2×limit → 单遍精排 → 阈值后置」——这本身就是对本仓「不造树先检索」现状的有力背书。条目保留 ⏸ 的新含义：若引入单遍精排，其教训（014 §5 与 §10-B7：池边界是新的早剪不可逆，向量名次进不了前 2×limit 的证据精排救不回）成为必读反例；「目录递归待深层语义目录」的旧触发条件随机制删除作废。
 
 **OV-6 同步归档（✅）**。`events.sequence_num` 全局序 + `append_event` 同步落库，与「归档是事实」主张（原 013 Phase 1 口径）等价。
 
 **OV-7 会话→记忆触发（🔶，OV 内最高优先）**。断链修复而非新特性。最小方案：① 复用 inspector 范式选「事件水位差 ≥Δ 且空闲 ≥T」的会话；② 入队 `consolidation_jobs`（表与部分索引已存在，迁移 0043/0044）；③ 消费者 `FOR UPDATE SKIP LOCKED` 取任务执行 `_simple_consolidate`，成功推进水位。零新表。二阶风险：每会话新增一次 embedding + LLM 提取（用 Δ、T 封顶）；单 uvicorn worker 下消费者必须是异步限流后台任务；巩固后 preload 检索到更多 episodic 行，需观察 `memory_retrieval_logs` 噪声率。
 
-**OV-8 去重合并（✅/⏸）**。主干等价且更可审计（阈值可解释）。LLM 裁决档（OpenViking 的原子写集）只值得用于**模糊带** cos 0.80–0.90。**触发**：模糊带误合并/漏合并被 retrieval 反馈证实（`outcome_feedback=irrelevant` 聚集在 `merged_from` 行）。OpenViking 的反例（014 §5.3：topic 命名漂移即产生矛盾并存、跨会话单条新文件直通不查语义）说明 LLM 裁决不是银弹。
+**OV-8 去重合并（✅/⏸）**。主干等价且更可审计（阈值可解释）。LLM 裁决档（OpenViking 的原子写集）只值得用于**模糊带** cos 0.80–0.90。**触发**：模糊带误合并/漏合并被 retrieval 反馈证实（`outcome_feedback=irrelevant` 聚集在 `merged_from` 行）。OpenViking 的反例（014 §6 与 §10-B3：身份判据被拆掉后同一偏好落三张矛盾卡；相似只提名、不裁决同一性）说明 LLM 裁决不是银弹。
 
-**OV-9 巩固 diff 审计（🔶）**。消费者把本轮 `{created_ids, merged:[{loser, primary}], superseded_facts, steps:[StepResult]}` 写入已有的 `consolidation_jobs.result` JSONB（`ng/models/internalization.py:323`），不新建表；人工审计继续走 `memory_audit_logs`，两者正交。注意 OpenViking 的教训：`memory_diff` 只写不读等同摆设，审计必须接一个消费方（UI `/memory/audit` 展示即可）。
+**OV-9 巩固 diff 审计（🔶）**。消费者把本轮 `{created_ids, merged:[{loser, primary}], superseded_facts, steps:[StepResult]}` 写入已有的 `consolidation_jobs.result` JSONB（`ng/models/internalization.py:323`），不新建表；人工审计继续走 `memory_audit_logs`，两者正交。注意 OpenViking 的教训：`memory_diff` 曾只写不读等同摆设（换代后内部有读者、对外仍无回滚 API，014 §6.5），审计必须接一个对外可见的消费方（UI `/memory/audit` 展示即可）。
 
 **OV-10 幂等水位（🔶）**。`threads.metadata` 增加 `consolidated_at_event_seq`，同构 `title_generated_at_event_seq`。OpenViking 的两条细则值得抄：水位只记「到哪了」不记「做了什么」（重跑靠内容去重兜底）；`.done` 最后写（提交点语义）。
 
 **OV-11 类型学（✅）**。类型学覆盖完整（trajectories 以日志形态存在是本仓的合理取舍）。
 
-**OV-12 检索轨迹（✅）**。检索轨迹分通道已比 OpenViking 落地更实（它的 `ThinkingTrace` 无生产者，014 §4.5）。
+**OV-12 检索轨迹（✅）**。检索轨迹分通道已比 OpenViking 落地更实——上游换代后逐步事件轨迹（`ThinkingTrace`）在检索主路径不再写入（类仍留在 SDK 类型层），可追溯性收敛为 `query_plan` + provenance 命中清单 + telemetry 计数器（014 §5），本仓的 `memory_retrieval_logs` 仍是更完整的实现。
 
-**OV-13 经验进化（⏸）**。经验进化闭环已按 Reflexion 方式成立，**触发**：I-194 修复后若 skill_template proposer 长期无证据不提案，再把同 skill 相关的 procedural 失败教训接为证据源。
+**OV-13 经验进化（⏸）**。经验进化闭环已按 Reflexion 方式成立，**触发**：I-194 修复后若 skill_template proposer 长期无证据不提案，再把同 skill 相关的 procedural 失败教训接为证据源。换代补注：上游召回侧已通（context 模式 experiences 配额=1），「只写不用」不再是可以引用的上游缺陷，但「两端都在、无桥接」的本仓断链判定不变。
+
+**OV-14 归属模型（🔶）**。数据属主维度本仓已同构（`app_name × user_id × memory_type` 分面即等价的归属键）；缺的是「交互对象」维度——上游用 peer 子树让一个 bot 服务多人而记忆按人归属，本仓多租户交互（如 Patrol 面向多 app）靠属主分面已够用。**触发**：出现「同一属主下需要按交互对端隔离记忆/检索」的真实场景（如一个 assistant 服务多个最终用户）再引入第三维。
+
+**OV-15 网关代理（⏸）**。本仓记忆注入都在进程内（技能/hooks 层），不存在「给只改 Base URL 的第三方客户端供记忆」的形态。**触发**：若 negentropy 对外提供「接入即得记忆」的模型代理服务，§7 的三条设计（逐字节回放保缓存、滞后保存、默认只读工具）是现成的需求清单。
 
 ### HZ 与 OV 落地建议
 
@@ -244,9 +250,10 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 
 - OV-1 统一 URI。触发条件：013 三视图落地时。
 - OV-4 typed query。触发条件：ADR-2 统一检索后。
-- OV-5 目录递归。触发条件：目录深度 ≥3 且评测出现选错目录类失败。
+- OV-5 单遍精排。触发条件：引入精排时以池边界教训为必读反例（014 §10-B7；目录递归已随上游 #5450 删除，旧触发条件作废）。
 - OV-8 LLM 档。触发条件：模糊带误判被反馈证实。
 - OV-13 经验进化。触发条件：I-194 修复后 proposer 仍无证据。
+- OV-15 网关代理。触发条件：对外提供「接入即得记忆」的模型代理服务。
 
 ### OV 蓝图对位
 
@@ -258,7 +265,7 @@ OV 对 [013 Context Layer 蓝图](./cognitive-context/013-context-layer-blueprin
 | §5 目录层 | M-a 副本式 = ADR-1 的反面教材 | **强化 ADR-1**：统一指针格式随 013 §4.5 ADR-1 行内格式约定一并定（2026-10-10 版节号；原注 §5.3） |
 | §6 富化层 | M-d 提炼是富化层的「供给入口」 | **新增真缺口**：对话路径供给入口断开（OV-7），重铸版 013 §6.2 已并入巩固三件套设计（2026-09-27） |
 | §7 治理层 | memory_diff / .done | 新增 🔶：巩固 diff 落 `result` 字段（OV-9）、会话水位（OV-10） |
-| §8 激活层 | M-c 递归 / M-e 轨迹 | **校正 013 旧版 §12.7 #9 状态行**：已销账（现行 §12.4：L1 ✅ / L2·L3 🔶 I-194）；旧版 §8.5「自动注入通道 = `ContextAssembler.assemble()`」误述的宿主更正亦已落地（现行 §6.5，见 OV-D1） |
+| §8 激活层 | M-c 单遍精排 / M-e 轨迹 | **校正 013 旧版 §12.7 #9 状态行**：已销账（现行 §12.4：L1 ✅ / L2·L3 🔶 I-194）；旧版 §8.5「自动注入通道 = `ContextAssembler.assemble()`」误述的宿主更正亦已落地（现行 §6.5，见 OV-D1） |
 
 ### OV 取证副产物
 
