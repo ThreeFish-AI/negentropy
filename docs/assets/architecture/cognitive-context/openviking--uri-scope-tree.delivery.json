@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7558e715-fe10-4e09-8314-f33656110133",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-openviking--uri-scope-tree-20261022-224004/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--uri-scope-tree.html",
+  "specification": {
+    "sha256": "1c63bfa02e416431e1e4c7ee82860f1c6777189205f786df076b13af16b3fddd",
+    "bytes": 3432
+  },
+  "artifact": {
+    "sha256": "a16e1560790334a04d608b0a44cea3d93c8a72d2e1bda9d465b377552e60fb3b",
+    "bytes": 751846
+  }
+}

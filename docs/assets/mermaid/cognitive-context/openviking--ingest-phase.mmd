@@ -1,10 +1,11 @@
-%% source: docs/research/cognitive-context/014-openviking.md §4（图 1）
+%% source: docs/research/cognitive-context/014-openviking.md §4 编目相（挂 §2 图 3）
 %% slug: openviking--ingest-phase
 %% type: dataflow
 %% derived: docs/assets/architecture/cognitive-context/openviking--ingest-phase.html
+%% fix: 2026-10-23 「TreeBuilder 规划 URI」改通用「URI 规划（结构推导 · 类型与归属）」（盲审 B-1：类名无正文出处，§3 锚定结构推导）
 flowchart LR
-  REQ["add-resource 请求"] --> PAR["Parser 切分<br/>无 LLM · ≤2048 估算 token 且 ≤6000 字符"]
-  PAR --> TB["TreeBuilder 规划 URI"]
+  REQ["add-resource 请求"] --> PAR["Parser 切分<br/>无LLM · ≤2048估算token · ≤6000字符"]
+  PAR --> TB["URI 规划<br/>结构推导 · 类型与归属"]
   TB --> AGFS["内容提交 AGFS<br/>ls/read 已可见 · 尚不可检索"]
   AGFS --> SEMQ["语义队列（异步）"]
   SEMQ --> FSUM["文件摘要<br/>1×LLM/文件"]
@@ -15,4 +16,4 @@ flowchart LR
   L0 --> EMBQ
   DIR --> GATE{"子目录 L0 正文变了？"}
   GATE -- "否" --> NOOP["NOOP 零成本"]
-  GATE -- "是" --> BUBBLE["新鲜度冒泡：父级 ≤32 子项立即刷新<br/>否则攒到 pending/total ≥ 10%"]
+  GATE -- "是" --> BUBBLE["新鲜度冒泡<br/>父级≤32子项立即刷新 · 否则攒pending/total≥10%"]

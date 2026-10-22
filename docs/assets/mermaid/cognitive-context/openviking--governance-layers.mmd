@@ -1,0 +1,18 @@
+%% source: docs/research/cognitive-context/014-openviking.md §8.1–§8.6（图例补全新增）
+%% slug: openviking--governance-layers
+%% type: architecture
+%% derived: docs/assets/architecture/cognitive-context/openviking--governance-layers.html
+flowchart TB
+  subgraph ROW1[" "]
+    direction LR
+    ROLE["谁能进 · 租户与角色 §8.1<br/>ROOT / ADMIN / USER · api_key / trusted / dev 三认证"]
+    ACL["谁能看 · ACL §8.2<br/>user/group × read/write/manage 三级包含 · 默认关 · 掩码内嵌向量记录随检索过滤"]
+    ENC["存储加密 · 三层信封 §8.3<br/>账户钥由 root key 经 HKDF-SHA256 派生 · 文件 AES-256-GCM · 魔数 OVE1"]
+  end
+  subgraph ROW2[" "]
+    direction LR
+    PRIV["敏感值 · 隐私配置 §8.5<br/>写入 SKILL.md 时替换 {{ov_privacy:…}} 占位 · 读取按版本还原 · 扫描默认 dry-run"]
+    SNAP["版本回放 · 快照 §8.4<br/>每账户一个 git 仓库 · commit/log/show/restore · restore 是前向提交 · 历史不可改写"]
+    PACK["打包迁移 · OVPack §8.6<br/>v3 manifest · sha256 校验 · ZIP 非加密格式"]
+  end
+  ROW1 ~~~ ROW2

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/dataflow-openviking--ingest-phase-20261023-003000/candidate.json",
+    "sha256": "dbea7abcc8a22b73318a982c8d609fe159199f44f2f816b42b9d74bf7c837184",
+    "bytes": 4029
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
+    "sha256": "6d8df8b6120b5443b960a084540da8d75f9c1860da3210a4df747697d06eb900",
+    "bytes": 763369
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2495,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "dir-embq",
+            "from": "dir",
+            "to": "embq",
+            "label": "目录 L1",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "bends": 3,
+          "stretch": 1.119
+        },
+        {
+          "relationship": {
+            "id": "dir-gate",
+            "from": "dir",
+            "to": "gate",
+            "label": "子目录 L0",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "dir → embq needs 3 bends: move node dir or embq so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "dir → gate needs 3 bends: move node dir or gate so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-openviking--panorama-20261022-224001/candidate.json",
+    "sha256": "afea1a50834c92044bf60ef5a6eef5bd8e1ad8f9a29c4109ebd9007d43865c37",
+    "bytes": 5808
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.html",
+    "sha256": "40673c69749450809e2287142bc93aa189d2c1cb64fe12c9e53a1b3a7de74944",
+    "bytes": 765774
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2505,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 1,
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "from": "viking",
+            "to": "usr",
+            "label": "",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "right": {
+            "from": "viking",
+            "to": "compile",
+            "label": "再加工",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            844,
+            352
+          ],
+          "sharedNode": "viking"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "from": "memory",
+            "to": "viking",
+            "label": "按身份字段写回 user/peer",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 3,
+          "stretch": 1.152
+        },
+        {
+          "relationship": {
+            "from": "viking",
+            "to": "compile",
+            "label": "再加工",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "viking → usr and viking → compile cross next to viking: move node usr or compile so the two reach viking from different sides (for example one level with it, one directly above or below it).",
+      "memory → viking needs 3 bends: move node memory or viking so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "viking → compile needs 3 bends: move node viking or compile so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

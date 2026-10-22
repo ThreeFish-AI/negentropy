@@ -3,13 +3,14 @@
 %% type: workflow
 %% derived: docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html
 %% fix: 2026-10-22 「递归」边随上游 #5450 删除目录递归改为「各自独立全局召回」，钉点 6227af51
+%% fix: 2026-10-23 「翻手册」喻体改「找技能」（盲审 D-1：正文无「手册」字样与类比许可）
 flowchart LR
   Q["用户问题<br/>search 入口"] -->|"提问"| GATE{"有会话？<br/>无会话用原问题"}
   GATE -->|"有会话"| AN["意图分析<br/>LLM 拆单（每类 1–5 条）"]
   GATE -.->|"无会话·原问题"| MERGE["直接拼接<br/>不去重 · 分数不归一"]
   AN -->|"拆单"| QRES["资料检索单<br/>找资料"]
   AN -->|"拆单"| QMEM["记忆检索单<br/>查记忆"]
-  QRES -->|"同路"| QSKILL["技能检索单<br/>翻手册"]
+  QRES -->|"同路"| QSKILL["技能检索单<br/>找技能"]
   QRES -->|"各自独立完整检索·配 rerank 才精排"| MERGE
   QSKILL -->|"各自独立完整检索·配 rerank 才精排"| MERGE
   QMEM -->|"各自独立完整检索·配 rerank 才精排"| MERGE

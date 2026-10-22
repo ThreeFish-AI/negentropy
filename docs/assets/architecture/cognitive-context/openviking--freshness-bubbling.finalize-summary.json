@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/dataflow-openviking--freshness-bubbling-20261022-224007/candidate.json",
+    "sha256": "847b899fbf71b0eb824ba14165f44df3ecd5c9e10ad9db59c35ece71c60d8c2c",
+    "bytes": 2587
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.html",
+    "sha256": "3cec7143cdc06dc06ac79e8b0fb2b8fdcb5c5e552528876be51af65167b574cb",
+    "bytes": 754006
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2419
+}

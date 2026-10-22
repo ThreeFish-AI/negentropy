@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "97cb5add-79bc-4fa4-bba6-7bd95c8aa884",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-openviking--governance-layers-20261022-224003/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--governance-layers.html",
+  "specification": {
+    "sha256": "81c40d5fa797f1e99a68eef3ec6eabbe52a316a4193626debde493492b025d0a",
+    "bytes": 3023
+  },
+  "artifact": {
+    "sha256": "77d05e1edeb10ddf9ce5958f06329285b3a0459f3f075175fd9c247392e10f2e",
+    "bytes": 750394
+  }
+}
