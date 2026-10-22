@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "workflow",
   "quality": "showcase",
-  "startedAt": "2026-10-21T16:54:46.849Z",
+  "startedAt": "2026-10-22T05:28:51.701Z",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--intent-typed-queries-20261022-003214/candidate.json",
-    "sha256": "3da0dea244ca560ae6f2b07f0698569364fdc5d1bef02dcc509ed439993df2b6",
-    "bytes": 4197
+    "sha256": "6467ce33db7940739f223e2ff7bce82d2a7347f937db57b95d3a35230a59c123",
+    "bytes": 5400
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
-    "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
-    "bytes": 757964
+    "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
+    "bytes": 758196
   },
   "stages": {
     "validate": {
@@ -31,6 +31,8 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/dodoma",
         "--json"
       ],
       "receipt": {
@@ -38,8 +40,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "3da0dea244ca560ae6f2b07f0698569364fdc5d1bef02dcc509ed439993df2b6",
-          "bytes": 4197
+          "sha256": "6467ce33db7940739f223e2ff7bce82d2a7347f937db57b95d3a35230a59c123",
+          "bytes": 5400
         },
         "validation": {
           "checksPassed": 9,
@@ -54,7 +56,7 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 365,
+      "durationMs": 443,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -64,23 +66,25 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
         "--quality",
         "showcase",
+        "--repo-root",
+        "/Users/cm.huang/conductor/workspaces/negentropy/dodoma",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "d255ec28-e519-4f7e-8041-5dca153eee2d",
+        "receiptId": "6fb21335-a636-4544-8839-8724e124130d",
         "ok": true,
         "command": "deliver",
         "type": "workflow",
         "input": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--intent-typed-queries-20261022-003214/candidate.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
         "specification": {
-          "sha256": "3da0dea244ca560ae6f2b07f0698569364fdc5d1bef02dcc509ed439993df2b6",
-          "bytes": 4197
+          "sha256": "6467ce33db7940739f223e2ff7bce82d2a7347f937db57b95d3a35230a59c123",
+          "bytes": 5400
         },
         "artifact": {
-          "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
-          "bytes": 757964
+          "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
+          "bytes": 758196
         },
         "validation": {
           "checksPassed": 9,
@@ -95,7 +99,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 98,
+      "durationMs": 145,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,8 +111,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
         "artifact": {
-          "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
-          "bytes": 757964
+          "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
+          "bytes": 758196
         },
         "checks": [
           {
@@ -228,7 +232,7 @@
                   "id": "e-qskill-merge",
                   "from": "qskill",
                   "to": "merge",
-                  "label": "独立全局召回+精排",
+                  "label": "独立完整检索·配 rerank 才精排",
                   "collectionIndex": 8,
                   "artifactIndex": 9
                 },
@@ -262,13 +266,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "d255ec28-e519-4f7e-8041-5dca153eee2d"
+        "deliveryReceiptId": "6fb21335-a636-4544-8839-8724e124130d"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1010,
+      "durationMs": 1035,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -286,11 +290,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "d255ec28-e519-4f7e-8041-5dca153eee2d",
+        "deliveryReceiptId": "6fb21335-a636-4544-8839-8724e124130d",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
-          "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
-          "bytes": 757964
+          "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
+          "bytes": 758196
         },
         "state": {
           "detail": "read",
@@ -1452,6 +1456,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-21T16:54:48.746Z",
-  "durationMs": 1897
+  "finishedAt": "2026-10-22T05:28:53.738Z",
+  "durationMs": 2037
 }

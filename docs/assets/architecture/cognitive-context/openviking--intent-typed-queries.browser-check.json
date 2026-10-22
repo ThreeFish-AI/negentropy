@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "d255ec28-e519-4f7e-8041-5dca153eee2d",
+  "deliveryReceiptId": "6fb21335-a636-4544-8839-8724e124130d",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
-    "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
-    "bytes": 757964
+    "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
+    "bytes": 758196
   },
   "state": {
     "detail": "read",

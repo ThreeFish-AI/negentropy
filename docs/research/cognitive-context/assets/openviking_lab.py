@@ -34,9 +34,9 @@ import sys
 import zlib
 
 ABSTRACT_MAX, OVERVIEW_MAX = 256, 4000  # L0/L1 字符软上限（parser_config.py:715/718）
-SAMPLE_LIMIT, REFRESH_RATIO = 32, 0.10  # 大目录采样上限 / 父级刷新比例（parser_config.py:709）
+SAMPLE_LIMIT, REFRESH_RATIO = 32, 0.10  # 大目录采样上限 / 父级刷新比例（parser_config.py:709/712）
 POOL_MULT = 2  # 精排候选池 = limit × 2（hierarchical_retriever.py:72/209，仅精排可用时扩池）
-THRESHOLD = 0.1  # rerank 阈值（rerank_config.py:46，严格 >；精排之后才应用）
+THRESHOLD = 0.1  # rerank 阈值（rerank_config.py:51，严格 >；精排之后才应用）
 QUOTA_CHAT = {"events": 3, "entities": 3, "preferences": 1, "experiences": 1, "resources": 1, "skills": 1}  # context 模式 chat 预设
 PEER_PENALTY = {"events": 0.1, "entities": 0.1}  # 跨 peer 检索降权（其余类别 0.02；ovcli peer_scope）
 PREFETCH_TOPN = 5  # 记忆提炼预取相似旧卡（memory_config.py）
@@ -251,7 +251,7 @@ def search(vk: Viking, q: str, limit: int = 3, rerank: bool = True, keep=None, a
         if actor_peer is not None:  # 读宽：非当前 peer 的结果按类别降权（写窄读宽）
             _, p = owner_and_peer(u)
             if p and p != actor_peer:
-                s *= PEER_PENALTY.get(context_type(u), 0.02)
+                s *= PEER_PENALTY.get(dom_of(u), 0.02)  # memory 先归域（events/entities 0.1），非 memory 维持 0.02
         scored.append((round(s, 4), u))
     scored = [(s, u) for s, u in scored if s > THRESHOLD]  # 阈值后置：向量分低的可能被精排救回
     scored.sort(reverse=True)
@@ -444,7 +444,7 @@ def selftest() -> None:
     r_q, lq, _ = recall(vk, rerank=False)
     r_t, lt, ct = recall(vk, rerank=True)
     print(f"  QUICK   recall@3 = {r_q:.2f}", *lq, sep="\n")
-    print(f"  THINKING recall@3 = {r_t:.2f}  （候选池合计 {ct['pool']} 条、精排 {ct['rerank_calls']} 次/查询、读 {ct['tokens']} token）", *lt, sep="\n")
+    print(f"  THINKING recall@3 = {r_t:.2f}  （候选池合计 {ct['pool']} 条、精排 {ct['rerank_calls'] // len(QUERIES)} 次/查询·合计 {ct['rerank_calls']} 次、读 {ct['tokens']} token）", *lt, sep="\n")
     assert r_t > r_q and r_t == 1.0
 
     print("── S4 新鲜度冒泡：标签变了才上报；宽分区攒够一成才重印")
@@ -497,7 +497,9 @@ def selftest() -> None:
         print(f"  [{dom:12s}] {tier:8s} {tok:3d} tok  {u.rsplit('/', 1)[-1]}")
     assert sum(t for *_, t in plan) <= BUDGET_TOKENS
     doms = [d for d, *_ in plan]
-    assert "events" not in doms and len(doms) >= 3, "空配额被补足、多类别共存"
+    quota_picked = sum(min(len(per_dom.get(d, [])), q) for d, q in QUOTA_CHAT.items())  # 首轮配额实取数
+    assert "events" not in doms, "空配额域不出现"
+    assert len(doms) > quota_picked, f"空位由其他类别补足（首轮配额 {quota_picked} → 实取 {len(doms)}）"
     print("SELFTEST PASSED ✔")
 
 

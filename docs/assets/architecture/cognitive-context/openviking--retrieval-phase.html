@@ -4987,7 +4987,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1167 956" data-reader-fit="intrinsic-height" data-layout-contract="readable-v2" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
+      <svg viewBox="0 0 1183 956" data-reader-fit="intrinsic-height" data-layout-contract="readable-v2" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase">
         <title id="archify-diagram-title">OpenViking 检索相：QUICK 平铺与 THINKING 精排</title>
         <desc id="archify-diagram-description">由 Archify 生成的工作流图。</desc>
         <!-- Definitions -->
@@ -5044,7 +5044,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 
         <!-- Edge paths -->
-        <path data-edge-from="asm" data-edge-to="out" data-edge-key="0" data-edge-id="e-asm-out" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="1032.8,732;1032.8,776" d="M 1032.8 732 L 1032.8 776" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="asm" data-edge-to="out" data-edge-key="0" data-edge-id="e-asm-out" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="1130.8,706;1151,706;1151,802;1118.8,802" d="M 1130.8 706 L 1151 706 L 1151 802 L 1118.8 802" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="entry" data-edge-to="intent" data-edge-label="search" data-edge-key="1" data-edge-id="e-entry-intent" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="352,120;398.8,120" d="M 352 120 L 398.8 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="entry" data-edge-to="quick" data-edge-label="find" data-edge-key="2" data-edge-id="e-entry-quick" data-edge-role="branch" data-composition-points="284,146;284,168;468.8,168;468.8,219" d="M 284 146 L 284 168 L 468.8 168 L 468.8 219" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="intent" data-edge-to="mode" data-edge-key="3" data-edge-id="e-intent-mode" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="538.8,120;566.8,120" d="M 538.8 120 L 566.8 120" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
@@ -5057,7 +5057,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="rerank" data-edge-to="thresh" data-edge-key="10" data-edge-id="e-rerank-thresh" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="932.8,369;960.8,369" d="M 932.8 369 L 960.8 369" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="thresh" data-edge-to="cut" data-edge-label="否 · 剪掉" data-edge-key="11" data-edge-id="e-thresh-cut" data-composition-routing="workflow-v2-auto" data-edge-role="error" data-composition-points="1025.8,395;1025.8,493;916.8,493" d="M 1025.8 395 L 1025.8 493 L 916.8 493" class="a-security" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
         <path data-edge-from="thresh" data-edge-to="top" data-edge-label="是" data-edge-key="12" data-edge-id="e-thresh-top" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="1104.8,369;1151,369;1151,610;1110.8,610" d="M 1104.8 369 L 1151 369 L 1151 610 L 1110.8 610" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="top" data-edge-to="asm" data-edge-key="13" data-edge-id="e-top-asm" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="1032.8,636;1032.8,680" d="M 1032.8 636 L 1032.8 680" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="top" data-edge-to="asm" data-edge-label="mode=context" data-edge-key="13" data-edge-id="e-top-asm" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="1032.8,584;1032.8,534;918.8,534;918.8,706;934.8,706" d="M 1032.8 584 L 1032.8 534 L 918.8 534 L 918.8 706 L 934.8 706" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="top" data-edge-to="out" data-edge-key="14" data-edge-id="e-top-out" data-composition-routing="workflow-v2-auto" data-edge-role="return" data-composition-points="1032.8,636;1032.8,652;1167,652;1167,844;1044.8,844;1044.8,828" d="M 1032.8 636 L 1032.8 652 L 1167 652 L 1167 844 L 1044.8 844 L 1044.8 828" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
 
         <!-- Nodes -->
         <g id="node-q" data-node-id="q" data-node-label="用户问题" tabindex="0" role="button" aria-label="聚焦用户问题，search / find 请求, 入口分诊 › 请求入口" aria-pressed="false" data-node-kind="external" data-node-sublabel="search / find 请求" data-node-context="入口分诊 › 请求入口">
@@ -5086,15 +5087,15 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text data-detail="context" x="284" y="132" class="t-muted" font-size="8" text-anchor="middle">find | search</text>
         </g>
 
-        <g id="node-intent" data-node-id="intent" data-node-label="意图分析" tabindex="0" role="button" aria-label="聚焦意图分析，0–5 typed query, 入口分诊 › 意图与档位" aria-pressed="false" data-node-kind="backend" data-node-sublabel="0–5 typed query" data-node-tag="enable_intent 默认开" data-node-context="入口分诊 › 意图与档位">
-          <title>意图分析 · 0–5 typed query · 入口分诊 › 意图与档位 · enable_intent 默认开</title>
+        <g id="node-intent" data-node-id="intent" data-node-label="意图分析" tabindex="0" role="button" aria-label="聚焦意图分析，typed query 每类 1–5 条, 入口分诊 › 意图与档位" aria-pressed="false" data-node-kind="backend" data-node-sublabel="typed query 每类 1–5 条" data-node-tag="enable_intent 默认开" data-node-context="入口分诊 › 意图与档位">
+          <title>意图分析 · typed query 每类 1–5 条 · 入口分诊 › 意图与档位 · enable_intent 默认开</title>
           <rect x="398.8" y="86" width="140" height="68" rx="6" class="c-mask"/>
           <rect x="398.8" y="86" width="140" height="68" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(404.8 92) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="468.8" y="107" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">意图分析</text>
-          <text data-detail="context" x="468.8" y="124" class="t-muted" font-size="8" text-anchor="middle">0–5 typed query</text>
+          <text data-detail="context" x="468.8" y="124" class="t-muted" font-size="8" text-anchor="middle">typed query 每类 1–5 条</text>
         <text data-detail="fine" x="468.8" y="142" class="t-backend" font-size="7" text-anchor="middle">enable_intent 默认开</text>
         </g>
 
@@ -5122,8 +5123,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text data-detail="context" x="468.8" y="257" class="t-muted" font-size="8" text-anchor="middle">全局向量 top-limit · 恒此档</text>
         </g>
 
-        <g id="node-pool" data-node-id="pool" data-node-label="2×limit 候选池" tabindex="0" role="button" aria-label="聚焦2×limit 候选池，scope/权限/level 过滤, THINKING 档 › 意图与档位" aria-pressed="false" data-node-kind="database" data-node-sublabel="scope/权限/level 过滤" data-node-context="THINKING 档 › 意图与档位">
-          <title>2×limit 候选池 · scope/权限/level 过滤 · THINKING 档 › 意图与档位</title>
+        <g id="node-pool" data-node-id="pool" data-node-label="2×limit 候选池" tabindex="0" role="button" aria-label="聚焦2×limit 候选池，同 URI 去重保最高分, THINKING 档 › 意图与档位" aria-pressed="false" data-node-kind="database" data-node-sublabel="同 URI 去重保最高分" data-node-context="THINKING 档 › 意图与档位">
+          <title>2×limit 候选池 · 同 URI 去重保最高分 · THINKING 档 › 意图与档位</title>
           <rect x="564.8" y="343" width="168" height="52" rx="6" class="c-mask"/>
           <rect x="564.8" y="343" width="168" height="52" rx="6" class="c-database" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(570.8 349) scale(0.6875)">
@@ -5131,7 +5132,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="648.8" y="364" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">2×limit 候选池</text>
-          <text data-detail="context" x="648.8" y="381" class="t-muted" font-size="8" text-anchor="middle">scope/权限/level 过滤</text>
+          <text data-detail="context" x="648.8" y="381" class="t-muted" font-size="8" text-anchor="middle">同 URI 去重保最高分</text>
         </g>
 
         <g id="node-rerank" data-node-id="rerank" data-node-label="单遍精排" tabindex="0" role="button" aria-label="聚焦单遍精排，只读 abstract · 回退向量分, THINKING 档 › 精排 · 装配 · 返回" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="只读 abstract · 回退向量分" data-node-context="THINKING 档 › 精排 · 装配 · 返回">
@@ -5242,6 +5243,10 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g data-detail="context" data-edge-from="thresh" data-edge-to="top" data-edge-label="是" data-edge-key="12" data-edge-id="e-thresh-top">
           <rect x="1112.9" y="349" width="30" height="14" rx="3" class="c-mask"/>
           <text x="1127.9" y="359" class="t-edge-default" font-size="8" text-anchor="middle">是</text>
+        </g>
+        <g data-detail="context" data-edge-from="top" data-edge-to="asm" data-edge-label="mode=context" data-edge-key="13" data-edge-id="e-top-asm">
+          <rect x="942" y="514" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="975.8" y="524" class="t-edge-default" font-size="8" text-anchor="middle">mode=context</text>
         </g>
 
 
@@ -5456,7 +5461,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>未配 rerank 客户端 ⇒ search 与 find 同走 QUICK 平铺（全局向量 top-limit）</li>
-          <li>意图分析默认开启（enable_intent）：有会话拆 0–5 个 typed query，无会话用原查询</li>
+          <li>意图分析默认开启（enable_intent）：有会话拆若干 typed query（每类 1–5 条），无会话用原查询</li>
         </ul>
       </div>
 

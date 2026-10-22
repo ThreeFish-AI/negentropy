@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "b3cda954-969d-44f2-9896-55bbe5be6218",
+  "deliveryReceiptId": "cf2797a0-309e-4a89-8731-e80fdf3685f8",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html",
-    "sha256": "413f3bfaf2fe37dc3cf24a2695d04318b7e885a7921cc95bd0c8c1862ded607c",
-    "bytes": 767902
+    "sha256": "74e96c3327a3bc9ca15360721f4f0a3b857e3d952d743b666309f64b0d522ba9",
+    "bytes": 768866
   },
   "state": {
     "detail": "read",
@@ -42,7 +42,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 891,
+        "diagramWidth": 903,
         "pageComposition": {
           "bodyPaddingPx": 12,
           "headerPx": 68,
@@ -51,7 +51,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -116,9 +116,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.107969151670951,
-        "minimumProjectedNonEdgeTextPx": 6.107969151670951,
-        "minimumProjectedEdgeTextPx": 6.107969151670951,
+        "minimumProjectedNodeTextPx": 6.106508875739645,
+        "minimumProjectedNonEdgeTextPx": 6.106508875739645,
+        "minimumProjectedEdgeTextPx": 6.106508875739645,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -155,8 +155,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 963,
-        "diagramWidth": 933,
+        "readerWidth": 975,
+        "diagramWidth": 945,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -165,7 +165,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -230,9 +230,9 @@
             "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 6.395886889460154,
-        "minimumProjectedNonEdgeTextPx": 6.395886889460154,
-        "minimumProjectedEdgeTextPx": 6.395886889460154,
+        "minimumProjectedNodeTextPx": 6.390532544378698,
+        "minimumProjectedNonEdgeTextPx": 6.390532544378698,
+        "minimumProjectedEdgeTextPx": 6.390532544378698,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -269,8 +269,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1080,
-        "diagramWidth": 1050,
+        "readerWidth": 1094,
+        "diagramWidth": 1064,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 60,
@@ -279,7 +279,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -290,7 +290,7 @@
               "out",
               "top"
             ],
-            "nodeSpanPx": 220,
+            "nodeSpanPx": 219,
             "spaceAboveNodesPx": 31,
             "spaceBelowNodesPx": 4
           },
@@ -344,9 +344,9 @@
             "spaceBelowNodesPx": 10
           }
         ],
-        "minimumProjectedNodeTextPx": 7.197943444730077,
-        "minimumProjectedNonEdgeTextPx": 7.197943444730077,
-        "minimumProjectedEdgeTextPx": 7.197943444730077,
+        "minimumProjectedNodeTextPx": 7.195266272189349,
+        "minimumProjectedNonEdgeTextPx": 7.195266272189349,
+        "minimumProjectedEdgeTextPx": 7.195266272189349,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -383,8 +383,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1371,
-        "diagramWidth": 1321,
+        "readerWidth": 1389,
+        "diagramWidth": 1339,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
@@ -393,7 +393,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -551,7 +551,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 891,
+        "diagramWidth": 903,
         "pageComposition": {
           "bodyPaddingPx": 12,
           "headerPx": 68,
@@ -560,7 +560,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -625,9 +625,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.107969151670951,
-        "minimumProjectedNonEdgeTextPx": 6.107969151670951,
-        "minimumProjectedEdgeTextPx": 6.107969151670951,
+        "minimumProjectedNodeTextPx": 6.106508875739645,
+        "minimumProjectedNonEdgeTextPx": 6.106508875739645,
+        "minimumProjectedEdgeTextPx": 6.106508875739645,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -664,8 +664,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 963,
-        "diagramWidth": 933,
+        "readerWidth": 975,
+        "diagramWidth": 945,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -674,7 +674,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -739,9 +739,9 @@
             "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 6.395886889460154,
-        "minimumProjectedNonEdgeTextPx": 6.395886889460154,
-        "minimumProjectedEdgeTextPx": 6.395886889460154,
+        "minimumProjectedNodeTextPx": 6.390532544378698,
+        "minimumProjectedNonEdgeTextPx": 6.390532544378698,
+        "minimumProjectedEdgeTextPx": 6.390532544378698,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -778,8 +778,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1080,
-        "diagramWidth": 1050,
+        "readerWidth": 1094,
+        "diagramWidth": 1064,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 60,
@@ -788,7 +788,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -799,7 +799,7 @@
               "out",
               "top"
             ],
-            "nodeSpanPx": 220,
+            "nodeSpanPx": 219,
             "spaceAboveNodesPx": 31,
             "spaceBelowNodesPx": 4
           },
@@ -853,9 +853,9 @@
             "spaceBelowNodesPx": 10
           }
         ],
-        "minimumProjectedNodeTextPx": 7.197943444730077,
-        "minimumProjectedNonEdgeTextPx": 7.197943444730077,
-        "minimumProjectedEdgeTextPx": 7.197943444730077,
+        "minimumProjectedNodeTextPx": 7.195266272189349,
+        "minimumProjectedNonEdgeTextPx": 7.195266272189349,
+        "minimumProjectedEdgeTextPx": 7.195266272189349,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -892,8 +892,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1371,
-        "diagramWidth": 1321,
+        "readerWidth": 1389,
+        "diagramWidth": 1339,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
@@ -902,7 +902,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -1012,7 +1012,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 891,
+        "diagramWidth": 903,
         "pageComposition": {
           "bodyPaddingPx": 12,
           "headerPx": 68,
@@ -1021,7 +1021,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -1086,9 +1086,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.107969151670951,
-        "minimumProjectedNonEdgeTextPx": 6.107969151670951,
-        "minimumProjectedEdgeTextPx": 6.107969151670951,
+        "minimumProjectedNodeTextPx": 6.106508875739645,
+        "minimumProjectedNonEdgeTextPx": 6.106508875739645,
+        "minimumProjectedEdgeTextPx": 6.106508875739645,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1125,8 +1125,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 963,
-        "diagramWidth": 933,
+        "readerWidth": 975,
+        "diagramWidth": 945,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -1135,7 +1135,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -1200,9 +1200,9 @@
             "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 6.395886889460154,
-        "minimumProjectedNonEdgeTextPx": 6.395886889460154,
-        "minimumProjectedEdgeTextPx": 6.395886889460154,
+        "minimumProjectedNodeTextPx": 6.390532544378698,
+        "minimumProjectedNonEdgeTextPx": 6.390532544378698,
+        "minimumProjectedEdgeTextPx": 6.390532544378698,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1239,8 +1239,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1080,
-        "diagramWidth": 1050,
+        "readerWidth": 1094,
+        "diagramWidth": 1064,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 60,
@@ -1249,7 +1249,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",
@@ -1260,7 +1260,7 @@
               "out",
               "top"
             ],
-            "nodeSpanPx": 220,
+            "nodeSpanPx": 219,
             "spaceAboveNodesPx": 31,
             "spaceBelowNodesPx": 4
           },
@@ -1314,9 +1314,9 @@
             "spaceBelowNodesPx": 10
           }
         ],
-        "minimumProjectedNodeTextPx": 7.197943444730077,
-        "minimumProjectedNonEdgeTextPx": 7.197943444730077,
-        "minimumProjectedEdgeTextPx": 7.197943444730077,
+        "minimumProjectedNodeTextPx": 7.195266272189349,
+        "minimumProjectedNonEdgeTextPx": 7.195266272189349,
+        "minimumProjectedEdgeTextPx": 7.195266272189349,
         "minimumProjectedNodeText": "search / find 请求",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1353,8 +1353,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1371,
-        "diagramWidth": 1321,
+        "readerWidth": 1389,
+        "diagramWidth": 1339,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
@@ -1363,7 +1363,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 956
         },
-        "viewBoxWidth": 1167,
+        "viewBoxWidth": 1183,
         "workflowLanes": [
           {
             "frameId": "lane-4",

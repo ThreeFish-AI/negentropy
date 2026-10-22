@@ -7,13 +7,13 @@
   "quality": "showcase",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--intent-typed-queries-20261022-003214/candidate.json",
-    "sha256": "3da0dea244ca560ae6f2b07f0698569364fdc5d1bef02dcc509ed439993df2b6",
-    "bytes": 4197
+    "sha256": "6467ce33db7940739f223e2ff7bce82d2a7347f937db57b95d3a35230a59c123",
+    "bytes": 5400
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
-    "sha256": "a9f2d349fbb02765b5222929f7756f8c3a70fd2937dfb46b7e2441c3788bc902",
-    "bytes": 757964
+    "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
+    "bytes": 758196
   },
   "gates": {
     "validate": "pass",
@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 1897,
+  "durationMs": 2037,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {
@@ -73,7 +73,7 @@
             "id": "e-qskill-merge",
             "from": "qskill",
             "to": "merge",
-            "label": "独立全局召回+精排",
+            "label": "独立完整检索·配 rerank 才精排",
             "collectionIndex": 8,
             "artifactIndex": 9
           },

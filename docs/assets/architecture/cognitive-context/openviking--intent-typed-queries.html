@@ -5042,10 +5042,10 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="gate" data-edge-to="an" data-edge-label="有会话" data-edge-key="2" data-edge-id="e-gate-an" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="354,243;400.8,243" d="M 354 243 L 400.8 243" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="gate" data-edge-to="merge" data-edge-label="无会话 · 原问题" data-edge-key="3" data-edge-id="e-gate-merge" data-edge-role="branch" data-composition-points="282,217;282,84;1002,84;1002,243;968.8,243" d="M 282 217 L 282 84 L 1002 84 L 1002 243 L 968.8 243" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="q" data-edge-to="gate" data-edge-label="提问" data-edge-key="4" data-edge-id="e-q-gate" data-composition-routing="workflow-v2-auto" data-edge-role="main" data-composition-points="172,243;210,243" d="M 172 243 L 210 243" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="qmem" data-edge-to="merge" data-edge-label="独立全局召回+精排" data-edge-key="5" data-edge-id="e-qmem-merge" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="594.8,341;594.8,250;784.8,250" d="M 594.8 341 L 594.8 250 L 784.8 250" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="qres" data-edge-to="merge" data-edge-label="独立全局召回+精排" data-edge-key="6" data-edge-id="e-qres-merge" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="606.8,145;606.8,166;876.8,166;876.8,217" d="M 606.8 145 L 606.8 166 L 876.8 166 L 876.8 217" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="qmem" data-edge-to="merge" data-edge-label="独立完整检索·配 rerank 才精排" data-edge-key="5" data-edge-id="e-qmem-merge" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="594.8,341;594.8,250;784.8,250" d="M 594.8 341 L 594.8 250 L 784.8 250" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="qres" data-edge-to="merge" data-edge-label="独立完整检索·配 rerank 才精排" data-edge-key="6" data-edge-id="e-qres-merge" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="606.8,145;606.8,166;876.8,166;876.8,217" d="M 606.8 145 L 606.8 166 L 876.8 166 L 876.8 217" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="qres" data-edge-to="qskill" data-edge-label="同路" data-edge-key="7" data-edge-id="e-qres-qskill" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="656.8,119;694.8,119" d="M 656.8 119 L 694.8 119" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="qskill" data-edge-to="merge" data-edge-label="独立全局召回+精排" data-edge-key="8" data-edge-id="e-qskill-merge" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="818.8,119;989,119;989,201;888.8,201;888.8,217" d="M 818.8 119 L 989 119 L 989 201 L 888.8 201 L 888.8 217" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="qskill" data-edge-to="merge" data-edge-label="独立完整检索·配 rerank 才精排" data-edge-key="8" data-edge-id="e-qskill-merge" data-composition-routing="workflow-v2-auto" data-edge-role="" data-composition-points="818.8,119;989,119;989,201;888.8,201;888.8,217" d="M 818.8 119 L 989 119 L 989 201 L 888.8 201 L 888.8 217" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
         <g id="node-qres" data-node-id="qres" data-node-label="资料检索单" tabindex="0" role="button" aria-label="聚焦资料检索单，找资料, 资料 · 技能检索单（同路） › 并行检索与拼接" aria-pressed="false" data-node-kind="database" data-node-sublabel="找资料" data-node-context="资料 · 技能检索单（同路） › 并行检索与拼接">
@@ -5096,15 +5096,15 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text data-detail="context" x="282" y="255" class="t-muted" font-size="8" text-anchor="middle">无会话用原问题</text>
         </g>
 
-        <g id="node-an" data-node-id="an" data-node-label="意图分析" tabindex="0" role="button" aria-label="聚焦意图分析，LLM 拆单 · 0–5 个, 意图拆单 › 意图拆单" aria-pressed="false" data-node-kind="backend" data-node-sublabel="LLM 拆单 · 0–5 个" data-node-context="意图拆单 › 意图拆单">
-          <title>意图分析 · LLM 拆单 · 0–5 个 · 意图拆单 › 意图拆单</title>
+        <g id="node-an" data-node-id="an" data-node-label="意图分析" tabindex="0" role="button" aria-label="聚焦意图分析，LLM 拆单 · 每类 1–5 条, 意图拆单 › 意图拆单" aria-pressed="false" data-node-kind="backend" data-node-sublabel="LLM 拆单 · 每类 1–5 条" data-node-context="意图拆单 › 意图拆单">
+          <title>意图分析 · LLM 拆单 · 每类 1–5 条 · 意图拆单 › 意图拆单</title>
           <rect x="400.8" y="217" width="148" height="52" rx="6" class="c-mask"/>
           <rect x="400.8" y="217" width="148" height="52" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(406.8 223) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="474.8" y="238" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">意图分析</text>
-          <text data-detail="context" x="474.8" y="255" class="t-muted" font-size="8" text-anchor="middle">LLM 拆单 · 0–5 个</text>
+          <text data-detail="context" x="474.8" y="255" class="t-muted" font-size="8" text-anchor="middle">LLM 拆单 · 每类 1–5 条</text>
         </g>
 
         <g id="node-merge" data-node-id="merge" data-node-label="结果直接拼接" tabindex="0" role="button" aria-label="聚焦结果直接拼接，不去重 · 分数不归一, 意图拆单 › 并行检索与拼接" aria-pressed="false" data-node-kind="backend" data-node-sublabel="不去重 · 分数不归一" data-node-context="意图拆单 › 并行检索与拼接">
@@ -5151,21 +5151,21 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="176" y="223" width="30" height="14" rx="3" class="c-mask"/>
           <text x="191" y="233" class="t-edge-default" font-size="8" text-anchor="middle">提问</text>
         </g>
-        <g data-detail="context" data-edge-from="qmem" data-edge-to="merge" data-edge-label="独立全局召回+精排" data-edge-key="5" data-edge-id="e-qmem-merge">
-          <rect x="644" y="230" width="91.6" height="14" rx="3" class="c-mask"/>
-          <text x="689.8" y="240" class="t-edge-default" font-size="8" text-anchor="middle">独立全局召回+精排</text>
+        <g data-detail="context" data-edge-from="qmem" data-edge-to="merge" data-edge-label="独立完整检索·配 rerank 才精排" data-edge-key="5" data-edge-id="e-qmem-merge">
+          <rect x="615.1999999999999" y="230" width="149.2" height="14" rx="3" class="c-mask"/>
+          <text x="689.8" y="240" class="t-edge-default" font-size="8" text-anchor="middle">独立完整检索·配 rerank 才精排</text>
         </g>
-        <g data-detail="context" data-edge-from="qres" data-edge-to="merge" data-edge-label="独立全局召回+精排" data-edge-key="6" data-edge-id="e-qres-merge">
-          <rect x="696" y="146" width="91.6" height="14" rx="3" class="c-mask"/>
-          <text x="741.8" y="156" class="t-edge-default" font-size="8" text-anchor="middle">独立全局召回+精排</text>
+        <g data-detail="context" data-edge-from="qres" data-edge-to="merge" data-edge-label="独立完整检索·配 rerank 才精排" data-edge-key="6" data-edge-id="e-qres-merge">
+          <rect x="667.1999999999999" y="146" width="149.2" height="14" rx="3" class="c-mask"/>
+          <text x="741.8" y="156" class="t-edge-default" font-size="8" text-anchor="middle">独立完整检索·配 rerank 才精排</text>
         </g>
         <g data-detail="context" data-edge-from="qres" data-edge-to="qskill" data-edge-label="同路" data-edge-key="7" data-edge-id="e-qres-qskill">
           <rect x="660.8" y="99" width="30" height="14" rx="3" class="c-mask"/>
           <text x="675.8" y="109" class="t-edge-default" font-size="8" text-anchor="middle">同路</text>
         </g>
-        <g data-detail="context" data-edge-from="qskill" data-edge-to="merge" data-edge-label="独立全局召回+精排" data-edge-key="8" data-edge-id="e-qskill-merge">
-          <rect x="858.1" y="99" width="91.6" height="14" rx="3" class="c-mask"/>
-          <text x="903.9" y="109" class="t-edge-default" font-size="8" text-anchor="middle">独立全局召回+精排</text>
+        <g data-detail="context" data-edge-from="qskill" data-edge-to="merge" data-edge-label="独立完整检索·配 rerank 才精排" data-edge-key="8" data-edge-id="e-qskill-merge">
+          <rect x="829.3" y="99" width="149.2" height="14" rx="3" class="c-mask"/>
+          <text x="903.9" y="109" class="t-edge-default" font-size="8" text-anchor="middle">独立完整检索·配 rerank 才精排</text>
         </g>
 
         <!-- Legend -->
@@ -5370,7 +5370,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>拆单与回退</h3>
         </div>
         <ul>
-          <li>有会话：LLM 意图分析把问题拆成 0–5 个 typed query（资料 / 记忆 / 技能等检索单）</li>
+          <li>有会话：LLM 意图分析把问题拆成若干 typed query（每类 1–5 条）（资料 / 记忆 / 技能等检索单）</li>
           <li>无会话：不拆单，原问题单路直入拼接口</li>
         </ul>
       </div>
@@ -5381,7 +5381,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>各自独立，互不协调</h3>
         </div>
         <ul>
-          <li>每个 typed query 各自独立全局召回 + 精排，之间无跨 query 去重</li>
+          <li>每个 typed query 各自独立走完整检索（配 rerank 才精排），之间无跨 query 去重</li>
           <li>结果直接拼接、分数不归一：跨 query 的分数不可直接比较</li>
         </ul>
       </div>
