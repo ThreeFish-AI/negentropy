@@ -237,7 +237,8 @@
 | I-229 | Memory 浏览器实机验证 dev cookie 工具与 seed 数据备查 | ✅ 已完成 | 2026-05-04 | [详情](#I-229) |
 | I-230 | issue.md 双层结构整改与 ID 命名空间迁移（ISSUE-NNN → I-NNN） | 🔄 进行中 | — | [详情](#I-230) |
 | I-231 | Perceives Security Audit 复发（2026-10-17 增补 58 条）：docling 家族真升级 + 最小修复线收敛 + 一条无 fix 豁免 | ✅ 已完成 | 2026-10-17 | [详情](#I-231) |
-| I-232 | 013 蓝图用词整改收尾：「锚」字行话与挂点/负发现等自造词，连图与兄弟文档统一落改 | 🔄 进行中 | — | [详情](#I-232) |
+| I-232 | 013 蓝图用词整改收尾：「锚」字行话与挂点/负发现等自造词，连图与兄弟文档统一落改 | ✅ 已完成 | 2026-10-22 | [详情](#I-232) |
+| I-233 | archify 文档仍称「`.mmd` 是唯一可编辑源」，与 3.0 candidate JSON 为 SSOT 的现状不符 | 🔄 进行中 | — | [详情](#I-233) |
 
 ---
 
@@ -5399,7 +5400,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：①脚本化重构为双层结构：五列索引表、每块前置 `<a id="I-NNN"></a>` 锚点、标题规范化为 `## I-NNN：<原标题>`、全文按 ID 升序重排；②撞号重编（首现保留原号，后现按原文件位置顺延）：066₂→I-220、020₂→I-221、119₂→I-222、118₂→I-223、119₃→I-224、128₂→I-225、058₂→I-226、059₂→I-227，无 ID 两条→I-228/I-229，四个指向后现条目的仓内互引（I-088/I-129/I-217 块内散文引、mermaid README 索引行）同步改指新号；③ID 前缀全仓迁移 ISSUE-NNN→I-NNN（约 281 个 tracked 文件，含媒体/取证面文本同步）；④archify 三图（context-layer--failure-map / context-layer-blueprint--layer-mechanism-map / context-layer-blueprint--mcp-threat-model）candidate 改字后 finalize 四门重过 + 双主题 PNG 重采；⑤原 L1045 明文 `NE_AUTH_TOKEN_SECRET` 脱敏为占位（值仅存本地 `.env.local`）；⑥文件内小写 slug 锚点链接约 40 处统一改规范锚点 `#I-NNN`。
 - **后续防范**：新条目一律追加末尾并同步登记索引行；编号分配前先取当前最大号（勿凭记忆跳号），跨分支合并时核对撞号并按本条先例顺延重编；禁止无 ID 随笔块；secret 一律不得写入任何已提交文档。
 - **同类问题影响**：历史 commit message 与外部讨论中的 `ISSUE-NNN` 引用按同号映射读作 `I-NNN`（映射声明见文件头引言）。
-- **待收敛（媒体面，勿视为已完成）**：分集脚本文本层（narration `>` 备注行、storyboard 表格、planning/glossary）已同步改字——narration.json（TTS 消费面）零命中、**音频零漂移、无需重配**；屏上字（场景 tsx 角标）与已录制章节素材 / 成片中的旧 `ISSUE-` 字样，随下一轮渲染与生产 pass 吸收；archify 三图本轮已重渲收口。
+- **待收敛（媒体面，勿视为已完成）**：分集脚本文本层（narration `>` 备注行、storyboard 表格、planning/glossary）已同步改字——narration.json（TTS 消费面）零命中、**音频零漂移、无需重配**；屏上字（场景 tsx 角标）与已录制章节素材 / 成片中的旧 `ISSUE-` 字样，随下一轮渲染与生产 pass 吸收；archify 三图本轮已重渲收口。另承接 I-232 移交的 context-layer-video 媒体面旧词：storyboard 2-D 行「分级摘要梯 / 摘要梯逐级生成」、`archify.manifest.ts` 章标签「入窗」「五挂点」、屏上字 P0「明文入窗 / 越权入窗」、P4 与 `TokenBudget` 的「用时入窗」，随该集下一轮改稿与渲染吸收。
 
 ---
 
@@ -5422,6 +5423,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 - **表因**：评审指出 013 §2.2 的「一手锚」生硬刻意；全篇扫描发现同类问题成片：「锚」被当出处名词用（71 行，含「证据锚」列名、「转锚」「正锚」），另有「负发现」「挂点」「进窗/入窗」「实调用」「裸信号」「同判」等自造缩略与口癖，以及 §2.2 漏列论文定义 2（交互）、符号无白话释义。
 - **根因**：I-227 的去比喻整改只清了喻体词表，未清名词化行话与自造缩略；且术语在正文、表头、图源（`docs/diagrams/*.json` 与 `.mmd`）、兄弟文档（011 / mapping / knowledge-map）多面复制，单面改会让正文与配图分叉。
-- **处理方式**：①正文三轮：§2.2 按论文原文补全定义 1–4 并用 Gemini CLI 例表落地；「锚」按语义分类改写（出处/对应/依据/转引/正面实证，保留「锚定」系技术术语与「分布锚点」）；三路只读 Subagent 扫描后逐条核上下文与耦合再落改。②逐词裁决：挂点→接入点、负发现→未接入项＋正面实证、进窗/入窗→进入窗口、实调用→实际调用、分域→分库、窄化→覆盖不全、设计位/落档/撞名不同义/边界如实/盘上/一角/机制载荷等直述化；稳定名（现算、错数、双计、入账、对位、品类卖方、受覆盖题、回路缺件、落位、验收位）保留并在首现补释义。③配图 8 张（assembly-economics / ingest-pipeline / injection-points / read-pipeline / failure-map / architecture / layer-mechanism-map / first-class-object）按 candidate JSON → finalize 四门 → 双主题 PNG → `.mmd` 同步重出。④011 / mapping-negentropy / knowledge-map 的「一角」「机制载荷」同步。⑤三个自造词按默认方案处理：信封→条目元数据（依据 ingest-pipeline 图卡的作者定义句）、摘要梯→分级摘要、自供链→自动供给回路（M7，§3.3）。**三词为默认方案，待作者确认**；其中自供链置信度约 55–60%，仅 013 §3.2 一处，判错改回成本最低。
+- **处理方式**：①正文三轮：§2.2 按论文原文补全定义 1–4 并用 Gemini CLI 例表落地；「锚」按语义分类改写（出处/对应/依据/转引/正面实证，保留「锚定」系技术术语与「分布锚点」）；三路只读 Subagent 扫描后逐条核上下文与耦合再落改。②逐词裁决：挂点→接入点、负发现→未接入项＋正面实证、进窗/入窗→进入窗口、实调用→实际调用、分域→分库、窄化→覆盖不全、设计位/落档/撞名不同义/边界如实/盘上/一角/机制载荷等直述化；稳定名（现算、错数、双计、入账、对位、品类卖方、受覆盖题、回路缺件、落位、验收位）保留并在首现补释义。③配图 8 张（assembly-economics / ingest-pipeline / injection-points / read-pipeline / failure-map / architecture / layer-mechanism-map / first-class-object）按 candidate JSON → finalize 四门 → 双主题 PNG → `.mmd` 同步重出。④011 / mapping-negentropy / knowledge-map 的「一角」「机制载荷」同步。⑤三个自造词：信封→条目元数据（依据 ingest-pipeline 图卡的作者定义句）、摘要梯→分级摘要、自供链→自动供给回路（M7，§3.3），2026-10-22 经作者确认定稿。
 - **后续防范**：改任何术语前先 grep 图源（`docs/diagrams/context-layer*/`、`docs/assets/mermaid/cognitive-context/`）与 011 / 014 / mapping 的出现数，已成稳定名或入图源的词不单面改；子串假阳性须用断言排除（「真实调用」含「实调用」、「进入窗口」含「入窗」、「磁盘上」含「盘上」）；lima 类新工作区重渲配图前先挪走旧 `*.browser-check.json`（回执记着旧工作区绝对路径，否则 `viewer/evidence-path-conflict`）。
-- **同类问题影响**：①horizon 六张旧图（2.17 产物、无 candidate，含「对位」「双计」「边界如实」）与其它体系图的同词异义不在本轮范围；②`apps/negentropy-influence/episodes/context-layer-video/` 的分集脚本与屏上字仍含旧词（挂点、入窗、信封、摘要梯等），归 I-230 媒体面待收敛；③`docs/assets/mermaid/README.md` 与 `doc-media-assets.md` 仍写「`.mmd` 是唯一可编辑源」，与 3.0 candidate 为 SSOT 的现状不符，另行整改。
+- **同类问题影响**：①horizon 六张旧图（2.17 产物、无 candidate，含「对位」「双计」「边界如实」）与其它体系图的同词异义不在本轮范围；②`apps/negentropy-influence/episodes/context-layer-video/` 的分集脚本与屏上字仍含旧词（入窗、挂点、摘要梯等），逐项清单移交 [I-230](#I-230) 媒体面待收敛段；③`docs/assets/mermaid/README.md` 与 `doc-media-assets.md` 仍写「`.mmd` 是唯一可编辑源」，与 3.0 candidate 为 SSOT 的现状不符，移交 [I-233](#I-233)。
+
+---
+
+<a id="I-233"></a>
+
+## I-233：archify 文档仍称「`.mmd` 是唯一可编辑源」，与 3.0 candidate JSON 为 SSOT 的现状不符
+
+- **表因**：`docs/assets/mermaid/README.md` 标题「archify 图的唯一可编辑源」、`docs/.agents/doc-media-assets.md` 流程第 1 步「改 `.mmd`——唯一可编辑源」，以及 `docs/i18n/zh-CN/README.md` 两处同类表述，与 archify 3.0 起「`docs/diagrams/<slug>/<slug>.json` candidate 为图源 SSOT、`.mmd` 为投影」的实际管线相反；I-232 重渲 8 图即按 candidate→finalize→`.mmd` 同步的方向执行。
+- **根因**：3.0 管线切换（candidate JSON 入 `docs/diagrams/`）后，说明文档未随 SSOT 方向反转同步。
+- **处理方式**：待整改——按现行管线改写上述四处表述，并核对 doc-media-assets 流程步骤顺序（candidate 编辑 → finalize 四门 → 双主题 PNG → `.mmd` 投影同步）；改写前先确认 2.17 遗留图（无 candidate）的例外口径。
+- **后续防范**：管线 SSOT 方向变更时，同批 grep「唯一可编辑源」「SSOT」等声明面。
+- **同类问题影响**：由 I-232 移交；仅影响文档说明，不影响已入库图产物。

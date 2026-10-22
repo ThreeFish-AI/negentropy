@@ -4,17 +4,17 @@
 
 ## [Unreleased]
 ### Added
-### Context Layer 第 2 集克隆终声成片交付：v7 增补 + v1 首交付与评审修复 v2 重渲（2026-10-21/22）
+### Context Layer 第 2 集克隆终声成片交付：v7 增补 + v1 首交付与评审修复 v2/v3 重渲（2026-10-21/22）
 
-- **[分集 README](apps/negentropy-influence/episodes/context-layer-video/README.md) v1→v2 交付**：逐字稿 v7 增补（351 句 8291 字：开环承诺、登记行解剖、两级预算、执法点四层、倒 U 分解、RRF 机制、晋升三关、G 法则验收、三步审计等缺口，过④⑤独立评审清零）＋分镜 v5（101 镜 / 137 cue）＋配音台本 narration.cues.toml 首配；画面 v7：z 序修复（RecapDim 泛化）＋四新镜装置（登记行解剖 / 预算走查 / RankFusion / AuditCard）；archify 12 图 63 章本 worktree 重录；终声＝IndexTTS-2.5 本人克隆 story 档 df=1.0（用户显式授权 `--final-voice`），`--plan` 口径 148 块全量缓存；v1 成片 27:31.77（2026-10-21 归档）。
-- **review-once 评审修复 v2 重渲归档（2026-10-22）**：P4 幕级角标锚点误减镜偏移（角标提前可见）、P7 7-K 引入条漏随结论淡出、P0 0-G 补 p0-26b hold cue（cue 136→137 与分镜对齐、消漏窗与重入弹簧）、RecapDim 三份实现收敛 components/ 单源（P1/P2 可见行为不变）；帧数/时长与 v1 一致（49553 帧 / 1651.77s），全幕抽帧 QA FAIL 0 / WARN 0（含尾幕）。
+- **[分集 README](apps/negentropy-influence/episodes/context-layer-video/README.md) v1→v3 交付**：逐字稿 v7 增补（351 句 8291 字：开环承诺、登记行解剖、两级预算、执法点四层、倒 U 分解、RRF 机制、晋升三关、G 法则验收、三步审计等缺口，过④⑤独立评审清零）＋分镜 v5（101 镜 / 137 cue）＋配音台本 narration.cues.toml 首配；画面 v7：z 序修复（RecapDim 泛化）＋四新镜装置（登记行解剖 / 预算走查 / RankFusion / AuditCard）；archify 12 图 63 章本 worktree 重录；终声＝IndexTTS-2.5 本人克隆 story 档 df=1.0（用户显式授权 `--final-voice`），`--plan` 口径 148 块全量缓存；v1 成片 27:31.77（2026-10-21 归档）。
+- **review-once 评审修复 v2/v3 重渲归档（2026-10-22）**：v3 按作者裁决给 1-Eb 镜首补 lead={false}（承 1-E 跨图背靠背，与全片惯例统一）；P4 幕级角标锚点误减镜偏移（角标提前可见）、P7 7-K 引入条漏随结论淡出、P0 0-G 补 p0-26b hold cue（cue 136→137 与分镜对齐、消漏窗与重入弹簧）、RecapDim 三份实现收敛 components/ 单源（P1/P2 可见行为不变）；帧数/时长与 v1 一致（49553 帧 / 1651.77s），全幕抽帧 QA FAIL 0 / WARN 0（含尾幕）。
 
 ### 013 蓝图用词整改收尾：「锚」字行话与自造词连图连兄弟文档统一（2026-10-20）
 
 - **[013 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md) §2.2 补全论文定义 1–4**：按 arXiv 2510.26493 原文补上漏列的定义 2（交互），符号先给白话再给记号，并用论文自带的 Gemini CLI 例表落地实体→Char(e)→本蓝图来源类。
 - **去「锚」字行话与自造缩略**：「一手锚」→「一手信源」，证据锚/转锚/正锚/详锚等按出处、对应、依据、转引、正面实证改写；挂点→接入点、负发现→未接入项＋正面实证、进窗/入窗→进入窗口、实调用→实际调用等；「锚定」系技术术语与稳定名（现算、错数、双计、入账、对位等）保留。
 - **配图 8 张随字重渲**：assembly-economics / ingest-pipeline / injection-points / read-pipeline / failure-map / architecture / layer-mechanism-map / first-class-object 的 candidate 改字后 finalize 四门全过 + 双主题 PNG 重采；011 / mapping / knowledge-map 的「一角」「机制载荷」同步。
-- **三个自造词按默认方案处理，待作者确认**：信封→条目元数据、摘要梯→分级摘要、自供链→自动供给回路（M7，§3.3）。详见 [I-232](docs/.agents/issue.md#I-232)。分集媒体面（context-layer-video）旧词归 I-230 待收敛。
+- **三个自造词直述化（作者确认定稿）**：信封→条目元数据、摘要梯→分级摘要、自供链→自动供给回路（M7，§3.3）。详见 [I-232](docs/.agents/issue.md#I-232)。分集媒体面（context-layer-video）旧词逐项移交 [I-230](docs/.agents/issue.md#I-230) 待收敛，「`.mmd` 唯一可编辑源」过期陈述另登 [I-233](docs/.agents/issue.md#I-233)。
 
 ### issue.md 双层结构整改与 ID 命名空间迁移 ISSUE-NNN → I-NNN（2026-10-17）
 
