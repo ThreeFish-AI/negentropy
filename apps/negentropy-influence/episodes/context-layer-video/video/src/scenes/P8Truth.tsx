@@ -2,7 +2,7 @@
  *
  *  14 镜 / 15 条 archify cue（ip-assembler ×1 + ip-memory ×2 + ip-full ×4 +
  *  fm2-open ×6 + arc-facets ×2；ip-memory 承 ip-assembler 链尾跨镜背靠背 → lead={false}；
- *  fm2-open 承 ip-full 链尾跨镜背靠背 → lead={false}）：
+ *  fm2-open 隔 14 句空窗重现 → 默认 lead 入场）：
  *   8-A 判定面（p8-01..03）：判据卡铸字 + 「文档存在 vs 生产路径在用」对照
  *       （ScrollVsBelt 迁移改写：代码文件灰静止 ‖ 调用线绿跑动）
  *   8-B 走廊③（p8-04..05）：CodePane·assemble() 源码段 + token 预算注释行高亮 + 标题小卡
@@ -42,7 +42,7 @@ import {EvidenceBadge} from '../components/EvidenceBadge';
 import {RequestCard} from '../components/RequestCard';
 import {CodePane} from './P5Retrieval';
 import {RatioBars, ScoreDuo} from './P0Errors';
-import {RecapDim} from './P7ReadPath';
+import {RecapDim} from '../components/RecapDim';
 import seriesLayers from '../series-layers.json';
 
 /** FiveAxisMap 五轴 id（RequestCard 终态 passed 收束用，与组 A 高亮词表同源）。 */

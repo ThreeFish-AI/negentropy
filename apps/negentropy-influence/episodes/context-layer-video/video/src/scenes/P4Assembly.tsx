@@ -40,7 +40,8 @@ export const P4Assembly: React.FC<{scene: SceneRange}> = ({scene}) => {
   const at = (id: string) => w(id).from;
   const dur = (a: string, b?: string) => w(a, b).durationInFrames;
   // 各镜窗口（from 为幕内帧）。镜内 cue/装置锚点一律「at(句id) - 所在镜.from」——
-  // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移。
+  // ArchifyRecap 契约 + motion hooks 均按父 Sequence 局部帧解释，漏减会双重偏移；
+  // 例外：幕根（不在镜 Sequence 内）直接调用的 motion hook 用 at(句id) 原值，不减镜偏移。
   const bA = w('p4-01', 'p4-02');
   const bB = w('p4-03', 'p4-05');
   const bC = w('p4-06', 'p4-09');
@@ -51,8 +52,8 @@ export const P4Assembly: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bG = w('p4-20', 'p4-24b');
   const bH = w('p4-25', 'p4-26c');
   const bI = w('p4-27', 'p4-29');
-  const snowO = useProgress(at('p4-13b') - bD.from, 14);
-  const n2O = useProgress(at('p4-25b') - bH.from, 14);
+  const snowO = useProgress(at('p4-13b'), 14);
+  const n2O = useProgress(at('p4-25b'), 14);
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>

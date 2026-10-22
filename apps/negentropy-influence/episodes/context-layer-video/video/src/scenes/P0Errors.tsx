@@ -1,6 +1,6 @@
-/** P0 三种失效（p0-01..p0-27，27 句；storyboard v4「P0 三种失效」节）。
+/** P0 三种失效（p0-01..p0-27 含 26b，28 句；storyboard v5「P0 三种失效」节）。
  *
- *  7 镜 / 8 条 archify cue（failure-map：fm2-def ×4 + fm2-open ×4）：
+ *  7 镜 / 9 条 archify cue（failure-map：fm2-def ×4 + fm2-open ×5）：
  *   0-A 成绩对撞（p0-01..06）：19/85 双成绩条（ScoreDuo·NumCrash 迁移）+ 同模型标签脉冲
  *       + 实线徽 + 「29/150 题」刻度 + 「证据页直给」角标 + 本集标题字条 @enter:fall
  *   0-B 请求登场（p0-07..09）：RequestCard 首现〔M-001〕+ 三失效空槽位 @stagger
@@ -11,7 +11,7 @@
  *   0-E 失效卡③（p0-17..20）：窗口内容列 + 手机号行明文滑入 + 橙边呼吸
  *       + RequestCard 缩于左上 + 「凭证继承」小标闪
  *   0-F 三错共性（p0-21..23）：三缩略卡收拢 + 判词条 + 97/4 比例条（RatioBars）+ 虚线徽
- *   0-G 登记成表（p0-24..27）：fm2-open 锚 p0-24 → hold 25/26/27；前景「十类四十九行」
+ *   0-G 登记成表（p0-24..27 含 26b）：fm2-open 锚 p0-24 → hold 25/26/26b/27；前景「十类四十九行」
  *       计数上翻 + 三卡飞落弧线 + 「逐层拆开」五轴导航条
  */
 import React from 'react';
@@ -124,6 +124,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
           {chapterId: 'fm2-open', at: at('p0-24') - bG.from, durationInFrames: dur('p0-24')},
           {chapterId: 'fm2-open', at: at('p0-25') - bG.from, durationInFrames: dur('p0-25'), fit: 'hold'},
           {chapterId: 'fm2-open', at: at('p0-26') - bG.from, durationInFrames: dur('p0-26'), fit: 'hold'},
+          {chapterId: 'fm2-open', at: at('p0-26b') - bG.from, durationInFrames: dur('p0-26b'), fit: 'hold'},
           {chapterId: 'fm2-open', at: at('p0-27') - bG.from, durationInFrames: dur('p0-27'), fit: 'hold'},
         ]} />
         <RegistryOverlay

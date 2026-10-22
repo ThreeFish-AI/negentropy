@@ -38,6 +38,7 @@ import {CatalogCard} from '../components/CatalogCard';
 import {SEVEN_STATIONS_GEOM, SevenStations} from '../components/SevenStations';
 import {FiveAxisMap} from '../components/FiveAxisMap';
 import {RequestCard} from '../components/RequestCard';
+import {RecapDim} from '../components/RecapDim';
 import {BlueprintTag, CatalogList, CATALOG_ADDRESS} from './P2Asset';
 
 export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
@@ -225,21 +226,6 @@ export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
   );
 };
 
-/** recap 让位包装（RecapDim，7-D..J 泛化 / 7-C Morph 同源）：包装窗内图回放压到
- *  `to`（默认 0.16，WP2a 抽帧证实的暗底档），窗外满亮——链内首句满亮、自第二条
- *  hold cue 起整框压暗，hold 重播由压暗一并掩掉。纯 effects 通道（铁律③）：句界
- *  10 帧缓变、禁弹簧；cue 时序不受影响，仅显示层让位。z 序契约：wrapper 包住
- *  ArchifyRecap，装置 JSX 写在其后（装置落在画框区域内也可读，画框即装置暗底）。 */
-export const RecapDim: React.FC<{from: number; dur: number; to?: number; children: React.ReactNode}> = ({
-  from,
-  dur,
-  to = 0.16,
-  children,
-}) => {
-  const frame = useCurrentFrame();
-  const cover = progress(frame, from, 10) * (1 - progress(frame, from + dur - 12, 12));
-  return <AbsoluteFill style={{opacity: 1 - (1 - to) * clamp01(cover)}}>{children}</AbsoluteFill>;
-};
 
 /** 7-D 解析主体：核出运营专员 + 域可见双检 + 会话权限上界实时求值。 */
 const ResolveStage: React.FC<{a07: number; a08: number; a09: number}> = ({a07, a08, a09}) => {
@@ -884,7 +870,7 @@ const RecapSeven: React.FC<{a30: number; a31: number; a32: number; a32b: number;
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
       {/* 七法则回扣引入条 + 验收问卡三连（五轴导航图与七段横轨之间的空带；结论入场时整组淡出） */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 384, display: 'flex', justifyContent: 'center', opacity: gIntro, transform: `translateY(${(1 - gIntro) * 10}px)`}}>
+      <div style={{position: 'absolute', left: 0, right: 0, top: 384, display: 'flex', justifyContent: 'center', opacity: gIntro * gYield, transform: `translateY(${(1 - gIntro) * 10}px)`}}>
         <span style={{padding: '7px 24px', border: `1.5px dashed ${theme.dim}`, borderRadius: 999, fontSize: 18, color: theme.dim, background: withAlpha(theme.bg, 0.9)}}>
           七法则 · 挑三条贴着管线
         </span>

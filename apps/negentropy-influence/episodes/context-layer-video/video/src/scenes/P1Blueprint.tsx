@@ -9,13 +9,14 @@
  *       + 「视角之一」章@p1-11）
  *   1-D arc-facets@p1-12 + hold@13/14/15（三面各答一问）
  *   1-E RequestCard 回屏 + 三指线指三面缩略（装置；arc-facets@p1-16 + hold@17；
- *       承 1-D 尾镜界背靠背 → lead=false。装置承担主叙事 → RecapDimSpan 泛化：
+ *       承 1-D 尾镜界背靠背 → lead=false。装置承担主叙事 → RecapDim recover={false}：
  *       链内首句 p1-16 满亮、p1-17 起画框压至 0.16 暗底，装置 JSX 移到 recap 之后
  *       （z 序在上），p1-17 三指线同步微闪）
  *   1-Eb 登记行解剖（fm2-def@p1-17b + hold@17c/17d/17e；装置＝49 行表推近
  *       「同一指标两个数」行，四列逐列点亮@p1-17c..e + p1-17d「口径全公司只存一份」
- *       钢蓝图章；recap 首句满亮、17c 起压暗暗底承装置——同 RecapDimSpan 泛化）
- *   1-F arc-axes@p1-18 + hold@19..23（五轴点名；承 1-Eb 镜界同图背靠背 → lead=false）
+ *       钢蓝图章；recap 首句满亮、17c 起压暗暗底承装置——同 RecapDim recover={false}；
+ *       1-Eb 承 1-E 暗底背靠背未压 lead，首章保留默认 12 帧引导入场作暗底→满亮过门）
+ *   1-F arc-axes@p1-18 + hold@19..23（五轴点名；承 1-Eb 镜界跨图背靠背 → lead=false）
  *   1-G FiveAxisMap 首建（built=false 建立面生长，Map-First 主锚）+「换 X 不动 Y」
  *       四行对照@p1-25..27 + 拔轴消融演示@p1-28（警示红 · 破坏实验）
  *   1-H lc2-open@p1-29 + hold@30/31（六段总览；1-G 装置镜空窗后重现 → 默认 lead）
@@ -37,15 +38,7 @@ import {ArchifyRecap} from '../components/ArchifyRecap';
 import {InvertedU} from '../components/InvertedU';
 import {FiveAxisMap, FIVE_AXIS_GEOM} from '../components/FiveAxisMap';
 import {RequestCard} from '../components/RequestCard';
-
-/** recap 让位包装（RecapDim 泛化，承 P7ReadPath 同形 helper）：from 句界起 10 帧缓暗、
- *  to 句界止 12 帧缓回（纯 effects 通道·铁律③，禁弹簧）——链内首句满亮、其余句画框
- *  压至 0.16 作装置暗底；cue 时序不动，仅显示层让位。 */
-const RecapDimSpan: React.FC<{from: number; to: number; children: React.ReactNode}> = ({from, to, children}) => {
-  const frame = useCurrentFrame();
-  const cover = progress(frame, from, 10) * (1 - progress(frame, to, 12));
-  return <AbsoluteFill style={{opacity: 1 - 0.84 * clamp01(cover)}}>{children}</AbsoluteFill>;
-};
+import {RecapDim} from '../components/RecapDim';
 
 export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);
@@ -109,25 +102,25 @@ export const P1Blueprint: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 1-E 面到请求：arc-facets recap（p1-16 满亮 → p1-17 压暗暗底）+ 装置后置在上 */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="1-E">
-        <RecapDimSpan from={at('p1-17') - bE.from} to={at('p1-17') - bE.from + dur('p1-17')}>
+        <RecapDim from={at('p1-17') - bE.from} dur={dur('p1-17')} recover={false}>
           <ArchifyRecap slug="blueprint--architecture" caption="三面蓝图 · 面到请求" lead={false} cues={[
             {chapterId: 'arc-facets', at: at('p1-16') - bE.from, durationInFrames: dur('p1-16')},
             {chapterId: 'arc-facets', at: at('p1-17') - bE.from, durationInFrames: dur('p1-17'), fit: 'hold'},
           ]} />
-        </RecapDimSpan>
+        </RecapDim>
         <FacetPointers a16={at('p1-16') - bE.from} a17={at('p1-17') - bE.from} />
       </Sequence>
 
       {/* 1-Eb 登记行解剖：fm2-def 锚 + hold 链（p1-17b 满亮 → 17c..e 压暗暗底）+ 行解剖装置后置在上 */}
       <Sequence from={bEb.from} durationInFrames={bEb.durationInFrames} name="1-Eb">
-        <RecapDimSpan from={at('p1-17c') - bEb.from} to={at('p1-17e') - bEb.from + dur('p1-17e')}>
+        <RecapDim from={at('p1-17c') - bEb.from} dur={at('p1-17e') + dur('p1-17e') - at('p1-17c')} recover={false}>
           <ArchifyRecap slug="failure-map" caption="三面蓝图 · 登记行解剖" cues={[
             {chapterId: 'fm2-def', at: at('p1-17b') - bEb.from, durationInFrames: dur('p1-17b')},
             {chapterId: 'fm2-def', at: at('p1-17c') - bEb.from, durationInFrames: dur('p1-17c'), fit: 'hold'},
             {chapterId: 'fm2-def', at: at('p1-17d') - bEb.from, durationInFrames: dur('p1-17d'), fit: 'hold'},
             {chapterId: 'fm2-def', at: at('p1-17e') - bEb.from, durationInFrames: dur('p1-17e'), fit: 'hold'},
           ]} />
-        </RecapDimSpan>
+        </RecapDim>
         <RegistryRowAnatomy
           a17b={at('p1-17b') - bEb.from}
           a17c={at('p1-17c') - bEb.from}

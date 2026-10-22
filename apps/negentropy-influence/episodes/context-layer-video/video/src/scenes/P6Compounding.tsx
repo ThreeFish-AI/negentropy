@@ -36,7 +36,7 @@ import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {FiveAxisMap} from '../components/FiveAxisMap';
 import {LampTrio} from '../components/LampTrio';
-import {RecapDim} from './P7ReadPath';
+import {RecapDim} from '../components/RecapDim';
 
 export const P6Compounding: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (a: string, b?: string) => beatWindow(scene.sentences, scene.from, a, b);

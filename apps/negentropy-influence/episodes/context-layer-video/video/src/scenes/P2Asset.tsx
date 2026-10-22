@@ -16,7 +16,7 @@
  *   2-F ig-tier@p2-14 + hold@15（同上取舍：分级装置删除；lead=false）
  *   2-G ig-tag@p2-16 + hold@17/18（半反过来：p2-16 章图全亮承「打标/向量/地址」；
  *       p2-17 起压暗暗底，CatalogCard 弹出→飞落目录列表——全片接头锚〔M-001 同物
- *       同形〕移到 recap 之后 z 序在上；RecapDimSpan 泛化；lead=false）
+ *       同形〕移到 recap 之后 z 序在上；RecapDim recover={false}；lead=false）
  *   2-H 口径纪律（装置：算什么/按什么次序算双栏卡 + 「口径只存一份 · 用时现算」章
  *       + 实验预告槽）
  *   2-I fan trap 破坏实验（消融对照：¥100 订单 ×3 事件先连后聚 → ¥300、整月 200/440
@@ -46,15 +46,7 @@ import {EvidenceBadge} from '../components/EvidenceBadge';
 import {CatalogCard} from '../components/CatalogCard';
 import {FiveAxisMap} from '../components/FiveAxisMap';
 import {RequestCard} from '../components/RequestCard';
-
-/** recap 让位包装（RecapDim 泛化，承 P7ReadPath 同形 helper）：from 句界起 10 帧缓暗、
- *  to 句界止 12 帧缓回（纯 effects 通道·铁律③，禁弹簧）——首句满亮、其余句画框压至
- *  0.16 作装置暗底；cue 时序不动，仅显示层让位。 */
-const RecapDimSpan: React.FC<{from: number; to: number; children: React.ReactNode}> = ({from, to, children}) => {
-  const frame = useCurrentFrame();
-  const cover = progress(frame, from, 10) * (1 - progress(frame, to, 12));
-  return <AbsoluteFill style={{opacity: 1 - 0.84 * clamp01(cover)}}>{children}</AbsoluteFill>;
-};
+import {RecapDim} from '../components/RecapDim';
 
 /** 目录条目卡地址（纳管产出的固定地址；P7 接头飞行取同一张卡）。 */
 export const CATALOG_ADDRESS = 'ctx://kb/metric/repurchase-rate';
@@ -146,13 +138,13 @@ export const P2Asset: React.FC<{scene: SceneRange}> = ({scene}) => {
       {/* 2-G 入册段：ig-tag 锚 + hold 链。p2-16 章图全亮承「打标/向量/地址」；p2-17 起
           压暗暗底，目录条目卡接头锚（〔M-001 同物同形〕弹出→飞落目录列表）后置在上 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="2-G">
-        <RecapDimSpan from={at('p2-17') - bG.from} to={at('p2-18') - bG.from + dur('p2-18')}>
+        <RecapDim from={at('p2-17') - bG.from} dur={at('p2-18') + dur('p2-18') - at('p2-17')} recover={false}>
           <ArchifyRecap slug="ingest-pipeline" caption="纳管管线 · 打标索引段" lead={false} cues={[
             {chapterId: 'ig-tag', at: at('p2-16') - bG.from, durationInFrames: dur('p2-16')},
             {chapterId: 'ig-tag', at: at('p2-17') - bG.from, durationInFrames: dur('p2-17'), fit: 'hold'},
             {chapterId: 'ig-tag', at: at('p2-18') - bG.from, durationInFrames: dur('p2-18'), fit: 'hold'},
           ]} />
-        </RecapDimSpan>
+        </RecapDim>
         <CatalogEmit a17={at('p2-17') - bG.from} a18={at('p2-18') - bG.from} />
       </Sequence>
 
