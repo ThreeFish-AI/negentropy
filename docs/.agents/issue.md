@@ -240,6 +240,7 @@
 | I-232 | 013 蓝图用词整改收尾：「锚」字行话与挂点/负发现等自造词，连图与兄弟文档统一落改 | ✅ 已完成 | 2026-10-22 | [详情](#I-232) |
 | I-233 | archify 文档仍称「`.mmd` 是唯一可编辑源」，与 3.0 candidate JSON 为 SSOT 的现状不符 | 🔄 进行中 | — | [详情](#I-233) |
 | I-234 | 视频文案与前置文档「拆/失效」词族整改：语义位分档落改 + 图示资产待重录登记 | ✅ 已完成 | 2026-10-22 | [详情](#I-234) |
+| I-235 | 014 §3 三空间机制讲透：命名空间地图 + 单步沙盘 + 新图 openviking--namespace + 全篇缩写首现注解（含 peers/skills 两处事实修正） | ✅ 已完成 | 2026-10-22 | [详情](#I-235) |
 
 ---
 
@@ -5624,3 +5625,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **后续防范**：口播与屏上字新句禁用单字「拆」与名词位「失效」；vibe-video skill 的归属句模板与 PIPELINE 示例仍在示范旧句式（`references/01-source-extraction.md:112`「作者拆过源码，他说…」、`check_series.py:35`、`references/PIPELINE.md:92`「失效形态」），已登 RSI backlog 待回流。
 
 **同类问题影响**：后续新分集起草、以及任何从上游精读转写口播的场景；规约层修订经 ThreeFish-AI/agents.md V8 回流后生效。
+
+---
+
+<a id="I-235"></a>
+## I-235：014 §3 三空间机制讲透与全篇缩写首现注解
+
+**问题描述**：014 换代重写版（PR #1198）的 §3「viking:// 寻址与 User/Peer 归属」只有规则碎点（前缀映射/类型推导/写窄读宽/主键/~ 展开），缺机制原理叙述、具象化示例与原理图解——违反 guided-learn lecture-format §5 起草纪律 2（每个核心机制节必须含具体输入端到端走查）；同时全篇缩写词首现无注解（AGFS、VLM、MCP、DAG、BM25 等），违反 plain-language V7（自造缩写首现「全称（缩写）」）/D9 与 lecture-format §1.1 硬律 5（术语首现人话前置）。
+
+**表因根因**：换代重写聚焦检索相翻转，§3 沿旧版 bullet 结构平移、未按三拍模板重铸；缩写注解无机器门（lint 不查语义），人审漏网。复核钉点另发现两处事实错误：文档 §3 称 peers 子树合法段含 skills、lab `context_type` 写了 peers/skills→skill 分支——钉点 `_PEER_CONTENT_SEGMENTS = {memories, resources}`（`openviking/core/namespace.py:18`）不含 skills，peers 下 skills 类型按结构回落 resource。
+
+**处理方式**：§3 重构为「3.1 三空间地图（`visible_roots` 三根代码锚 + privacy/sessions 保留段 + 内部容器段 + 两个结构反例）→ 图 3（新 slug `openviking--namespace`，archify showcase 四门过、双主题 PNG 过 1280KiB 门）→ 点破句 → 3.2 单步沙盘（support-bot 接待 customer-alice，六步走完一条记忆落位，md5 实算）→ 3.3 细节重排」；lab 删 peers/skills 分支 + S1 重写为 9 条 URI→类型/属主/peer 实跑明细并补 4 条断言（selftest 与 B1/B3/B4/B6/B7 五路口径实测不变，§10 七锚零漂移）；全篇缩写首现注解 A 档 26 项 + B 档 8 项；连带更新 §2.1 表/§2.2 因果链/§11.1 规律 1 的 peers 表述与 NS 锚；CHANGELOG/knowledge-map/mermaid README 同步。
+
+**后续防范**：机制章起草即按「地图→沙盘→细节」自查有无具体输入端到端走查；缩写首现注解入交稿前 grep 清单（自造缩写全称括注、专业词人话前置、通用缩写豁免）；涉上游代码语义的断言（如「X 是合法段」）须回钉点常量复核可证范围，禁以「合法」覆盖「类型推导不识别」。
+
+**同类问题影响**：其余精读文档（011/013/170–176/220/230 等）的机制章与缩写首现未做同规扫描，如需可按同法排查；视频侧冻结资产零接触（uri-scope-tree 仍为视频 P1 专用旧视角）。

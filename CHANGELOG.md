@@ -3,6 +3,14 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### 014 §3 三空间机制讲透：命名空间地图 + 单步沙盘 + 新图 openviking--namespace + 全篇缩写首现注解（I-235，2026-10-22）
+
+- **§3 重构**：按「3.1 三空间地图 → 图 3 → 3.2 单步沙盘 → 3.3 细节」重铸——`visible_roots()` 三可见根（NS:180 代码锚）+ user 保留段（peers/privacy/sessions）+ 结构反例；沙盘以「support-bot 接待 customer-alice」六步走完一条记忆落位（URI 逐段推导、md5 主键实算、peer_scope 过滤），补齐 lecture-format 起草纪律 2 要求的具体输入端到端走查。
+- **事实修正（代码胜出）**：peers 子树内容段按钉点仅 memories、resources 两个（`_PEER_CONTENT_SEGMENTS`，NS:18）——文档「peers 下 memories|resources|skills」表述与 lab `context_type` 的 peers/skills→skill 分支均改正（peers 下 skills 类型回落 resource）；§2.1/§2.2/§11.1 连带口径同步。
+- **lab S1 明细化**：S1 输出改为 9 条 URI→类型/属主/peer 实跑明细 + 4 条新断言（peers/skills 反例、peers/resources、user/resources、sessions/**）；selftest 与 B1/B3/B4/B6/B7 五路破坏实验实测口径不变，§10 行号锚零漂移。
+- **新图 openviking--namespace（图 3）**：archify architecture showcase，finalize 四门过（validate/deliver/check/browser-check），交叉 11→2 收敛；双主题 PNG 947K/887K 过 1280KiB 门；入 mermaid README 登记；不取代 uri-scope-tree（视频 P1 冻结消费）。
+- **全篇缩写首现注解**：A 档 26 项（AGFS/RAGFS/URI/ACL/VLM/MCP/DAG/NOOP/BM25/HKDF/AES-256-GCM/KMS/pp/OV/WM/KB QA/RAG/LLM/md5/sha256/LoCoMo/tau2/HotpotQA/ClawWork/FinanceBench/OVPack）+ B 档 8 项，依 plain-language V7/D9 与 lecture-format 硬律 5；日志引用块与 IEEE 参考文献块不夹注。
+
 ### 视频文案「拆/失效」词族整改：14 集口播/屏上字与前置文档语义位分档落改（I-234，2026-10-22）
 
 - **口径**：「拆」按语义位分档（分析→拆解、切分→拆成/拆分、消融→关掉/去掉/移除、字面与成熟隐喻保留、误用成语改写）；「失效」名词位→问题族（三种问题/问题卡/问题类型/问题登记簿）、与「提问」撞义句用错误/出错方式、动词位保留。改写只动汉字，数字/句 id/读音标记/引文/日志转录/代码注释零触碰。
