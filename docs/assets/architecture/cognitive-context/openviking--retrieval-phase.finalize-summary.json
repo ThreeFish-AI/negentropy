@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--retrieval-phase-20261022-003214/candidate.json",
+    "sha256": "2c2f1468042e4d6200dbf79d7bd3ac9117190e47f3fcb9f7028f9319be37b7c4",
+    "bytes": 7720
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html",
+    "sha256": "74e96c3327a3bc9ca15360721f4f0a3b857e3d952d743b666309f64b0d522ba9",
+    "bytes": 768866
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2090,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 4,
+      "routesOverSuggestedStretch": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e-asm-out",
+            "from": "asm",
+            "to": "out",
+            "label": "",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 2,
+          "stretch": 1.374
+        },
+        {
+          "relationship": {
+            "id": "e-mode-pool",
+            "from": "mode",
+            "to": "pool",
+            "label": "是 · 配了 rerank",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.104
+        },
+        {
+          "relationship": {
+            "id": "e-quick-out",
+            "from": "quick",
+            "to": "out",
+            "label": "plain 模式直接返回",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "bends": 3,
+          "stretch": 1.058
+        },
+        {
+          "relationship": {
+            "id": "e-top-asm",
+            "from": "top",
+            "to": "asm",
+            "label": "mode=context",
+            "collectionIndex": 13,
+            "artifactIndex": 14
+          },
+          "bends": 3,
+          "stretch": 1.6
+        },
+        {
+          "relationship": {
+            "id": "e-top-out",
+            "from": "top",
+            "to": "out",
+            "label": "",
+            "collectionIndex": 14,
+            "artifactIndex": 15
+          },
+          "bends": 4,
+          "stretch": 2.355,
+          "directCorridorBlockers": [
+            {
+              "id": "asm",
+              "label": "context 装配",
+              "box": [
+                934.8,
+                680,
+                196,
+                52
+              ]
+            }
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "asm → out needs 2 bends: move node asm or out so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "mode → pool needs 3 bends: move node mode or pool so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "quick → out needs 3 bends: move node quick or out so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "top → asm needs 3 bends: move node top or asm so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

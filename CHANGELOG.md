@@ -10,6 +10,12 @@
 - **验证**：门禁基线对比零新增 FAIL（逐集 check --check-scenes / verify_skeleton / check_series 均与改前一致）；台词四面 lockstep 对账全绿；残留未裁决 0。11 集状态三处标「旁白/屏上字已改（I-234）、成片待重制」；图示/录制资产（archify json/views/manifest、docs/diagrams、docs/assets 共 160 文件）只登记待重录清单（issue I-234），未改动。
 
 ### Added
+
+### 014 OpenViking 精读换代重写（2026-10-22）
+
+- **[014 精读笔记](docs/research/cognitive-context/014-openviking.md) 换代重写**（/guided-learn §7 再精读协议；钉点 `14a7b81`→`6227af51`，v0.4.21→v0.5.1.1，390 commits）：上游 **#5450 删除目录递归检索**（检索相重写为「全局召回 2×limit 池 → URI 去重 → 单遍精排读 abstract → 阈值后置」+ context 六域装配）、Working Memory 默认关闭、User/Peer 归属模型一等化、Gateway 模型代理（Beta）与治理面（多租户/ACL/信封加密/隐私配置/git 快照/OVPack v3/多写 V2）成章；旧八条文档 vs 代码矛盾六条上游已修复（ClawWork 算术错改原始数口径），新增营销页滞后矛盾清单 N1–N5；旧五规律重铸第 3 条（池边界取代导航门）、争议 1 因上游自我改判重述；总类比（图书馆剧场）按现行规约拆除、局部类比五条经遴选续任，费曼实录移存会话 lab。
+- **配套更新**：[openviking_lab.py](docs/research/cognitive-context/assets/openviking_lab.py) v2（检索段按新算法重写、新增 S7 peer 归属与 S8 六域装配场景；B2/B5 随上游机制删除退役，B1 重铸为「拔摘要→精排致盲」、新增 B7 候选池边界）；archify 三图重绘（retrieval-phase 换代版 / intent-typed-queries / lab-break-matrix）；[机制映射](docs/research/mapping-negentropy.md) OV 域 13→15 条四桶重验（OV-5 检索改判、新增 OV-14 归属模型 🔶 与 OV-15 网关代理 ⏸）。
+
 ### Context Layer 第 2 集克隆终声成片交付：v7 增补 + v1 首交付与评审修复 v2/v3 重渲（2026-10-21/22）
 
 - **[分集 README](apps/negentropy-influence/episodes/context-layer-video/README.md) v1→v3 交付**：逐字稿 v7 增补（351 句 8291 字：开环承诺、登记行解剖、两级预算、执法点四层、倒 U 分解、RRF 机制、晋升三关、G 法则验收、三步审计等缺口，过④⑤独立评审清零）＋分镜 v5（101 镜 / 137 cue）＋配音台本 narration.cues.toml 首配；画面 v7：z 序修复（RecapDim 泛化）＋四新镜装置（登记行解剖 / 预算走查 / RankFusion / AuditCard）；archify 12 图 63 章本 worktree 重录；终声＝IndexTTS-2.5 本人克隆 story 档 df=1.0（用户显式授权 `--final-voice`），`--plan` 口径 148 块全量缓存；v1 成片 27:31.77（2026-10-21 归档）。

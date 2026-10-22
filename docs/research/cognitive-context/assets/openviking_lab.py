@@ -1,28 +1,33 @@
 #!/usr/bin/env python3
-"""OpenViking · 最小原型实验室（guided-learn Phase 3）。
+"""OpenViking · 最小原型实验室 v2（guided-learn Phase 3 · 换代重写版）。
 
-验证的是「目录级分层 + 目录递归检索 + 推车预算 + 新鲜度冒泡 + 会话两阶段提交」机制是否自洽，
-不验证模型聪不聪明：
-- 材料里的三个 LLM 角色全部用确定性替身：编目员（摘要取首句、导览拼接子项）、专家（rerank =
-  查询二元组覆盖率，识别「已废弃」降权）、记忆提炼（正则规则；重试时措辞按 attempt 漂移，模拟
-  LLM 非确定性）。
+验证的是「目录级分层 + 全局召回单遍精排 + 六域配额装配 + 新鲜度冒泡 + 会话两阶段提交 +
+User/Peer 归属」机制是否自洽，不验证模型聪不聪明：
+- 材料里的 LLM 角色全部用确定性替身：编目员（摘要取首句、导览拼接子项）、精排（rerank =
+  查询二元组覆盖率，识别「已废弃」降权）、记忆提炼（正则规则；重试时措辞按 attempt 漂移，
+  模拟 LLM 非确定性）。
 - 向量用「汉字二元组哈希到 DIMS 维 + 余弦」替身：维度刻意小 ⇒ 哈希碰撞 ⇒ 便宜但模糊。
 - token 估算：汉字 1.5/字、其余 0.25/字（同上游 token_estimation 的量级口径）。
 - clean-room 自写：上游 AGPL-3.0，本文件不含上游代码；常量取自钉点代码实值，玩具域缩放处单独注明。
 - 无随机数、无网络、纯标准库；存储是内存字典，不写盘。
 
-信源：volcengine/OpenViking@14a7b81（2026-09-23）。
+与 v1（钉点 14a7b81）的差异：检索相按上游 #5450 重写——目录递归/父分传播/收敛刹车已在上游删除，
+本版实现「一次全局召回（精排可用时池 = 2×limit）→ URI 去重 → 单遍精排（读 abstract）→ 阈值后置」；
+装配改为 context 模式六域配额（用不满的名额由其他类别补足，v0.5.0 语义）；
+新增 User/Peer 归属场景；破坏实验 B2（收敛刹车）与 B5（α 父分）随机制删除退役，
+新增 B7（候选池 2×→1×）与 B1 重铸（拔 abstract → 精排致盲）。
+
+信源：volcengine/OpenViking@6227af51（2026-10-21，v0.5.1.1）。
 
 运行：
   uv run --no-project python docs/research/cognitive-context/assets/openviking_lab.py --selftest
-  uv run --no-project python docs/research/cognitive-context/assets/openviking_lab.py --break B1   # B1..B6
+  uv run --no-project python docs/research/cognitive-context/assets/openviking_lab.py --break B1   # B1,B3,B4,B6,B7
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import heapq
 import math
 import re
 import sys
@@ -30,19 +35,21 @@ import zlib
 
 ABSTRACT_MAX, OVERVIEW_MAX = 256, 4000  # L0/L1 字符软上限（parser_config.py:715/718）
 SAMPLE_LIMIT, REFRESH_RATIO = 32, 0.10  # 大目录采样上限 / 父级刷新比例（parser_config.py:709/712）
-GLOBAL_TOPK, BATCH, CONV_ROUNDS = 10, 4, 3  # hierarchical_retriever.py:58/59/56
-THRESHOLD, ALPHA = 0.1, 1.0  # rerank_config.py:46（严格 >）；retrieval_config.py:19
+POOL_MULT = 2  # 精排候选池 = limit × 2（hierarchical_retriever.py:72/209，仅精排可用时扩池）
+THRESHOLD = 0.1  # rerank 阈值（rerank_config.py:51，严格 >；精排之后才应用）
+QUOTA_CHAT = {"events": 3, "entities": 3, "preferences": 1, "experiences": 1, "resources": 1, "skills": 1}  # context 模式 chat 预设
+PEER_PENALTY = {"events": 0.1, "entities": 0.1}  # 跨 peer 检索降权（其余类别 0.02；ovcli peer_scope）
 PREFETCH_TOPN = 5  # 记忆提炼预取相似旧卡（memory_config.py）
-BUDGET_TOKENS = 120  # 推车预算；上游默认 1600（params.py:32），玩具文档短故按比例缩小
+BUDGET_TOKENS = 120  # context 装配预算；上游默认 1600（params.py:34），玩具文档短故按比例缩小
 DIMS = 64  # 替身向量维度
 
 # 破坏开关：--break Bn 只翻其中一个，每个开关在代码里只影响一两行
-BREAK = {k: False for k in ("B1", "B2", "B3", "B4", "B5", "B6")}
+BREAK = {k: False for k in ("B1", "B3", "B4", "B6", "B7")}
 SCOPES = ("resources", "user", "agent")
 SENT_END = "。；！？"
 
 
-# ── U1 寻址：URI 结构推导类型、确定性记录 ID ───────────────────────────────────
+# ── U1 寻址：URI 结构推导类型/归属、确定性记录 ID ─────────────────────────────
 def parse(uri: str) -> list[str]:
     if not uri.startswith("viking://"):
         raise ValueError(f"not a viking uri: {uri}")
@@ -56,9 +63,23 @@ def context_type(uri: str) -> str:
     p = parse(uri)
     if p[:1] == ["user"] and len(p) >= 3 and p[2] == "memories":
         return "memory"
-    if p[:2] == ["agent", "skills"] or (p[:1] == ["user"] and len(p) >= 3 and p[2] == "skills"):
+    if p[:1] == ["user"] and len(p) >= 5 and p[2] == "peers" and p[4] == "memories":  # peer 记忆子树
+        return "memory"
+    if p[:2] == ["agent", "skills"] or (p[:1] == ["user"] and len(p) >= 3 and p[2] == "skills") or (
+        p[:1] == ["user"] and len(p) >= 5 and p[2] == "peers" and p[4] == "skills"
+    ):
         return "skill"
     return "resource"  # 按结构不按关键字：viking://resources/memories/x 仍是 resource
+
+
+def owner_and_peer(uri: str) -> tuple[str, str]:
+    """归属拆分：数据属主（user）与交互对象（peer；无 peer 返回空串）。"""
+    p = parse(uri)
+    if p[:1] == ["user"] and len(p) >= 3:
+        if len(p) >= 5 and p[2] == "peers":
+            return p[1], p[3]
+        return p[1], ""
+    return "", ""
 
 
 def record_id(account: str, uri: str, level: int) -> str:
@@ -74,7 +95,7 @@ def depth(uri: str) -> int:
     return len(parse(uri))
 
 
-# ── 替身：向量、专家、token ─────────────────────────────────────────────────
+# ── 替身：向量、精排、token ─────────────────────────────────────────────────
 def grams(text: str) -> list[str]:
     t = re.sub(r"[\s，。；：、！？（）()《》“”\"'.,:;#\-]+", "", text.lower())
     return [t[i : i + 2] for i in range(len(t) - 1)]
@@ -96,7 +117,7 @@ STOP = set(grams("是什么怎么要注意的了吗呢哪些如何"))
 
 
 def expert(query: str, text: str) -> float:
-    """rerank 替身：查询二元组被覆盖的比例；读得懂「已废弃」（精判能力，向量没有）。"""
+    """精排替身：查询二元组被候选摘要覆盖的比例；读得懂「已废弃」（精判能力，向量没有）。"""
     q = set(grams(query)) - STOP
     if not q or not text:
         return 0.0
@@ -166,15 +187,12 @@ class Viking:
         old = self.side.get(d, {}).get("L0")
         self.side[d] = dict(L0=l0, L1=l1, total=n, pending=0)
         self.llm_calls += 1
-        if BREAK["B1"] and d.endswith("/policies/refund"):  # B1：该书架的标签与导览没写出来
-            del self.side[d]
-            return True
         self._index(d, 0, l0, l0)
         self._index(d, 1, l1, l1)
         return old != l0
 
     def ingest(self) -> None:
-        for d in sorted(self.dirs(), key=depth, reverse=True):  # 最深的书架先编
+        for d in sorted(self.dirs(), key=depth, reverse=True):  # 最深的目录先编
             self.summarize_dir(d)
 
     def update(self, uri: str, body: str) -> None:
@@ -198,113 +216,111 @@ class Viking:
             changed, d = self.summarize_dir(p), p
 
 
-# ── U4 检索：find 平铺（默认档）/ search 目录递归（需 rerank）──────────────────
-def find(vk: Viking, q: str, limit: int = 3, levels=(2,)) -> tuple[list[tuple[float, str]], int]:
+# ── U4 检索：一次全局召回 → URI 去重 → 可选单遍精排 → 阈值后置 ────────────────
+def find(vk: Viking, q: str, limit: int = 3, levels=(2,), keep=None) -> tuple[list[tuple[float, str]], dict]:
+    """QUICK：纯平铺向量召回（find 恒 QUICK；无精排时 search 也走这里）。"""
     qv = embed(q)
-    hits = sorted(((cos(qv, r["vec"]), r["uri"]) for r in vk.index.values() if r["level"] in levels), reverse=True)
+    hits = sorted(((cos(qv, r["vec"]), r["uri"]) for r in vk.index.values() if r["level"] in levels and (not keep or keep(r))), reverse=True)
     best: dict[str, float] = {}
-    for s, u in hits[: max(limit, GLOBAL_TOPK)]:
+    for s, u in hits[:limit]:
         best[u] = max(best.get(u, 0.0), s)
-    return sorted(((s, u) for u, s in best.items()), reverse=True)[:limit], 0
+    return sorted(((s, u) for u, s in best.items()), reverse=True)[:limit], dict(mode="QUICK", pool=len(best), rerank_calls=0, tokens=0)
 
 
-def search(vk: Viking, q: str, limit: int = 3, rerank: bool = True) -> tuple[list[tuple[float, str]], dict]:
-    if not rerank:  # 没配 rerank ⇒ 退化为平铺（开箱部署即如此）
-        res, _ = find(vk, q, limit)
-        return res, dict(mode="QUICK", expanded=0, rerank_calls=0, tokens=0)
-    qv, stats = embed(q), dict(mode="THINKING", expanded=0, rerank_calls=1, tokens=0)
-    recs = list(vk.index.values())
-    dir_hits = sorted((r for r in recs if r["level"] in (0, 1)), key=lambda r: -cos(qv, r["vec"]))[: max(limit, GLOBAL_TOPK)]
-    starts: dict[str, float] = {}
-    for r in dir_hits:  # 同一目录 L0/L1 两条记录去重：按向量名次首次出现者胜
-        stats["tokens"] += est_tokens(r["abstract"])
-        starts.setdefault(r["uri"], expert(q, r["abstract"]))
-    starts.setdefault("viking://resources", 0.0)  # 默认根以 0 分补进
-    heap = [(-s, u) for u, s in starts.items()]  # 起点入堆不过阈
-    heapq.heapify(heap)
-    pool: dict[str, float] = {}
-    seen: set[str] = set()
-    alpha = 0.0 if BREAK["B5"] else ALPHA  # B5：父分完全遗传
-    rounds = 1 if BREAK["B2"] else CONV_ROUNDS  # B2：收敛刹车一轮就停
-    prev_top, prev_size, same, stall = None, -1, 0, 0
-    while heap:
-        batch = []
-        while heap and len(batch) < BATCH:
-            s, u = heapq.heappop(heap)
-            if u not in seen:
-                seen.add(u)
-                batch.append((-s, u))
-        for p_score, d in batch:
-            stats["expanded"] += 1
-            stats["rerank_calls"] += 1
-            kids = [r for r in recs if r["uri"] == d or parent(r["uri"]) == d]
-            kids = sorted(kids, key=lambda r: -cos(qv, r["vec"]))[: max(2 * limit, 20)]  # 向量预选
-            for r in kids:
-                stats["tokens"] += est_tokens(r["abstract"])
-                s = expert(q, r["abstract"])
-                f = alpha * s + (1 - alpha) * p_score if p_score else s
-                if not f > THRESHOLD:  # 唯一剪枝
-                    continue
-                if r["level"] == 2:
-                    pool[r["uri"]] = max(pool.get(r["uri"], 0.0), f)
-                elif r["uri"] not in seen and r["uri"] != d:
-                    heapq.heappush(heap, (-f, r["uri"]))
-        top = tuple(sorted(pool, key=lambda u: -pool[u])[:limit])
-        if top == prev_top and len(top) >= limit:
-            same += 1
-            if same >= rounds:
-                break
-        elif len(pool) == prev_size:
-            stall += 1
-            if stall >= rounds:
-                break
-        else:
-            same = stall = 0
-        prev_top, prev_size = top, len(pool)
-    return sorted(((s, u) for u, s in pool.items()), reverse=True)[:limit], stats
+def search(vk: Viking, q: str, limit: int = 3, rerank: bool = True, keep=None, actor_peer: str | None = None) -> tuple[list[tuple[float, str]], dict]:
+    """现行两档：无精排 = 平铺；有精排 = 全局召回 2×limit → URI 去重保最高向量分 →
+    单遍精排（读 abstract）→ 分数门槛在精排之后应用 → 截取 limit。"""
+    if not rerank:  # 没配精排 ⇒ 退化为平铺（开箱部署即如此：mode=None → QUICK）
+        return find(vk, q, limit, keep=keep)
+    mult = 1 if BREAK["B7"] else POOL_MULT  # B7：候选池 2× → 1×
+    qv = embed(q)
+    recs = [r for r in vk.index.values() if (not keep or keep(r))]
+    hits = sorted(recs, key=lambda r: -cos(qv, r["vec"]))[: limit * mult]
+    pool: dict[str, dict] = {}  # URI 去重：同 URI 多层记录保向量分最高者
+    for r in hits:
+        if r["uri"] not in pool:
+            pool[r["uri"]] = r
+    stats = dict(mode="THINKING", pool=len(pool), rerank_calls=1, tokens=0)
+    scored = []
+    for u, r in pool.items():
+        abstract = r["abstract"]
+        if BREAK["B1"] and "/policies/refund" in u:  # B1：该子树的摘要没写出来 → 精排读不到
+            abstract = ""
+        stats["tokens"] += est_tokens(abstract)
+        s = expert(q, abstract)
+        if actor_peer is not None:  # 读宽：非当前 peer 的结果按类别降权（写窄读宽）
+            _, p = owner_and_peer(u)
+            if p and p != actor_peer:
+                s *= PEER_PENALTY.get(dom_of(u), 0.02)  # memory 先归域（events/entities 0.1），非 memory 维持 0.02
+        scored.append((round(s, 4), u))
+    scored = [(s, u) for s, u in scored if s > THRESHOLD]  # 阈值后置：向量分低的可能被精排救回
+    scored.sort(reverse=True)
+    return scored[:limit], stats
 
 
-# ── U6 借阅推车：先广后深、装不下降档不截断 ────────────────────────────────────
-def assemble(vk: Viking, hits: list[tuple[float, str]], budget: int = BUDGET_TOKENS) -> list[tuple[str, str, int]]:
-    tiers = {u: [("uri", 1), ("abstract", est_tokens(first_sentence(vk.files[u]))), ("full", est_tokens(vk.files[u]))] for _, u in hits}
-    cap, used, plan = max(1, budget // max(1, len(hits)) * 2), 0, {}
-    for _, u in hits:  # 下限轮：起点 abstract，放不下就降到 uri
+# ── U8 context 装配：六域配额 + 先薄后厚、降档不截断 + 空位补足 ───────────────
+def assemble_context(vk: Viking, per_domain: dict[str, list[tuple[float, str]]], budget: int = BUDGET_TOKENS) -> list[tuple[str, str, str, int]]:
+    """per_domain：意图分析产出的各域命中。配额先作上限，用不满的名额由其他域最佳结果补足（v0.5.0）。"""
+    picked: list[tuple[float, str]] = []
+    taken: set[str] = set()
+    for dom, quota in QUOTA_CHAT.items():
+        fresh = [(s, u) for s, u in per_domain.get(dom, []) if u not in taken]
+        for s, u in sorted(fresh, reverse=True)[:quota]:
+            picked.append((s, u))
+            taken.add(u)
+    rest = sorted(((s, u) for dom, hits in per_domain.items() for s, u in hits if u not in taken), reverse=True)
+    picked += rest[: sum(QUOTA_CHAT.values()) - len(picked)]  # 空位补足
+    tiers = {u: [("uri", 1), ("abstract", est_tokens(first_sentence(vk.files.get(u, "")) or vk.side.get(u, {}).get("L0", ""))), ("full", est_tokens(vk.files.get(u, "") or vk.side.get(u, {}).get("L1", "")))] for _, u in picked}  # 目录记录无 L2 正文，full 档回落 L1
+    cap, used, plan = max(1, budget // max(1, len(picked)) * 2), 0, {}
+    for _, u in picked:  # 下限轮：起点 abstract，放不下就降到 uri
         name, cost = next((t for t in tiers[u][1::-1] if t[1] <= cap and used + t[1] <= budget), tiers[u][0])
         plan[u], used = (name, cost), used + cost
-    for _, u in hits:  # 加深轮：按分数顺序升到 full
+    for s, u in sorted(picked, reverse=True):  # 加深轮：按分数顺序升到 full
         full = tiers[u][2][1]
         if used - plan[u][1] + full <= budget:
             used += full - plan[u][1]
             plan[u] = ("full", full)
-    return [(u, *plan[u]) for _, u in hits]
+    return [(dom_of(u), u, *plan[u]) for _, u in sorted(picked, reverse=True)]
 
 
-# ── U5 会话两阶段提交 + 身份去重 + 提交点 ─────────────────────────────────────
-TOPICS = {"咖啡": ("咖啡", "美式", "拿铁"), "饮品": ("饮品", "茶")}
+def dom_of(uri: str) -> str:
+    t = context_type(uri)
+    if t != "memory":
+        return t
+    p = parse(uri)
+    seg = p[5] if p[2:3] == ["peers"] else (p[3] if len(p) > 3 else "")
+    return {"preferences": "preferences", "events": "events", "entities": "entities"}.get(seg, "experiences")
+
+
+# ── U5 会话两阶段提交 + 身份去重 + 提交点 + peer 归属 ─────────────────────────
+TOPICS = {"咖啡": ("咖啡", "美式", "拿铁"), "饮品": ("饮品", "茶"), "花生过敏": ("花生", "过敏")}
 
 
 def extract(msgs: list[str], date: str, attempt: int) -> list[dict]:
     """记忆提炼替身。真实 LLM 重跑时措辞会变：事件名按 attempt 漂移，以此模拟非确定性。"""
     out = []
     for m in msgs:
-        if pm := re.search(r"我(?:现在)?(?:喜欢|改喝|改成|的\S{0,4}偏好是)(.+?)(?:[，。]|$)", m):
+        if am := re.search(r"我对(.{1,6}?)过敏", m):  # 过敏事实：内容=过敏原（身份键=「过敏」主题）
+            out.append(dict(type="preferences", key="过敏", content=f"{am.group(1)}过敏"))
+        elif pm := re.search(r"我(?:现在)?(?:喜欢|改喝|改成|的\S{0,4}偏好是)(.+?)(?:[，。]|$)", m):
             topic = next(t for t, ws in TOPICS.items() if any(w in m for w in ws))
-            out.append(dict(type="preferences", key=topic, content=pm.group(1).rstrip("，。的了")))
+            out.append(dict(type="preferences", key=topic, content=f"{topic}偏好是{pm.group(1).rstrip('，。的了')}"))
         if em := re.search(r"今天(.+?)(?:[，。]|$)", m):
             out.append(dict(type="events", key=(em.group(1), f"{em.group(1)}（复述）")[attempt % 2], content=em.group(1)))
     return out
 
 
 class Session:
-    def __init__(self, vk: Viking, user: str) -> None:
-        self.vk, self.user, self.archives, self.queue = vk, user, {}, []
+    def __init__(self, vk: Viking, user: str, peer: str = "") -> None:
+        self.vk, self.user, self.peer, self.archives, self.queue = vk, user, peer, {}, []
 
     def commit(self, sid: str, msgs: list[str], date: str) -> None:  # 第一阶段：同步归档 + 入队
         self.archives[sid] = dict(messages=list(msgs), date=date, done=False, attempts=0)
         self.queue.append(sid)
 
     def uri_for(self, c: dict, sid: str) -> str:
-        base = f"viking://user/{self.user}/memories"
+        seg = f"peers/{self.peer}/" if self.peer else ""  # 写窄：peer 交互落 peer 子树
+        base = f"viking://user/{self.user}/{seg}memories"
         name = f"{c['key']}_{sid}" if BREAK["B3"] else c["key"]  # B3：身份不再由字段决定
         return f"{base}/preferences/{self.user}/{name}.md" if c["type"] == "preferences" else f"{base}/events/{self_date(c)}/{name}.md"
 
@@ -332,7 +348,7 @@ def self_date(c: dict) -> str:
     return c["date"].replace("-", "/")
 
 
-# ── 玩具图书馆 ───────────────────────────────────────────────────────────────
+# ── 玩具语料 ─────────────────────────────────────────────────────────────────
 def build() -> Viking:
     vk, R = Viking(), "viking://resources"
     docs = {
@@ -345,14 +361,15 @@ def build() -> Viking:
         "engineering/database/backup.md": "数据库每天凌晨两点全量备份，备份保留三十天。",
         "engineering/database/postgres/upgrade.md": "PostgreSQL 大版本升级要先在预发环境演练 pg_upgrade，并确认扩展兼容。",
     }
-    for i in range(1, 13):  # 已废弃的旧流程：措辞与现行流程高度重合
-        docs[f"archive/legacy-refund/v{i:02d}.md"] = f"旧版客户退款审批流程第{i}版（已废弃）：客户退款由客服审批流程后交财务退款审批。"
-    for i in range(1, 13):  # 已废弃的值班告警巡检：一 Shelf 一册，挤占全局起点名额
+    for i in range(1, 4):  # 已废弃旧流程×3：措辞复读现行标题（向量按题面像；精排读得出「已废弃」）；目录 sidecar 再放大成两条记录
+        docs[f"archive/v{i:02d}.md"] = f"旧版客户退款审批流程第{i}版（已废弃）：客户退款由客服审批流程后交财务退款审批。"
+    for i in range(1, 13):  # 噪声语料：挤占召回池名额
         docs[f"ops-alarms/h{i:02d}/check.md"] = "历史值班告警渠道巡检：短信通道检查记录归档。已废弃。"
     for i in range(1, 41):  # 宽分区：40 个客户书架，演示 10% 刷新比例
         docs[f"customers/c{i:02d}/profile.md"] = f"客户 c{i:02d} 的合同在第{i % 12 + 1}月续约。"
     for rel, body in docs.items():
         vk.put(f"{R}/{rel}", body)
+    vk.put("viking://agent/skills/refund-op/SKILL.md", "技能：工单分类处置。按失败原因归类并记录处理结果。")
     vk.ingest()
     return vk
 
@@ -366,10 +383,10 @@ QUERIES = [  # （路径类别, 问题, 标准答案）
 
 
 def recall(vk: Viking, rerank: bool, queries=QUERIES) -> tuple[float, list[str], dict]:
-    hit, lines, cost = 0, [], dict(expanded=0, rerank_calls=0, tokens=0)
+    hit, lines, cost = 0, [], dict(pool=0, rerank_calls=0, tokens=0)
     for kind, q, gold in queries:
         res, st = search(vk, q, 3, rerank=rerank)
-        ok = gold in [u for _, u in res]
+        ok = gold in [u for _, u in res] or parent(gold) in [u for _, u in res]  # 目录命中=可走到的入口
         hit += ok
         for k in cost:
             cost[k] += st[k]
@@ -386,45 +403,51 @@ def scenario_memory(vk: Viking) -> tuple[Session, list[dict]]:
     return s, [s.process(sid) for sid in list(s.queue)]
 
 
+def scenario_peers(vk: Viking) -> dict[str, list[str]]:
+    """写窄：两位终端客户的过敏事实各落各的 peer 子树。"""
+    out = {}
+    for peer, msg in (("customer-alice", "我对花生过敏，帮我记住。"), ("customer-bob", "我对花生过敏。")):
+        s = Session(vk, "support-bot", peer=peer)
+        s.commit(f"p-{peer}", [msg], "2026-10-20")
+        s.process(f"p-{peer}")
+        out[peer] = [u for u in vk.files if f"/peers/{peer}/" in u]
+    return out
+
+
 def mem_cards(vk: Viking, kind: str) -> dict[str, str]:
     return {u: b for u, b in vk.files.items() if f"/memories/{kind}/" in u}
 
 
 def selftest() -> None:
-    print("── S1 寻址：类型由 URI 结构推导")
+    print("── S1 寻址：类型/归属由 URI 结构推导")
     assert context_type("viking://user/alice/memories/profile.md") == "memory"
+    assert context_type("viking://user/support-bot/peers/customer-alice/memories/preferences/x.md") == "memory"
     assert context_type("viking://agent/skills/pdf/SKILL.md") == "skill"
     assert context_type("viking://resources/memories/x.md") == "resource"
+    assert owner_and_peer("viking://user/support-bot/peers/customer-alice/memories/a.md") == ("support-bot", "customer-alice")
     assert record_id("acme", "viking://resources/a", 0) != record_id("acme", "viking://resources/a", 1)
     try:
         parse("viking://secret/x")
         raise AssertionError("未知 scope 应被拒")
     except ValueError:
         pass
-    print("  ✔ memory/skill/resource 推导正确；L0/L1 记录 ID 不撞；未知 scope 被拒")
+    print("  ✔ memory/skill/resource 推导正确；peer 子树是一等 memory；属主与 peer 拆分正确")
 
     vk = build()
-    print(f"── S2 编目：{len(vk.files)} 本书、{len(vk.side)} 个书架，LLM 调用 {vk.llm_calls} 次（文件 1 次 + 目录 1 次，L0 零次）")
+    print(f"── S2 编目：{len(vk.files)} 份文档、{len(vk.side)} 个目录，LLM 调用 {vk.llm_calls} 次（文件 1 次 + 目录 1 次，L0 零次）")
     for d, s in vk.side.items():
         assert len(s["L0"]) <= ABSTRACT_MAX and len(s["L1"]) <= OVERVIEW_MAX and s["L0"].rstrip("。") in s["L1"]
     assert not any(d in vk.files for d in vk.side), "文件不应有 sidecar"
-    print(f"  ✔ 每个书架 L0≤{ABSTRACT_MAX}、L1≤{OVERVIEW_MAX}，L0 是 L1 首段；样例 L0：{vk.side['viking://resources/policies/refund']['L0']}")
+    print(f"  ✔ 每个目录 L0≤{ABSTRACT_MAX}、L1≤{OVERVIEW_MAX}，L0 是 L1 首段；样例 L0：{vk.side['viking://resources/policies/refund']['L0']}")
 
-    print("── S3 检索：默认档（无 rerank = 平铺）vs 豪华档（search + rerank = 目录递归）")
+    print("── S3 检索：无精排 = 平铺 vs 有精排 = 全局召回 2×limit + 单遍精排 + 阈值后置")
     r_q, lq, _ = recall(vk, rerank=False)
     r_t, lt, ct = recall(vk, rerank=True)
     print(f"  QUICK   recall@3 = {r_q:.2f}", *lq, sep="\n")
-    print(f"  THINKING recall@3 = {r_t:.2f}  （展开 {ct['expanded']} 个书架、专家 {ct['rerank_calls']} 次、读 {ct['tokens']} token）", *lt, sep="\n")
+    print(f"  THINKING recall@3 = {r_t:.2f}  （候选池合计 {ct['pool']} 条、精排 {ct['rerank_calls'] // len(QUERIES)} 次/查询·合计 {ct['rerank_calls']} 次、读 {ct['tokens']} token）", *lt, sep="\n")
     assert r_t > r_q and r_t == 1.0
 
-    print("── S4 借阅推车：先每样一份薄的，再按分数换厚的")
-    hits, _ = search(vk, "退款失败的原因", 3)
-    plan = assemble(vk, hits)
-    for u, tier, tok in plan:
-        print(f"  {tier:8s} {tok:3d} tok  {u.rsplit('/', 1)[-1]}")
-    assert sum(t for *_, t in plan) <= BUDGET_TOKENS and plan[0][1] == "full"
-
-    print("── S5 新鲜度冒泡：标签变了才上报；宽分区攒够一成才重印")
+    print("── S4 新鲜度冒泡：标签变了才上报；宽分区攒够一成才重印")
     vk.update("viking://resources/engineering/oncall/feishu.md", "值班告警改用飞书机器人推送，不再用短信。")
     for i in (1, 2, 3, 4):
         vk.update(f"viking://resources/customers/c{i:02d}/profile.md", f"客户 c{i:02d} 已提前续约并升级到旗舰版。")
@@ -432,19 +455,51 @@ def selftest() -> None:
     assert [x.split()[0] for x in vk.log if "customers " in x + " "][:4] == ["MARK_PENDING"] * 3 + ["REFRESH_NOW"]
     res, _ = search(vk, "值班告警改用飞书", 3)
     assert "viking://resources/engineering/oncall/feishu.md" in [u for _, u in res]
-    print("  ✔ 新书上架后能被逐架巡查找到")
+    print("  ✔ 新书上架后能被全局召回直接找到")
 
-    print("── S6 会话两阶段提交：同一主题永远是同一张卡")
+    print("── S5 会话两阶段提交：同一主题永远是同一张卡")
     calls0 = vk.llm_calls
     s, outs = scenario_memory(vk)
     prefs, events = mem_cards(vk, "preferences"), mem_cards(vk, "events")
     print(f"  偏好卡 {len(prefs)} 张：{prefs}；事件卡 {len(events)} 张；memory_diff[s2].updates = {outs[1]['updates']}")
     assert len(prefs) == 1 and "拿铁" in next(iter(prefs.values())) and len(events) == 1
 
-    print("── S7 提交点：队列重投同一条消息（至少一次投递）")
+    print("── S6 提交点：队列重投同一条消息（至少一次投递）")
     again = s.process("s1")
     print(f"  重投 s1 → {again}；LLM 调用 {vk.llm_calls - calls0} 次不变；事件卡仍 {len(mem_cards(vk, 'events'))} 张")
     assert again == dict(skipped=True) and len(mem_cards(vk, "events")) == 1
+
+    print("── S7 User/Peer：写窄（各落各的 peer 子树）读宽（跨 peer 降权 + 来源随行）")
+    cards = scenario_peers(vk)
+    for peer, us in cards.items():
+        print(f"  {peer}：{[u.rsplit('/', 1)[-1] for u in us]}（属主 support-bot）")
+    assert len(cards["customer-alice"]) == 1 and len(cards["customer-bob"]) == 1 and cards["customer-alice"] != cards["customer-bob"]
+    wide, _ = search(vk, "花生过敏", 5, keep=lambda r: "/peers/" in r["uri"])
+    wide_disp = [(u.split("/peers/")[1].split("/")[0], round(sc, 3)) for sc, u in wide]
+    narrow, _ = search(vk, "花生过敏", 5, keep=lambda r: "/peers/" in r["uri"], actor_peer="customer-alice")
+    narrow_disp = [(u.split("/peers/")[1].split("/")[0], round(sc, 3)) for sc, u in narrow]
+    print(f"  读宽（peer_scope=all）：{wide_disp}")
+    print(f"  actor_peer=alice：{narrow_disp}")
+    assert len(wide) == 2 and narrow and all(p == "customer-alice" for p, _ in narrow_disp)
+    alice_uri = cards["customer-alice"][0]
+    score_in = lambda res: next(s for s, u in res if u == alice_uri)
+    assert score_in(wide) == score_in(narrow), "降权不改变当前 peer 自己的分数"
+
+    print("── S8 context 装配：六域配额先作上限，空位由其他类别补足；先薄后厚降档不截断")
+    per_dom = {
+        "preferences": search(vk, "咖啡偏好", 2, keep=lambda r: "/memories/" in r["uri"])[0],  # 卡正文含「咖啡偏好是…」故可召回
+        "events": [],  # 本查询无事件命中：配额空位将由其他类别补足
+        "resources": search(vk, "退款失败的原因", 3, keep=lambda r: r["uri"].startswith("viking://resources/"))[0],
+        "skills": search(vk, "工单分类处置", 2, keep=lambda r: "/skills/" in r["uri"])[0],
+    }
+    plan = assemble_context(vk, per_dom)
+    for dom, u, tier, tok in plan:
+        print(f"  [{dom:12s}] {tier:8s} {tok:3d} tok  {u.rsplit('/', 1)[-1]}")
+    assert sum(t for *_, t in plan) <= BUDGET_TOKENS
+    doms = [d for d, *_ in plan]
+    quota_picked = sum(min(len(per_dom.get(d, [])), q) for d, q in QUOTA_CHAT.items())  # 首轮配额实取数
+    assert "events" not in doms, "空配额域不出现"
+    assert len(doms) > quota_picked, f"空位由其他类别补足（首轮配额 {quota_picked} → 实取 {len(doms)}）"
     print("SELFTEST PASSED ✔")
 
 
@@ -452,24 +507,21 @@ def breakage(key: str) -> None:
     BREAK[key] = True
     vk = build()
     print(f"== {key} 实测 ==")
-    if key in ("B1", "B5"):
+    if key in ("B1", "B7"):
         r_q, _, _ = recall(vk, rerank=False)
         r_t, lt, ct = recall(vk, rerank=True)
-        print(f"QUICK recall@3={r_q:.2f}；THINKING recall@3={r_t:.2f}（展开 {ct['expanded']}、读 {ct['tokens']} token）", *lt, sep="\n")
-    if key == "B2":
-        r_t, lt, ct = recall(vk, rerank=True)
+        print(f"QUICK recall@3={r_q:.2f}；THINKING recall@3={r_t:.2f}（池 {ct['pool']}、精排读 {ct['tokens']} token）", *lt, sep="\n")
         BREAK[key] = False
         _, _, cn = recall(build(), rerank=True)
-        print(f"THINKING recall@3={r_t:.2f}（展开 {ct['expanded']} 个书架 vs 正常 {cn['expanded']}）", *lt, sep="\n")
-        print("教训：玩具域里全局起点能直达深层书架，收敛刹车收紧到 1 轮只省成本、不伤召回；只有当首批全部空手（香味弱、须多跳路由）时，1 轮刹车才会把还没轮到的书架拦在门外。")
+        print(f"（正常对照：THINKING recall@3=1.00，池 {cn['pool']}、读 {cn['tokens']} token）")
     if key == "B4":
         vk.update("viking://resources/engineering/oncall/feishu.md", "值班告警改用飞书机器人推送，不再用短信。")
         res, _ = search(vk, "值班告警改用飞书", 3)
-        print(f"oncall 书架自身 L0（本层直接重编，仍是新的）：{'飞书' in vk.side['viking://resources/engineering/oncall']['L0']}")
-        print(f"祖先书架 engineering / resources 的 L0 含「飞书」：{'飞书' in vk.side['viking://resources/engineering']['L0']} / {'飞书' in vk.side['viking://resources']['L0']}")
+        print(f"oncall 目录自身 L0（本层直接重编，仍是新的）：{'飞书' in vk.side['viking://resources/engineering/oncall']['L0']}")
+        print(f"祖先目录 engineering / resources 的 L0 含「飞书」：{'飞书' in vk.side['viking://resources/engineering']['L0']} / {'飞书' in vk.side['viking://resources']['L0']}")
         print(f"从 viking://resources 逐层浏览（读 L0）看到的顶层标签：{vk.side['viking://resources']['L0'][:80]}…")
-        print(f"THINKING 全局检索兜底仍在（oncall 自己的 L0 可直达）：{[u.rsplit('/', 1)[-1] for _, u in res]}")
-        print("教训：冒泡喂的是「祖先标签」——直接检索有起点直达兜底，但靠 ls/abstract 逐层浏览的 Agent 会拿到过期地图，看不到这个分区里发生了什么。")
+        print(f"全局检索兜底仍在（oncall 自己的 L0 可被召回）：{[u.rsplit('/', 1)[-1] for _, u in res]}")
+        print("教训：冒泡喂的是「祖先标签」——全局检索有起点直达兜底，但靠 ls/abstract 逐层浏览的 Agent 会拿到过期地图。")
     if key in ("B3", "B6"):
         s, _ = scenario_memory(vk)
         if key == "B6":

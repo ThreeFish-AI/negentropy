@@ -1,19 +1,21 @@
-%% source: docs/research/cognitive-context/014-openviking.md §5（图 2）
+%% source: docs/research/cognitive-context/014-openviking.md §5（图 2；换代重绘）
 %% slug: openviking--retrieval-phase
 %% type: workflow
 %% derived: docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html
+%% fix: 2026-10-22 上游 #5450（v0.4.23）删除目录递归/父分传播/收敛刹车，本图按钉点 6227af51 全量重绘
 flowchart TD
-  Q["用户问题"] --> HASS{"有会话且 enable_intent？"}
-  HASS -- "是" --> IT["IntentAnalyzer：拆 typed query（skill/resource/memory）<br/>无会话则用原 query"]
-  IT --> MODE{"search 配了 rerank？"}
-  HASS -- "否" --> MODE
-  MODE -- "否（默认档）" --> QUICK["QUICK 平铺检索<br/>全层级向量 top-k · find 固定此档"]
-  MODE -- "是（豪华档）" --> START["全局起点：L0/L1 记录 top-10<br/>起点入堆不过阈"]
-  START --> BATCH["每批弹出 4 个目录下钻<br/>子项向量预选 max(2L,20) → 逐目录 rerank"]
-  BATCH --> PRUNE{"f = α·子分 + (1−α)·父分 &gt; 0.1？<br/>α 默认 1.0 = 忽略父分"}
-  PRUNE -- "否" --> CUT["剪枝：不入池、不入堆（唯一剪枝）"]
-  PRUNE -- "是" --> POOL["命中入池 · 目录记录继续入堆<br/>L2 是终点 · 检索期从不读正文"]
-  POOL --> STOP{"top-k 连续 3 批不变（且已满）<br/>或候选池停滞 3 批？"}
-  STOP -- "否" --> BATCH
-  STOP -- "是" --> ASM["借阅推车：默认 1600 token 预算<br/>先广后深 · 装不下降档不截断"]
-  QUICK --> ASM
+  Q["用户问题"] --> ENTRY{"入口"}
+  ENTRY -- "find" --> QUICK["QUICK 平铺<br/>全局向量 top-limit · 恒此档"]
+  ENTRY -- "search" --> INT{"意图分析（enable_intent 默认开）<br/>typed query 每类 1–5 条 · 无会话用原查询"}
+  INT --> MODE{"配了 rerank 客户端？"}
+  MODE -- "否（默认部署即此）" --> QUICK
+  MODE -- "是" --> POOL["全局召回 2×limit 候选池<br/>scope/权限/level 过滤 · 同 URI 多层记录去重保最高分"]
+  QUICK --> ASM["context 装配（mode=context）<br/>预算 1600 · 六域配额（events3/entities3/prefs1/exp1/res1/skills1）<br/>用不满的名额由其他类别补足 · 先薄后厚 · 降档不截断"]
+  POOL --> RERANK["单遍精排：只读每条候选的 abstract<br/>失败回退向量分"]
+  RERANK --> THRESH{"分数 > 0.1？（精排之后才应用）<br/>向量分低的可能被精排救回"}
+  THRESH -- "否" --> CUT["剪掉（阈值后置防误杀）"]
+  THRESH -- "是" --> TOP["取 top-limit 返回"]
+  TOP -->|"mode=context"| ASM
+  QUICK -.->|"plain 模式直接返回"| OUT["结果 + provenance"]
+  TOP -.-> OUT
+  ASM --> OUT
