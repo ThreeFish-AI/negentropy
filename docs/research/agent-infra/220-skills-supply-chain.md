@@ -194,7 +194,7 @@ description: "以 agentskills 规范仓 @69ef37e9 + PR #254/#380 楼层证据 + 
 
 ## 11. 动手实验室
 
-- 运行：`cd docs/research/agent-infra/assets && uv run --no-project python agent_skills_lab3.py --selftest`（无 uv 用 python3；秒级、确定性、纯标准库）。`--break E-01..E-06` 单拆一机制；自测基准 [lab3-selftest.json](./assets/lab3-selftest.json) 与本文全部引用日志同源。
+- 运行：`cd docs/research/agent-infra/assets && uv run --no-project python agent_skills_lab3.py --selftest`（无 uv 用 python3；秒级、确定性、纯标准库）。`--break E-01..E-06` 单独破坏一个机制；自测基准 [lab3-selftest.json](./assets/lab3-selftest.json) 与本文全部引用日志同源。
 - 机制→代码速查：`Client.fetch`（digest 开关+lag 窗口模拟锁步）/ `Harbor.publish`（注入「只换工件忘换 index」）/ `exp_version_gates`（computed version 双门 mock）/ `exp_typosquat`（错拼双装）。E-04 为 Reversec 链的确定性 mock（不执行真实命令），E-05 为比较逻辑 mock（不真跑 marketplace 更新流）。
 - 上游复核三连（终端实录素材）：`curl https://supabase.com/.well-known/agent-skills/index.json` → `curl https://cloudflare.com/.well-known/agent-skills/index.json`（404）→ `curl https://schemas.agentskills.io/...`（DNS 000）。
 

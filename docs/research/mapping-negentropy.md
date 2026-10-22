@@ -128,7 +128,7 @@ Horizon 的 16 条映射为 ✅4 / 🔶8（含部分对齐 1）/ ⏸4：骨架�
 | OV-1 | M-a 统一 URI 命名空间 `viking://{resources,user,agent}`（§2） | 无路径式 URI；多维分面寻址 `app_name × user_id × memory_type × metadata`；异构资源靠 typed pointer `{type,ref}` | `ng/engine/routine/patrol_memory.py:61` · `ng/agents/tools/skill_resources.py:84` | ⏸ |
 | OV-2 | M-b 目录级 L0/L1/L2 分层 sidecar（§3） | 四种「两级形态」：Skills L1/L2/L3、画像摘要→原文、KB parent/child chunk、KG 多 level 社区摘要 | `ng/agents/skills_injector.py:342` · `ng/engine/consolidation/memory_summarizer.py:93` · `ng/knowledge/service.py:3680` | 🔶（部分） |
 | OV-3 | M-b 自底向上生成 + 父级按变化比例刷新（§3.3） | 画像摘要是 24h TTL（不感知源变化）；KG 摘要二值 dirty + 全量重建；会话标题已有「事件增量 ≥20 才刷新」水位范式 | `ng/engine/consolidation/memory_summarizer.py:38,95` · `ng/engine/title_inspector.py:99,191` | 🔶 |
-| OV-4 | M-c 意图分析拆 typed query（§4.1） | 单意图分类：记忆侧 `primary+boost_types` 加权；KB 侧五意图正则路由；不拆子查询 | `ng/engine/utils/query_intent.py:54` · `ng/knowledge/retrieval/unified_search.py:28` | ⏸ |
+| OV-4 | M-c 意图分析拆分 typed query（§4.1） | 单意图分类：记忆侧 `primary+boost_types` 加权；KB 侧五意图正则路由；不拆成子查询 | `ng/engine/utils/query_intent.py:54` · `ng/knowledge/retrieval/unified_search.py:28` | ⏸ |
 | OV-5 | M-c 全局定起点 → 优先队列下钻 → 分数传播 → 收敛 → rerank（§4.2） | 无目录递归；最近等价物：KB child→parent lift（单层）、HybridPlanner 四阶段、记忆 PPR `alpha^d` 衰减 | `ng/knowledge/service.py:3692` · `ng/agents/tools/hybrid_planner.py:218` · `ng/engine/adapters/postgres/association_service.py:518` | ⏸ |
 | OV-6 | M-d 同步归档消息（§5.1） | `append_event` 同步写 `events`（全局 `sequence_num`） | `ng/engine/adapters/postgres/session_service.py:228` · `ng/models/pulse.py:48` | ✅ |
 | OV-7 | M-d 异步摘要 + 记忆提炼（commit 第二阶段，§5.2） | **交互式对话零触发**：`add_session_to_memory` 无调用方；`consolidation_jobs` 只入队无消费者；仅 Routine 路径有 fire-and-forget 提炼 | `ng/engine/adapters/postgres/memory_service.py:84` · `ng/db/migrations/versions/0043_memory_automation_sql_functions_static.py:104` · `ng/engine/routine/orchestrator.py:1393` | 🔶（最高优先） |
@@ -464,7 +464,7 @@ Jev 对本仓的真增量不在接入更便宜的判断模型，而在四条可�
 
 **JV-6 合并 prompt 是共享读的正例（✅）**。 材料 M2 的「state 读一遍、多问合一」在本仓 evaluator 已是事实标准。一个 prompt 同答 acceptance_met/score/verdict/reflection（锚定版再加 progress_evidence），1 次调用（evaluator.py:58-88）。且锚定规则把「证据先于给分」「分数与轨迹相容」写成显式条款（:121-127），这与材料用 criteria 锚定答案空间的思路同构。这是本仓与材料在「便宜的多问」上成本结构最近的一条。
 
-**JV-7 plan_reviewer 的互相污染（🔶）**。 材料用「题与题互不可见」换隔离；plan_reviewer 反其道，N 个模块评审 + 总 verdict + 分数一次调用（plan_reviewer.py:96-109），总评分数会被前面模块的措辞情绪污染，模块间也无隔离。差异：本仓只有「合并省钱」没有「隔离防污染」的另一半。建议「写」级：在该 prompt 处注明已知污染、模块结论以 status 而非总分定夺（现状已部分如此），暂不拆调用。
+**JV-7 plan_reviewer 的互相污染（🔶）**。 材料用「题与题互不可见」换隔离；plan_reviewer 反其道，N 个模块评审 + 总 verdict + 分数一次调用（plan_reviewer.py:96-109），总评分数会被前面模块的措辞情绪污染，模块间也无隔离。差异：本仓只有「合并省钱」没有「隔离防污染」的另一半。建议「写」级：在该 prompt 处注明已知污染、模块结论以 status 而非总分定夺（现状已部分如此），暂不拆分调用。
 
 **JV-8 前缀缓存零利用（⏸）**。 材料 M2 的 12.2× 便宜一半来自「输入计一次、输出免费」的计费形状与共享前缀。本仓 `grep cache_control/prompt_cach/cached_tokens` 全仓零命中（仅进化 prompt 文本 TTL 缓存，weights.py:88-104，与推理侧缓存无关）。judge prompt 前缀（角色设定 + 评审要求）跨迭代高度稳定，是天然的缓存候选。暂缓理由：无 LLM 成本占比数据支撑优先级，且 litellm 跨 provider 的缓存开关行为不一。
 
@@ -562,7 +562,7 @@ Jev 对本仓的真增量不在接入更便宜的判断模型，而在四条可�
 
 **DR-M3 候选包含保证（✅ 已对齐）**。两套系统在同一个坑位收敛到同一个解法。论文 argmax 候选集包含当前策略 ⇒ V\*≥V⁰；本仓 [`decide_canary`](../../apps/negentropy/src/negentropy/engine/evolution/decision.py) 的语义是「helpful_ratio 不下降即接受（平局接受），任一退化则 rollback」，且 [`MemoryConfigVersion`](../../apps/negentropy/src/negentropy/models/evolution.py) 的 promote/rollback = 新写一行 + 翻 `is_active` 指针，「改不动就不换」的防回退下界两边同构。交叉确认价值：与 PG-M1（验证门平局接受）构成**三套独立系统的同构收敛**（Dream-RSI / PG / 本仓 + 金丝雀发布与进化计算 elitism），该模式已是领域共识，本仓无需动作。
 
-**DR-M4 重放目标三分量（✅ 教训已吸收，旁路存在）**。本仓的历史坑恰是「目标函数设计错误」的实例。论文 V 的三分量各管一事：max s 管质量、β₁·N 管成本、β₂·N/k 管并行效率；[原型 D2/D3 实测](./self-evolution/144-dream-rsi.md#7-动手实验室把机制亲手拆坏五次)证明拆掉任何一项都会选出错误的东西。本仓的对应教训是 routine 成功判定口径：`decide()` 历史上只看 `score >= threshold`，阈值不可达时收敛成功态被 `no_progress` 误杀（[记忆中的历史 issue]），后来引入 [`accept_verdict_pass` 旁路](../../apps/negentropy/src/negentropy/engine/routine/decision.py)（verdict=pass 亦可判成功）。两侧共同的教学点：**代理指标的设计决定进化方向，写门之前先验证门可达**。本仓已吸收（旁路存在）；Dream-RSI 补充的增量是「成本与并行度也须入目标」。本仓 routine 的预算控制（max_cost_usd/max_iterations）是硬截断而非目标函数分量，语义不同但各得其所，无须合并。
+**DR-M4 重放目标三分量（✅ 教训已吸收，旁路存在）**。本仓的历史坑恰是「目标函数设计错误」的实例。论文 V 的三分量各管一事：max s 管质量、β₁·N 管成本、β₂·N/k 管并行效率；[原型 D2/D3 实测](./self-evolution/144-dream-rsi.md#7-动手实验室把机制亲手弄坏五次)证明去掉任何一项都会选出错误的东西。本仓的对应教训是 routine 成功判定口径：`decide()` 历史上只看 `score >= threshold`，阈值不可达时收敛成功态被 `no_progress` 误杀（[记忆中的历史 issue]），后来引入 [`accept_verdict_pass` 旁路](../../apps/negentropy/src/negentropy/engine/routine/decision.py)（verdict=pass 亦可判成功）。两侧共同的教学点：**代理指标的设计决定进化方向，写门之前先验证门可达**。本仓已吸收（旁路存在）；Dream-RSI 补充的增量是「成本与并行度也须入目标」。本仓 routine 的预算控制（max_cost_usd/max_iterations）是硬截断而非目标函数分量，语义不同但各得其所，无须合并。
 
 **DR-M5 只改策略层、底座冻结（✅ 已对齐）**。本仓的定义层分离与之同构。论文整个 RSI 闭环里只有探索策略代码可变。本仓 [`EvolutionProposal.target_kind`](../../apps/negentropy/src/negentropy/models/evolution.py) 白名单六面（retrieval_config / skill_template / memory_pipeline_prompt / builtin_tool_config / knowledge_strategy / agent_prompt）全部是**定义层**，经 [`harness_materializer`](../../apps/negentropy/src/negentropy/agents/definitions/harness_materializer.py) 渲染生效，agent 运行时与引擎本体不在进化面内，「进化不碰底座」的边界管理两边一致。
 
