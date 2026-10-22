@@ -9,16 +9,20 @@
 slug = "context-layer-video"
 
 [narration]
-# 口径提示——280 字/分是**含停顿的等效**口径，
-# 裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
-# v3 九幕 289 句实测 26.5 分钟（含时距）；窗口上沿 27.0 留 3 分钟余量到用户 30 分钟硬顶。
-target_minutes = [21.0, 27.0]
+# 口径提示——cpm 是**含停顿的等效**口径，裸按字数算会高估约 12% 的句容量，双口径门以 manifest 实测为准。
+# v7 增补后 8291 字（len 口径）。2026-10-21 克隆 story 档 df=1.0 试听实测：纯语音 356 字/分，
+# 含句隙/幕隙/块尾/片头尾等效 ≈304 字/分 ⇒ 成片估算 ≈27.3 分（df=0.90 仅加速 4.5%，不值得牺牲咬字）；
+# 窗口上沿 29.5 留 2 分钟以上余量到用户 30 分钟硬顶。
+target_minutes = [21.0, 29.5]
+chars_per_min = 304
 
 [tts]
-# v3（2026-10-15 用户指定）：edge 预置音色草渲——zh 缺省 zh-CN-YunxiNeural（+4%），
-# 秒级免样本。无 style 锚点＝实测时长门生效（edge 终声集口径，见 07-tts-voice.md）；
-# 可用克隆样本清单见工作区 voices/refs.toml（升档 indextts 属人工显式授权闸，不在本轮）。
-engine = "edge"
+# v7（2026-10-21 用户显式点名）：IndexTTS-2.5 + 本人声音克隆（story 段落演绎）终声；
+# 实跑须带 --final-voice 具名授权；样本指纹见 voices/refs.toml（me-bright）。
+engine = "indextts"
+ref = "voices/me-bright.wav"
+ref_sha1 = "54b699cce97f"
+style = "story"
 
 [archify]
 # v3 图集 12 张（重录 4 / 新录 2 / 退役 4——含本片未引用的 industry-landscape / 存活 5，蓝图三面重铸配套）。

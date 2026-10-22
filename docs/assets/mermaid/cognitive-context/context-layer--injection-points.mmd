@@ -1,7 +1,7 @@
 %%source: docs/research/cognitive-context/013-context-layer-blueprint.md §12.1 五源注入点实况（九路装配+三缺口；复用图）
 %%slug: cognitive-context/context-layer--injection-points
 %%type: workflow
-%%derived: archify workflow v2, redesigned from v1 request-injection（注入/检索各自读 PG → 九路来源×五挂点×真实通道；v1 见 git 史）
+%%derived: archify workflow v2, redesigned from v1 request-injection（注入/检索各自读 PG → 九路来源×五个接入点×真实通道；v1 见 git 史）
 flowchart TB
     subgraph SOURCES["九路上下文来源"]
         direction LR
@@ -14,7 +14,7 @@ flowchart TB
         R7["定义 SSOT<br/>graph-from-DB"]
         R8["偏好 · 引用协议"]
     end
-    subgraph HOOKS["root_agent 五挂点（生产真实装配面 @b2fbb51f5）"]
+    subgraph HOOKS["root_agent 五个接入点（生产真实装配面 @b2fbb51f5）"]
         direction TB
         H1["① instruction=provider<br/>DB system_prompt→代码回退"]
         H2["② before_model_callback<br/>model/thinking/corpus/hint 注入"]

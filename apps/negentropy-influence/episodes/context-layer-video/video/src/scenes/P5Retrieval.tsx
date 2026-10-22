@@ -1,13 +1,15 @@
-/** P5 检索轴（p5-01..p5-34，34 句；storyboard v4「P5 检索轴」节）。
+/** P5 检索轴（p5-01..p5-34 含 15b..e、31b、33b/c，41 句；storyboard v5「P5 检索轴」节）。
  *
- *  11 镜 / 6 条 archify cue（lmm-seam ×2 + lc2-l4 ×2 + fm2-supply ×2）：
+ *  12 镜 / 6 条 archify cue（lmm-seam ×2 + lc2-l4 ×2 + fm2-supply ×2）：
  *   5-A 三档基线（p5-01..04）：FiveAxisMap 高亮 retrieval（幕首）→ FinanceBench 三档
  *       成绩条 19/50/85（数字基线标尺定式）+ 实线徽 + 结论闪
  *   5-B 宽进严出（p5-05..08）：WideFunnel 三段（carry/rerank/gate 对三句）+ 参考口径角标
  *   5-C 本请求候选（p5-09..10）：候选列表分类着色 + 信噪比标尺指针
  *   5-D 信任四因子（p5-11..13）：四因子权重条 + 规则角标三连
  *   5-E 治理胜出（p5-14..15）：lmm-seam 锚 p5-14 → hold p5-15；前景两份定义卡换位
- *       + RRF 按排名合成角标
+ *       （RRF 角标改锚 p5-15b、移入 5-E2 RankFusion）
+ *   5-E2 名次融合（p5-15b..e，新镜）：RankFusion 装置——两路名次表 + Σ 1/rank 合成 +
+ *       构造例两卡换位（15c）+「本仓现状」三引擎实心点与统一入口灰框（15d/e）
  *   5-F 应答契约（p5-16..19）：resolve 三出路卡逐条点亮
  *   5-G 应答锚定（p5-20..21）：lc2-l4 锚 p5-20 → hold p5-21；前景绿章落定 + L4 段位签
  *   5-H 治理≠验证（p5-22..26）：477 vs 48 对撞（明细按天叠层）+ 双标签分位 + >20 角标
@@ -15,7 +17,9 @@
  *   5-I 走廊②（p5-27..28）：CodePane·PG tsvector english 汉字单 token 实测
  *   5-J 落行登记（p5-29..30）：fm2-supply 锚 p5-29 → hold p5-30；前景查询擦肩小窗
  *       + I-196 角标
- *   5-K 子代理（p5-31..34）：主/子双窗隔离 + 判词条 + FiveAxisMap 推进（passedCount=4）
+ *   5-K 子代理（p5-31..34 含 31b、33b/c）：主/子双窗隔离 + 蒸馏摘要标（31b）+
+ *       体积对比条 147 vs 2,649 字符（33b/c，实心徽）+ 判词条 + FiveAxisMap 推进
+ *       （passedCount=4）
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -27,6 +31,7 @@ import {SceneTag} from '../components/motifs';
 import {ArchifyRecap} from '../components/ArchifyRecap';
 import {EvidenceBadge} from '../components/EvidenceBadge';
 import {FiveAxisMap} from '../components/FiveAxisMap';
+import {RankFusion} from '../components/RankFusion';
 import {WideFunnel} from '../components/WideFunnel';
 
 export const P5Retrieval: React.FC<{scene: SceneRange}> = ({scene}) => {
@@ -40,6 +45,7 @@ export const P5Retrieval: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bC = w('p5-09', 'p5-10');
   const bD = w('p5-11', 'p5-13');
   const bE = w('p5-14', 'p5-15');
+  const bE2 = w('p5-15b', 'p5-15e');
   const bF = w('p5-16', 'p5-19');
   const bG = w('p5-20', 'p5-21');
   const bH = w('p5-22', 'p5-26');
@@ -96,13 +102,23 @@ export const P5Retrieval: React.FC<{scene: SceneRange}> = ({scene}) => {
         <TrustRuler at={at('p5-11') - bD.from} barsAt={at('p5-12') - bD.from} rulesAt={at('p5-13') - bD.from} />
       </Sequence>
 
-      {/* 5-E 治理胜出：lmm-seam hold 链 + 前景定义卡换位 */}
+      {/* 5-E 治理胜出：lmm-seam hold 链 + 前景定义卡换位（RRF 角标移入 5-E2） */}
       <Sequence from={bE.from} durationInFrames={bE.durationInFrames} name="5-E">
         <ArchifyRecap slug="blueprint--layer-mechanism-map" caption="跨轴组合 · 口径单点" cues={[
           {chapterId: 'lmm-seam', at: at('p5-14') - bE.from, durationInFrames: dur('p5-14')},
           {chapterId: 'lmm-seam', at: at('p5-15') - bE.from, durationInFrames: dur('p5-15'), fit: 'hold'},
         ]} />
-        <GovernedSwap swapAt={at('p5-14') - bE.from + 10} rrfAt={at('p5-15') - bE.from} />
+        <GovernedSwap swapAt={at('p5-14') - bE.from + 10} />
+      </Sequence>
+
+      {/* 5-E2 名次融合（新镜）：RankFusion 装置（无 archify、自研件承担主叙事） */}
+      <Sequence from={bE2.from} durationInFrames={bE2.durationInFrames} name="5-E2">
+        <RankFusion
+          at={at('p5-15b') - bE2.from}
+          swapAt={at('p5-15c') - bE2.from}
+          enginesAt={at('p5-15d') - bE2.from}
+          entryAt={at('p5-15e') - bE2.from}
+        />
       </Sequence>
 
       {/* 5-F 应答契约：三出路卡 */}
@@ -168,8 +184,11 @@ export const P5Retrieval: React.FC<{scene: SceneRange}> = ({scene}) => {
         <Sequence from={0} durationInFrames={at('p5-34') - bK.from} name="5-K-split">
           <SubAgentSplit
             at={at('p5-31') - bK.from}
+            summaryAt={at('p5-31b') - bK.from}
             noiseAt={at('p5-32') - bK.from}
             backAt={at('p5-32') - bK.from + 30}
+            cmp1At={at('p5-33b') - bK.from}
+            cmp2At={at('p5-33c') - bK.from}
           />
           <JudgeStrip at={at('p5-33') - bK.from} />
         </Sequence>
@@ -330,11 +349,10 @@ const TrustRuler: React.FC<{at: number; barsAt: number; rulesAt: number}> = ({at
   );
 };
 
-/** 5-E 前景：两份「重复购买率」卡换位（受治理升至首位）+ RRF 角标。 */
-const GovernedSwap: React.FC<{swapAt: number; rrfAt: number}> = ({swapAt, rrfAt}) => {
-  const f = useCurrentFrame();
+/** 5-E 前景：两份「重复购买率」卡换位（受治理升至首位）。RRF 角标与「名次倒数
+ *  加权示意」按 narration v7 改锚 p5-15b、移入 5-E2 的 RankFusion 装置。 */
+const GovernedSwap: React.FC<{swapAt: number}> = ({swapAt}) => {
   const swap = useSpring('settle', {at: swapAt, dur: 30});
-  const rrf = useEnter('rise', {at: rrfAt, dur: 16});
   // 换位：受治理卡自下而上，推断卡自上而下
   const governedY = (1 - swap) * 108;
   const inferredY = -swap * 108;
@@ -372,11 +390,6 @@ const GovernedSwap: React.FC<{swapAt: number; rrfAt: number}> = ({swapAt, rrfAt}
           <span style={{fontSize: 20, color: theme.dim}}>推断口径 · 提示词里捞的</span>
           <span style={{float: 'right', fontSize: 17, color: theme.dim, fontFamily: theme.mono, opacity: swap}}>rank 2</span>
         </div>
-      </div>
-      <div style={{...rrf, display: 'flex', justifyContent: 'center', marginTop: 4}}>
-        <span style={{padding: '7px 20px', border: `1.5px solid ${theme.dim}`, borderRadius: 999, fontSize: 18, fontFamily: theme.mono, color: theme.dim, background: withAlpha(theme.bg, 0.9)}}>
-          RRF · 按排名合成 · 权重 1/1 · 1/2 · 1/3
-        </span>
       </div>
     </div>
   );
@@ -572,51 +585,96 @@ const SearchMiss: React.FC<{at: number; issueAt: number}> = ({at, issueAt}) => {
   );
 };
 
-/** 5-K：主/子代理双窗隔离（过程留子窗，结论卡单张飞回）。 */
-const SubAgentSplit: React.FC<{at: number; noiseAt: number; backAt: number}> = ({at, noiseAt, backAt}) => {
-  const f = useCurrentFrame();
+/** 5-K：主/子代理双窗隔离（过程留子窗，结论卡单张飞回）+ 蒸馏摘要标（p5-31b）
+ *  + 体积对比条（左缘余量，p5-33b/c：147 vs 2,649 字符 · 约 18 倍，实心徽）。 */
+const SubAgentSplit: React.FC<{at: number; summaryAt: number; noiseAt: number; backAt: number; cmp1At: number; cmp2At: number}> = ({
+  at,
+  summaryAt,
+  noiseAt,
+  backAt,
+  cmp1At,
+  cmp2At,
+}) => {
   const enter = useProgress(at, 14);
   const noise = useProgress(noiseAt, 20);
   const back = useSpring('settle', {at: backAt, dur: 30});
+  const summary = useProgress(summaryAt, 12);
+  // 体积对比条：147 → 2,649 字符（约 18 倍），几何量走 settle 无过冲弹簧
+  const g1 = useSpring('settle', {at: cmp1At, dur: 24});
+  const g2 = useSpring('settle', {at: cmp2At, dur: 28});
+  const o1 = useProgress(cmp1At, 10);
+  const o2 = useProgress(cmp2At, 10);
   const noiseRows = Array.from({length: 6}, (_, i) => `probe(${i + 1}) → rows=… elapsed=…`,);
   return (
-    <AbsoluteFill style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60, opacity: enter}}>
-      {/* 主窗口（zIndex 抬升：飞回的结论卡压过子窗口绘制） */}
-      <div style={{width: 470, border: `2px solid ${theme.concept}`, borderRadius: 12, background: theme.panel, padding: '18px 24px', position: 'relative', zIndex: 2}}>
-        <div style={{fontSize: 17, color: theme.dim, fontFamily: theme.mono, marginBottom: 12}}>主代理窗口</div>
-        {['系统指令', '用户问题 · 复购率'].map((t) => (
-          <div key={t} style={{padding: '10px 14px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, fontSize: 19, color: theme.text, marginBottom: 10}}>
-            {t}
+    <AbsoluteFill style={{opacity: enter}}>
+      <div style={{position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 60}}>
+        {/* 主窗口（zIndex 抬升：飞回的结论卡压过子窗口绘制） */}
+        <div style={{width: 470, border: `2px solid ${theme.concept}`, borderRadius: 12, background: theme.panel, padding: '18px 24px', position: 'relative', zIndex: 2}}>
+          <div style={{fontSize: 17, color: theme.dim, fontFamily: theme.mono, marginBottom: 12}}>主代理窗口</div>
+          {['系统指令', '用户问题 · 复购率'].map((t) => (
+            <div key={t} style={{padding: '10px 14px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 8, fontSize: 19, color: theme.text, marginBottom: 10}}>
+              {t}
+            </div>
+          ))}
+          {/* 结论卡落位槽（p5-31b 挂蒸馏摘要标） */}
+          <div
+            style={{
+              position: 'absolute',
+              right: -190,
+              top: 90,
+              width: 220,
+              padding: '12px 16px',
+              border: `2px solid ${theme.ok}`,
+              borderRadius: 10,
+              background: withAlpha(theme.bg, 0.95),
+              transform: `translateX(${(1 - back) * 160}px)`,
+              opacity: back,
+            }}
+          >
+            <div style={{fontSize: 17, color: theme.ok, fontFamily: theme.mono}}>结论卡</div>
+            <div style={{fontSize: 16, color: theme.dim, marginTop: 5}}>复购率 · 核准口径</div>
+            <div style={{fontSize: 14, color: theme.ok, marginTop: 8, opacity: 0.35 + summary * 0.65, fontFamily: theme.mono}}>
+              蒸馏摘要 ≈1,000–2,000 token（官方口径）
+            </div>
           </div>
-        ))}
-        {/* 结论卡落位槽 */}
-        <div
-          style={{
-            position: 'absolute',
-            right: -190,
-            top: 90,
-            width: 210,
-            padding: '12px 16px',
-            border: `2px solid ${theme.ok}`,
-            borderRadius: 10,
-            background: withAlpha(theme.bg, 0.95),
-            transform: `translateX(${(1 - back) * 160}px)`,
-            opacity: back,
-          }}
-        >
-          <div style={{fontSize: 17, color: theme.ok, fontFamily: theme.mono}}>结论卡</div>
-          <div style={{fontSize: 16, color: theme.dim, marginTop: 5}}>复购率 · 核准口径</div>
+        </div>
+        {/* 子代理窗口：过程噪声 */}
+        <div style={{width: 470, border: `2px dashed ${theme.panelBorder}`, borderRadius: 12, background: theme.terminalBg, padding: '18px 24px', overflow: 'hidden'}}>
+          <div style={{fontSize: 17, color: theme.dim, fontFamily: theme.mono, marginBottom: 12}}>子代理窗口 · 用完即弃</div>
+          {noiseRows.map((r, i) => (
+            <div key={r} style={{fontSize: 15, fontFamily: theme.mono, color: theme.dim, opacity: noise * (0.9 - i * 0.08), whiteSpace: 'nowrap'}}>
+              {r}
+            </div>
+          ))}
+          <div style={{fontSize: 16, color: theme.dim, marginTop: 10, opacity: noise}}>过程全部留在本窗口</div>
         </div>
       </div>
-      {/* 子代理窗口：过程噪声 */}
-      <div style={{width: 470, border: `2px dashed ${theme.panelBorder}`, borderRadius: 12, background: theme.terminalBg, padding: '18px 24px', overflow: 'hidden'}}>
-        <div style={{fontSize: 17, color: theme.dim, fontFamily: theme.mono, marginBottom: 12}}>子代理窗口 · 用完即弃</div>
-        {noiseRows.map((r, i) => (
-          <div key={r} style={{fontSize: 15, fontFamily: theme.mono, color: theme.dim, opacity: noise * (0.9 - i * 0.08), whiteSpace: 'nowrap'}}>
-            {r}
+      {/* 体积对比条（左缘余量；主窗口左缘 x≈460，本面板收在 x<430） */}
+      <div style={{position: 'absolute', left: 44, top: 360, width: 384, padding: '16px 18px', border: `1.5px solid ${theme.panelBorder}`, borderRadius: 12, background: withAlpha(theme.bg, 0.9)}}>
+        <div style={{fontSize: 16, color: theme.dim, fontFamily: theme.mono, marginBottom: 12}}>主对话体积对比</div>
+        <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+          <div style={{opacity: o1}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 17, marginBottom: 5}}>
+              <span style={{color: theme.text}}>只回结论</span>
+              <span style={{color: theme.ok, fontFamily: theme.mono, fontVariantNumeric: 'tabular-nums'}}>147 字符</span>
+            </div>
+            <div style={{height: 18, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 5, background: theme.panel}}>
+              <div style={{width: `${5.5 * Math.min(1, g1)}%`, height: '100%', background: withAlpha(theme.ok, 0.7), borderRadius: 4}} />
+            </div>
           </div>
-        ))}
-        <div style={{fontSize: 16, color: theme.dim, marginTop: 10, opacity: noise}}>过程全部留在本窗口</div>
+          <div style={{opacity: o2}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: 17, marginBottom: 5}}>
+              <span style={{color: theme.text}}>回全部子历史</span>
+              <span style={{color: theme.conceptDeep, fontFamily: theme.mono, fontVariantNumeric: 'tabular-nums'}}>2,649 字符 · 约 18 倍</span>
+            </div>
+            <div style={{height: 18, border: `1.5px solid ${theme.panelBorder}`, borderRadius: 5, background: theme.panel}}>
+              <div style={{width: `${100 * Math.min(1, g2)}%`, height: '100%', background: withAlpha(theme.conceptDeep, 0.7), borderRadius: 4}} />
+            </div>
+          </div>
+        </div>
+        <div style={{marginTop: 14}}>
+          <EvidenceBadge level="filled" at={cmp1At + 26} note="原型实测" />
+        </div>
       </div>
     </AbsoluteFill>
   );

@@ -268,8 +268,8 @@
             "accessed": "2026-10-19"
           },
           "status": "final-review",
-          "statusNote": "v4 零类比重制·edge 草渲待审（2026-10-17 收敛轮重渲，013 去比喻版信源；用户裁决弃 MRO 剧场全量直讲——组件名+白话+贯穿请求「上季度华东区重复购买率」三步走查）：26:58.1 = 1618.1s 草渲 960×540@30fps（48543 帧·71.1MB，实测 26.97 分落 [21.0,27.0] 窗，30 分钟硬顶内）；293 句 edge 云希合成（④ 真实性 3 路 + 易懂性含零类比门清零、⑤ REWRITE=0）；九幕 97 镜·archify 12 图 63 章 116 cue·锚定 39.6%·密度 4.3/分·图型 4；RequestCard 恒定锚 + FiveAxisMap 五轴导航 + 读/纳管双管线真名走查（Resolve..Emit / Ingest..Tag·Index）；check/覆盖门/check_series/tsc/qa 十项体检 FAIL 0（2026-10-16 版草渲：尾幕+九幕逐幕；唯一 WARN：P6 p6-12 一帧装置擦字幕带，人审项，新版待复核）；2026-10-17 重渲过 beat-heads×4 全片＋尾幕渐黑五项体检 FAIL 0·WARN 0，十项待终渲前重跑；终渲（1080p）/交付归档/indextts 升档待人工显式指令；2026-10-19 评审轮已修屏上术语（跨轴组合/沉淀轴段名）与 8-M lead，另 p0-09/p0-17/p0-24 口播等长改词（错法→失效）、音轨待重配，draft 未随之重渲，终渲前须重渲重配并重跑体检",
-          "voice": "edge 云希（zh-CN-YunxiNeural +4%，草渲档）"
+          "statusNote": "v3 终渲待审（2026-10-22，013 去比喻版信源·组件直讲·IndexTTS-2.5 本人克隆 story 档终声）：27:31.77 = 49553 帧 @30fps · 1920×1080（ffprobe 帧数与帧复算一致）；逐字稿 v7 351 句 8291 字（④⑤独立评审清零），--plan 口径 148 块全量缓存；分镜 v5 九幕 101 镜·archify 12 图 63 章 137 cue·锚定 39.0%；v1（10-21）克隆终声首交付→v2（10-22）review-once 评审修复四处画面缺陷（P4 角标锚点/P7 7-K 引入条淡出/P0 p0-26b hold cue/RecapDim 单源）→v3（10-22）1-Eb 镜首 lead={false} 与全片惯例统一；全幕 beat-heads×4＋尾幕 QA FAIL 0·WARN 0，check_series/tsc 全绿；交付 ~/Documents/video/context-layer/拆解 Agent Context Layer：上下文怎么供给、治理、装配 v3.mp4（v1/v2 存档保留）",
+          "voice": "story 段落演绎（IndexTTS-2.5 本人克隆 me-bright + cues.toml 台本，df=1.0）"
         },
         {
           "episode": 3,

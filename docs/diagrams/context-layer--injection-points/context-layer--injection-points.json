@@ -2,7 +2,7 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "上下文注入点现状：九路来源 × root_agent 五挂点",
+    "title": "上下文注入点现状：九路来源 × root_agent 五个接入点",
     "locale": "zh-CN",
     "quality_profile": "showcase",
     "output": "docs/assets/architecture/cognitive-context/context-layer--injection-points.html"
@@ -14,7 +14,7 @@
     },
     {
       "id": "lane1",
-      "label": "root_agent 五挂点"
+      "label": "root_agent 五个接入点"
     },
     {
       "id": "lane2",
@@ -276,10 +276,10 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "五挂点真实装配面",
+      "title": "五个接入点真实装配面",
       "items": [
         "• root_agent 生产装配面 @b2fbb51f5：① instruction ② before_model_callback ③ tools ④ tool callbacks ⑤ sub_agents",
-        "• ① 挂点汇聚四路来源：身份 / Skills / 定义 SSOT / 偏好·引用协议"
+        "• ① 接入点汇聚四路来源：身份 / Skills / 定义 SSOT / 偏好·引用协议"
       ]
     },
     {
@@ -295,7 +295,7 @@
       "title": "九路来源的计数口径",
       "items": [
         "• 8 个来源节点 = 9 路注入：Skills 双路注入互斥计 2 路，其余七路各计 1 路",
-        "• 运行时来源各自就近落挂点：Model/会话状态 → ②，记忆 → ③，Tools → ⑤"
+        "• 运行时来源各自就近落接入点：Model/会话状态 → ②，记忆 → ③，Tools → ⑤"
       ]
     }
   ],

@@ -174,7 +174,7 @@ Snowflake 官方把平台采集的上下文信号分四层[1]：Structural（有
 
 **白话**：语义视图保证「定义对、算得对」，但不保证「AI 生成的 SQL 正确引用了定义」——模型挑错表、错 join、错粒度，语法全对、答案全错，这是与 M1 独立的失效面。M4 的办法朴素而有效：把**有人签字的问答对**存进语义视图（`AI_VERIFIED_QUERIES` 段）：一个问题、一条经过验证的 SQL、验证人、验证日期[4][12]。新问题进来先匹配题库——相似命中就直接采用已验证 SQL 作答，响应里的 confidence 字段告诉你用了哪条[12]。
 
-**机制**：VQR 条目四要素（question / verified_at / verified_by / sql——SQL 必须引用逻辑表而非物理表[12]）；`use_as_onboarding_question` 让核验题兼作新用户引导问题[12]。两条生态配套：①**建议接口**——按用户真实行为推荐「值得核验的新问题」，人签字后入库[12]；②**优化回路**——用题库反推语义层的缺失项（verified SQL 里隐含的过滤惯例、指标口径），自动建议补 `is_active` 这类过滤器与描述，让 Agent 对**没见过的问题**也答得更准[12]；官方手册明说阈值与代价：优化会实际运行你的 verified SQL（每条至多执行 4 次），超过 20 条会显著拖慢[12]。注意边界：评测闭环（Cortex Agent Evaluations）是与 Autopilot 并列的独立发布环节[11]，不在 Horizon Context 之内——本文综合判断（§8 第 4 条注）：VQR 补上了验证缺口的「锚定」一角，一般性计算正确性验证仍是开放面。
+**机制**：VQR 条目四要素（question / verified_at / verified_by / sql——SQL 必须引用逻辑表而非物理表[12]）；`use_as_onboarding_question` 让核验题兼作新用户引导问题[12]。两条生态配套：①**建议接口**——按用户真实行为推荐「值得核验的新问题」，人签字后入库[12]；②**优化回路**——用题库反推语义层的缺失项（verified SQL 里隐含的过滤惯例、指标口径），自动建议补 `is_active` 这类过滤器与描述，让 Agent 对**没见过的问题**也答得更准[12]；官方手册明说阈值与代价：优化会实际运行你的 verified SQL（每条至多执行 4 次），超过 20 条会显著拖慢[12]。注意边界：评测闭环（Cortex Agent Evaluations）是与 Autopilot 并列的独立发布环节[11]，不在 Horizon Context 之内——本文综合判断（§8 第 4 条注）：VQR 补上了验证缺口里「锚定」这一项，一般性计算正确性验证仍是开放面。
 
 **端到端走查**：用户问「上个月活跃用户多少」：①语义检索先扫 VQR；②命中题库条目「How many active users did we have last month?」（相似度足够）；③引擎直接执行该条 verified SQL——不经过 LLM 现场生成；④响应附 confidence 与所用条目。未命中：走 M1 现算路径；无 governed 覆盖：显式告警而非硬猜。**实际运行日志**（本仓原型 §6 命令实测）：`[PASS] A1: verified 短路重放 + 溯源: verified_query {'2026-01': 200, '2026-02': 150, '2026-03': 300} by ( data_governance = data-team@acme.com )`；`[PASS] A1b: 引擎重算 == 验证答案（对账一致）: [200, 150, 300]`——题库路径与引擎重算对账一致，锚定的意义在背书与确定性。
 
@@ -453,7 +453,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 1. **86.3% 与 83/47/23、59–91× 全部是 Snowflake 自家基准**——自家数据、自家考卷、自家口径；21% 第二口径系 Snowflake 转述 Anthropic 独立测得[5]（非一手发表），增益端无任何第三方复现。这批数字只能当「官方能力演示」读，不能当中立评测。
 2. **状态时点（2026-09-30 实况）**——Metadata Connectors 仍在私预（首批含 PostgreSQL/SQL Server/Tableau/Power BI/dbt 等开放列举[2]）；Cortex Sense 私预且无 docs 页[5]；物化 Public Preview（2026-07-09 起）且仅 Semantic SQL 路径受益[4][33]；Semantic Studio 状态两说并存（release note 标 Preview、产品页脚注标私预，以 docs 为准[33]）；External lineage / RSS 均 GA（2026-09-03[33]）；Business Glossary（业务术语表）「H2 2026」上线时间为三方转述、无一手出处，存疑；BlackRock 是早期采用证言、非效果数据[3]；Select Star 收购的产品化去向无公开细节可核[17]；分类识别的精度/误报边界亦未见材料披露。
 3. **「不可绕过」只在引擎周界内成立**——直查底库、导出数据即绕过；Ossie 决定定义**携带**，不解决定义在别家引擎的**执行**（官方 Ossie 导出桥即静默丢 ASOF/RANGE 非等值关系，Datus 指出[21]）；出口安检——AI Guardrails，Horizon 内负责检测/改写/拦截 Agent 输出中 PII/PHI 的组件[4]——也有自己的缝（见第 5 条）。
-4. **governance ≠ verification**——`NON ADDITIVE BY` 是人填的声明、非系统推导；上游 dbt 已把 grain 塌缩（按天汇总）后，语义视图的合法算式照样产出 477 vs 48 的错数[8]；lineage 记录「谁依赖谁」，不校验「这么算是否合法」；typedef 论证了该缺口的存在[8]；本文综合判断：VQR 补上「锚定」一角，一般性计算正确性验证仍是开放面（typedef 原文未评 VQR 覆盖度）。
+4. **governance ≠ verification**——`NON ADDITIVE BY` 是人填的声明、非系统推导；上游 dbt 已把 grain 塌缩（按天汇总）后，语义视图的合法算式照样产出 477 vs 48 的错数[8]；lineage 记录「谁依赖谁」，不校验「这么算是否合法」；typedef 论证了该缺口的存在[8]；本文综合判断：VQR 补上「锚定」这一项，一般性计算正确性验证仍是开放面（typedef 原文未评 VQR 覆盖度）。
 5. **机制面的已知缺口集合**——①信号排序可能放大多数派错误：popularity 权重下，被 500 条查询使用的错误 join 模式压过 3 条查询的正确模式（D4 实测同构），且 Sense 的 per-role context 未交付（私测期单角色全量[5]）；②sample values 是元数据、不走掩码[14]——官方建议对低基数维度提供代表性示例值、并提醒敏感列慎用，无强制[14]；③AI Guardrails 的函数级脱敏（AI_REDACT，2025-12-08 GA[33]）对超长文本的处理上限未见材料披露，长文本场景接入前需实测。
 
 ---
@@ -473,7 +473,7 @@ uv run --no-project python docs/research/cognitive-context/assets/horizon_contex
 ## 10. 与本仓的关联
 
 - **机制映射**：16 条 Horizon ↔ negentropy 机制映射由 [013 16+4 映射表](./013-context-layer-blueprint.md) 承载（2026-10-10 全量重核 @b2fbb51f5）。
-- **设计蓝图**：[Context Layer 技术蓝图](./013-context-layer-blueprint.md)——以 Agent 运行时上下文为研究对象的设计 SSOT；本篇（011）承载 Horizon 全量机制载荷（冻结），013 承载设计与判定。
+- **设计蓝图**：[Context Layer 技术蓝图](./013-context-layer-blueprint.md)——以 Agent 运行时上下文为研究对象的设计 SSOT；本篇（011）承载 Horizon 全量机制细节（冻结），013 承载设计与判定。
 - **配套原型**：[`assets/horizon_context_lab.py`](./assets/horizon_context_lab.py)（七机制 + 场景矩阵 + 十次破坏实验）· [`assets/horizon_context_mcp.py`](./assets/horizon_context_mcp.py)（MCP 服务原型，T1–T8）。
 - **配套科普**：M1–M7 各一张 archify 动效工程图 + §1/§3/§4 总览图随文内嵌（共 15 张，交互版 HTML 可下载本地打开）。
 

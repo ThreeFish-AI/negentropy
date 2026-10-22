@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "26ba9e82-db2a-44ac-b4f3-3c39519e2fce",
+  "deliveryReceiptId": "3ad4c295-63a3-4a4f-b7c6-5ea3961d30b6",
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html",
-    "sha256": "72ea0152ba9017f6c42d36bd9b133af7a6da99bf86d4256b2c763ab34b288300",
-    "bytes": 759089
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html",
+    "sha256": "c6081621c40661053a150577aba962e6621392abeb729ba04e6fa31d370ce0e5",
+    "bytes": 759209
   },
   "state": {
     "detail": "read",
