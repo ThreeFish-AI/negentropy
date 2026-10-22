@@ -94,7 +94,7 @@ export const P1Map: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence from={bD.from} durationInFrames={bD.durationInFrames} name="1-D 拆解宣言">
         <ArchifyRecap
           slug="mechanism-experiment-matrix"
-          caption="七机制 × 十次拆坏"
+          caption="七机制 × 十次破坏"
           cues={[
             {chapterId: 'three-lesions', at: at('p1-08') - bD.from, durationInFrames: dur('p1-08')},
             {chapterId: 'ten-teardowns', at: at('p1-09') - bD.from, durationInFrames: dur('p1-09')},

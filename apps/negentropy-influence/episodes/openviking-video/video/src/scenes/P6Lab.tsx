@@ -28,7 +28,7 @@ const DoorPlate: React.FC<{at: number}> = ({at}) => {
       >
         <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.peri, letterSpacing: 3}}>OPENVIKING LAB</div>
         <div style={{fontFamily: theme.serif, fontSize: 38, color: theme.text, marginTop: 8}}>玩具图书馆 · 破坏实验室</div>
-        <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 8}}>每次只拆一个零件 · 真跑 · 记录真实退化</div>
+        <div style={{fontFamily: theme.sans, fontSize: 19, color: theme.dim, marginTop: 8}}>每次只去掉一个零件 · 真跑 · 记录真实退化</div>
       </div>
     </div>
   );

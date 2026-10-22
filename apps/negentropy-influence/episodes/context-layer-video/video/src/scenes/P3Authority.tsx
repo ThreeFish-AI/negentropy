@@ -339,10 +339,10 @@ const DualIntercept: React.FC<{at08: number; hideAt: number; bounceAt: number; l
           <span style={{position: 'absolute', right: 46, top: 20, fontSize: 18, color: theme.conceptDeep, opacity: hitT > 0.4 ? 1 : 0}}>引擎拒绝</span>
         </div>
       </div>
-      {/* D5 消融：拆执行层 → 取到（红）/ 装回 → blocked（绿） */}
+      {/* D5 消融：去掉执行层 → 取到（红）/ 装回 → blocked（绿） */}
       <div style={{display: 'flex', alignItems: 'center', gap: 22, opacity: d5}}>
         <span style={{padding: '10px 22px', border: `2px solid ${theme.danger}`, borderRadius: 8, fontSize: 21, color: theme.danger}}>
-          拆执行层 → intern 取到数据
+          去掉执行层 → intern 取到数据
         </span>
         <span style={{fontSize: 22, color: theme.dim}}>|</span>
         <span style={{padding: '10px 22px', border: `2px solid ${theme.ok}`, borderRadius: 8, fontSize: 21, color: theme.ok}}>

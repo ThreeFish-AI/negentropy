@@ -19,7 +19,7 @@
 | 1   | [《上线之后，AI 才开始上学》](./episodes/experience-era-agents-video/README.md)               | 部署之后经验怎么攒 | 金/青/紫         | 清华×Frontis 88 页综述（无 arXiv 号），2026-06 | **v3 就绪**（内容校准 + sunny-steady 全片重配，成片 14:01；源码含未重渲改动：P3 格阵落格校准） |
 | 2   | [《AI 如何自己变强？》](./episodes/self-improving-agents-video/README.md)                     | 自我进化改什么     | 蓝/橙            | arXiv:2607.13104（Schmidhuber 团队），2026-07  | 就绪（待升级 sunny-steady，未排期）                                                            |
 | 3   | [《会写代码的 AI，开始给自己写代码》](./episodes/self-evolving-coding-agents-video/README.md) | 代码领域全图       | 绿/洋红          | arXiv:2608.03392（NJUST×NJU），2026-08         | 就绪（源码含未重渲改动；待升级 sunny-steady）                                                  |
-| 4   | [《翻旧账不花钱：AI 在梦里改章程》](./episodes/dream-rsi-video/README.md)                   | 元探索策略怎么改   | 冰蓝/暖白/嫩绿   | arXiv:2609.14858（UMD×DeepMind×UVA），2026-09  | **v2 终渲待审**（章节导航条版 10:30.87 · archify 混合 16 图；2026-09-23，归档 ~/Documents/video） |
+| 4   | [《翻旧账不花钱：AI 在梦里改章程》](./episodes/dream-rsi-video/README.md)                   | 元探索策略怎么改   | 冰蓝/暖白/嫩绿   | arXiv:2609.14858（UMD×DeepMind×UVA），2026-09  | **v2 终渲待审**（章节导航条版 10:30.87 · archify 混合 16 图；2026-09-23，归档 ~/Documents/video）｜旁白/屏上字已改（I-234）、成片待重制 |
 
 ## Claude Code Harness Engineering（文档/代码型选题）
 
@@ -30,13 +30,13 @@
 
 | #   | 作品                                                                                  | 一句话主题                    | 视觉契约（主色）                         | 信源                                                                                              | 状态                                                                        |
 | --- | ------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 1   | [《工具与执行：一个循环，三层装置》](./episodes/claude-code-explained-video/README.md) | 循环不变式与三层挂载装置 | core #D97757 恒定/mech 石青 | 站点 s01–s04 钉 main `ce8f9f18`（MIT）＋官方文档轨 C；台账 15 条 audit FAIL 0 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:02.6 · 164 句 · 12 图 65 章 |
-| 2   | [《规划与协调：视野错位的五种修正手法》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:12.2 · 12 图 68 章 |
-| 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:13.3 · 12 图 62 章 |
-| 4   | [《并发与调度：一张回执和四层钟》](./episodes/claude-code-concurrency-video/README.md) | 一张回执＋四层钟 | mech 霜蓝 #7FB2E0 | C 型信源＝174 新精读（v3 换代） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代＝本分支完全重制 v1 交付（14:26.8 · 149 句 · 13 图 47 章 · edge 草声）＋系列片头挂载已接 |
-| 5   | [《多 Agent 平台：从一个到一群》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代·终集收束）｜前代 v1 成片 13:42.8 · 13 图 67 章 |
-| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:10.8 · 12 图 59 章 |
-| 5   | [《多 Agent 平台：七件设施，一条走廊》](./episodes/claude-code-multiagent-video/README.md) | 七件设施与一条走廊（终集） | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c`（C 型=175 冻结快照） | ✅ **换题重制 v2 交付**（edge 终声版 14:17.8 · 147 句 4015 字 · 14 图 49 章 · 六实验入片 · 评审修复 9 commits 80 项入片 · indextts 重配待触发） |
+| 1   | [《工具与执行：一个循环，三层装置》](./episodes/claude-code-explained-video/README.md) | 循环不变式与三层挂载装置 | core #D97757 恒定/mech 石青 | 站点 s01–s04 钉 main `ce8f9f18`（MIT）＋官方文档轨 C；台账 15 条 audit FAIL 0 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:02.6 · 164 句 · 12 图 65 章｜I-234 用词整改 |
+| 2   | [《规划与协调：视野错位的五种修正手法》](./episodes/claude-code-planning-video/README.md) | 五件安排台面的装置 | mech 鸢紫 #9C90EE | s05–s07·s10·s11 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:12.2 · 12 图 68 章｜I-234 用词整改 |
+| 3   | [《记忆管理：会丢的和不能丢的》](./episodes/claude-code-memory-video/README.md) | 两套咬合的机制 | mech 苔绿 #A9C46C | s08·s09 @ `67a9126c` ＋轨 C（main 演进彩蛋） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:13.3 · 12 图 62 章｜I-234 用词整改 |
+| 4   | [《并发与调度：一张回执和四层钟》](./episodes/claude-code-concurrency-video/README.md) | 一张回执＋四层钟 | mech 霜蓝 #7FB2E0 | C 型信源＝174 新精读（v3 换代） | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代＝本分支完全重制 v1 交付（14:26.8 · 149 句 · 13 图 47 章 · edge 草声）＋系列片头挂载已接｜I-234 用词整改 |
+| 5   | [《多 Agent 平台：从一个到一群》](./episodes/claude-code-multiagent-video/README.md) | 从一个到一群的五物件 | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c` ＋轨 C 八校准 | 🟡 **剧本 v3 待审**（2026-10-07 信源换代·终集收束）｜前代 v1 成片 13:42.8 · 13 图 67 章｜旁白/屏上字已改（I-234）、成片待重制 |
+| 4   | [《并发：谁来按下开始》](./episodes/claude-code-concurrency-video/README.md) | 后台不等＋定时钟自动 | mech 霜蓝 #7FB2E0 | s13·s14 @ `67a9126c` ＋轨 C | 🟡 **剧本 v3 待审**（2026-10-07 信源换代）｜前代 v1 成片 14:10.8 · 12 图 59 章｜I-234 用词整改 |
+| 5   | [《多 Agent 平台：七件设施，一条走廊》](./episodes/claude-code-multiagent-video/README.md) | 七件设施与一条走廊（终集） | mech 协作金 #D9B36B | s12·s15–s20 @ `67a9126c`（C 型=175 冻结快照） | ✅ **换题重制 v2 交付**（edge 终声版 14:17.8 · 147 句 4015 字 · 14 图 49 章 · 六实验入片 · 评审修复 9 commits 80 项入片 · indextts 重配待触发）｜旁白/屏上字已改（I-234）、成片待重制 |
 
 > 章节→集归属与**站点/仓库修订分叉**（站点为 20 章旧修订、仓库 main 已整合为 17 章，故双钉）：
 > 系列级登记见 [source-map/claude-code-explained.md](./source-map/claude-code-explained.md)。
@@ -55,9 +55,9 @@
 
 | #   | 作品                                                                              | 一句话主题                     | 视觉契约（主色）              | 信源                                                                                     | 状态                                                          |
 | --- | --------------------------------------------------------------------------------- | ------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 1   | [《拆解 Horizon Context》](./episodes/horizon-context-video/README.md)            | Snowflake Horizon Context：怎么治理 Agent Context  | 琥珀金/青碧/淡紫              | 011 gen2 冻结 @ `192ae6ca9` + 双 selftest 复算，2026-10-02                              | **v2 终渲待审**（完全重制 · 15:06 · story 档 · archify 47 图 106 cue · 锚定 67.9%；10-16 直述化 2 句旁白已改、成片待重制） |
-| 2   | [《拆解 Agent Context Layer：上下文怎么供给、治理、装配》](./episodes/context-layer-video/README.md) | Context Layer：三面蓝图怎么拆（2026-10-16 v4 零类比重制） | 钢蓝/工业橙/校准绿            | 013 去比喻版 + 011 + lab/mcp 原型 @ `5ebfb7e3b`，2026-10-19                        | **v3 终渲待审**（27:31.77 · 克隆终声 story 档 · 12 图 63 章 137 cue · 锚定 39.0%） |
-| 3   | [《给 AI 一座图书馆：OpenViking 上下文数据库》](./episodes/openviking-video/README.md) | OpenViking：文件系统范式怎么做上下文 | 玫红/薄荷绿/长春花蓝        | 014 精读笔记 + 015 映射 + openviking_lab @ `348d8797`，2026-09-24                          | **v1 终渲待审**（10:37 · archify 9 图 54 cue 回放）          |
+| 1   | [《拆解 Horizon Context》](./episodes/horizon-context-video/README.md)            | Snowflake Horizon Context：怎么治理 Agent Context  | 琥珀金/青碧/淡紫              | 011 gen2 冻结 @ `192ae6ca9` + 双 selftest 复算，2026-10-02                              | **v2 终渲待审**（完全重制 · 15:06 · story 档 · archify 47 图 106 cue · 锚定 67.9%；10-16 直述化 2 句旁白已改、成片待重制）｜旁白/屏上字已改（I-234）、成片待重制 |
+| 2   | [《拆解 Agent Context Layer：上下文怎么供给、治理、装配》](./episodes/context-layer-video/README.md) | Context Layer：三面蓝图怎么拆解（2026-10-16 v4 零类比重制） | 钢蓝/工业橙/校准绿            | 013 去比喻版 + 011 + lab/mcp 原型 @ `5ebfb7e3b`，2026-10-19                        | **v3 终渲待审**（27:31.77 · 克隆终声 story 档 · 12 图 63 章 137 cue · 锚定 39.0%）｜旁白/屏上字已改（I-234）、成片待重制 |
+| 3   | [《给 AI 一座图书馆：OpenViking 上下文数据库》](./episodes/openviking-video/README.md) | OpenViking：文件系统范式怎么做上下文 | 玫红/薄荷绿/长春花蓝        | 014 精读笔记 + 015 映射 + openviking_lab @ `348d8797`，2026-09-24                          | **v1 终渲待审**（10:37 · archify 9 图 54 cue 回放）｜旁白/屏上字已改（I-234）、成片待重制 |
 
 ## Agent 基础设施系列（doc 型 · 3 集）
 
@@ -65,6 +65,6 @@
 
 | #   | 作品 | 一句话主题 | 视觉契约（主色） | 信源 | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| 1   | [《目录常驻，正文按需：Agent Skills 开放标准》](./episodes/agent-skills-video/README.md) | Agent Skills：目录常驻、正文按需的领域知识打包开放标准 | 目录金/路由靛/治理紫 | 精读（C 型）@ 本分支（原 210 已并入 230）+ agentskills/agentskills @ `69ef37e9`，2026-09-26 | **成片交付 v1**（12:55 · edge 草声 · 双图 10 章 12 cue · 锚定 8.5% · lab2 五实验复算 · 归档 ~/Documents/video） |
-| 2   | [《只填格的判读员：Jev 决策模型》](./episodes/jev-decision-model-video/README.md) | Jev：小判断的交付方式怎么变 | 格黄/柱青/闸品 | 200 精读 + 原型 + laya 复刻 @ `40bf690` + TypeSafe 官方/adapter/kev/laya/nibzard 钉提交，2026-09-26 | **v1 终渲待审**（14.2 分 · story 配音 · archify 13 图 54 章 · 归档 ~/Documents/video） |
+| 1   | [《目录常驻，正文按需：Agent Skills 开放标准》](./episodes/agent-skills-video/README.md) | Agent Skills：目录常驻、正文按需的领域知识打包开放标准 | 目录金/路由靛/治理紫 | 精读（C 型）@ 本分支（原 210 已并入 230）+ agentskills/agentskills @ `69ef37e9`，2026-09-26 | **成片交付 v1**（12:55 · edge 草声 · 双图 10 章 12 cue · 锚定 8.5% · lab2 五实验复算 · 归档 ~/Documents/video）｜旁白/屏上字已改（I-234）、成片待重制 |
+| 2   | [《只填格的判读员：Jev 决策模型》](./episodes/jev-decision-model-video/README.md) | Jev：小判断的交付方式怎么变 | 格黄/柱青/闸品 | 200 精读 + 原型 + laya 复刻 @ `40bf690` + TypeSafe 官方/adapter/kev/laya/nibzard 钉提交，2026-09-26 | **v1 终渲待审**（14.2 分 · story 配音 · archify 13 图 54 章 · 归档 ~/Documents/video）｜旁白/屏上字已改（I-234）、成片待重制 |
 | 3   | [《没有海关的港口：Skills 的签名、分发与版本战争》](./episodes/skills-supply-chain-video/README.md) | Agent Skills：签名/分发/版本三战场 | 关税橙/检疫绿 | 220/221 供应链精读 @ `9284cce2c` + agentskills @ `69ef37e9` + MCP SEP-2640 @ `b0b3272f`，2026-09-27 | **成片交付 v1**（13:57 · 20 图 79 cue · 锚定 78.2% · 归档 ~/Documents/video） |

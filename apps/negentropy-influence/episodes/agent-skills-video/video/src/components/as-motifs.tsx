@@ -115,7 +115,7 @@ export const GoldenCard: React.FC<{
   </div>
 );
 
-/** 左右消融框（Counterfactual Ablation Contrast）：左红＝拆掉后/退化侧，
+/** 左右消融框（Counterfactual Ablation Contrast）：左红＝去掉后/退化侧，
  *  右绿＝机制在位/拦截侧；标题条 + 内容插槽 + 可选跨两列底注。 */
 export const AblationPanel: React.FC<{
   leftTitle: string;

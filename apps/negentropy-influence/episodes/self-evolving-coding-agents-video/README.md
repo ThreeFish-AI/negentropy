@@ -12,7 +12,7 @@
 | `research/paper-notes.md` | 论文精读笔记——全部口播内容的**单一事实源**（8 个并行提取代理逐章产出） |
 | `script/planning.md` | 策划案：受众、七幕结构、双色视觉契约（终端绿=可执行证据 / 洋红=进化动作） |
 | `script/narration.md` | 逐字稿（唯一维护处），`- [句id] 文本` 一句一行 |
-| `script/narration.json` | 派生物：拆句结果，供 TTS 与字幕消费（勿手改） |
+| `script/narration.json` | 派生物：按句拆分的结果，供 TTS 与字幕消费（勿手改） |
 | `script/storyboard.md` | 分镜表：镜号 ↔ 句 id 区间 ↔ 画面动效（场景组件实现规格） |
 | `pipeline.toml` | 本集管线配置（配音/渲染/时长预算）——`pipeline.py` 的参数源 |
 | `scripts/*.py` | 薄包装 → 公共管线 [$T/pipeline/scripts/](https://github.com/ThreeFish-AI/vibe-video/tree/main/pipeline/scripts)（`--project` 透传） |

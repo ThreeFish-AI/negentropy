@@ -156,21 +156,21 @@ export const P5Teardown: React.FC<{scene: SceneRange}> = ({scene}) => {
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="5-A 成绩单与三连">
-        <SceneTag chapter="P5" tagline="拆台" accent={theme.peri} />
+        <SceneTag chapter="P5" tagline="较真" accent={theme.peri} />
         <GradeRow at={at('p5-01') - bA.from} warnAt={at('p5-03') - bA.from} />
         <EvidenceBadge grade="vendor" />
         <LibraryHUD lit={3} at={-30} />
       </Sequence>
 
       <Sequence {...bB} name="5-B 反例对撞">
-        <SceneTag chapter="P5" tagline="拆台" accent={theme.rose} />
+        <SceneTag chapter="P5" tagline="较真" accent={theme.rose} />
         <DuelBars at={at('p5-08') - bB.from} medalAt={at('p5-09') - bB.from} />
         <EvidenceBadge grade="vendor" />
         <LibraryHUD lit={3} at={-30} />
       </Sequence>
 
       <Sequence {...bC} name="5-C 复算终端">
-        <SceneTag chapter="P5" tagline="拆台" accent={theme.peri} />
+        <SceneTag chapter="P5" tagline="较真" accent={theme.peri} />
         <div style={{position: 'absolute', inset: 0, paddingTop: 150, display: 'flex', justifyContent: 'center'}}>
           <CodeWalk
             title="recompute.py · 自报数字自己算一遍"

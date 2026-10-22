@@ -126,7 +126,7 @@ export const P6Supply: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       {/* 6-E 拆给热度：消融声量柱 @p6-10（空窗句）→ popularity-wins（尾让金句窗，语拍硬切） */}
-      <Sequence {...bE} name="6-E 拆给热度">
+      <Sequence {...bE} name="6-E 交给热度">
         <Sequence from={0} durationInFrames={dur('p6-10')} name="6-E-ablation">
           <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 26}}>
             <AblationPair

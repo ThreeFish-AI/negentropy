@@ -24,7 +24,7 @@
  *    「一个病根」四字标签（mech 蓝）收束；便签边角微卷＝本镜唯一持续动效。
  *  ★ 0-A 开篇首镜视听合力：黑场起五零件装置剪影（accent 金线稿：齿轮/管道/钟/
  *    槽/闸，零 Lottie）整体慢转＋各自匀速自旋；p0-01 句尾「换一种死法」齿轮亮红
- *    一瞬（拆机预告，P5 兑现）——全镜唯一 impulse；除角标 Harness 外零画面文字。
+ *    一瞬（实验室预告，P5 兑现）——全镜唯一 impulse；除角标 Harness 外零画面文字。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -251,7 +251,7 @@ const PartGlyph: React.FC<{frame: number; kind: PartKind; stroke: string}> = ({
   );
 
 /** 五零件环布＋轮毂辐条（R=250，整体慢转 3°/s）；五零件错峰显形（黑场起）。
- *  p0-01 句尾「换一种死法」齿轮叠 danger 红拷贝一瞬（拆机预告，不真拆）。 */
+ *  p0-01 句尾「换一种死法」齿轮叠 danger 红拷贝一瞬（实验室预告，不真拆）。 */
 const RING_R = 250;
 
 const Machine: React.FC<{flashAt: number}> = ({flashAt}) => {

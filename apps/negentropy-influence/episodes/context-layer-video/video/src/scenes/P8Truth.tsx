@@ -200,7 +200,7 @@ export const P8Truth: React.FC<{scene: SceneRange}> = ({scene}) => {
           RecapDim 自第二条 cue 起压暗画框，AuditCard 置顶（z 序：装置在 recap 之后） */}
       <Sequence from={bL2.from} durationInFrames={bL2.durationInFrames} name="8-L2">
         <RecapDim from={at('p8-28c') - bL2.from} dur={dur('p8-28c', 'p8-28g')}>
-          <ArchifyRecap slug="failure-map" caption="失效登记簿 · 审计三步" cues={[
+          <ArchifyRecap slug="failure-map" caption="问题登记簿 · 审计三步" cues={[
             {chapterId: 'fm2-open', at: at('p8-28b') - bL2.from, durationInFrames: dur('p8-28b')},
             {chapterId: 'fm2-open', at: at('p8-28c') - bL2.from, durationInFrames: dur('p8-28c'), fit: 'hold'},
             {chapterId: 'fm2-open', at: at('p8-28d') - bL2.from, durationInFrames: dur('p8-28d'), fit: 'hold'},

@@ -77,7 +77,7 @@ export const P7ReadPath: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 7-B 四类失效归位：fco-txn 特写推进（承 7-A 链尾镜界背靠背 → lead=false） */}
       <Sequence from={bB.from} durationInFrames={bB.durationInFrames} name="7-B">
-        <ArchifyRecap slug="blueprint--first-class-object" caption="读管线 · 四类失效归位" lead={false} cues={[
+        <ArchifyRecap slug="blueprint--first-class-object" caption="读管线 · 四类错误归位" lead={false} cues={[
           {chapterId: 'fco-txn', at: at('p7-03') - bB.from, durationInFrames: dur('p7-03')},
         ]} />
       </Sequence>

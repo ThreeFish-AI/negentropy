@@ -172,7 +172,7 @@ export const P5Retrieval: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 5-J 落行登记：fm2-supply hold 链 + 前景查询擦肩小窗 */}
       <Sequence from={bJ.from} durationInFrames={bJ.durationInFrames} name="5-J">
-        <ArchifyRecap slug="failure-map" caption="失效登记簿 · 背书接入四簇" cues={[
+        <ArchifyRecap slug="failure-map" caption="问题登记簿 · 背书接入四簇" cues={[
           {chapterId: 'fm2-supply', at: at('p5-29') - bJ.from, durationInFrames: dur('p5-29')},
           {chapterId: 'fm2-supply', at: at('p5-30') - bJ.from, durationInFrames: dur('p5-30'), fit: 'hold'},
         ]} />

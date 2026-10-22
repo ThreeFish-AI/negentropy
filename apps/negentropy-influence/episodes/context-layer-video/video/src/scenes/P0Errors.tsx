@@ -41,7 +41,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill style={{background: theme.bg}}>
-      <SceneTag chapter="P0" tagline="三种失效" accent={theme.concept} />
+      <SceneTag chapter="P0" tagline="三种错误" accent={theme.concept} />
 
       {/* 0-A 成绩对撞：19/85 双成绩条 + 同模型标签 + 标题字条（首镜视听合力） */}
       <Sequence from={bA.from} durationInFrames={bA.durationInFrames} name="0-A">
@@ -64,7 +64,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 0-C 失效卡①：fm2-def 全章回放为底，前景口径卡叠加 */}
       <Sequence from={bC.from} durationInFrames={bC.durationInFrames} name="0-C">
-        <ArchifyRecap slug="failure-map" caption="失效登记簿 · 定义执法簇" cues={[
+        <ArchifyRecap slug="failure-map" caption="问题登记簿 · 定义执法簇" cues={[
           {chapterId: 'fm2-def', at: at('p0-10') - bC.from, durationInFrames: dur('p0-10')},
           {chapterId: 'fm2-def', at: at('p0-11') - bC.from, durationInFrames: dur('p0-11'), fit: 'hold'},
           {chapterId: 'fm2-def', at: at('p0-12') - bC.from, durationInFrames: dur('p0-12'), fit: 'hold'},
@@ -120,7 +120,7 @@ export const P0Errors: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 0-G 登记成表：fm2-open 全章回放为底，前景计数 + 三卡飞落 + 五轴导航条 */}
       <Sequence from={bG.from} durationInFrames={bG.durationInFrames} name="0-G">
-        <ArchifyRecap slug="failure-map" caption="失效登记簿 · 十簇总览" cues={[
+        <ArchifyRecap slug="failure-map" caption="问题登记簿 · 十簇总览" cues={[
           {chapterId: 'fm2-open', at: at('p0-24') - bG.from, durationInFrames: dur('p0-24')},
           {chapterId: 'fm2-open', at: at('p0-25') - bG.from, durationInFrames: dur('p0-25'), fit: 'hold'},
           {chapterId: 'fm2-open', at: at('p0-26') - bG.from, durationInFrames: dur('p0-26'), fit: 'hold'},
@@ -244,7 +244,7 @@ const RequestIntro: React.FC<{cardAt: number; slotsAt: number}> = ({cardAt, slot
     <AbsoluteFill style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 56}}>
       <RequestCard at={cardAt} />
       <div style={{display: 'flex', gap: 34}}>
-        {['失效一', '失效二', '失效三'].map((t, i) => (
+        {['错误一', '错误二', '错误三'].map((t, i) => (
           <div
             key={t}
             style={{
@@ -467,9 +467,9 @@ const WindowLeak: React.FC<{cardAt: number; credAt: number; leakAt: number}> = (
 const FailTrio: React.FC<{at: number}> = ({at}) => {
   const cards = useStagger(3, {stride: 10, at});
   const items = [
-    {t: '失效①', s: '口径两数', accent: theme.concept},
-    {t: '失效②', s: '选错表', accent: theme.conceptDeep},
-    {t: '失效③', s: '越权入窗', accent: theme.conceptDeep},
+    {t: '错误①', s: '口径两数', accent: theme.concept},
+    {t: '错误②', s: '选错表', accent: theme.conceptDeep},
+    {t: '错误③', s: '越权入窗', accent: theme.conceptDeep},
   ];
   return (
     <div style={{display: 'flex', gap: 30}}>
@@ -514,9 +514,9 @@ const RegistryOverlay: React.FC<{countAt: number; dropAt: number; navAt: number}
   const drops = [0, 14, 28].map((d) => progress(f, dropAt + d, 40));
   // 三卡落点：口径(c1)/验证(c4)/访问控制(c3) 三簇近似位置（画布绝对坐标，回放框内）
   const targets = [
-    {x: 520, y: 300, t: '失效①', s: '口径'},
-    {x: 960, y: 430, t: '失效③', s: '访问控制'},
-    {x: 1380, y: 330, t: '失效②', s: '验证'},
+    {x: 520, y: 300, t: '错误①', s: '口径'},
+    {x: 960, y: 430, t: '错误③', s: '访问控制'},
+    {x: 1380, y: 330, t: '错误②', s: '验证'},
   ];
   return (
     <>

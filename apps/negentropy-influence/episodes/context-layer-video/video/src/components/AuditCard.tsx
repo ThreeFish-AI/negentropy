@@ -87,7 +87,7 @@ export const AuditCard: React.FC<{
         >
           <div style={{fontSize: 16, color: theme.dim, fontFamily: theme.mono}}>step 1</div>
           <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap'}}>
-            {['宣言', '失效形态', '同形簇 · 反例'].map((c, i) => (
+            {['宣言', '问题类型', '同形簇 · 反例'].map((c, i) => (
               <span key={c} style={{display: 'flex', alignItems: 'center', gap: 10}}>
                 <span style={{padding: '5px 12px', border: `1.5px solid ${theme.conceptDeep}`, borderRadius: 7, fontSize: 16, color: theme.conceptDeep, whiteSpace: 'nowrap'}}>
                   {c}
@@ -111,7 +111,7 @@ export const AuditCard: React.FC<{
           }}
         >
           <div style={{fontSize: 16, color: theme.dim, fontFamily: theme.mono}}>step 2</div>
-          <div style={{marginTop: 12, fontSize: 21, color: theme.text}}>拆掉它 · 会出什么错？</div>
+          <div style={{marginTop: 12, fontSize: 21, color: theme.text}}>去掉它 · 会出什么错？</div>
           <div style={{marginTop: 10, display: 'flex', alignItems: 'center', gap: 12}}>
             <span style={{padding: '5px 12px', border: `1.5px solid ${theme.ok}`, borderRadius: 7, fontSize: 16, color: theme.ok}}>要可复现证据</span>
             <span style={{fontSize: 15, fontFamily: theme.mono, color: theme.dim}}>反事实存在性</span>

@@ -11,7 +11,7 @@
 | `research/paper-notes.md` | 论文精读笔记——全部口播内容的**单一事实源**（9 个并行提取代理逐节产出） |
 | `script/planning.md` | 策划案：受众、叙事策略、视觉语言（蓝=改大脑 θ / 橙=改装备 Σ） |
 | `script/narration.md` | 逐字稿（唯一维护处），`- [句id] 文本` 一句一行 |
-| `script/narration.json` | 派生物：拆句结果，供 TTS 与字幕消费（勿手改） |
+| `script/narration.json` | 派生物：按句拆分的结果，供 TTS 与字幕消费（勿手改） |
 | `script/storyboard.md` | 分镜表：镜号 ↔ 句 id 区间 ↔ 画面动效（场景组件实现规格） |
 | `scripts/build_narration.py` | narration.md → narration.json |
 | `scripts/tts.py` | 逐句配音合成 + 时长 manifest（幂等；indextts 本人克隆 / edge 预置双引擎） |

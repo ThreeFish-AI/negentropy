@@ -196,14 +196,14 @@ export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
             <EvalOrbit at={atP311(0.02)} offAt={at('p3-12') - bF.from} />
           </div>
         </AbsoluteFill>
-        <TeardownChip at={at('p3-12') - bF.from} text="D5 · 即将拆除：执行层检查" />
+        <TeardownChip at={at('p3-12') - bF.from} text="D5 · 即将去掉：执行层检查" />
       </Sequence>
 
       {/* 3-G 拆执行层：两章图让尾窗给红绿消融（左 90→560 泄露翻牌 / 右拦截墙落锁 @spring）。
           换场三拍同锚（评审 H 轮）：yield 尾窗与装置起点均提前 OVERLAP 帧，画框 cue 末
           OVERLAP 帧自淡出——装置在画框淡出与 yield 释放中渐显，画框卸载帧（240+OVERLAP）
           装置已 ~半显，无空底帧 */}
-      <Sequence {...bG} name="3-G 拆执行层">
+      <Sequence {...bG} name="3-G 去掉执行层">
         <ArchifyYield
           cues={[
             {at: at('p3-13') - bG.from, durationInFrames: dur('p3-13')},
@@ -216,9 +216,9 @@ export const P3Policy: React.FC<{scene: SceneRange}> = ({scene}) => {
                 at={ablAt}
                 width={1560}
                 left={{
-                  tag: 'D5 · 拆执行层',
+                  tag: 'D5 · 去掉执行层',
                   title: '明文泄露',
-                  lines: ['实习生 → 查询计划', '执行层检查已拆除', '明文号码直出结果集'],
+                  lines: ['实习生 → 查询计划', '执行层检查已去掉', '明文号码直出结果集'],
                   meter: {label: '明文值 · 本仓复算', from: 90, to: 560, at: ablAt + 10},
                   flow: {},
                 }}
@@ -755,7 +755,7 @@ const JRecap: React.FC<{at: number}> = ({at}) => {
 const TEST_CHIPS = [
   {q: 'Q1', label: '策略挂在哪'},
   {q: 'Q2', label: '哪一层求值'},
-  {q: 'Q3', label: '拆了会漏吗'},
+  {q: 'Q3', label: '关掉会漏吗'},
 ] as const;
 
 const TestChips: React.FC<{at: number}> = ({at}) => {

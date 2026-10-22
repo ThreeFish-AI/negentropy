@@ -1,6 +1,6 @@
 /** P1 一个文件夹的答案（p1-01..p1-24，镜 1-A..1-E）——格式契约（六字段卡贴 +
  *  gl-three 全屏窗）→ 正文与子目录 → pdf-report 终端走查 → 治理智慧（互锁 +
- *  dl-discover 全屏窗 + Git 流水带）→ X1 消融（拆作用域优先级 → 2/10 漂移）。
+ *  dl-discover 全屏窗 + Git 流水带）→ X1 消融（去掉作用域优先级 → 2/10 漂移）。
  *  主色：路由靛（字段/身份）+ 目录金（互锁线）。 */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -356,7 +356,7 @@ const DriftBadge: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 1-E X1 消融：右绿优先级在位（解析一致）vs 左红拆掉优先级（10 格 2 格分叉）。 */
+/** 1-E X1 消融：右绿优先级在位（解析一致）vs 左红去掉优先级（10 格 2 格分叉）。 */
 const X1Ablation: React.FC<{splitAt: number; chaosAt: number; stampAt: number}> = ({
   splitAt,
   chaosAt,
@@ -398,7 +398,7 @@ const X1Ablation: React.FC<{splitAt: number; chaosAt: number; stampAt: number}> 
   );
   return (
     <div style={{position: 'relative'}}>
-      <AblationPanel leftTitle="拆掉优先级" rightTitle="优先级在位" width={860} height={260}>
+      <AblationPanel leftTitle="去掉优先级" rightTitle="优先级在位" width={860} height={260}>
         {grid(false)}
         {grid(true)}
       </AblationPanel>

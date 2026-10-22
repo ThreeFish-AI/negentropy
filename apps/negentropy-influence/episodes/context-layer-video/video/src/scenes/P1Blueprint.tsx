@@ -679,10 +679,10 @@ const AxisIndependence: React.FC<{a24: number; a25: number; a26: number; a27: nu
           <line x1={gx + 18} y1={FIVE_AXIS_GEOM.node.y + 20} x2={gx + FIVE_AXIS_GEOM.node.w - 18} y2={FIVE_AXIS_GEOM.node.y + FIVE_AXIS_GEOM.node.h - 20} stroke={theme.danger} strokeWidth={3} />
         </svg>
         <div style={{position: 'absolute', left: gx, top: FIVE_AXIS_GEOM.node.y - 44, padding: '4px 14px', border: `2px solid ${theme.danger}`, borderRadius: 7, fontSize: 18, color: theme.danger, background: theme.panel, opacity: pulled}}>
-          检索轴 · 拆除
+          检索轴 · 移除
         </div>
         <div style={{position: 'absolute', left: gx - 4, top: FIVE_AXIS_GEOM.node.y + FIVE_AXIS_GEOM.node.h + 16, fontSize: 17, color: theme.danger, opacity: pulled}}>
-          失效可复现 · 其余四轴补不上
+          错误可复现 · 其余四轴补不上
         </div>
       </div>
     </AbsoluteFill>

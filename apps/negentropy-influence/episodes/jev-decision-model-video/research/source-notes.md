@@ -84,7 +84,7 @@
 - 【三·复算✓】第三方同样撞墙：nibzard 基准原始响应里 256+ 选项 **225 条全被 400 拒绝**，254/255 可答——nibzard-readme:18/45–47（本仓在钉提交 `8404980` 上复算一致，note-200 §3 L107）。
 - 【一·原型】形状保证 ≠ 内容保证：闭合输出下越界 0/6、内容错 2/6（S2）——lab L260。
 - 【一·原型】集中也会集中地错：否定句陷阱单「There is no error… I just want my refund」被字面读成 technical（真值 billing）、conf 0.981、自动执行（S3b）——lab L269。
-- 【一·原型】拆掉闭合输出的世界：自由文本 + 宽松解析 → 越界 6/6、下游 switch 全部落空（B1）——lab L328。
+- 【一·原型】去掉闭合输出的世界：自由文本 + 宽松解析 → 越界 6/6、下游 switch 全部落空（B1）——lab L328。
 - 【二】官方自己的限定：「Jev guarantees the **shape** of its answers, not that every decision is correct… it can choose the wrong one.」（FAQ）——出处为首页 FAQ 归档 `framer-module__site-faq.faq.txt:31`，**未单列台账**，经 note-200 §3（L101）转引；见文末「台账缺口」。
 - 【二】0% 幻觉的非实测声明：「Our number is not empirical. Schema matching is guaranteed, thus we can confidently add 0%.」——launch-blog txt:202。
 - 【三】格子对、填错格的独立例：AbdelStark 基准 Emotion 任务 16% 样本对真标签给出零概率——经 note-200 §8 表 #15（L227）转引（原始仓 AbdelStark/jev-benchmarks 未单列台账）；画面角标级素材。
@@ -102,7 +102,7 @@
 - 【二】无跨问题不变量（官方自列）：`refund` 0.72 + `not_refund` 0.47 = **1.19**；同一问题用 Noul 与 yes/no Choice 问法不一致（0.22 vs 0.01）——jaggedness:131–133/123–125。剧场化改写「会下雨 0.72 + 不会下雨 0.47」的原始案例即此（画面角标标官方原例）。
 - 【二】依赖问题要二段请求：「Questions in the same request are independent…If a later judgment depends on an earlier answer, make a second request in code.」——primitives-docs:456。
 - 【一·原型】隔离成立：加兄弟题不改本题答案（S5）；共享计费：1 问 19 tok → 3 问 36 tok，state 9 tok 只计一次（S6）；正反 Noul 相加 1.504 ≠ 1（S7）——lab L280/286/293。
-- 【一·原型】拆掉隔离/共享的代价：兄弟题面把同一工单 billing 0.001 改写到 0.499（B2）；每题重收 state 计费 ×1.71（63→108 tok，B3）——lab L335/343。
+- 【一·原型】去掉隔离/共享的代价：兄弟题面把同一工单 billing 0.001 改写到 0.499（B2）；每题重收 state 计费 ×1.71（63→108 tok，B3）——lab L335/343。
 - 【一·复刻】laya 上同样成立且暴露精度伪影：fp32 下单问与 5 题同请求**逐位相同**；出厂 fp16 分档差 0.0026（是精度分档、不是信息泄漏）；暗号探针：写兄弟题 0.080（基线 0.101）、写 state 0.865——laya-replica-results `experiments.E1`。
 - 【一·复刻】复刻侧行内影响：无关选项使 top-2 对数几率移动 0.386——laya-replica-results `experiments.E6.iia`。
 - 【二】上层用法（官方 pattern）：speculative fan-out——一次带上所有可能用到的题，由代码事后取舍——how-to-build patterns 节（经 note-200 §4 L127 转引）。
@@ -137,7 +137,7 @@
 - 【三】原理侧论证：「校准是模型 × 数据分布的联合性质；同一输入对不同公司给出相同概率 ⇒ 对所有人同时校准不可能」；建议把输出当排序分数、自行做重校准——molas txt:20/24/26（论证型，口播须「有研究者从原理上论证」）。
 - 【二】结构性质而非实现瑕疵：同一套权重服务所有账户，定制靠 state/instructions/criteria 而非微调——models-docs:44（P1 已立，此处回扣）。
 - 【一·原型】领地最小复现：同一 T*、同一门槛 p ≥ 0.8，分布内放行错 19% → 分布外放行错 **100%**，读数全程不报警（S11）——lab L307。
-- 【一·原型】单看 ECE 会误判：拆掉校准温度后 ECE 反而从 0.252 降到 0.213，但 p ≥ 0.9 放行从 28 条错 0 → 48 条错 8（B4）——lab L352。
+- 【一·原型】单看 ECE 会误判：去掉校准温度后 ECE 反而从 0.252 降到 0.213，但 p ≥ 0.9 放行从 28 条错 0 → 48 条错 8（B4）——lab L352。
 - 【一·复刻】出厂过度自信可在读数层修复：laya 分桶温度把 49 个 suite 的 ECE 均值 0.466 修到 **0.081**——laya-readme:877–887 区段（note-200 §9 §laya L272 复算 0.4656→0.0812 ✓）；同批无解题对照：laya ECE 0.348、高置信 4 条全错；Jev（第三方逐行数据）ECE 0.396、≥0.9 共 17 条全错——laya-replica-results `experiments.E4`。
 - 【三】方向提醒（反直觉补注）：换分布不总是过度自信——独立研究者新生成的模幂题族上正确率 56%、平均自报概率只有 35%（**欠自信**）——hume-reverse txt:307 + `evidence.json freshMath`。本集高原镜头一律用过度自信例（密封集/骰子），此条只作画面角标「台阶方向不一定向上」。
 - 【类比锚点】调令下达、调往高原：照样报「七成」，记分牌出现台阶，判读员自己不报警；**紧跟一句「现实里没有调令——分布漂移悄无声息，训练分布也不公开，能看见台阶的手段只有影子运行和抽样审计」**（类比计划 §6.10）。
@@ -154,7 +154,7 @@
 - 【二】三种架构对照：传统软件＝可靠基元的复杂决策树 / LLM agents＝「a person is monitoring」/ AI-powered software——how-to-build:255–262 区段（经 note-200 §6 L151 转引三架构 Tab）。
 - 【二】官方 workflow evals 的真头条：「every model is more accurate, cheaper and faster in the workflow than it is with the same policy as a prompt」——evals-site（归档 index.txt:27–29）；Jev 四任务均值 67.8% / $0.0004 / 0.4s，低于对照 74.1%（sol）——evals-site 归档 `plot_points.tsv`（workflow 路线 4 行均值；四任务 240/117/150/204 例）。evals-site 归档与台账 raw 指纹不一致（分歧 #11），此两条同时锚 note-200 §8 #1（钉提交）。
 - 【一·原型】分流演示：conf 0.8 时 reply 自动执行、refund 进复核（S9）；拆成一刀切后 refund 0.62 与 approve_transfer 0.7 全部 auto（B5）——lab L310/358。
-- 【三】拆错维度，便宜也白搭：付款决策逐行拆问后 32/32 批准判断全对、16 例金额错误一例没抓到（「a total has no per-line decomposition」）——distil txt:104。
+- 【三】问错维度，便宜也白搭：付款决策逐行提问后 32/32 批准判断全对、16 例金额错误一例没抓到（「a total has no per-line decomposition」）——distil txt:104。
 - 【二】Jevons 效应（官方 FAQ）：以 Jevons 与煤炭类比——效率提升导致需求增加，「Every order of magnitude drop in the cost of intelligence unlocks orders of magnitude more use cases.」——launch-blog txt:251；同方向表述「cheaper intelligence will create much more demand」——how-to-build:302。
 - 【类比锚点】预案流程图墙 + 三道闸（带伞提醒门槛低 / 停课停航门槛高）；首席起草、接疑难；值班员复核；三种城市架构并排；Jevons：判断便宜后，城市沙盘冒出成千上万个询问气泡（§4.4 §7 节点）。
 
@@ -222,17 +222,17 @@
 | 18 | 36.7% / 49.9pp | 密封集准确率 / 与公开集差 | 【三·复算✓】jevbench | 陌生题掉四成多 |
 | 19 | ECE 0.220 · ≥0.9 只对 42%（占 8.4%） | 密封集校准 / 高置信子集 | 【三·复算✓】jevbench | 报九成的地方，台阶就在那里 |
 | 20 | 82.9% vs 19% | 公平骰子 Choice 自报 vs 实际（400 次） | 【三·复算✓】dice | 内在随机被压扁成过度自信 |
-| 21 | 19% → 100% | 原型 S11：同一门槛分布内/外放行错误率 | 【一·原型】 | 读数不报警的领地失效最小复现 |
-| 22 | 0.252 → 0.213（反而更低） | 原型 B4 拆校准后 ECE | 【一·原型】 | 单看 ECE 会误判，Brier 与风险-覆盖才是对账对象 |
+| 21 | 19% → 100% | 原型 S11：同一门槛分布内/外放行错误率 | 【一·原型】 | 读数不报警的领地问题最小复现 |
+| 22 | 0.252 → 0.213（反而更低） | 原型 B4 去掉校准后 ECE | 【一·原型】 | 单看 ECE 会误判，Brier 与风险-覆盖才是对账对象 |
 | 23 | 0.466 → 0.081 | laya 49 suite 温度修复 ECE 均值 | 【一·复刻】 | 出厂过度自信可在读数层修，排序不动 |
 | 24 | K=2→0.95 · K=10→0.91 | conf 0.9 反解 p_max（本片算） | 【一】 | 同一个 0.9，格子数不同含金量不同 |
 | 25 | 500/500 · MAE 0.106 | LangChain judge 二元判定全对 / 连续分最差 | 【三·复算✓】langchain | 稳定不等于更准 |
 | 26 | 200/200 · $0.029/千次 | distil 分诊 | 【三】distil | 答案能从输入读出的窄判断，近乎全对 |
-| 27 | 79/100 vs 98/100；32/32 与 0/16 | distil 付款：Jev 一遍 vs 微调 4B；逐行拆问的得与失 | 【三】distil | 拆对维度便宜兑现，拆错维度白搭 |
+| 27 | 79/100 vs 98/100；32/32 与 0/16 | distil 付款：Jev 一遍 vs 微调 4B；逐行提问的得与失 | 【三】distil | 问对维度便宜兑现，问错维度白搭 |
 | 28 | 0.70 vs 0.45–0.57 | 5% 错误预算自动化率（Jev vs kev） | 【三·复算✓】kev | 自培判读员差在排序能力 |
 | 29 | 64/64 vs 20/64 | feishu_zh 合成题配对（64 例） | 【三】laya | 中文差距真实存在，但样本是合成小集（不进口播数字） |
 | 30 | 9 类 | jaggedness 官方自列失败模式 | 【二】jaggedness:17–27 | 毛病清单官方自己挂墙上 |
-| 31 | 0.499 / ×1.71 | 原型 B2 泄漏后 billing 概率 / B3 计费膨胀 | 【一·原型】 | 拆掉隔离与共享编码各坏一处 |
+| 31 | 0.499 / ×1.71 | 原型 B2 泄漏后 billing 概率 / B3 计费膨胀 | 【一·原型】 | 去掉隔离与共享编码各坏一处 |
 | 32 | ~$7/小时 | Doom demo 10 查询/秒（官方自报，备选素材） | 【二】launch-blog txt:210 | 便宜判断的新玩法注脚（可用可不用） |
 
 ## 不进口播清单（画面角标 / 归档留证除外）

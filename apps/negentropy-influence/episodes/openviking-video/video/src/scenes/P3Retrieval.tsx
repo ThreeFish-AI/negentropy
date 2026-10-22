@@ -125,11 +125,11 @@ export const P3Retrieval: React.FC<{scene: SceneRange}> = ({scene}) => {
         <LibraryHUD lit={3} at={-30} />
       </Sequence>
 
-      <Sequence {...bB} name="3-B 咨询台拆单">
+      <Sequence {...bB} name="3-B 咨询台拆分">
         <SceneTag chapter="P3" tagline="两档检索" accent={theme.mint} />
         <ArchifyRecap
           slug="intent-typed-queries"
-          caption="意图分析 · 拆检索单"
+          caption="意图分析 · 拆分检索单"
           lead={false}
           cues={[{chapterId: 'split', at: at('p3-07') - bB.from, durationInFrames: dur('p3-07')}, {chapterId: 'split', at: at('p3-08') - bB.from, durationInFrames: dur('p3-08'), fit: 'hold'}]}
         />

@@ -1,5 +1,5 @@
 /** P4 46 家的默契与分歧（p4-01..p4-25，镜 4-A..4-F）——徽章墙（官方名录 46 格）
- *  → 三家分叉（ge-eco 全屏窗 + 路径分叉）→ X5 遮蔽消融（拆警告→知情权盲区）→
+ *  → 三家分叉（ge-eco 全屏窗 + 路径分叉）→ X5 遮蔽消融（去掉警告→知情权盲区）→
  *  X2 严格宽容对比（4/12 拒载＝33%）→ X3 布尔翻转（true→'false'→误启用）→
  *  PR 悬案（gl-verdict 全屏窗）。主色治理紫；消融红绿契约色。 */
 import React from 'react';
@@ -137,7 +137,7 @@ const PathFork: React.FC<{forkAt: number; stampAt: number}> = ({forkAt, stampAt}
   );
 };
 
-/** 4-C：X5 遮蔽消融——右绿警告在位（铃响）vs 左红拆警告（同名覆盖静默+盲区黑幕）。 */
+/** 4-C：X5 遮蔽消融——右绿警告在位（铃响）vs 左红去掉警告（同名覆盖静默+盲区黑幕）。 */
 const X5Shadow: React.FC<{bellAt: number; veilAt: number}> = ({bellAt, veilAt}) => {
   const bell = useImpulse({at: bellAt, dur: DUR.f4, peak: 1});
   const bellP = useProgress(bellAt + DUR.f4, DUR.f4);
@@ -191,7 +191,7 @@ const X5Shadow: React.FC<{bellAt: number; veilAt: number}> = ({bellAt, veilAt}) 
   );
   return (
     <AblationPanel
-      leftTitle="拆掉覆盖警告（X5）"
+      leftTitle="去掉覆盖警告（X5）"
       rightTitle="警告在位"
       width={900}
       height={230}

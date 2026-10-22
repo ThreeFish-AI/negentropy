@@ -194,7 +194,7 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       {/* 2-I 拆门消融：p2-23 红绿消融同屏主画面（视觉抽查修复：原实现整镜被全屏图例遮盖），
           p2-24 archify 接力非键外键被拒章 */}
-      <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="2-I 拆门消融">
+      <Sequence from={bI.from} durationInFrames={bI.durationInFrames} name="2-I 关门消融">
         <Sequence from={at('p2-23') - bI.from} durationInFrames={dur('p2-23') + XF_TAIL} name="2-I-ablation">
           <FadeTail until={dur('p2-23') + XF_TAIL}>
             <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
@@ -202,7 +202,7 @@ export const P2Caliber: React.FC<{scene: SceneRange}> = ({scene}) => {
                 at={0}
                 width={1620}
                 minHeight={430}
-                left={{tag: '门拆掉', title: '注册期无校验', lines: ['外键 → 非键列 customers.plan', '垃圾定义静默入库', '行数失控的注册期引信'], flow: {}}}
+                left={{tag: '门关掉', title: '注册期无校验', lines: ['外键 → 非键列 customers.plan', '垃圾定义静默入库', '行数失控的注册期引信'], flow: {}}}
                 right={{tag: '门在位', title: '注册期拦截', lines: ['structure check：非法定义', 'referenced column is not', 'PRIMARY KEY / UNIQUE —— 拒']}}
               />
             </AbsoluteFill>

@@ -22,7 +22,7 @@
 | 1-B 墙不挂脑子 | p1-06..p1-07 | 装置镜：进程小人倒地（灰）、墙面磁卡仍在（金）；新师傅走进读墙。金句字幕位「进程死了，墙还在」（画面只放关键词：进程 ✕ / 墙 ✓） | 小人倒地 `@enter:fall`；墙卡常驻〔M-003〕；读墙扫光 `@flow` |
 | 1-C 走查·守卫 | p1-08..p1-14 | ·**archify full**：dependency-failclosed `four-cards`+`walkthrough`+`blocked`+`failclosed`（四卡上墙→认领建库表三关→完成播报解锁→写测试被阻塞→幽灵编号分支；fail-closed 章红色强调） | 逐章回放； Animated State Trace 由图章承载 |
 | 1-D 自取三条件 | p1-15..p1-16 | 装置镜：空闲师傅扫墙（三条件闸门卡：待办∧无主∧前置全清，三盏灯依次亮）；写名占住（名字盖上卡） | 闸灯 `@stagger`；写名盖章 `@impulse` |
-| 1-E 消融①② | p1-17..p1-20 | ·**archify full**：claim-guards-break `three-gates`+`b1`+`b2-b2v`+`ok`（三闸串联→三条拆除支路红侧→绿侧对照） | 逐章回放（左坏右好构图由图承载） |
+| 1-E 消融①② | p1-17..p1-20 | ·**archify full**：claim-guards-break `three-gates`+`b1`+`b2-b2v`+`ok`（三闸串联→三条移除支路红侧→绿侧对照） | 逐章回放（左坏右好构图由图承载） |
 | 1-F 消融③·t5race | p1-21..p1-25 | ·**archify full**：claim-race-window `two-lifelines`+`interleaved`+`overwrite`+`window`（双生命线交错→落笔重叠→竞争窗口红色高亮）。p1-25 金句卡压尾：「守卫挡得住明抢，挡不住同一瞬间」 | 逐章回放；金句卡 `@enter:rise` |
 
 ## P2 递话口（p2-01..p2-19）→ `scenes/P2MailSlot.tsx`
@@ -65,7 +65,7 @@
 |---|---|---|---|
 | 5-A 插座开张 | p5-01..p5-02 | 楼下插座位亮灯；内部服务矩阵（工单/部署/知识库）逐个亮起又打「重写接入？」问号 | 矩阵 `@stagger`；问号 `@impulse` |
 | 5-B 连接发现挂牌 | p5-03..p5-07 | ·**archify full**：socket-pool `connect-discover`+`prefix`（连接→报清单→前缀挂牌入池；两服务同叫「查」不相撞） | 逐章回放 |
-| 5-C 拆缓存的账 | p5-08..p5-12 | ·**archify full**：socket-pool `rebuild`+`stale`（每轮重组回路→红侧：旧清单叫新工具·查无此号；代价注记「图新鲜，就不吃缓存」） | 逐章回放 |
+| 5-C 去掉缓存的账 | p5-08..p5-12 | ·**archify full**：socket-pool `rebuild`+`stale`（每轮重组回路→红侧：旧清单叫新工具·查无此号；代价注记「图新鲜，就不吃缓存」） | 逐章回放 |
 | 5-D 铭牌与边界 | p5-13..p5-16 | 铭牌特写：「只读/破坏性」文字标签+「不拦截」角标（门装在收官段的钩子上——门形图标虚位）；教学版外接仅队长边界卡；产品丰富度角标【三】 | 铭牌 `@enter:pop`；虚位门 `@dim`；角标 `@impulse` |
 
 ## P6 环形走廊（p6-01..p6-31）→ `scenes/P6CorridorFinale.tsx`

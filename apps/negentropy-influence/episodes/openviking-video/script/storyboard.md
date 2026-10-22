@@ -13,7 +13,7 @@
 >
 > **本集母题（三层视觉语法）**：
 > ① **母图层** —— 图书馆剖面 HUD（常驻左下：三个分区格，讲到哪格亮哪格）；
-> ② **装置层** —— 可拆坏的机械装置（三孤岛碎裂 / 撕日历 / 卡片柜翻卡 / 专家红叉 / 借阅推车 / 过敏合并对撞 / 盖章台 / 三卡并立 / 事件卡翻倍）；
+> ② **装置层** —— 可弄坏的机械装置（三孤岛碎裂 / 撕日历 / 卡片柜翻卡 / 专家红叉 / 借阅推车 / 过敏合并对撞 / 盖章台 / 三卡并立 / 事件卡翻倍）；
 > ③ **证据层** —— 代码走廊（CodeWalk + TerminalLog 滚 lab 真实输出）+ 工程图逐章回放（`ArchifyRecap`，一章锚一句）+ 四级证据角标（EvidenceBadge：一原型实测 / 二笔记讲法 / 三厂商自报）。
 >
 > 章节清单见 [../video/public/archify/views/](../video/public/archify/views/)，每章时长 = 拍数 × max(1100ms, 3200ms/拍数)。
@@ -50,7 +50,7 @@
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
 | 3-A | p3-01..05 | 章头「两档检索」+ ·**archify full**：retrieval-phase 章 `quick`（p3-01 起锚、铺满本镜）；HUD 默认档徽标点亮 | 回放主控由 ArchifyClip 承担（本镜无动效 hook） |
-| 3-B | p3-07..08 | ·**archify full**：intent-typed-queries 章 `split`（p3-07 拆单句锚定） | 回放主控由 ArchifyClip 承担（本镜无动效 hook） |
+| 3-B | p3-07..08 | ·**archify full**：intent-typed-queries 章 `split`（p3-07 拆分句锚定） | 回放主控由 ArchifyClip 承担（本镜无动效 hook） |
 | 3-C | p3-09..15 | ·**archify full**：retrieval-phase 章 `thinking`（p3-09 逐架下钻句锚定）+ 章 `prune`（p3-11 唯一剪枝句锚定）；角标 α=1.0 | 回放主控由 ArchifyClip 承担（本镜无动效 hook） |
 | 3-D | p3-16..19 | **废弃文档陷阱**装置：十二份「已废弃」旧流程卡涌向平铺档前三名（danger 红叉降权只在豪华档生效）；代码走廊②：lab S3 `QUICK recall@3 = 0.75 / THINKING 1.00` | 旧卡 useStagger 涌入；红叉 useImpulse 击中；终端行 CodeWalk；`@stagger` `@impulse` |
 | 3-E | p3-20..23 | ·**archify full**：retrieval-phase 章 `asm`（p3-21 先广后深句锚定）；**借阅推车**装置叠角：薄本摘要换厚本全文、装不下降档 | 回放主控由 ArchifyClip 承担；推车换本 useProgress（自绘装置）；`@progress` |
@@ -65,7 +65,7 @@
 | 4-D | p4-13..16 | ·**archify full**：memory-identity 章 `prefetch`（p4-13 提名候选句锚定）+ 章 `identity`（p4-14 规则拼名句锚定）+ 章 `upsert`（p4-15 降维句锚定） | 回放主控由 ArchifyClip 承担（本镜无动效 hook） |
 | 4-E | p4-17..20 | 代码走廊③：lab S6「三次来访一张卡 / diff before-after」+ S7「重投跳过」终端实录；残余风险角标（peri：「咖啡 vs 饮品」双卡） | 终端行 CodeWalk；双卡 useStagger 并立；`@stagger` |
 
-## P5 拆台（p5-01..15）
+## P5 较真（p5-01..15）
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
@@ -77,7 +77,7 @@
 
 | 镜 | 句区间 | 画面 | 动效 |
 | --- | --- | --- | --- |
-| 6-A | p6-01 | **实验室门牌**：玩具图书馆线稿 + 「每次只拆一个零件」工作台 | 门牌 useSpring 落下；`@spring` |
+| 6-A | p6-01 | **实验室门牌**：玩具图书馆线稿 + 「每次只去掉一个零件」工作台 | 门牌 useSpring 落下；`@spring` |
 | 6-B | p6-02..04 | ·**archify full**：lab-break-matrix 章 `struct`（p6-02 起锚、铺满本镜）；侧栏装置：撕标签手势 | 回放主控由 ArchifyClip 承担（本镜无动效 hook） |
 | 6-C | p6-05..07 | ·**archify full**：lab-break-matrix 章 `idcheck`（p6-05 起锚、铺满本镜）；三卡并立装置角标 | 回放主控由 ArchifyClip 承担（本镜无动效 hook） |
 | 6-D | p6-08..11 | **事件卡翻倍**装置：重投箭头落下、单卡分身成两张（danger）；代码走廊④：lab B6 终端 + `SELFTEST PASSED ✔`（confirm） | 翻倍 useImpulse；终端行 CodeWalk；`@impulse` |

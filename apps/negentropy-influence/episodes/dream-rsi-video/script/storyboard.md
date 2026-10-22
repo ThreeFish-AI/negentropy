@@ -71,14 +71,14 @@ ArchifyRecap/ArchifyClip 装载层为 frozen+seeded 公共组件（`components/`
 | 4-C 只有章程在变 | p4-13..14 | Remotion：系统全家福——模型/评审/接口三模块罩冰冻玻璃罩（panel+描边、微尘静止），唯一章程卡在顶部闪烁换版（grow） | 冰冻罩 `@pushIn` + `@breathe` 微光；章程卡 `@impulse` 换版闪 |
 | 4-D 两轮递归 | p4-15..19 | ·**archify full**：proto-two-rounds `t1`+`dream`+`t2`+`combo`（锚 p4-15/p4-17/p4-18/p4-19） | ArchifyRecap 逐章回放承担 |
 
-## P5 我们亲手拆坏它
+## P5 我们亲手弄坏它
 
 | 镜 | 句区间 | 画面 | 动效 |
 |---|---|---|---|
 | 5-A 拆解宣言 | p5-01..02 | danger 红压场（幕基调切换）：背景网格泛红，工具箱开箱，五把扳手编号 D1–D5（panel 底+编号，danger 描边） | 工具箱 `@enter:fall`；扳手 `@stagger`；全场 `@dim` 红调压暗 |
-| 5-B 拆保险（D1） | p5-03..05 | ·**archify full**：teardown-d1-guard `intact`+`removed`+`insurance`（锚 p5-03/p5-04/p5-05） | ArchifyRecap 逐章回放承担 |
-| 5-C 拆规矩（D4） | p5-06..10 | ·**archify full**：teardown-d4-peek `legal`+`cheat`+`reversal`+`lesson`（锚 p5-07/p5-08/p5-09/p5-10） | ArchifyRecap 逐章回放承担 |
-| 5-D 拆用法（D5） | p5-11..15 | ·**archify full**：teardown-d5-lockin `inject`+`replay`+`diversity`（锚 p5-11/p5-14/p5-15） | ArchifyRecap 逐章回放承担 |
+| 5-B 去掉保险（D1） | p5-03..05 | ·**archify full**：teardown-d1-guard `intact`+`removed`+`insurance`（锚 p5-03/p5-04/p5-05） | ArchifyRecap 逐章回放承担 |
+| 5-C 去掉规矩（D4） | p5-06..10 | ·**archify full**：teardown-d4-peek `legal`+`cheat`+`reversal`+`lesson`（锚 p5-07/p5-08/p5-09/p5-10） | ArchifyRecap 逐章回放承担 |
+| 5-D 换用法（D5） | p5-11..15 | ·**archify full**：teardown-d5-lockin `inject`+`replay`+`diversity`（锚 p5-11/p5-14/p5-15） | ArchifyRecap 逐章回放承担 |
 | 5-E 快闪与金句 | p5-16..19 | Remotion：D2/D3 两块快闪卡（拔并行奖→0.83 跌 0.54；拔成本罚→铺张者登顶）；收幕金句卡「断言，必须以真跑输出为准」 | 快闪卡 `@impulse` ×2（数字翻牌）；金句卡 `@enter` + `@pushIn` |
 
 ## P6 实证、批判与收尾
