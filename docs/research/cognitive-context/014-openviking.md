@@ -109,7 +109,7 @@ viking:// 统一命名空间（resources / user（含 peers 子树）/ agent 三
 
 ## 3. 机制一：`viking://` 寻址与 User/Peer 归属——位置即语义
 
-Agent 要在「公共知识、我的记忆、我的技能、客户的档案」四种东西之间无歧义地指认对象。位置编号是最低成本的方案：「三楼东区 12 架」这句话本身就说出了它在哪个分区、旁边是谁、谁能进（此为局部类比，仅作首句直觉；后文一律直讲）。本节数字未标注证据等级者均为钉点代码实值（【一】）。
+Agent 要在「公共知识、我的记忆、我的技能、客户的档案」四种东西之间无歧义地指认对象。位置编号是最低成本的方案：「三楼东区 12 架」这句话本身就说出了它在哪个分区、旁边是谁、谁能进。本节数字未标注证据等级者均为钉点代码实值（【一】）。
 
 - **URI = 纯前缀替换的租户化路径**：`viking://{rest}` → AGFS `/local/{account_id}/{rest}`；单段超 255 字节加 sha256 前 8 位后缀（`storage/viking_fs/_access.py:678-682`）。
 - **类型由 URI 结构推导，不按关键字**：`user/{uid}/memories/**` → memory；`user/{uid}/skills/**`、`agent/skills/**` → skill；**其余一律 resource**——包括 `viking://resources/memories/x`（`NS:114-144`）。仓内同款反例仍在：`Context._derive_category` 依旧用子串匹配（`core/context.py:121`），可作「结构化 vs 关键字」教具。
