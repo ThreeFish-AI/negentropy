@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "5908d264-38a8-44ef-a342-db57b6785f09",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/.archify/workflow-claude-dev-review-layers-20261024/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/docs/assets/architecture/agent-harness/claude-dev--review-layers.html",
+  "specification": {
+    "sha256": "6a148d746250f83ddd5fa2c791eefffd8e91c271cd5397b39e1344f5c4a7d4ec",
+    "bytes": 3577
+  },
+  "artifact": {
+    "sha256": "60e1b6a2b57fd8644366d9d937d8398b6f38ac91d24f95667e78c05767bdde64",
+    "bytes": 758111
+  }
+}

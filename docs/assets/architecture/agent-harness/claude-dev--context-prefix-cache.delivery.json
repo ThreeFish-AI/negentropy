@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "bbd6e296-50f3-48b7-b1fb-dc8e9a8168c0",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/.archify/workflow-claude-dev-prefix-cache-20261024/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/docs/assets/architecture/agent-harness/claude-dev--context-prefix-cache.html",
+  "specification": {
+    "sha256": "28d41587a59d485eb586f0d2b8a873f6f68e0189b0b1342c15d9e3e414932f40",
+    "bytes": 3371
+  },
+  "artifact": {
+    "sha256": "0abc1d15982b486f8543f97ae038b56fa0e8ef9db7418583f8ad52c6d3ba7988",
+    "bytes": 757020
+  }
+}

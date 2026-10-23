@@ -3,6 +3,10 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+
+### claude.dev 全站精读与通俗拆解入库（agent-harness 177，2026-10-24）
+
+- 新增 [177-anthropic-claude-dev-blog](docs/research/agent-harness/177-anthropic-claude-dev-blog.md)：以 2026-10-23 全站快照（sitemap 20 URL + RSS 16 篇 + 5 条视频官方英文字幕）与 7 组官方文档补读（Claude Tag / Managed Agents / mods / effort / prompt caching / Opus·Sonnet 5.5 发布页 / workflows）为信源的全站首读——账单模型、effort 实证、脚手架生灭律、七层评审防线、无人值守自动化三件套、执行环境三级跳、mods 与 workflows 可编程面；配 [claude_dev_lab.py](docs/research/agent-harness/assets/claude_dev_lab.py)（五机制原型 + E1–E4 破坏性实验）与两张 archify 图（review-layers / context-prefix-cache，finalize showcase 四门回执随产物入库）；readme/knowledge-map/mermaid README 同步登记。
 ### PR #1205 双 failing check 修复：source-map-js 全仓 override 与 perceives 六包安全地板（I-237，2026-10-23）
 
 - **Dependency Review（GHSA-68fv-2mgg-jv7q，high）**：根 `pnpm-workspace.yaml` overrides 增 `source-map-js: '>=1.2.2 <2.0.0'`，15 个分集 `video/pnpm-workspace.yaml` 同口径，`pnpm install --lockfile-only` 重锁根 + 15 分集 lockfile（每份 5+/4-、`source-map-js@1.2.1` 全仓零残留）。
