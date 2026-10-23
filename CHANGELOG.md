@@ -3,6 +3,12 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### 精读文档批量缩写首现注解：11 篇 527 处落改 + 机制章走查审计 24 缺口登记（I-236，2026-10-23）
+
+- **范围**：[011](docs/research/cognitive-context/011-horizon-context.md)/[013](docs/research/cognitive-context/013-context-layer-blueprint.md)/[170–176](docs/research/agent-harness/)/[220](docs/research/agent-infra/220-skills-supply-chain.md)/[230](docs/research/agent-infra/230-agent-skills-standard.md) 共 11 篇（I-235 登记的同规排查批次，与其同支合并）；依 plain-language V7/D9 与 lecture-format 硬律 5。
+- **落改**：527 处首现注解（011×65、013×124、170×19、171×13、172×34、173×22、174×46、175×62、176×15、220×84、230×43）；豁免/已注解 459 项不动；日志引用块、代码块与 IEEE 参考文献块零接触。
+- **验证**：机器三查（代码块逐行一致、数字零删除、表格结构一致）+ 全量括注人工通读；013 的 MRTR「全称待核」占位经 MCP 官方仓核实为 Multi Round-Trip Requests（SEP-2322 Final）改写定稿。
+- **走查审计**：24 处「具体输入端到端走查」缺口登记于 I-236（011 §3 骨架/§3.2/§3.3、013 §12.1、172×2、173×7、174×1、175×4、176×2、220×3、230×1），待按篇独立补写；主力机制章（011 M1–M7、013 五轴、171）走查覆盖良好。
 ### 014 OpenViking 精读 §2「一树三相三面」图例与机制解说补全 + 全文 12 图挂载（2026-10-22/23）
 
 - **§2 全貌章补全**：开篇段后新增「一棵树 / 三个相（编目·写路径 / 检索·读路径 / 记忆·回写路径）/ 三个面（网关 / 治理 / 编译）」概念块——每块机制解说 2–4 句（全部引自正文既有断言、零新数字）+ 专属图例 + § 指针；修复换代重写时总纲从「两相」升级为「一树三相三面」但图例与分概念解说未跟上的缺口。
