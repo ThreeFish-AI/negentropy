@@ -6,14 +6,14 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
-    "sha256": "df6ccd4b3d1196d4ea95047d883c37ebd535777eeb66c43b3a806dfcd01d1bb5",
-    "bytes": 14349
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+    "sha256": "a662a44628e47b9a7152069c123c188766e0339cf0b78611c8a41b518fb999f0",
+    "bytes": 14513
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-    "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
-    "bytes": 786556
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+    "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+    "bytes": 786717
   },
   "gates": {
     "validate": "pass",
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 3525,
+  "durationMs": 14201,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

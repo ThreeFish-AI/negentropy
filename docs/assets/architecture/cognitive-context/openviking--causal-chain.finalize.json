@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "workflow",
   "quality": "showcase",
-  "startedAt": "2026-10-23T06:03:46.584Z",
+  "startedAt": "2026-10-23T07:11:58.879Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
-    "sha256": "df6ccd4b3d1196d4ea95047d883c37ebd535777eeb66c43b3a806dfcd01d1bb5",
-    "bytes": 14349
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+    "sha256": "a662a44628e47b9a7152069c123c188766e0339cf0b78611c8a41b518fb999f0",
+    "bytes": 14513
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-    "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
-    "bytes": 786556
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+    "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+    "bytes": 786717
   },
   "stages": {
     "validate": {
@@ -27,12 +27,12 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "--quality",
         "showcase",
         "--repo-root",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3",
         "--json"
       ],
       "receipt": {
@@ -40,8 +40,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "df6ccd4b3d1196d4ea95047d883c37ebd535777eeb66c43b3a806dfcd01d1bb5",
-          "bytes": 14349
+          "sha256": "a662a44628e47b9a7152069c123c188766e0339cf0b78611c8a41b518fb999f0",
+          "bytes": 14513
         },
         "validation": {
           "checksPassed": 9,
@@ -56,35 +56,35 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1111,
+      "durationMs": 2794,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "--quality",
         "showcase",
         "--repo-root",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd",
+        "receiptId": "8b8ad0f9-ccf4-4248-a2f9-e2c1f1ca10b9",
         "ok": true,
         "command": "deliver",
         "type": "workflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "specification": {
-          "sha256": "df6ccd4b3d1196d4ea95047d883c37ebd535777eeb66c43b3a806dfcd01d1bb5",
-          "bytes": 14349
+          "sha256": "a662a44628e47b9a7152069c123c188766e0339cf0b78611c8a41b518fb999f0",
+          "bytes": 14513
         },
         "artifact": {
-          "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
-          "bytes": 786556
+          "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+          "bytes": 786717
         },
         "validation": {
           "checksPassed": 9,
@@ -105,20 +105,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 470,
+      "durationMs": 303,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "artifact": {
-          "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
-          "bytes": 786556
+          "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+          "bytes": 786717
         },
         "checks": [
           {
@@ -188,7 +188,7 @@
             "minLabelRouteClearance": 50,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 6.088379705400982,
+            "minProjectedNodeTextPx": 6.068515497553018,
             "maxBends": 3,
             "routesOverSuggestedBends": 1,
             "maxStretch": 1.44,
@@ -254,24 +254,24 @@
               "id": "spec_addr_owner"
             },
             "minimumSourceTextPx": 8,
-            "minimumProjectedTextPx": 6.088379705400982,
+            "minimumProjectedTextPx": 6.068515497553018,
             "semanticTextCount": 51
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd"
+        "deliveryReceiptId": "8b8ad0f9-ccf4-4248-a2f9-e2c1f1ca10b9"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1500,
+      "durationMs": 8409,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "--json",
         "--require-provenance"
       ],
@@ -284,11 +284,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd",
+        "deliveryReceiptId": "8b8ad0f9-ccf4-4248-a2f9-e2c1f1ca10b9",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-          "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
-          "bytes": 786556
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+          "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+          "bytes": 786717
         },
         "state": {
           "detail": "read",
@@ -320,7 +320,7 @@
               "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 960,
-              "diagramWidth": 917,
+              "diagramWidth": 920,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 68,
@@ -329,7 +329,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -402,9 +402,9 @@
                   "spaceBelowNodesPx": 8
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.003273322422259,
-              "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-              "minimumProjectedEdgeTextPx": 6.003273322422259,
+              "minimumProjectedNodeTextPx": 6.00326264274062,
+              "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+              "minimumProjectedEdgeTextPx": 6.00326264274062,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -442,7 +442,7 @@
               "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 960,
-              "diagramWidth": 917,
+              "diagramWidth": 920,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 76,
@@ -451,7 +451,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -524,9 +524,9 @@
                   "spaceBelowNodesPx": 8
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.003273322422259,
-              "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-              "minimumProjectedEdgeTextPx": 6.003273322422259,
+              "minimumProjectedNodeTextPx": 6.00326264274062,
+              "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+              "minimumProjectedEdgeTextPx": 6.00326264274062,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -563,8 +563,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 996,
-              "diagramWidth": 966,
+              "readerWidth": 999,
+              "diagramWidth": 969,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 76,
@@ -573,7 +573,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -646,9 +646,9 @@
                   "spaceBelowNodesPx": 9
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.3240589198036,
-              "minimumProjectedNonEdgeTextPx": 6.3240589198036,
-              "minimumProjectedEdgeTextPx": 6.3240589198036,
+              "minimumProjectedNodeTextPx": 6.32300163132137,
+              "minimumProjectedNonEdgeTextPx": 6.32300163132137,
+              "minimumProjectedEdgeTextPx": 6.32300163132137,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -685,8 +685,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1288,
-              "diagramWidth": 1238,
+              "readerWidth": 1292,
+              "diagramWidth": 1242,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -695,7 +695,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -861,7 +861,7 @@
               "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 960,
-              "diagramWidth": 917,
+              "diagramWidth": 920,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 68,
@@ -870,7 +870,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -943,9 +943,9 @@
                   "spaceBelowNodesPx": 8
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.003273322422259,
-              "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-              "minimumProjectedEdgeTextPx": 6.003273322422259,
+              "minimumProjectedNodeTextPx": 6.00326264274062,
+              "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+              "minimumProjectedEdgeTextPx": 6.00326264274062,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -983,7 +983,7 @@
               "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 960,
-              "diagramWidth": 917,
+              "diagramWidth": 920,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 76,
@@ -992,7 +992,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -1065,9 +1065,9 @@
                   "spaceBelowNodesPx": 8
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.003273322422259,
-              "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-              "minimumProjectedEdgeTextPx": 6.003273322422259,
+              "minimumProjectedNodeTextPx": 6.00326264274062,
+              "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+              "minimumProjectedEdgeTextPx": 6.00326264274062,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -1104,8 +1104,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 996,
-              "diagramWidth": 966,
+              "readerWidth": 999,
+              "diagramWidth": 969,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 76,
@@ -1114,7 +1114,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -1187,9 +1187,9 @@
                   "spaceBelowNodesPx": 9
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.3240589198036,
-              "minimumProjectedNonEdgeTextPx": 6.3240589198036,
-              "minimumProjectedEdgeTextPx": 6.3240589198036,
+              "minimumProjectedNodeTextPx": 6.32300163132137,
+              "minimumProjectedNonEdgeTextPx": 6.32300163132137,
+              "minimumProjectedEdgeTextPx": 6.32300163132137,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -1226,8 +1226,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1288,
-              "diagramWidth": 1238,
+              "readerWidth": 1292,
+              "diagramWidth": 1242,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -1236,7 +1236,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -1354,7 +1354,7 @@
               "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 960,
-              "diagramWidth": 917,
+              "diagramWidth": 920,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 68,
@@ -1363,7 +1363,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -1436,9 +1436,9 @@
                   "spaceBelowNodesPx": 8
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.003273322422259,
-              "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-              "minimumProjectedEdgeTextPx": 6.003273322422259,
+              "minimumProjectedNodeTextPx": 6.00326264274062,
+              "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+              "minimumProjectedEdgeTextPx": 6.00326264274062,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -1476,7 +1476,7 @@
               "readerFit": "intrinsic-height",
               "ok": true,
               "readerWidth": 960,
-              "diagramWidth": 917,
+              "diagramWidth": 920,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 76,
@@ -1485,7 +1485,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -1558,9 +1558,9 @@
                   "spaceBelowNodesPx": 8
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.003273322422259,
-              "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-              "minimumProjectedEdgeTextPx": 6.003273322422259,
+              "minimumProjectedNodeTextPx": 6.00326264274062,
+              "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+              "minimumProjectedEdgeTextPx": 6.00326264274062,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -1597,8 +1597,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 996,
-              "diagramWidth": 966,
+              "readerWidth": 999,
+              "diagramWidth": 969,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 76,
@@ -1607,7 +1607,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -1680,9 +1680,9 @@
                   "spaceBelowNodesPx": 9
                 }
               ],
-              "minimumProjectedNodeTextPx": 6.3240589198036,
-              "minimumProjectedNonEdgeTextPx": 6.3240589198036,
-              "minimumProjectedEdgeTextPx": 6.3240589198036,
+              "minimumProjectedNodeTextPx": 6.32300163132137,
+              "minimumProjectedNonEdgeTextPx": 6.32300163132137,
+              "minimumProjectedEdgeTextPx": 6.32300163132137,
               "minimumProjectedNodeText": "位置可指认·属主对象正交",
               "minimumProjectedNodeTextDetail": "context",
               "minimumProjectedNodeTextOwner": {
@@ -1719,8 +1719,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1288,
-              "diagramWidth": 1238,
+              "readerWidth": 1292,
+              "diagramWidth": 1242,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -1729,7 +1729,7 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1068
               },
-              "viewBoxWidth": 1222,
+              "viewBoxWidth": 1226,
               "workflowLanes": [
                 {
                   "frameId": "lane-2",
@@ -1841,11 +1841,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-23T06:03:50.109Z",
-  "durationMs": 3525
+  "finishedAt": "2026-10-23T07:12:13.081Z",
+  "durationMs": 14201
 }
