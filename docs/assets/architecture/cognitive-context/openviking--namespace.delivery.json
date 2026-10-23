@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3c9426ac-3485-4e59-a798-0e043c65429b",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--namespace/openviking--namespace.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
+  "specification": {
+    "sha256": "67aeffa17a8c4664a0ea13bb98f371bc49c2cf303d458b86ba18ce05880854ba",
+    "bytes": 10444
+  },
+  "artifact": {
+    "sha256": "ba94a6904643bb9f3d6f2e551633f46b5c11b11681d4a2f7c1e870cfe8e7e5bc",
+    "bytes": 780301
+  }
+}

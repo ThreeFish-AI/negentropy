@@ -65,11 +65,11 @@ def context_type(uri: str) -> str:
         return "memory"
     if p[:1] == ["user"] and len(p) >= 5 and p[2] == "peers" and p[4] == "memories":  # peer 记忆子树
         return "memory"
-    if p[:2] == ["agent", "skills"] or (p[:1] == ["user"] and len(p) >= 3 and p[2] == "skills") or (
-        p[:1] == ["user"] and len(p) >= 5 and p[2] == "peers" and p[4] == "skills"
-    ):
+    if p[:2] == ["agent", "skills"] or (p[:1] == ["user"] and len(p) >= 3 and p[2] == "skills"):
         return "skill"
-    return "resource"  # 按结构不按关键字：viking://resources/memories/x 仍是 resource
+    # 按结构不按关键字：viking://resources/memories/x、peers/{peer}/skills/**、sessions/** 均回落 resource
+    # （钉点 _PEER_CONTENT_SEGMENTS = {memories, resources}，peers 子树没有 skills 内容段）
+    return "resource"
 
 
 def owner_and_peer(uri: str) -> tuple[str, str]:
@@ -419,11 +419,29 @@ def mem_cards(vk: Viking, kind: str) -> dict[str, str]:
 
 
 def selftest() -> None:
-    print("── S1 寻址：类型/归属由 URI 结构推导")
+    print("── S1 寻址：类型/归属由 URI 结构推导（peers 子树只认 memories|resources）")
+    for u in (
+        "viking://user/alice/memories/profile.md",
+        "viking://user/alice/resources/handbook.md",
+        "viking://user/alice/skills/writing/SKILL.md",
+        "viking://agent/skills/pdf/SKILL.md",
+        "viking://resources/memories/x.md",
+        "viking://user/support-bot/peers/customer-alice/memories/a.md",
+        "viking://user/support-bot/peers/customer-alice/resources/handbook.md",
+        "viking://user/support-bot/peers/customer-alice/skills/x.md",
+        "viking://user/support-bot/sessions/s1/messages.jsonl",
+    ):
+        owner, peer = owner_and_peer(u)
+        tags = [context_type(u)] + ([f"属主 {owner}"] if owner else []) + ([f"peer {peer}"] if peer else [])
+        print(f"  {u} → {' · '.join(tags)}")
     assert context_type("viking://user/alice/memories/profile.md") == "memory"
     assert context_type("viking://user/support-bot/peers/customer-alice/memories/preferences/x.md") == "memory"
     assert context_type("viking://agent/skills/pdf/SKILL.md") == "skill"
     assert context_type("viking://resources/memories/x.md") == "resource"
+    assert context_type("viking://user/alice/resources/handbook.md") == "resource"
+    assert context_type("viking://user/support-bot/peers/customer-alice/resources/handbook.md") == "resource"
+    assert context_type("viking://user/support-bot/peers/customer-alice/skills/x.md") == "resource"
+    assert context_type("viking://user/support-bot/sessions/s1/messages.jsonl") == "resource"
     assert owner_and_peer("viking://user/support-bot/peers/customer-alice/memories/a.md") == ("support-bot", "customer-alice")
     assert record_id("acme", "viking://resources/a", 0) != record_id("acme", "viking://resources/a", 1)
     try:
@@ -431,7 +449,7 @@ def selftest() -> None:
         raise AssertionError("未知 scope 应被拒")
     except ValueError:
         pass
-    print("  ✔ memory/skill/resource 推导正确；peer 子树是一等 memory；属主与 peer 拆分正确")
+    print("  ✔ 类型由位置推导；peers 只认 memories|resources；属主与 peer 拆分正确")
 
     vk = build()
     print(f"── S2 编目：{len(vk.files)} 份文档、{len(vk.side)} 个目录，LLM 调用 {vk.llm_calls} 次（文件 1 次 + 目录 1 次，L0 零次）")
