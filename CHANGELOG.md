@@ -7,6 +7,7 @@
 
 - **Dependency Review（GHSA-68fv-2mgg-jv7q，high）**：根 `pnpm-workspace.yaml` overrides 增 `source-map-js: '>=1.2.2 <2.0.0'`，15 个分集 `video/pnpm-workspace.yaml` 同口径，`pnpm install --lockfile-only` 重锁根 + 15 分集 lockfile（每份 5+/4-、`source-map-js@1.2.1` 全仓零残留）。
 - **Perceives CI / Security Audit（48 条新报 advisory，6 包）**：[pyproject](apps/negentropy-perceives/pyproject.toml) 抬地板并重锁 [uv.lock](apps/negentropy-perceives/uv.lock)——pillow override 12.3.0→13.0.0（35 条 CVE/GHSA，图像解析攻击面）、aiohttp 3.14.0→3.14.4（8 条）、pypdf 6.19.0→6.21.1、certifi 2026.10.19 / opentelemetry-api 1.45.1 / virtualenv 21.14.9 入 override 层；实际解析 3.14.5/6.21.2/21.14.13，邻接带动 distlib/packaging/yarl 三小升，`uv lock` 零冲突。详见 [I-237](docs/.agents/issue.md#I-237)。
+- **Dependency Review 二层（2026-10-23 当日新发布的 Next.js advisory，5 条：3 critical + 2 high）**：`next@16.3.5`（#1145 核销批刚升的版本）命中 GHSA-vcvr-r3jv-pc5j/2464-fhr4-w9xw/673q-mjm6-r5xr/cjq9-62q9-8jv4/p3m5-59mp-jv5r，16.x 线并集修复版 **16.4.1**——ui 与 wiki 的 `next` / `eslint-config-next` 16.3.5→16.4.1，根 lockfile 重锁（邻接带动 sharp 0.35.4→0.35.5）。
 ### causal-chain 图树基座口径对齐 §3.1 保留段（2026-10-23）
 
 - `openviking--causal-chain`（014 图 6）树基座节点 sublabel 旧口径「resources/user（含peers）/agent」对齐为「resources/agent/user·保留段」（width 170→180）、「怎么读这张图」卡片补枚举「user 空间含保留段 peers·privacy·sessions，peers 子树内容段仅 memories、resources（§3.1）」；archify finalize showcase 四门重过、双主题 PNG 重采（1165K/1107K 过 1280KiB 门）、.mmd 文本源与 mermaid README 注记同步；正文图例与图号不变。
