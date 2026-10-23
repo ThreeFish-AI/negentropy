@@ -1,0 +1,24 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §6 装配轴（2026-10-10 重锚：时序四档/预算/缓存/压缩＋宿主更正完整形态；复用图·拓扑未变）
+%%slug: cognitive-context/context-layer--assembly-economics
+%%type: workflow
+%%derived: archify workflow v2, redesigned from v1 assembler-planner（统一激活入口 → 装配成本结构五个设计参数+双通道；v1 见 git 史）
+flowchart TB
+    subgraph KNOBS["装配成本结构五个设计参数（ADR-6）"]
+        direction LR
+        K1["① 预算分配<br/>30/50/20 + Core 30% 硬帽"]
+        K2["② 渐进披露<br/>L1 常驻 · L2/L3 按需"]
+        K3["③ JIT vs 预取<br/><200K token 全量放进窗口"]
+        K4["④ 缓存友好排序<br/>会变的排后面"]
+        K5["⑤ 压缩分级<br/>结构操作在前 · 模型调用排在最后"]
+    end
+    subgraph CHANNELS["双通道（ADR-2/3 统一）"]
+        direction LR
+        CH1["自动通道 · 接地摘要<br/>preload 每轮注入（生产实际接线）"]
+        CH2["按需通道 · 深度检索<br/>HybridPlanner 四阶段"]
+        CH1 <-->|"共享归一信任排名（ADR-3）"| CH2
+    end
+    CH1 --> FUSE["统一融合<br/>RRF · 信任归一"]
+    CH2 --> FUSE
+    FUSE --> GUARD{"出口守卫 ContextGuard<br/>（方案位 · 未落地）"}
+    KNOBS -.->|"约束"| FUSE
+    GUARD --> LLM["→ LLM 窗口<br/>最小高信号集"]

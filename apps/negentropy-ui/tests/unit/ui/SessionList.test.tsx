@@ -44,7 +44,7 @@ describe("SessionList 行操作（经「⋯」菜单）", () => {
     await openMenu(user, "Session One");
     await user.click(screen.getByRole("menuitem", { name: "Archive Session One" }));
 
-    // 自定义 ConfirmDialog 替代 window.confirm（参考 ISSUE-054 修复）
+    // 自定义 ConfirmDialog 替代 window.confirm（参考 I-054 修复）
     expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
     await user.click(screen.getByTestId("confirm-dialog-confirm"));
 

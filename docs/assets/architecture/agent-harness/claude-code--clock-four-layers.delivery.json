@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2e160ede-e7a3-44f0-b2e0-60deac8fee3f",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify/clock-four-layers.architecture.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--clock-four-layers.html",
+  "specification": {
+    "sha256": "0a5f19721448b13d0f4cec6a2bf07a2fbe78e62155e6a5308c6bc00b10687af9",
+    "bytes": 6350
+  },
+  "artifact": {
+    "sha256": "01f03f1358b5ab5bb9c618e6f047229c054ce567f0b64a03a65c161db9ccd4bb",
+    "bytes": 844088
+  }
+}

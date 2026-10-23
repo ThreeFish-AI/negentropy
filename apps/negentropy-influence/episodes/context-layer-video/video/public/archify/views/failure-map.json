@@ -1,0 +1,50 @@
+[
+ {
+  "id": "fm2-open",
+  "label": "十簇总览",
+  "focus": [
+   "c1_koujing",
+   "c2_zhixing",
+   "c3_menjin",
+   "c4_yanzheng",
+   "c5_gongji",
+   "c6_yunhangshi",
+   "c7_jiexian",
+   "c8_jiyi",
+   "c9_zuzhi",
+   "c10_xiezuo"
+  ],
+  "note": "十簇 × 49 行 × 四列——失效登记簿先于架构，防住哪些失效是验收面"
+ },
+ {
+  "id": "fm2-def",
+  "label": "定义执法三簇",
+  "focus": [
+   "c1_koujing",
+   "c2_zhixing",
+   "c3_menjin"
+  ],
+  "note": "含义→计算→执法链：口径·执行·门禁，定义能否被算对、被管住"
+ },
+ {
+  "id": "fm2-supply",
+  "label": "背书接入四簇",
+  "focus": [
+   "c4_yanzheng",
+   "c5_gongji",
+   "c6_yunhangshi",
+   "c7_jiexian"
+  ],
+  "note": "背书→供给→运行→接入链：验证·供给·运行时·接线，答案谁担保、上下文从哪来"
+ },
+ {
+  "id": "fm2-ends",
+  "label": "末端三簇",
+  "focus": [
+   "c8_jiyi",
+   "c9_zuzhi",
+   "c10_xiezuo"
+  ],
+  "note": "记忆安全→组织落地→协作：投毒两端防线、owner 缺位与多代理共享"
+ }
+]

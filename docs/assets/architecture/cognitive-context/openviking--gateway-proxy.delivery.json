@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "68774601-5e56-4472-8dfd-9a3ff2824a93",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--gateway-proxy/openviking--gateway-proxy.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--gateway-proxy.html",
+  "specification": {
+    "sha256": "9590e076cbee0f937ce8efe2beb5d2973a0e1ba2b409dc3b1a1a78f232c565ad",
+    "bytes": 4105
+  },
+  "artifact": {
+    "sha256": "82cef6cf354f4f3df722efabc4fd221c220719e491ad92771d0a1e92a02c48e4",
+    "bytes": 755840
+  }
+}

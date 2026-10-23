@@ -1,0 +1,16 @@
+%% source: docs/reference/wiki/deployment.md §3.5b 路径 D（块#1，L301-L314）
+%% slug: wiki/deployment--local-build
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #1
+flowchart LR
+  subgraph Local["本地主站"]
+    PUB["/UI 发布 · 选「生产环境」/"] --> SVC["wiki_service.publish(target=production)"]
+    SVC -->|"spawn（fire-and-forget）"| SH["publish-wiki-pages.sh"]
+    SH --> EXP["export（烘焙图片）→ content/"]
+    EXP --> BUILD["next build → out/"]
+  end
+  subgraph Remote["GitHub"]
+    REPO[("threefish-ai.github.io<br/>master 分支")] --> PAGES["GitHub Pages（legacy）"]
+  end
+  BUILD -->|"rsync --delete + push（HTTPS token）"| REPO
+  PAGES --> USER(["https://threefish-ai.github.io/"])

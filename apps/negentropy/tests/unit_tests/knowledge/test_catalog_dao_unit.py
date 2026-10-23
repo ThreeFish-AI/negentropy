@@ -181,7 +181,9 @@ class TestCatalogNodeCrud:
             captured["event"] = event
             captured["extra"] = extra
 
-        monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_dao.logger.info", fake_info)
+        # create_node 实际发射方是 catalog_node_dao（经 catalog_dao Façade re-export）；
+        # logger 名统一为 __name__ 后两模块不再共享同一 logger 对象，patch 须指向发射模块。
+        monkeypatch.setattr("negentropy.knowledge.lifecycle.catalog_node_dao.logger.info", fake_info)
 
         await CatalogDao.create_node(
             session,

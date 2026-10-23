@@ -1,0 +1,52 @@
+%%source: docs/concepts/subsystems/035-the-knowledge-base.md#block0
+%%slug: subsystems/035-kb--search-functions
+%%type: workflow
+%%derived: true
+%% fix: repository.py / reranking.py 已迁至 knowledge/retrieval/ 子包（chunking/embedding 迁至 knowledge/ingestion/），文档 §6.1 模块清单停留在旧根路径；新图 sublabel 按实际路径标注。
+%% fix: kb_hybrid_search / kb_rrf_search 的 SQL 权威定义现存于 docs/reference/cognizes/engine/schema/perception_schema.sql:317（文档 §0 的 schema/perception_schema.sql 相对链接已死链）。
+%% fix: Reranker L1 为 KnowledgeService 内可插拔策略（默认 NoopReranker，可选 BGE/Cohere/Composite），新图并入 Service 节点 sublabel 而非独立组件。
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "secondaryBorderColor": "#0f5132", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff", "tertiaryBorderColor": "#842029"}}}%%
+flowchart LR
+  subgraph API[API Layer]
+    KAPI[Knowledge API]
+    MAPI[Memory API]
+  end
+
+  subgraph Service[Service Layer]
+    KSvc[KnowledgeService]
+    Rerank[Reranker L1]
+    MGov[MemoryGovernance]
+    FSvc[FactService]
+  end
+
+  subgraph Repo[Repository Layer]
+    KRepo[KnowledgeRepository]
+    MemSvc[MemoryService]
+  end
+
+  subgraph Storage[Storage Layer]
+    Corpus[(corpus)]
+    Knowledge[(knowledge)]
+    Memory[(memory / fact)]
+    HybridFn["kb_hybrid_search()"]
+    RRFFn["kb_rrf_search()"]
+  end
+
+  KAPI --> KSvc --> KRepo --> Corpus
+  KSvc --> Rerank
+  KRepo --> Knowledge
+  KRepo --> HybridFn
+  KRepo --> RRFFn
+  MAPI --> MGov --> MemSvc --> Memory
+  MAPI --> FSvc --> Memory
+  MAPI --> MemSvc
+
+  classDef api fill:#0b3d91,stroke:#0b3d91,color:#ffffff;
+  classDef svc fill:#0f5132,stroke:#0f5132,color:#ffffff;
+  classDef repo fill:#0f5132,stroke:#0f5132,color:#ffffff;
+  classDef store fill:#842029,stroke:#842029,color:#ffffff;
+
+  class KAPI,MAPI api
+  class KSvc,Rerank,MGov,FSvc svc
+  class KRepo,MemSvc repo
+  class Corpus,Knowledge,Memory,HybridFn,RRFFn store

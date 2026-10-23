@@ -1,0 +1,23 @@
+[
+ {
+  "id": "strict-gate",
+  "label": "极严校验门",
+  "focus": [
+   "validating",
+   "rule_fk",
+   "rule_cycle",
+   "rule_grain"
+  ],
+  "note": "手册在登记时就有极严的校验门。"
+ },
+ {
+  "id": "nonkey-rejected",
+  "label": "指向非键列被拒",
+  "focus": [
+   "bad_fk",
+   "validating",
+   "rejected"
+  ],
+  "note": "代码里故意把关联指向普通非键列——被拦下。"
+ }
+]

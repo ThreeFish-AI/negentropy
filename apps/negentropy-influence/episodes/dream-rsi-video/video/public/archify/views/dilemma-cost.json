@@ -1,0 +1,6 @@
+[
+ {"id":"dilemma","label":"两条路都堵","focus":["rsi","fixed","online"],"note":"长程探索要数千次提案-评估；固定章程不自适应，在线改章程又改不起。"},
+ {"id":"stuck","label":"写死砸空转 vs 改不起","focus":["fixed-harm","online-cost"],"note":"算力反复砸向无效方向；元级反馈又慢又贵、候选空间巨大。"},
+ {"id":"verdict","label":"成本结构的死结","focus":["verdict"],"note":"想知道章程好不好，最实在的办法就是整队再进一次山。"},
+ {"id":"breakthrough","label":"破局：历史已是模拟器","focus":["breakthrough"],"note":"已完成的发现历史，恰好已经是一个免费的发现模拟器。"}
+]

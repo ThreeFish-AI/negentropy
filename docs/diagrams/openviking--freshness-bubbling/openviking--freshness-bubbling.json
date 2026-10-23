@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "OpenViking 新鲜度冒泡：L0 变了才上报",
+    "output": "docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.html",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1080, 520]
+  },
+  "stages": [
+    { "label": "变更" },
+    { "label": "判定" },
+    { "label": "上报" },
+    { "label": "父目录刷新" },
+    { "label": "祖先链结算" }
+  ],
+  "nodes": [
+    { "id": "change", "type": "external", "label": "文件变更", "sublabel": "所在目录先重新生成摘要", "stage": 0, "row": 1 },
+    { "id": "gate", "type": "security", "label": "子目录 L0 正文 digest 变了？", "tag": "判定", "stage": 1, "row": 1, "width": 168 },
+    { "id": "noop", "type": "cloud", "label": "NOOP", "sublabel": "未变 · 零成本", "stage": 1, "row": 0 },
+    { "id": "report", "type": "backend", "label": "变了才上报父目录", "stage": 2, "row": 1 },
+    { "id": "refresh", "type": "backend", "label": "父目录立即刷新", "sublabel": "父目录无基线 · 或直接子项 ≤ 32", "stage": 3, "row": 0, "width": 140 },
+    { "id": "count", "type": "database", "label": "攒批计数", "sublabel": "子项 > 32 · pending / total ≥ 0.10 才刷新", "stage": 3, "row": 2, "width": 182 },
+    { "id": "ancestor", "type": "backend", "label": "祖先链逐层结算", "sublabel": "被采样的兄弟文件全部重新摘要", "stage": 4, "row": 1, "width": 128 }
+  ],
+  "flows": [
+    { "id": "change-gate", "from": "change", "to": "gate", "label": "重新生成摘要", "variant": "emphasis" },
+    { "id": "gate-noop", "from": "gate", "to": "noop", "label": "未变", "variant": "dashed" },
+    { "id": "gate-report", "from": "gate", "to": "report", "label": "变了", "variant": "emphasis" },
+    { "id": "report-refresh", "from": "report", "to": "refresh", "label": "无基线 / 子项 ≤ 32", "variant": "emphasis" },
+    { "id": "report-count", "from": "report", "to": "count", "label": "子项 > 32", "variant": "emphasis" },
+    { "id": "refresh-ancestor", "from": "refresh", "to": "ancestor", "label": "立即冒泡", "variant": "emphasis" },
+    { "id": "count-ancestor", "from": "count", "to": "ancestor", "label": "攒满 10%", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "账单沿祖先链",
+      "items": [
+        "深层一次小改 · 账单沿祖先链逐层结算",
+        "10% 判据下的小改动可能长期不刷新祖先摘要（陈旧窗口）"
+      ]
+    }
+  ]
+}

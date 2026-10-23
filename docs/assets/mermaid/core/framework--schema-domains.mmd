@@ -1,0 +1,87 @@
+%% source: docs/concepts/framework.md L498-L535
+%% slug: core/framework--schema-domains
+%% type: architecture
+%% derived: docs/assets/architecture/core/framework--schema-domains.html (+ -dark/-light PNG)
+%% fix: D-8 原块引用已退役 cognizes 的 .sql DDL（agent/hippocampus/kg/mind/perception_schema.sql，threads/events/runs 等表名均系遗产虚构，cognizes 已于 PR #1132 删除）——重绘为真实 SSOT：apps/negentropy/src/negentropy/models/ 27 个 ORM 模块按九域分组（76 表）+ db/migrations/versions/ Alembic 0001→0099（head 0099）+ PostgreSQL 17 + pgvector（schema: negentropy）；域分组以 models/__init__.py 实证核对（pulse=Thread/Event 归会话与状态，agent=Agent/AgentVersion 归定义注册）
+graph TB
+    subgraph Session["会话与状态 (pulse / state)"]
+        pulse["pulse.py<br>threads · events"]
+        state["state.py<br>user_states · app_states"]
+    end
+
+    subgraph Knowledge["知识运行时 (perception / internalization / knowledge_runtime)"]
+        perception["perception.py<br>corpus · knowledge · kg_* · wiki_* (22 表)"]
+        internalization["internalization.py<br>memories · facts · consolidation_jobs (10 表)"]
+        knowledge_runtime["knowledge_runtime.py<br>pipeline_run · graph_run"]
+    end
+
+    subgraph Routine["例行与调度 (routine / scheduled_task)"]
+        routine["routine.py<br>routines · routine_iterations"]
+        scheduled_task["scheduled_task.py<br>scheduled_tasks · task_executions"]
+    end
+
+    subgraph Registry["定义注册 (definition / skill / agent / builtin_tool)"]
+        definition["definition.py<br>definitions 四类定义源"]
+        skill["skill.py / agent.py<br>skills · agents"]
+        builtin_tool["builtin_tool.py<br>builtin_tools"]
+    end
+
+    subgraph Evolution["演进与评估 (evolution / eval_suite)"]
+        evolution["evolution.py<br>evolution_proposals · memory_config_versions"]
+        eval_suite["eval_suite.py<br>eval_suites · eval_runs"]
+    end
+
+    subgraph Capability["能力接入 (mcp / mcp_runtime / plugin / repository / vendor_config)"]
+        mcp["mcp.py<br>mcp_servers · mcp_tools"]
+        mcp_runtime["mcp_runtime.py<br>mcp_tool_runs"]
+        repository["repository.py / vendor_config.py<br>repositories · vendor_configs"]
+    end
+
+    subgraph Telemetry["遥测 (observability / tool_telemetry)"]
+        observability["observability.py<br>traces"]
+        tool_telemetry["tool_telemetry.py<br>tool_invocations · tool_stats_daily"]
+    end
+
+    subgraph ModelCfg["模型配置 (model_config / task_model_setting)"]
+        model_config["model_config.py<br>model_configs"]
+        task_model_setting["task_model_setting.py<br>task_model_settings"]
+    end
+
+    subgraph Platform["平台基座 (base / security / storage / action)"]
+        base["base.py<br>Base · schema: negentropy · Vector"]
+        security["security.py<br>credentials"]
+        storage["storage.py / action.py<br>blob_objects · tools"]
+    end
+
+    migrations["db/migrations/versions/<br>Alembic 0001 → 0099 (head 0099)"]
+    pg[("PostgreSQL 17 + pgvector<br>schema: negentropy")]
+
+    mcp_runtime --> mcp
+    routine --> repository
+    task_model_setting --> perception
+    perception --> routine
+
+    base -->|"Base.metadata 自动生成"| migrations
+    migrations -->|"99 版本 DDL"| pg
+
+    classDef session fill:#3B82F6,stroke:#1E40AF,color:#FFF
+    classDef knowledge fill:#10B981,stroke:#065F46,color:#FFF
+    classDef routine fill:#F59E0B,stroke:#92400E,color:#FFF
+    classDef registry fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef evolution fill:#F43F5E,stroke:#881337,color:#FFF
+    classDef capability fill:#06B6D4,stroke:#155E75,color:#FFF
+    classDef telemetry fill:#64748B,stroke:#1E293B,color:#FFF
+    classDef modelcfg fill:#FB923C,stroke:#7C2D12,color:#FFF
+    classDef platform fill:#475569,stroke:#0F172A,color:#FFF
+    classDef infra fill:#334155,stroke:#0F172A,color:#FFF
+
+    class pulse,state session
+    class perception,internalization,knowledge_runtime knowledge
+    class routine,scheduled_task routine
+    class definition,skill,builtin_tool registry
+    class evolution,eval_suite evolution
+    class mcp,mcp_runtime,repository capability
+    class observability,tool_telemetry telemetry
+    class model_config,task_model_setting modelcfg
+    class base,security,storage platform
+    class migrations,pg infra

@@ -1,31 +1,52 @@
 #!/usr/bin/env python3
-"""薄包装：转发到公共管线 ../../../pipeline/scripts/build_narration.py。
+"""薄包装：转发到 vibe-video skill 公共管线的 build_narration.py。
 
-实现已收敛至子项目级单一事实源；本文件仅保留原 CLI 契约
+实现收敛于技能仓单一事实源；本文件仅保留原 CLI 契约
 （uv run --no-project scripts/build_narration.py）。
 
-parents[3] 编码的是本文件在 `episodes/<slug>/scripts/` 的落位（scripts→分集→
-episodes→子项目根）。薄包装不在 pipeline/scripts/ 内，无法 `import paths` 复用
-哨兵搜索（见 paths.py 的导入边界），故此处只能数层——分集目录层级若再变，
-本文件与上方 docstring 的相对路径须同步。
+skill 解析：VIBE_VIDEO_HOME → ~/.claude/skills/vibe-video → ~/.agents/skills/vibe-video，
+全部未命中即**大声退出**并打印安装指令——静默跳过是被禁止的失效形态。
+包装器刻意零依赖单文件（与既有冻结档纪律一致）：修缺陷 = 改模板 + 全集同步，
+由 verify_skeleton.py 字节执法。
 """
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-PIPELINE_SCRIPT = (
-    Path(__file__).resolve().parents[3] / "pipeline" / "scripts" / "build_narration.py"
-)
+
+def _skill_scripts() -> Path:
+    """定位 skill 的 scripts 目录；找不到即大声退出。"""
+    candidates = []
+    if env := os.environ.get("VIBE_VIDEO_HOME"):
+        candidates.append(Path(env).expanduser())
+    candidates += [
+        Path.home() / ".claude" / "skills" / "vibe-video",
+        Path.home() / ".agents" / "skills" / "vibe-video",
+    ]
+    for c in candidates:
+        p = c / "scripts"
+        # 须见 SKILL.md 哨兵：工作区根也有 scripts/pipeline.py（误中即自递归）
+        if (c / "SKILL.md").is_file() and (p / "pipeline.py").is_file():
+            return p
+    listed = "\n  ".join(str(c) for c in candidates)
+    sys.exit(
+        "找不到 vibe-video skill（按序尝试：\n  " + listed + "\n）。\n"
+        "  安装：git clone https://github.com/ThreeFish-AI/vibe-video <目录>\n"
+        "        ln -s <目录> ~/.claude/skills/vibe-video"
+        "   # 或设 VIBE_VIDEO_HOME=<目录>"
+    )
+
 
 if __name__ == "__main__":
     sys.exit(
         subprocess.run(
             [
                 sys.executable,
-                str(PIPELINE_SCRIPT),
+                str(_skill_scripts() / "build_narration.py"),
                 "--project",
                 str(Path(__file__).resolve().parent.parent),
                 *sys.argv[1:],

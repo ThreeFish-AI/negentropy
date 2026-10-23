@@ -1,0 +1,130 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.27,
+ "total_wall_sec": 189.63,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "visible",
+   "label": "只看已见的部分",
+   "index": 0,
+   "file": "replay-simulator--visible.mp4",
+   "end_still": "replay-simulator--visible-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.606
+   ],
+   "beat_nodes": [
+    "obs",
+    "elig"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 15.0
+  },
+  {
+   "id": "freedom",
+   "label": "批次即全部自由度",
+   "index": 1,
+   "file": "replay-simulator--freedom.mp4",
+   "end_still": "replay-simulator--freedom-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "elig",
+    "batch"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "root-rule",
+   "label": "选根：按建档序开枝",
+   "index": 2,
+   "file": "replay-simulator--root-rule.mp4",
+   "end_still": "replay-simulator--root-rule-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "batch",
+    "rootpick"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 20.0
+  },
+  {
+   "id": "chain-rule",
+   "label": "选叶：唯一记录后继",
+   "index": 3,
+   "file": "replay-simulator--chain-rule.mp4",
+   "end_still": "replay-simulator--chain-rule-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "batch",
+    "chain"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 17.0
+  },
+  {
+   "id": "score-out",
+   "label": "长大、终止、计分",
+   "index": 4,
+   "file": "replay-simulator--score-out.mp4",
+   "end_still": "replay-simulator--score-out-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "newview",
+    "term",
+    "v"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 20.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--replay-simulator.html",
+ "slug": "replay-simulator",
+ "type": "workflow"
+}

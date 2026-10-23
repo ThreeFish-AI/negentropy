@@ -1,0 +1,81 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 11.17,
+ "total_wall_sec": 52.93,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "gate-one",
+   "label": "第一道·拨杆",
+   "index": 0,
+   "file": "dispatch-two-gates--gate-one.mp4",
+   "end_still": "dispatch-two-gates--gate-one-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "cmd-in",
+    "gate-explicit",
+    "bg-out"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "gate-two",
+   "label": "第二道·筛网",
+   "index": 1,
+   "file": "dispatch-two-gates--gate-two.mp4",
+   "end_still": "dispatch-two-gates--gate-two-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.46,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "gate-explicit",
+    "gate-heuristic",
+    "bg-out",
+    "sync-out"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "false-slip",
+   "label": "说不要也拦不住",
+   "index": 2,
+   "file": "dispatch-two-gates--false-slip.mp4",
+   "end_still": "dispatch-two-gates--false-slip-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "note-false",
+    "gate-heuristic",
+    "bg-out"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/apps/negentropy-influence/episodes/claude-code-concurrency-video/video/public/archify/html/dispatch-two-gates.html",
+ "slug": "dispatch-two-gates",
+ "type": "workflow"
+}

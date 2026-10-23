@@ -1,6 +1,6 @@
 """KG Build 管线七项级联缺陷修复回归用例
 
-参考 issue.md ISSUE-027~033，每项缺陷一条 UT，独立运行不依赖真实 DB / LiteLLM。
+参考 issue.md I-027~033，每项缺陷一条 UT，独立运行不依赖真实 DB / LiteLLM。
 
 References:
     [1] V. A. Traag et al., "From Louvain to Leiden," *Sci. Rep.*, 2019.
@@ -42,7 +42,7 @@ def _relation_row(src: str, tgt: str, weight: float = 1.0):
 @pytest.mark.asyncio
 async def test_pagerank_update_uses_explicit_uuid_cast():
     """PageRank UPDATE SQL 应使用 `CAST(:eid AS uuid)` 显式转换，
-    避免 PostgreSQL 报 `syntax error at or near "uuid"`（ISSUE-027）。
+    避免 PostgreSQL 报 `syntax error at or near "uuid"`（I-027）。
     """
     db = AsyncMock()
     db.commit = AsyncMock()
@@ -87,7 +87,7 @@ async def test_pagerank_update_uses_explicit_uuid_cast():
 
 def test_run_leiden_uses_leidenalg_not_networkx_dispatch():
     """_run_leiden 应经由 leidenalg.find_partition 而非 nx.community.leiden_communities
-    （ISSUE-028）。
+    （I-028）。
     """
     import networkx as nx
 
@@ -120,7 +120,7 @@ def test_run_leiden_uses_leidenalg_not_networkx_dispatch():
 
 @pytest.mark.asyncio
 async def test_call_llm_with_retry_sets_global_drop_params():
-    """call_llm_with_retry 调用应幂等设置 litellm.drop_params = True（ISSUE-029）。"""
+    """call_llm_with_retry 调用应幂等设置 litellm.drop_params = True（I-029）。"""
     import litellm
 
     from negentropy.knowledge.graph.extractors import call_llm_with_retry
@@ -189,7 +189,7 @@ async def test_call_llm_with_retry_propagates_extra_kwargs():
 
 def test_embedding_failure_hint_for_invalid_prompts():
     """上游 'request body doesn't contain valid prompts' 应触发 actionable hint
-    （ISSUE-030 / ISSUE-020 同型）。
+    （I-030 / I-020 同型）。
     """
     from negentropy.knowledge.ingestion.embedding import _build_embedding_failure_hint
 
@@ -219,7 +219,7 @@ def test_embedding_failure_hint_empty_on_unknown_error():
 @pytest.mark.asyncio
 async def test_community_summarizer_propagates_drop_params_to_llm():
     """CommunitySummarizer._call_llm 应透传 extra_kwargs（drop_params）给
-    call_llm_with_retry，规避 ISSUE-029 同型 UnsupportedParamsError。
+    call_llm_with_retry，规避 I-029 同型 UnsupportedParamsError。
     """
     from negentropy.knowledge.graph.community_summarizer import CommunitySummarizer
 
@@ -265,7 +265,7 @@ async def test_community_summarizer_propagates_drop_params_to_llm():
 
 @pytest.mark.asyncio
 async def test_sync_relation_returns_false_when_endpoint_missing():
-    """sync_relation 端点缺失时必须返回 False（ISSUE-032），调用方据此区分
+    """sync_relation 端点缺失时必须返回 False（I-032），调用方据此区分
     `relations_skipped` vs `relations_synced`，避免计数虚高。
     """
     from negentropy.knowledge.graph.entity_service import KgEntityService

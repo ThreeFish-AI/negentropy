@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "dabb36ef-176e-4316-b207-68b9e1ae78e3",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-shift-three-beats/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--shift-three-beats.html",
+  "specification": {
+    "sha256": "0c9d451def34cd87da3ee42c2aac8b7020086d5c75ffb5a0f2c91c519451141d",
+    "bytes": 9650
+  },
+  "artifact": {
+    "sha256": "4c53268568967f54fdd088c5a272c7df6f619cd156b8b47aaeccd766dcc3bb53",
+    "bytes": 852575
+  }
+}

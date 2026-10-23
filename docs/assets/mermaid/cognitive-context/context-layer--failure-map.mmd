@@ -1,0 +1,33 @@
+%%source: docs/research/cognitive-context/013-context-layer-blueprint.md §1 失效模式登记簿：十类失效汇总（十簇失效形态总览）
+%%slug: cognitive-context/context-layer--failure-map
+%%type: architecture
+%%derived: archify architecture v2, authored fresh（v1 八失效×四层映射退役；新构型＝登记簿十簇蛇形主链穿过三条问题带，簇节点标行数与代表失效、tag 标主要防护）
+flowchart TB
+    subgraph T1["含义 → 计算 → 执法 · 定义能否被算对、被管住"]
+        direction LR
+        C1["§1.1 口径簇 · 2 行<br/>口径散落→对账崩塌；非法定义静默入库<br/>拦截：M1 口径单点＋注册期校验门"]
+        C2["§1.2 执行簇 · 6 行<br/>fan trap／半可加／双计／存量过期<br/>拦截：M1 先聚后连＋查询期重算"]
+        C3["§1.3 访问控制簇 · 9 行<br/>策略绕过／越权窗口／审批覆盖不全<br/>拦截：M2·M3·M6·M7＋执行点律"]
+    end
+    subgraph T2["人工核验 → 供给 → 运行 → 接入 · 答案谁担保、上下文从哪来"]
+        direction RL
+        C4["§1.4 验证簇 · 4 行<br/>governance≠verification；题库腐化<br/>拦截：M4 VQR 锚定＋grain 契约验收位"]
+        C5["§1.5 供给簇 · 6 行<br/>覆盖率上限／检索失配／CJK 失效<br/>拦截：两条供给路径＋检索分库＋高召回初检→重排→top-k 截断"]
+        C6["§1.6 运行时簇 · 6 行<br/>工具饱和／分片迷失／缓存前缀失效<br/>拦截：预算带＋压缩分级＋缓存感知分段"]
+        C7["§1.7 接线簇 · 4 行<br/>装配面已定义未接入生产路径／激活悬空／巩固回路缺件<br/>拦截：I-194/195＋挂载对账＋G6 退役"]
+    end
+    subgraph T3["记忆安全 → 组织落地 → 协作 · 防注入、owner 缺位与多代理共享"]
+        direction LR
+        C8["§1.8 记忆安全簇 · 6 行<br/>intent legitimation／投毒／注入／认证失效<br/>拦截：写入端扫描先于巩固＋信任边界段＋受众绑定凭据"]
+        C9["§1.9 组织运营簇 · 3 行<br/>ownership 缺位／信念断裂／陈旧数据<br/>拦截：shared ownership＋新鲜度与执法点前置"]
+        C10["§1.10 协作簇 · 3 行<br/>上下文割裂／认领竞态／协商不可追踪<br/>拦截：任务契约全量交接＋认领临界区＋结构化协议"]
+    end
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    C4 --> C5
+    C5 --> C6
+    C6 --> C7
+    C7 --> C8
+    C8 --> C9
+    C9 --> C10

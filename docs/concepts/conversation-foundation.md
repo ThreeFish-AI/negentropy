@@ -4,18 +4,13 @@ title: "Conversation Foundation · 人与 Agent 对话基础"
 ---
 # Conversation Foundation · 人与 Agent 对话基础
 
-> 本文档是 negentropy「Home / 人与 Agent 对话」系列的**理论总章**与**业界对标坐标**。所有具体落地方案与协议事实分别沉淀于 [framework.md](./framework.md)（架构）、[a2ui.md](./a2ui.md)（协议）、[rfc-0001](design/0001-conversation-architecture-refactor.md) / [rfc-0002](design/0002-ui-interaction-enhancements.md)（设计），以及 [user-guide.md](../user-guide.md) 与 [user-guide/chat-essentials.md](../user-guide/chat-essentials.md)（操作手册）。
+> 本文档是 negentropy「Home / 人与 Agent 对话」系列的**理论总章**与**业界对标坐标**。所有具体落地方案与协议事实分别沉淀于 [framework.md](./framework.md)（架构）、[a2ui.md](./a2ui.md)（协议）、[rfc-0001](design/0001-conversation-architecture-refactor.md) / [rfc-0002](design/0002-ui-interaction-enhancements.md)（设计），以及 [user-guide.md](./user-guide/chat-essentials.md) 与 [user-guide/chat-essentials.md](./user-guide/chat-essentials.md)（操作手册）。
 
 ## 0. 如何阅读本系列（Single Source of Truth 映射）
 
-```mermaid
-flowchart LR
-  Foundation["conversation-foundation.md<br/>(理论 + 业界对标)"]
-  --> Framework[framework.md<br/>架构]
-  --> A2UI[a2ui.md<br/>协议事实]
-  --> RFCs[0001 · 0002<br/>设计与决议]
-  --> Guide[user-guide.md +<br/>chat-essentials.md<br/>操作手册]
-```
+![Conversation Foundation 系列五层 SSOT 阅读链：理论总章（conversation-foundation.md，业界对标）「落地为架构」→ 架构落地（framework.md）→ 协议事实（a2ui.md）→ 设计与决议（design/0001 · 0002），再「转化为操作」→ 操作手册（concepts/user-guide/ 分区，21 页，含 chat-essentials）。](../assets/architecture/core/conversation-foundation--architecture-dark.png)
+
+> 图源（可 diff 文本）：[`conversation-foundation--architecture.mmd`](../assets/mermaid/core/conversation-foundation--architecture.mmd) · 交互版（下载到本地打开）：[`conversation-foundation--architecture.html`](../assets/architecture/core/conversation-foundation--architecture.html)
 
 每一层只负责一层，互相之间用相对路径链接，禁止内容复制（参见 AGENTS.md "Direct Hyperlinking" 与 "Single Source of Truth"）。
 
@@ -182,7 +177,7 @@ negentropy 已接入 Langfuse（参见 `apps/negentropy/src/negentropy/engine/bo
 
 ## 8. 适用范围与下一步
 
-本文档覆盖范围：**人与 Agent 对话**模块所需的理论坐标系与业界对标。它**不**重述协议字段（去 [a2ui.md](./a2ui.md)）、不重述具体架构图（去 [framework.md](./framework.md)）、不重述用户操作（去 [user-guide.md](../user-guide.md) 与 [chat-essentials.md](../user-guide/chat-essentials.md)）。
+本文档覆盖范围：**人与 Agent 对话**模块所需的理论坐标系与业界对标。它**不**重述协议字段（去 [a2ui.md](./a2ui.md)）、不重述具体架构图（去 [framework.md](./framework.md)）、不重述用户操作（去 [user-guide.md](./user-guide/chat-essentials.md) 与 [chat-essentials.md](./user-guide/chat-essentials.md)）。
 
 后续 Phase 3 将在此基础上叠：
 1. `docs/observability-genai.md` — OTel GenAI semconv 落地说明；

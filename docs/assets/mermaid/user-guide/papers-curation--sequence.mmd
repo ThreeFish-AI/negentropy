@@ -1,0 +1,30 @@
+%% source: docs/concepts/user-guide/papers-curation.md
+%% slug: user-guide/papers-curation--sequence
+%% type: sequence
+%% derived: archify
+%% fix: 补入审批门（ingest_paper 属 HIGH_RISK_TOOLS，默认 per_tool 策略每篇阻塞等待人工确认，拒绝/超时返回 blocked）
+%% fix: 补入按 arxiv_id 的幂等查重短路（already_ingested 跳过下载解析入库，依赖迁移 0029 表达式索引）
+%% fix: 补入 KG 异步闭环回执 kg_status（enqueue_kg_build fire-and-forget，fail-open）
+%% fix: 系部不直连用户——原 P->>U 改为经 Home 对话回传
+sequenceDiagram
+  participant U as 用户
+  participant Home as Home 对话
+  participant P as PerceptionFaculty
+  participant I as InternalizationFaculty
+  participant KS as KnowledgeService
+  participant KB as 知识库（agent-papers Corpus）
+
+  U->>Home: "找 5 篇 LLM Agent Memory 最新论文"
+  Home->>P: search_papers(query, top_k=5, since_days=30)
+  Note over P: 推送 tool_progress（5%→100%，C3 进度条）
+  P->>U: 返回 papers list（title/abstract/pdf_url/...）
+  U->>Home: "把这 5 篇都入库"
+  loop 每篇论文
+    Home->>I: ingest_paper(arxiv_id, pdf_url, title)
+    Note over I: 推送 tool_progress
+    I->>KS: ingest_url(corpus=agent-papers, url=pdf_url, metadata)
+    KS->>KB: PDF 解析 + chunk + embed + 写入
+    KS-->>I: 返回 record_count
+    I-->>Home: { status, record_count, knowledge_ids }
+  end
+  Home-->>U: 入库完成提示卡片

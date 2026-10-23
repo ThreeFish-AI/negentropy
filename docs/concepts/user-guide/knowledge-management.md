@@ -59,34 +59,9 @@ Base 是知识库管理的**核心页面**，支持两种视图模式：
 
 Negentropy 支持三种文档摄取方式：
 
-```mermaid
-flowchart LR
-    subgraph Ingest["📥 文档摄取"]
-        Text["📝 文本摄取<br/>直接粘贴文本"]
-        URL["🔗 URL 摄取<br/>抓取网页内容"]
-        File["📁 文件摄取<br/>上传本地文件"]
-    end
+![知识库文档摄取管线：文本、URL、文件三个 FastAPI 入口立即返回 run_id，URL 与文件经 Perceives MCP 提取后与文本汇于 Chunk 分块，再经可跳过的 Embedding 嵌入落入 PostgreSQL pgvector 向量列。](../../assets/architecture/user-guide/knowledge-management--ingest-flow-dark.png)
 
-    subgraph Process["⚙️ 处理流程"]
-        Doc["📄 Document<br/>文档解析"]
-        Chunk["🧩 Chunk<br/>语义分块"]
-        Embed["🔢 Embedding<br/>向量嵌入"]
-        Store["💾 存储<br/>PostgreSQL + pgvector"]
-    end
-
-    Text --> Doc
-    URL --> Doc
-    File --> Doc
-    Doc --> Chunk
-    Chunk --> Embed
-    Embed --> Store
-
-    classDef ing fill:#DBEAFE,stroke:#1E3A8A,color:#000
-    classDef proc fill:#FEF3C7,stroke:#92400E,color:#000
-
-    class Text,URL,File ing
-    class Doc,Chunk,Embed,Store proc
-```
+> 图源（可 diff 文本）：[`knowledge-management--ingest-flow.mmd`](../../assets/mermaid/user-guide/knowledge-management--ingest-flow.mmd) · 交互版（下载到本地打开）：[`knowledge-management--ingest-flow.html`](../../assets/architecture/user-guide/knowledge-management--ingest-flow.html)
 
 #### 知识检索
 

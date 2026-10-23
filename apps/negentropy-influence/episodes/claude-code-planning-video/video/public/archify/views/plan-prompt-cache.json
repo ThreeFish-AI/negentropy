@@ -1,0 +1,20 @@
+[
+ {
+  "id": "re-eval-per-turn",
+  "label": "回合后重算",
+  "focus": ["state-recompute", "cache-hit"],
+  "note": "循环内重估：每个工具回合后重算状态，没变，直接沿用上一张（缓存命中）。"
+ },
+ {
+  "id": "deterministic-key",
+  "label": "排序序列化作钥匙",
+  "focus": ["sorted-serialize", "key-slot"],
+  "note": "钥匙讲究确定性：把状态排好序、序列化成稳定文本，当键使。"
+ },
+ {
+  "id": "no-builtin-hash",
+  "label": "不用自带哈希",
+  "focus": ["builtin-hash", "crossed", "list-dict"],
+  "note": "不用语言自带的哈希——每次启动都会变，还对付不了列表和字典。"
+ }
+]

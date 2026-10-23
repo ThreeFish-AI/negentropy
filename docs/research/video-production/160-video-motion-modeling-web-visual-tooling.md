@@ -59,7 +59,7 @@ flowchart TD
 
 ### 1.1 必须被任何候选保住的资产
 
-现役管线（[pipeline README](../../../apps/negentropy-influence/pipeline/README.md)、[skills/06 运动层规格](../../../apps/negentropy-influence/pipeline/skills/06-remotion-implementation.md)）的核心资产不是 Remotion 本身，而是三层契约：
+现役管线（[pipeline README](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/README.md)、[skills/06 运动层规格](https://github.com/ThreeFish-AI/vibe-video/blob/main/pipeline/skills/06-remotion-implementation.md)）的核心资产不是 Remotion 本身，而是三层契约：
 
 1. **audio-first 时序 SSOT**：`tts.py` 产出逐句 mp3 + `manifest.json`（含 `durationSec` 实测时长）→ `calculateMetadata` 推总帧数 → 运动层 `window.ts` 以「父持绝对时间、子为 beat 窗口」实现 **TTS 重测后全片自动重定时、零手工对轨**。任何需要人工对轨的时间轴都是对该缺陷类的回归。
 2. **渲染器无关的 QA 契约**：`qa_frames.py` 对成片 MP4 用 ffmpeg 按句号寻址抽帧（黑帧/重复/字幕安全带/WCAG ≥4.5:1/`--beat-heads` 入场瞬态/`--compare` A-B JND 对拍）。**候选渲染器只要产出同规格 MP4，整套 QA 原样适用**——这放宽了候选池。
@@ -69,7 +69,7 @@ flowchart TD
 
 | 痛点（README 评审实录） | 对工具的能力缺口 |
 |:---|:---|
-| 动效逐 shot 手写 React：全 8 集累计约 356 处 `frame-i*N` 错峰散写、82 处描线、71 处计数散写（ISSUE-176） | 需要比手写 hooks 更高层、仍可 git diff 审计、可由代理批量生成与重构的**动效声明层**（时间轴/关键帧/编排原语）；纯可视化产物若不可文本化即违反「渲染确定性 + 代码可审」底线 |
+| 动效逐 shot 手写 React：全 8 集累计约 356 处 `frame-i*N` 错峰散写、82 处描线、71 处计数散写（I-176） | 需要比手写 hooks 更高层、仍可 git diff 审计、可由代理批量生成与重构的**动效声明层**（时间轴/关键帧/编排原语）；纯可视化产物若不可文本化即违反「渲染确定性 + 代码可审」底线 |
 | 「分镜写了动效但代码零调用」（复用组件打不进 svg/`<g>`/absolute 布局） | 需要分镜→实现的**可执行转译链**：承诺即代码（声明式动效从分镜生成）或承诺可机检（`--check-motion` 等价门） |
 | 布尔硬切弹跳（EP1 审计约 50 处 `frame >= X ? <el/> : null`） | 时序语汇须内建「一切出现皆有过渡」（时长+缓动标尺、spatial/effects 二分、令牌化时长档） |
 | 硬编码帧与口播脱钩（分幕真实时长复检修 9 处、3 处仅在真实时长下暴露） | 必须支持 **audio-first 自动重定时**（外部实测时长驱动全片时间轴、动画时点由句边界推导） |

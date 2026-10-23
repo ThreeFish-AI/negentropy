@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--object-lifecycle/context-layer-blueprint--object-lifecycle.json",
+    "sha256": "9d9fef1621b9a81c1819489f02405eff8023d94ac53f54d8cb9912293f154c0f",
+    "bytes": 4577
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.html",
+    "sha256": "3c114ee950dc67e0117be6d7adee5e08b0250157be45ecfdad008216545f5e8d",
+    "bytes": 760394
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--object-lifecycle.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2092
+}

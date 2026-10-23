@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "91f57949-618a-4fa2-8728-2365c9781d98",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+  "specification": {
+    "sha256": "b8931cd16156462511b9d2c11f46f35e1c3af6c2daa4d6b2a1bf1c0289ec9f86",
+    "bytes": 4950
+  },
+  "artifact": {
+    "sha256": "90621829badea67b61e54d180a313666f5248f5aa1ec074b281ef291dd1a565f",
+    "bytes": 759250
+  }
+}

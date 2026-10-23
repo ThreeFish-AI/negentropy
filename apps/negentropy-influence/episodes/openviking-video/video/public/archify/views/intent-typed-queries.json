@@ -1,0 +1,30 @@
+[
+ {
+  "id": "gate",
+  "label": "有没有会话",
+  "focus": [
+   "q",
+   "gate"
+  ],
+  "note": "无会话用原问题。"
+ },
+ {
+  "id": "split",
+  "label": "拆单",
+  "focus": [
+   "analyzer",
+   "qres",
+   "qmem",
+   "qskill"
+  ],
+  "note": "问题拆成几路检索单。"
+ },
+ {
+  "id": "merge",
+  "label": "拼接",
+  "focus": [
+   "merge"
+  ],
+  "note": "结果直接拼接：不去重不归一。"
+ }
+]

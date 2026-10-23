@@ -19,8 +19,7 @@ Skill Scheduler — Phase 3 应用层定时调度（不依赖 pg_cron）。
 from __future__ import annotations
 
 import asyncio
-import os
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -31,9 +30,11 @@ from negentropy.agents.skills_injector import (
     format_skill_invocation,
     format_skill_resources,
 )
+from negentropy.config import parse_env_bool
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
 from negentropy.models.skill import Skill, SkillSchedule
+from negentropy.timeutil import utcnow
 
 if TYPE_CHECKING:
     from negentropy.engine.schedulers.async_scheduler import AsyncScheduler
@@ -45,11 +46,7 @@ DEFAULT_TICK_SECONDS = 60.0
 
 
 def _scheduler_disabled() -> bool:
-    return os.environ.get("NEGENTROPY_SKILL_SCHEDULER_ENABLED", "true").lower() in ("0", "false", "no")
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
+    return not parse_env_bool("NEGENTROPY_SKILL_SCHEDULER_ENABLED", True)
 
 
 def _next_from_cron(cron_expr: str, base: datetime | None = None) -> datetime | None:
@@ -57,7 +54,7 @@ def _next_from_cron(cron_expr: str, base: datetime | None = None) -> datetime | 
     try:
         from croniter import croniter
 
-        cron = croniter(cron_expr, base or _utcnow())
+        cron = croniter(cron_expr, base or utcnow())
         return cron.get_next(datetime)
     except Exception as exc:
         _logger.warning("skill_schedule_cron_invalid", cron_expr=cron_expr, error=str(exc))
@@ -77,7 +74,7 @@ async def execute_schedule_once(schedule_id: UUID) -> None:
         skill = await db.get(Skill, sched.skill_id)
         if skill is None or not skill.is_enabled:
             sched.last_error = "skill not found or disabled"
-            sched.last_run_at = _utcnow()
+            sched.last_run_at = utcnow()
             sched.next_run_at = _next_from_cron(sched.cron_expr)
             await db.commit()
             return
@@ -108,7 +105,7 @@ async def execute_schedule_once(schedule_id: UUID) -> None:
             )
             sched.last_error = str(exc)
         finally:
-            sched.last_run_at = _utcnow()
+            sched.last_run_at = utcnow()
             sched.next_run_at = _next_from_cron(sched.cron_expr)
             await db.commit()
 
@@ -154,7 +151,7 @@ async def _tick() -> None:
         stmt = (
             select(SkillSchedule)
             .where(SkillSchedule.enabled.is_(True))
-            .where(SkillSchedule.next_run_at <= _utcnow())
+            .where(SkillSchedule.next_run_at <= utcnow())
             .with_for_update(skip_locked=True)
             .limit(20)
         )
@@ -165,7 +162,7 @@ async def _tick() -> None:
         # 把占位 next_run_at 推到一个完整 tick 周期之外（默认 90s）。即便另一个
         # worker 在 60s 后扫表，这批被占用的行也不会再判为 due。
         await db.execute(
-            update(SkillSchedule).where(SkillSchedule.id.in_(ids)).values(next_run_at=_utcnow() + _CLAIM_LEASE)
+            update(SkillSchedule).where(SkillSchedule.id.in_(ids)).values(next_run_at=utcnow() + _CLAIM_LEASE)
         )
         await db.commit()
 

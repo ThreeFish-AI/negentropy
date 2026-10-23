@@ -141,22 +141,9 @@ asyncio.run(perceive_world())
 
 ## 架构全景图
 
-```mermaid
-graph TD
-    A["SDK 层<br/>NegentropyPerceivesClient"] -.->|"HTTP Transport"| T["MCP 工具层<br/>6 Tools · @app.tool()"]
-    T --> P["Pipeline 层<br/>Stage 编排 · 竞争/降级"]
-    T --> B["处理引擎层<br/>Scraping · PDF · Markdown"]
-    P --> B
-    B --> C["基础设施层<br/>RateLimiter · Cache · Metrics · ErrorHandler · Retry"]
-    C --> D["配置层<br/>pydantic-settings · 环境变量"]
+![Negentropy Perceives 五层正交架构：SDK 层经 MCP StreamableHTTP 接入工具层，Pipeline 编排与处理引擎双路调度（竞争/降级），基础设施层提供限速、重试与缓存，配置层以 pydantic-settings 贯穿全局。](../../../assets/architecture/perceives/readme-zh--five-layers-dark.png)
 
-    style A fill:#4c1d95,stroke:#a78bfa,color:#ffffff
-    style T fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style P fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style B fill:#166534,stroke:#22c55e,color:#ffffff
-    style C fill:#134e4a,stroke:#14b8a6,color:#ffffff
-    style D fill:#581c87,stroke:#9333ea,color:#ffffff
-```
+> 图源（可 diff 文本）：[`readme-zh--five-layers.mmd`](../../../assets/mermaid/perceives/readme-zh--five-layers.mmd) · 交互版（下载到本地打开）：[`readme-zh--five-layers.html`](../../../assets/architecture/perceives/readme-zh--five-layers.html)
 
 5 层正交架构：SDK → MCP 工具 → Pipeline 编排 → 处理引擎 → 基础设施，配置层贯穿全局。PDF Pipeline 10 Stage + WebPage Pipeline 12 Stage，支持降级和竞争两种执行模式。
 

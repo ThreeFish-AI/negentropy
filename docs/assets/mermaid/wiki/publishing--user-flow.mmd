@@ -1,0 +1,19 @@
+%% source: docs/reference/wiki/user-guide/publishing.md §8.2 内容发布流程（块#0，L27-L43）
+%% slug: wiki/publishing--user-flow
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #0
+flowchart LR
+    KB["📚 知识库<br/>Corpus / Documents"] --> Publish["📤 发布<br/>选节点 + 选目标"]
+    Publish --> Build["🔨 导出 + 重建<br/>content/ → out/"]
+    Build --> Local["🏠 测试环境<br/>本地 :3092"]
+    Build --> Prod["🌐 生产环境<br/>threefish-ai.github.io"]
+    Local --> User["👤 用户浏览"]
+    Prod --> User
+
+    classDef proc fill:#DBEAFE,stroke:#1E3A8A,color:#000
+    classDef wiki fill:#D1FAE5,stroke:#065F46,color:#000
+    classDef prod fill:#FEE2E2,stroke:#991B1B,color:#000
+
+    class Publish,Build proc
+    class Local wiki
+    class Prod prod

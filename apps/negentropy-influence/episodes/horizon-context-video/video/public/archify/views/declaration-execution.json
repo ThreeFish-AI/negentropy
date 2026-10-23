@@ -1,0 +1,25 @@
+[
+ {
+  "id": "declare",
+  "label": "五段式声明",
+  "focus": [
+   "tables",
+   "rels",
+   "facts",
+   "metrics",
+   "fivePart"
+  ],
+  "note": "表、关系、事实、维度、指标固化为受治理元数据对象。"
+ },
+ {
+  "id": "switch-divergence",
+  "label": "执行开关分化",
+  "focus": [
+   "fivePart",
+   "rbac",
+   "agg",
+   "result"
+  ],
+  "note": "同行语义层允许关掉重算开关：手册一字未改，数字当场翻倍——M1 把声明与重算锁死为双不变量。"
+ }
+]

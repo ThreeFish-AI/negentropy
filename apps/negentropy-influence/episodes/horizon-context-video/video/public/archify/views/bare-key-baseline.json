@@ -1,0 +1,32 @@
+[
+ {
+  "id": "whole-key",
+  "label": "整库钥匙直连",
+  "focus": [
+   "keyHandover",
+   "bareAgent",
+   "rawTable"
+  ],
+  "note": "钥匙全交、不设口径：初级 Data Agent 直查裸物理表。"
+ },
+ {
+  "id": "blind-wrong",
+  "label": "认得出答不对",
+  "focus": [
+   "rawTable",
+   "wrongAnswer"
+  ],
+  "note": "认得每个字母、不知这就是毛收入——只能瞎猜，自信答错。"
+ },
+ {
+  "id": "baseline-two",
+  "label": "两成多双口径对撞",
+  "focus": [
+   "wrongAnswer",
+   "vendorBench",
+   "thirdPartyBench",
+   "sameOrder"
+  ],
+  "note": "官方内测 25% 对上独立复测 21%，两家各自测出同一量级。"
+ }
+]

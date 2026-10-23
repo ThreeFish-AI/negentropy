@@ -1,0 +1,50 @@
+[
+ {
+  "id": "sm-list",
+  "label": "逐文件清单",
+  "focus": [
+   "res",
+   "list",
+   "get"
+  ],
+  "note": "复用 Resources：一列一取，逐文件带摘要"
+ },
+ {
+  "id": "sm-approval",
+  "label": "批准锁定",
+  "focus": [
+   "list",
+   "approve"
+  ],
+  "note": "批准锚定那一刻全部 uri+digest"
+ },
+ {
+  "id": "sm-detect",
+  "label": "换货可测",
+  "focus": [
+   "swap",
+   "get",
+   "revoke",
+   "consent"
+  ],
+  "note": "增删轮换即失配，批准作废须重批"
+ },
+ {
+  "id": "sm-identity",
+  "label": "来源命名",
+  "focus": [
+   "list",
+   "ident"
+  ],
+  "note": "身份=(server, uri)，同名各归各港"
+ },
+ {
+  "id": "sm-gate",
+  "label": "预授权闸",
+  "focus": [
+   "tools",
+   "consent"
+  ],
+  "note": "跨港 allowed-tools 默认无视，点头放行"
+ }
+]

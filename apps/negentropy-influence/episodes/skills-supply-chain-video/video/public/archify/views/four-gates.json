@@ -1,0 +1,41 @@
+[
+ {
+  "id": "fg-gemini",
+  "label": "唯一真卡",
+  "focus": [
+   "skill",
+   "g1",
+   "g2"
+  ],
+  "note": "代码级门：默认询问，无 TTY 即拒"
+ },
+ {
+  "id": "fg-trust",
+  "label": "信任不拦",
+  "focus": [
+   "skill",
+   "c1"
+  ],
+  "note": "文档自认：信任门不管预授权字段"
+ },
+ {
+  "id": "fg-chain",
+  "label": "预授权直通",
+  "focus": [
+   "c1",
+   "c2",
+   "c3"
+  ],
+  "note": "Bash(*) + 隐形动态语法 → 零提示直执"
+ },
+ {
+  "id": "fg-explicit",
+  "label": "明文被拒",
+  "focus": [
+   "c2",
+   "x1",
+   "x2"
+  ],
+  "note": "明文通道模型可见 → 标记为注入"
+ }
+]

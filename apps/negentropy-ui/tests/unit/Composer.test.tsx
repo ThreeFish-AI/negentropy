@@ -127,7 +127,7 @@ describe("Composer", () => {
   });
 
   it("forceShowStop 在非 generating但有待决审批时也显示 Stop（逃生门）", async () => {
-    // ISSUE-156 续：审批弹窗待决时 isGenerating 可能为 false，用户仍需 Stop 自救。
+    // I-156 续：审批弹窗待决时 isGenerating 可能为 false，用户仍需 Stop 自救。
     const onCancel = vi.fn();
     render(
       <Composer

@@ -1,0 +1,30 @@
+[
+ {
+  "id": "loop-wake",
+  "label": "六行循环",
+  "focus": [
+   "pipeline",
+   "queue"
+  ],
+  "note": "P3 3-F 前半（p3-24..25）：交付流水线零点二秒一轮——队列空先走。"
+ },
+ {
+  "id": "door-busy",
+  "label": "敲门·有动静·走开",
+  "focus": [
+   "pipeline",
+   "lock",
+   "queue"
+  ],
+  "note": "P3 3-F 中段（p3-26..27）：非阻塞抢锁抢不到就走开（师傅忙）；P5 5-E 绿侧让行五次同章复用。"
+ },
+ {
+  "id": "door-open",
+  "label": "门开·再确认·执行",
+  "focus": [
+   "lock",
+   "master"
+  ],
+  "note": "P3 3-F 收拍（p3-28）：抢到锁＝门开，再确认队列非空才拉起一轮执行。"
+ }
+]

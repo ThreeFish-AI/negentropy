@@ -1,0 +1,35 @@
+# 媒体固定资产登记表（SSOT）——2026-10-08 起仓内音/视频媒体默认不入库，
+# 「默认不入库，登记才入库」的唯一登记处即本文件。
+#
+# 纪律：
+#   1. 新增/更换媒体文件 → 先在此登记（path/sha256/bytes/reason），再
+#      `uv run --no-project scripts/check_media_assets.py --sync` 重放 .gitignore
+#      白名单块，然后正常 git add。
+#   2. 未登记的 *.mp3/*.mp4/*.wav/… 一律不入库（.gitignore 通用规则默认忽略；
+#      即便被 -f 强加，check_media_assets --check 也会以「已入库媒体 ⊆ 登记表」拦下）。
+#   3. 文件被替换（sha256 变了）必须同步更新本表——钩子按指纹对账，替换不登记即红。
+#   4. 大文件注意 pre-commit check-added-large-files 的 --maxkb=1024 上限，
+#      超限需走 Git LFS 决策（本表不覆盖 LFS 指针文件）。
+#
+# 校验与白名单生成：scripts/check_media_assets.py（--sync / --check）。
+
+[[asset]]
+path = "docs/assets/architecture/core/negentropy-architecture-story.mp4"
+sha256 = "cdd5e89a45c6bb64965bbded13d6201ea5c1f3897f462cacf1e79d1a2e1e3d8b"
+bytes = 980371
+reason = "negentropy 架构故事片（README/framework.md/knowledge-map 四处引用的存量资产，2026-10-08 存量合规化补登记）"
+added = "2026-10-08"
+
+[[asset]]
+path = "docs/assets/architecture/core/negentropy-architecture-story.gif"
+sha256 = "9f92aa93e02729789ed75da5197e7b5a4e7024a9aa72af27dca82415f064d983"
+bytes = 896340
+reason = "negentropy 架构故事片 GIF 版（README 等处引用的存量资产，2026-10-08 存量合规化补登记）"
+added = "2026-10-08"
+
+[[asset]]
+path = "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh.mp3"
+sha256 = "bcc6fb889e810946caf2adad5048d50dfe8adaa3078b388c27f2be7b19a306eb"
+bytes = 135243
+reason = "CC 系列片头《一个循环》统一口播音轨（IndexTTS 合成产物，非本人声源样本；系列级固定资产入种子目录，五集 video/public/audio/ 副本仍为本地放置件、按 intro/README.md 校验同字节）。当前为 edge 草声 take，终声重配后须更新本条 sha256/bytes"
+added = "2026-10-08"

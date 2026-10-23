@@ -1,0 +1,20 @@
+%% source: docs/reference/perceives/framework.md §PDF 处理引擎 › 引擎降级链 (块#6, L337-L354)
+%% slug: perceives/framework--engine-matrix
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #6
+%% fix: 链序与许可证注记逐条核对 pdf/processor.py:35-42 一致；运行机制实为前 4 引擎经 _engine_dispatch.py::DISPATCH_TABLE 引擎池调度（缺失/失败→跳过降级），PyMuPDF/PyPDF 走 processor.py:421 起的独立轻量路径（_extract_with_pymupdf:654 / _extract_with_pypdf:865），重绘保持 6 节点链序并以卡片注记两级机制
+%% fix: 本仓 pyproject 已将六引擎全部列为核心依赖（apps/negentropy-perceives/pyproject.toml:52-75），文档「可选依赖」口径过时；降级语义=初始化失败/运行失败自动跳过
+%% fix: 补记能力约束：OpenDataLoader 需 Java 11+、不支持 page_range；Marker 不支持 page_range（_engine_dispatch.py:31-58）
+graph LR
+    A["Docling<br/>MIT · 最佳整体质量"] --> B["OpenDataLoader<br/>Apache 2.0 · CPU-only · 全元素 bbox"]
+    B --> C["MinerU<br/>Apache 2.0 · 最佳 LaTeX"]
+    C --> D["Marker<br/>GPL-3.0 · 最佳准确率"]
+    D --> E["PyMuPDF<br/>快速文本提取"]
+    E --> F["PyPDF<br/>基础降级"]
+
+    style A fill:#166534,stroke:#22c55e,color:#ffffff
+    style B fill:#0f766e,stroke:#14b8a6,color:#ffffff
+    style C fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style D fill:#dc2626,stroke:#ef4444,color:#ffffff
+    style E fill:#134e4a,stroke:#14b8a6,color:#ffffff
+    style F fill:#581c87,stroke:#9333ea,color:#ffffff

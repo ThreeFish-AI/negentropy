@@ -1,0 +1,47 @@
+%%source docs/concepts/subsystems/039-the-routine-system.md#block4
+%%slug subsystems/039-routine--inspector-heartbeat
+%%type sequence
+%%derived docs/assets/architecture/subsystems/039-routine--inspector-heartbeat.html
+%% fix: Evaluate 非心跳内同步往返 —— 心跳仅轻量认领(executed→evaluating + lease)后派后台任务
+%% fix:   (_claim_for_eval / _spawn_eval_task)，gate+Judge+decide+写回由 _evaluate_one_bg 承担
+%% fix:   (受 evaluate_max_concurrent=4 信号量限流)，以保心跳恒远低于 60s 超时
+%% fix: inspect_once() 实为 6 pass：reap_orphans → reap_workspaces → reap_wiki_dev_servers
+%% fix:   → sync_pr_merge_status → evaluate_and_decide → dispatch_due（原图三阶段为粗粒度归组）
+%% fix: REAP 另回收「评估在途孤儿」：evaluating + lease 过期 → 回退 executed（非 reaped，评估幂等可重入）
+%% fix: DISPATCH 为 commit-before-launch：迭代行先提交、后 runner.launch（防 phantom-row）
+%% fix: DISPATCH 先 _launch_approved 派发已审批迭代，再受 runner.has_capacity() 名额门派新迭代
+sequenceDiagram
+    participant Tick as routine_inspector 心跳
+    participant Orch as RoutineOrchestrator
+    participant Eval as RoutineEvaluator
+    participant Dec as decision.py
+    participant Run as RoutineRunner
+    participant CC as ClaudeCodeService
+    participant DB as PostgreSQL
+
+    Tick->>Orch: inspect_once()
+
+    Note over Orch,DB: (a) REAP 回收孤儿
+    Orch->>DB: 查 in_flight 且 lease 过期
+    Orch->>DB: 本进程不持有 → 标记 reaped
+
+    Note over Orch,Dec: (b) EVALUATE + DECIDE
+    Orch->>DB: 查最新迭代=executed 的 routine
+    Orch->>Eval: evaluate(routine, iteration)
+    Eval->>Eval: 命令门控(可选) + LLM-as-Judge
+    Eval-->>Orch: score / verdict / reflection
+    Orch->>DB: 写评估结果 + 追加反思
+    Orch->>Dec: decide(routine, latest, history)
+    Dec-->>Orch: continue | terminate(reason)
+    alt terminate
+        Orch->>DB: 置终态 + termination_reason
+    end
+
+    Note over Orch,CC: (c) DISPATCH 派发下一迭代
+    Orch->>DB: 查 running 且无在途迭代(FOR UPDATE SKIP LOCKED)
+    Orch->>Dec: pre_dispatch_check(预算/截止)
+    Orch->>DB: 创建迭代(dispatched 或 pending_approval)
+    Orch->>Run: launch(非阻塞)
+    Run->>CC: invoke(prompt, config, abort_event)
+    CC-->>Run: ClaudeCodeResult
+    Run->>DB: 写回结果 + 更新 routine 累计

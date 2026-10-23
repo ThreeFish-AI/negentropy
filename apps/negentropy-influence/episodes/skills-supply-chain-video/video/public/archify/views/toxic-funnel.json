@@ -1,0 +1,44 @@
+[
+ {
+  "id": "tf-snyk",
+  "label": "厂商扫描",
+  "focus": [
+   "snyk",
+   "snyk-issue",
+   "snyk-mal"
+  ],
+  "note": "3,984 → 36.8% 有问题 → 76 恶意"
+ },
+ {
+  "id": "tf-usenix",
+  "label": "学术扫描",
+  "focus": [
+   "usenix",
+   "usenix-mal",
+   "brand"
+  ],
+  "note": "98,380 → 157 恶意 · 均 4.03 漏洞"
+ },
+ {
+  "id": "tf-installs",
+  "label": "装机量",
+  "focus": [
+   "installer",
+   "typo",
+   "brand",
+   "prereq"
+  ],
+  "note": "安装器月下载 ~2,982 万 · 含 CI/bot"
+ },
+ {
+  "id": "tf-tricks",
+  "label": "老三样",
+  "focus": [
+   "typo",
+   "brand",
+   "prereq",
+   "malbench"
+  ],
+  "note": "冒充 · 错拼 · 假依赖 · npm 旧招"
+ }
+]

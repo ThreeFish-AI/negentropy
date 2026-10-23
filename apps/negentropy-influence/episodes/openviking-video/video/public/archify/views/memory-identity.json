@@ -1,0 +1,28 @@
+[
+ {
+  "id": "prefetch",
+  "label": "提名",
+  "focus": [
+   "prefetch"
+  ],
+  "note": "预取相似旧卡：只提名候选。"
+ },
+ {
+  "id": "identity",
+  "label": "身份裁决",
+  "focus": [
+   "identity",
+   "name"
+  ],
+  "note": "卡名由读者和主题拼出。"
+ },
+ {
+  "id": "upsert",
+  "label": "落卡",
+  "focus": [
+   "exists",
+   "upsert"
+  ],
+  "note": "同名则修订，没有则新建。"
+ }
+]

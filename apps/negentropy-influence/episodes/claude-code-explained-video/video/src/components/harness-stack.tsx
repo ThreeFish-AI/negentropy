@@ -7,6 +7,10 @@
  *
  * 两个组件：
  *  - HarnessStackP0：开场编排（落板 → 本集层高亮呼吸 → 缩退淡出，末段交叉淡入常驻条）；
+ *    ⚠️ 2026-10-06 系列片头改版：0-A 落板职责已由 components/series-intro.tsx 接替，
+ *    本组件在本集已无调用点。2026-10-08 五集铺开去留决策（I-209）：**五集保留**
+ *    ——本集供 LAYERS/ACTIVE_INDEX 数据源（series-intro 消费），E2–E5 让位改造
+ *    （各自 0-A 与片头双开场重复，重渲硬前置）完成前仍用 HarnessStackP0 开场；
  *  - HarnessBadge：P1–P6 的常驻顶边条（横向五 chip，y 12–48）。
  *
  * ⚠️ 形式对规格的一处适配（评审实测）：规格写「缩退左上角纵向角标（宽 ≤300）」，
@@ -142,7 +146,7 @@ export const PlateSlab3D: React.FC<{
       >
         {/* 零光源（solids-3d 宪法三）：basic 材质本就不吃光，此前的 ambientLight 是空操作。
             板体恒等于 theme.panel 深底，active 的暖意只走描边与 PLATE_LIT 的轻微提亮——
-            绝不让整块变成实心亮块（ISSUE-177 教训二：emissive 把点亮层烧成橙块、压掉文字对比）。 */}
+            绝不让整块变成实心亮块（I-177 教训二：emissive 把点亮层烧成橙块、压掉文字对比）。 */}
         <group rotation={[rotationX, yaw, 0]} position={[0, -headroom / 2, 0]}>
           <Slab3D
             width={width}

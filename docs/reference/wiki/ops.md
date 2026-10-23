@@ -48,33 +48,9 @@ Negentropy Wiki 是 Negentropy 平台的知识库文档发布站点，负责将�
 
 ### 2.1 系统架构
 
-```mermaid
-flowchart LR
-    subgraph Backend["后端服务"]
-        KnowledgeDB[(PostgreSQL<br/>知识库)]
-        WikiAPI[Wiki API<br/>/knowledge/wiki]
-    end
+![主站 UI「同步并发布」经 wiki_service.publish 落库后，fire-and-forget 驱动「导出静态内容包 → next build 纯静态重建 → GitHub Pages 等静态托管」主链交付访客（零后端零数据库），webhook 旁路同时通知 GitHub Actions 导出 CI。](../../assets/architecture/wiki/ops--publish-flows-dark.png)
 
-    subgraph WikiApp["negentropy-wiki"]
-        APIClient[API Client<br/>wiki-api.ts]
-        SSG[SSG 生成器<br/>generate.ts]
-        Pages[页面组件<br/>page.tsx]
-        Theme[主题系统<br/>globals.css]
-    end
-
-    subgraph Deploy["部署"]
-        CDN[CDN 缓存]
-        Node[Node.js Server]
-    end
-
-    KnowledgeDB -->|数据| WikiAPI
-    WikiAPI -->|HTTP/JSON| APIClient
-    APIClient -->|SSG| Pages
-    SSG -->|HTML| CDN
-    CDN -->|静态资源| User
-    User -->|访问| Node
-    Node -->|ISR触发| APIClient
-```
+> 图源（可 diff 文本）：[`ops--publish-flows.mmd`](../../assets/mermaid/wiki/ops--publish-flows.mmd) · 交互版（下载到本地打开）：[`ops--publish-flows.html`](../../assets/architecture/wiki/ops--publish-flows.html)
 
 ### 2.2 路由结构
 
@@ -85,7 +61,7 @@ flowchart LR
 | `/:pubSlug/:entrySlug` | `src/app/[pubSlug]/[entrySlug]/page.tsx` | 文档详情页：Markdown 渲染                                       |
 | `/:pubSlug/graph`      | `src/app/[pubSlug]/graph/page.tsx`       | 知识图谱页：按 Publication 切片的实体/关系可视化（Sigma WebGL） |
 
-> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./knowledge-graph.md)；数据流与 Markdown 页面同构，仅构建期 `fetch` + 重建（运行时 ISR 已退役，见 [§5](#5-构建部署与内容刷新)），无新增持久化或部署形态。
+> 知识图谱页设计详见 [Wiki 知识图谱（按 Publication 切片发布）](./design/knowledge-graph.md)；数据流与 Markdown 页面同构，仅构建期 `fetch` + 重建（运行时 ISR 已退役，见 [§5](#5-构建部署与内容刷新)），无新增持久化或部署形态。
 
 ### 2.3 数据流
 
@@ -222,7 +198,7 @@ async rewrites() {
 | 问题                                              | 可能原因                                                                                                   | 解决方案                                                                                                                                                                                                                                                                                                                                 |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 构建期告警 "Failed to fetch publications"         | 后端 API 不可达（WARN 级，不阻断构建）                                                                     | 后端暂不可达时 SSG 渲染空首页（纯静态站、无运行时自愈，需重新「发布」触发重建）；若需构建期预渲染真实数据，检查 `WIKI_API_BASE` 配置和网络连通性                                                                                                                                                                                                    |
-| 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（历史，纯静态化前；详见 [docs/issue.md ISSUE-020](../../agents/issue.md#issue-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
+| 「同步并发布」后首页持续显示「暂无已发布的 Wiki」 | 端口错配 / webhook 未触达 / ISR 残留空缓存（历史，纯静态化前；详见 [docs/issue.md I-020](../../agents/issue.md#I-020)） | (a) `curl http://localhost:3292/knowledge/wiki/publications?status=published` 验后端连通；(b) 检查 `WIKI_API_BASE` 是否被本地 `.env` 错误覆盖；(c) 确认后端 `NE_KNOWLEDGE_WIKI_REVALIDATE__URL` 未被错误覆盖；(d) 若曾混用 `pnpm start` 致 `.temp/` 残留，执行 `rm -rf apps/negentropy-wiki/.next apps/negentropy-wiki/.temp` 后重启 dev |
 | 页面显示 "Wiki 未找到"                            | Publication 未发布或 slug 错误                                                                             | 检查后端 Publication 状态                                                                                                                                                                                                                                                                                                                |
 | 页面内容不更新                                    | 未重新发布/重建（纯静态站）                                                                                | wiki 为纯静态站（`output: export`），重新「发布」触发 fire-and-forget 重建后即更新；无运行时缓存自愈                                                                                                                                                                                                                                                                                                                    |
 | 深色模式样式异常                                  | 浏览器未启用深色模式                                                                                       | 检查系统深色模式设置                                                                                                                                                                                                                                                                                                                     |
@@ -284,7 +260,7 @@ curl ${WIKI_API_BASE}/knowledge/wiki/publications?status=published
 ## 12. 单实例 Catalog 与 Wiki 发布版本管理运维
 
 > **架构依据**：[`035-the-knowledge-base.md` §15 单实例 Catalog 收敛（Phase 4）](../../concepts/subsystems/035-the-knowledge-base.md#15-单实例-catalog-收敛phase-4在-nm-之上叠加聚合根不变量)
-> **关联 Issue**：[`issue.md` ISSUE-015](../../agents/issue.md#issue-015)
+> **关联 Issue**：[`issue.md` I-015](../../agents/issue.md#I-015)
 > **适用版本**：Phase 4（Migration 0007/0008）落地后
 
 ### 12.1 不变量与日常巡检

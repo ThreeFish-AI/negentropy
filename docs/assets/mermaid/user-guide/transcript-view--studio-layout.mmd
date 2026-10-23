@@ -1,0 +1,23 @@
+%% source: docs/concepts/user-guide/transcript-view.md#0
+%% slug: user-guide/transcript-view--studio-layout
+%% type: workflow
+%% derived: docs/assets/architecture/user-guide/transcript-view--studio-layout.html
+%% fix: Routine 机侧非「裸文」——共享渲染器统一用 ASSISTANT_BUBBLE_CLASS（rounded-tl-sm bg-muted/30 气泡），与 Studio 机侧同款（本文档 §3.2 已如此描述，仅此图陈述滞后）
+%% fix: Routine 机侧（Claude Code）在回合切换处同样渲染 RoleHeader 徽章（ROUTINE_POLICY.roleHeaderFor 返回 claude_code），原图把徽章只标给右侧
+%% fix: 「一核五翼 6 Agent + Engine」重复计数——一核 Engine（Negentropy）本身即 6 Agent 之一
+%% fix: 补入徽章归属的真实差异：人侧块（task_dispatch / human_reply）徽章内嵌在气泡首行，机侧徽章由渲染器渲在气泡上方
+flowchart LR
+  subgraph STUDIO["Studio 中栏"]
+    direction TB
+    SU["👤 用户（你）"] -.居右.-> SUR["右侧气泡<br/>primary 浅底"]
+    SA["🤖 一核五翼 + Claude Code"] -.居左.-> SAL["左侧气泡 + per-agent 徽章<br/>+ 工具行 + 思考折叠"]
+  end
+  subgraph ROUTINE["Routine Full View"]
+    direction TB
+    RH["🧠 一核五翼 6 Agent + Engine"] -.居右.-> RHR["右侧气泡<br/>RoleHeader 徽章"]
+    RC["🛠️ Claude Code"] -.居左.-> RCL["左侧裸文 + 紧凑工具行<br/>+ 待决卡片"]
+  end
+  classDef studio fill:#1e3a5f,stroke:#60a5fa,color:#e0f2fe;
+  classDef routine fill:#3f3a1e,stroke:#fbbf24,color:#fef9c3;
+  class STUDIO studio;
+  class ROUTINE routine;

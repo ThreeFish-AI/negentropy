@@ -1,0 +1,340 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Context Engine 纳管管线（目标态）",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "f318e624c5d5abf80d41f8189ee928d7b72d6deb"
+    }
+  },
+  "lanes": [
+    {
+      "id": "intake",
+      "label": "纳管 · 登记与归一"
+    },
+    {
+      "id": "govern",
+      "label": "治理 · 分类"
+    },
+    {
+      "id": "index",
+      "label": "分级与索引 · 入目录"
+    }
+  ],
+  "groups": [
+    {
+      "id": "tier_ladder",
+      "label": "字符预算分级",
+      "lane": "index",
+      "fromCol": 4,
+      "toCol": 4
+    }
+  ],
+  "mainPath": [
+    "ingest",
+    "normalize",
+    "classify",
+    "tier",
+    "l1",
+    "tag_index"
+  ],
+  "semanticChecks": {
+    "allowedRoots": [
+      "ingest"
+    ],
+    "allowedTerminals": [
+      "tag_index"
+    ],
+    "requiredEdges": [
+      {
+        "from": "tier",
+        "to": "l0"
+      },
+      {
+        "from": "tier",
+        "to": "l2"
+      },
+      {
+        "from": "l0",
+        "to": "tag_index"
+      },
+      {
+        "from": "l2",
+        "to": "tag_index"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "ingest",
+      "lane": "intake",
+      "col": 0,
+      "type": "messagebus",
+      "label": "Ingest 登记指针",
+      "sublabel": "源系统 · 路径 · Owner",
+      "tag": "变更事件订阅",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 762,
+          "label": "§9.2 L1 三项入账校验·带出处入账"
+        },
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 42,
+          "label": "§2 编目相·资源入库"
+        }
+      ]
+    },
+    {
+      "id": "normalize",
+      "lane": "intake",
+      "col": 1,
+      "type": "backend",
+      "label": "Normalize 归一",
+      "sublabel": "Parser 四件套",
+      "tag": "不调用 LLM",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 45,
+          "label": "图 1 Parser 切分（无 LLM）"
+        },
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 42,
+          "label": "§2 编目相两相"
+        }
+      ]
+    },
+    {
+      "id": "classify",
+      "lane": "govern",
+      "col": 2,
+      "type": "security",
+      "label": "Classify 分类",
+      "sublabel": "治理形态 · 所属域",
+      "tag": "各五选一",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 764,
+          "label": "§9.2 L2 校验与裁决"
+        },
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 357,
+          "label": "§4.2 字段即治理面 visibility"
+        }
+      ]
+    },
+    {
+      "id": "tier",
+      "lane": "index",
+      "col": 3,
+      "type": "backend",
+      "label": "Tier 分级",
+      "sublabel": "自底向上聚合",
+      "tag": "异步",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 112,
+          "label": "256/4000 字符实值"
+        },
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 114,
+          "label": "自底向上 DAG 调度"
+        },
+        {
+          "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md",
+          "line": 177,
+          "label": "L0/L1/L2 目录式上下文"
+        }
+      ]
+    },
+    {
+      "id": "l0",
+      "lane": "index",
+      "col": 4,
+      "type": "database",
+      "label": "L0 ≤256 字符",
+      "width": 124,
+      "yOffset": -80,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 112,
+          "label": "abstract_max_chars=256"
+        },
+        {
+          "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md",
+          "line": 104,
+          "label": "R1 Push 摘要（L0）"
+        }
+      ]
+    },
+    {
+      "id": "l1",
+      "lane": "index",
+      "col": 4,
+      "type": "database",
+      "label": "L1 ≤4000 字符",
+      "width": 124,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 112,
+          "label": "overview_max_chars=4000"
+        },
+        {
+          "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md",
+          "line": 104,
+          "label": "R1 Pull 展开（L1/L2）"
+        }
+      ]
+    },
+    {
+      "id": "l2",
+      "lane": "index",
+      "col": 4,
+      "type": "database",
+      "label": "L2 指针",
+      "sublabel": "指针不副本",
+      "width": 124,
+      "yOffset": 80,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 293,
+          "label": "L3 指针不副本（G5）"
+        },
+        {
+          "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md",
+          "line": 104,
+          "label": "R1 Pull 展开（L1/L2）"
+        }
+      ]
+    },
+    {
+      "id": "tag_index",
+      "lane": "index",
+      "col": 5,
+      "type": "database",
+      "label": "Tag/Index 打标与索引",
+      "sublabel": "ctx:// URI · 条目元数据",
+      "width": 130,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 360,
+          "label": "§4.2 对象模型 version 字段"
+        },
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 391,
+          "label": "ADR-1 viking:// 寻址可借鉴"
+        },
+        {
+          "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md",
+          "line": 96,
+          "label": "G2 TTL 策略"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_ing",
+      "from": "ingest",
+      "to": "normalize",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_norm",
+      "from": "normalize",
+      "to": "classify",
+      "variant": "default"
+    },
+    {
+      "id": "e_cls",
+      "from": "classify",
+      "to": "tier",
+      "variant": "default"
+    },
+    {
+      "id": "e_t0",
+      "from": "tier",
+      "to": "l0",
+      "variant": "default"
+    },
+    {
+      "id": "e_t1",
+      "from": "tier",
+      "to": "l1",
+      "variant": "default"
+    },
+    {
+      "id": "e_t2",
+      "from": "tier",
+      "to": "l2",
+      "variant": "default"
+    },
+    {
+      "id": "e_0x",
+      "from": "l0",
+      "to": "tag_index",
+      "variant": "default"
+    },
+    {
+      "id": "e_1x",
+      "from": "l1",
+      "to": "tag_index",
+      "variant": "default"
+    },
+    {
+      "id": "e_2x",
+      "from": "l2",
+      "to": "tag_index",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "归一四件套 · 全程无 LLM",
+      "items": [
+        "Parser 切分：章节路径 · 内容模块 · 多模态元素 · 分级摘要——四件套枚举为本设计自定义，014 仅明确「切分无 LLM」",
+        "对照 014 编目相：其 L1 摘要各调 1 次 LLM，本设计分级摘要确定性产出（口径差异）"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "治理字段（Classify 写入）",
+      "items": [
+        "治理形态（五选一）· 所属域（五选一）——本设计新词，仓内无枚举依据",
+        "可见性有 §4.2 字段载体；效力 · 作用域为 Classify 仅设计字段——本设计新词，无枚举依据（字段即治理面：013 §4.2）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "分级 · 条目元数据 · 寻址口径",
+      "items": [
+        "L0 ≤256 / L1 ≤4000 字符软上限、L2 指针——阈值实值出处 014（parser_config）",
+        "条目元数据＝版本 · TTL · 复核周期 · 溯源的登记面——条目元数据/复核周期为本设计新词，TTL 成分有 230 G2 先例",
+        "L0/L1 向量化；ctx:// URI 为设计口径（寻址先例 viking://，ADR-1）"
+      ]
+    }
+  ]
+}

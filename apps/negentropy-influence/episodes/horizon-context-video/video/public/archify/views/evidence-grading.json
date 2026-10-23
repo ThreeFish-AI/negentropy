@@ -1,0 +1,24 @@
+[
+ {
+  "id": "vendor-claim",
+  "label": "厂商自报无复测",
+  "focus": [
+   "benchSource",
+   "gradeCard",
+   "vendorClaim",
+   "retestGap"
+  ],
+  "note": "官方称准确率升到八成六，全部出自自家基准口径，没有第三方复测。"
+ },
+ {
+  "id": "not-industry-norm",
+  "label": "自报≠行业常态",
+  "focus": [
+   "vendorClaim",
+   "retestGap",
+   "dualBaseline",
+   "verdictNorm"
+  ],
+  "note": "开场基线自报 25%、复测 21%；自报最佳数字不能当行业常态。"
+ }
+]

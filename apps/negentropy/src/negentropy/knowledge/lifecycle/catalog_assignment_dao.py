@@ -13,15 +13,15 @@ DOCUMENT_REF 仅由本模块创建——其它入口（如 :class:`CatalogServic
 
 from __future__ import annotations
 
-import logging
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from negentropy.logging import get_logger
 from negentropy.models.perception import DocCatalogEntry, KnowledgeDocument
 
-logger = logging.getLogger("negentropy.knowledge")
+logger = get_logger(__name__)
 
 __all__ = ["CatalogAssignmentDao"]
 

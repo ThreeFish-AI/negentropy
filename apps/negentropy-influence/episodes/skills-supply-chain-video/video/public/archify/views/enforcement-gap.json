@@ -1,0 +1,31 @@
+[
+ {
+  "id": "eg-must",
+  "label": "纸面条款",
+  "focus": [
+   "must",
+   "ignore"
+  ],
+  "note": "纸面 MUST，服务器照样可改"
+ },
+ {
+  "id": "eg-npm",
+  "label": "保税仓解",
+  "focus": [
+   "ignore",
+   "npmreg",
+   "noreg"
+  ],
+  "note": "npm 靠中心仓库；这里没人先建"
+ },
+ {
+  "id": "eg-chat",
+  "label": "离港断链",
+  "focus": [
+   "paste",
+   "chainlost",
+   "onlypack"
+  ],
+  "note": "离港即断链，只剩随包来源信息"
+ }
+]

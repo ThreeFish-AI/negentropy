@@ -1,0 +1,29 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block5
+%%slug: subsystems/025-memory--runner-sequence
+%%type: sequence
+%%derived: archify
+%% fix: 简化路径已从「合并为单条内容」更新为实际四阶段管线：分段(≤5轮/段)→embedding指数退避重试(1s/2s/4s,≤3次)→advisory lock+查重(cos≥0.85/Jaccard≥0.7)后INSERT(含retention/importance/PII flags)→事实提取管线
+%% fix: ConsolidationWorker 在代码中是可选注入的 consolidation_worker 协作者（无同名类）；consolidation_jobs 队列由 SQL trigger_maintenance_consolidation 按时间窗入队、消费侧异步巩固
+%% fix: INSERT memories 附带初始 retention_score/importance_score 与 PII flags（pii_flags/pii_spans），非仅 content/embedding/metadata
+sequenceDiagram
+    participant Runner as ADK Runner
+    participant PMS as PostgresMemoryService
+    participant CW as ConsolidationWorker
+    participant SC as _simple_consolidate
+    participant EMB as EmbeddingFn
+    participant DB as PostgreSQL
+
+    Runner->>PMS: add_session_to_memory(session)
+
+    alt 有 ConsolidationWorker（生产路径）
+        PMS->>CW: consolidate(thread_id, user_id, app_name)
+        CW->>DB: INSERT consolidation_job(status='pending')
+        CW->>DB: 异步处理 → INSERT memories
+    else 无 Worker（开发/测试路径）
+        PMS->>SC: _simple_consolidate(session)
+        SC->>SC: 提取 user/model/assistant 消息
+        SC->>SC: 合并为单条内容
+        SC->>EMB: embed(combined_content)
+        EMB-->>SC: vector(1536)
+        SC->>DB: INSERT memories(content, embedding, metadata)
+    end

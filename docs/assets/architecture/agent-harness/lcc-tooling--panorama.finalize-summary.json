@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--panorama/lcc-tooling--panorama.json",
+    "sha256": "30e62dff10f2db29ceabfefd9ed82ab687ae8643c71d8c523aedbdd27c2ecba0",
+    "bytes": 4883
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.html",
+    "sha256": "d4e2b49026d6519231109283e2f9647f2c51a90d9b51d38a0361dfdd505a7e3d",
+    "bytes": 763221
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--panorama.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1711
+}

@@ -1,0 +1,7 @@
+[
+ {"id": "stop-moment", "label": "撂活那一刻", "focus": ["stop-moment"], "note": "执笔的时机也讲究：师傅撂活的那一刻，收尾旁路才开工。"},
+ {"id": "no-new-call", "label": "停且无调用", "focus": ["stop-moment", "no-tool-use"], "note": "模型停了，手里又没有新的工具调用——对话告一段落的判定。"},
+ {"id": "side-extract", "label": "旁路抽取", "focus": ["bypass-open", "candidate-extract"], "note": "收尾的旁路开工，从对话里抽取新记忆候选。"},
+ {"id": "dedupe-first", "label": "先查旧账", "focus": ["existing-list", "candidate-extract"], "note": "抽之前先看已有清单：记过的不再记，确实有新东西才写文件。"},
+ {"id": "strong-signals", "label": "最认的信号", "focus": ["signal-strong", "candidate-extract"], "note": "用户明说要记住，或反复流露同一个偏好——提取器最认的信号（终态）。"}
+]

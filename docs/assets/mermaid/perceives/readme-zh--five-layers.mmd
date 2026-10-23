@@ -1,0 +1,22 @@
+%% source: docs/reference/perceives/zh-CN/README.md §架构全景图（块#0，L145-L160）
+%% slug: perceives/readme-zh--five-layers
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #0（含修正，与 perceives/framework--five-layers 镜像同源）
+%% fix: SDK 为双模式——mode="mcp" 走 StreamableHttpTransport(HTTP，默认) / mode="direct" 本地直连零配置（sdk.py:74-110），源图仅绘 HTTP 传输，A 节点补「MCP/直连」
+%% fix: 基础设施层无独立 ErrorHandler/Metrics 组件：RateLimiter/RetryManager=infra/resilience.py:11,31（rate_limiter 由 ops/{markdown,pdf} 消费）；缓存=引擎子进程 LRU+TTL _ConvertCache（docling/mineru/opendataloader，_engine_worker_entry.py:55）+ PDF 批量切片 checkpoint 断点续传（ops/pdf.py:131）；计时=core.elapsed_ms + TaskContextMiddleware 逐 Stage 计时（_middleware.py:40）；错误处理=SDK 异常族三分类（sdk.py:33-41）+ run_operation 执行守卫（core/execution.py）——sublabel 对齐现状
+%% fix: T→P/B 实际经由 ops/ 服务层中转（绑定单例并施加限速），Pipeline 为 method=auto 优先、传统引擎路径回退
+%% fix: 配置层贯穿全局（README 图注原文）——apps/app.py 启动即加载 settings，五层均消费 config，源图仅绘 C→D 单边
+graph TD
+    A["SDK 层<br/>NegentropyPerceivesClient · MCP/直连双模式"] -.->|"HTTP Transport"| T["MCP 工具层<br/>6 Tools · @app.tool()"]
+    T -->|"auto 优先"| P["Pipeline 层<br/>Stage 编排 · 竞争/降级"]
+    T -->|"引擎直调/回退"| B["处理引擎层<br/>Scraping · PDF · Markdown"]
+    P --> B
+    B --> C["基础设施层<br/>RateLimiter · RetryManager · 计时观测 · 检查点缓存"]
+    C --> D["配置层<br/>pydantic-settings · 环境变量"]
+
+    style A fill:#4c1d95,stroke:#a78bfa,color:#ffffff
+    style T fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style P fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style B fill:#166534,stroke:#22c55e,color:#ffffff
+    style C fill:#134e4a,stroke:#14b8a6,color:#ffffff
+    style D fill:#581c87,stroke:#9333ea,color:#ffffff

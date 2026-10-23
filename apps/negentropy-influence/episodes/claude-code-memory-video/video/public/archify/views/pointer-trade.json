@@ -1,0 +1,8 @@
+[
+ {"id": "batch-account", "label": "只算最新一批", "focus": ["latest-batch", "budget-check"], "note": "搬仓库只盯最新一批工具结果，算一笔总账，超预算才动手。"},
+ {"id": "size-queue", "label": "按大小排队", "focus": ["size-sort", "disk-vault"], "note": "超了预算按大小排队，从最占地方的开始写进磁盘仓库。"},
+ {"id": "parcel-tag", "label": "包裹标签", "focus": ["parcel-tag", "preview-block"], "note": "台面只留一张包裹标签：磁盘地址，加一段两千字的预览。"},
+ {"id": "full-on-disk", "label": "全文在磁盘", "focus": ["disk-vault", "parcel-tag"], "note": "模型看到标签就知道全文在磁盘上，随时能再读回来。"},
+ {"id": "slide-and-flatten", "label": "滑出即压扁", "focus": ["recent-window", "old-result", "generic-hint"], "note": "另一层是压条子：滑出最近窗口的旧结果，压成一行通用提示。"},
+ {"id": "hint-no-address", "label": "提示不带地址", "focus": ["generic-hint", "parcel-tag"], "note": "关键对照：包裹标签带磁盘地址，通用提示一个地址都不带——赌可重放，不赌可归档（本钉点）。"}
+]

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/.temp/archify/workflow-two-waiting-deaths-probe/candidate.json",
+    "sha256": "58a2f92811d05ecbafff409f8aa4aa08653e315553df8eaee5fa2db5507fc43e",
+    "bytes": 4914
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-waiting-deaths.html",
+    "sha256": "ce1013c22542ce5d5d4092742907d7675b7ecc8e90f26ba2e445ce97ca5e78c0",
+    "bytes": 762877
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-waiting-deaths.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-waiting-deaths.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/jakarta-v2/docs/assets/architecture/agent-harness/claude-code--two-waiting-deaths.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1931,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "fast-back",
+            "from": "fast-cmd",
+            "to": "ask",
+            "label": "当场递回",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.163
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "fast-cmd → ask needs 3 bends: move node fast-cmd or ask so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

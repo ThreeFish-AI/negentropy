@@ -1,0 +1,41 @@
+[
+ {
+  "id": "hb-mustnot",
+  "label": "自认边界",
+  "focus": [
+   "srv",
+   "gw",
+   "sep"
+  ],
+  "note": "digest 无签名且同源：匹配≠安全边界"
+ },
+ {
+  "id": "hb-partial",
+  "label": "三家部分",
+  "focus": [
+   "matrix",
+   "chatgpt",
+   "fast",
+   "insp"
+  ],
+  "note": "3 家 Partial，ChatGPT 靠静态快照"
+ },
+ {
+  "id": "hb-proto",
+  "label": "内部原型",
+  "focus": [
+   "sep",
+   "proto"
+  ],
+  "note": "Claude Code 宿主：内部原型未公开"
+ },
+ {
+  "id": "hb-546",
+  "label": "报关无人签",
+  "focus": [
+   "sep",
+   "pr546"
+  ],
+  "note": "#546 八行前缀保留，24 天 0 评论"
+ }
+]

@@ -33,7 +33,7 @@ dependencies = [
     # --- MCP 框架 ---
     "fastmcp>=3.2.4",
     # --- 网页抓取 ---
-    "aiohttp>=3.14.0",  # >=3.14.0 修复 CVE-2026-34993 / CVE-2026-47265
+    "aiohttp>=3.14.4",  # >=3.14.0 修复 CVE-2026-34993 / CVE-2026-47265；>=3.14.4 修复 CVE-2026-111063..111066/111748..111750, GHSA-2g87-pp6c-29x5（I-237 2026-10-23 增补）
     "beautifulsoup4>=4.14.0",
     "fake-useragent>=2.2.0",
     "requests>=2.33.1",
@@ -50,9 +50,9 @@ dependencies = [
     # --- PDF 处理 ---
     "markitdown>=0.1.5",
     "pymupdf>=1.27.2",
-    "pypdf>=6.13.3",  # 修复 CVE-2026-33699, GHSA-3crg-w4f6-42mx；>=6.13.3 修复 CVE-2026-48155/48156/48735/49460/49461/54530/54531, GHSA-jm82-fx9c-mx94（处理不可信 PDF，全部 DoS：内存耗尽/长运行时/死循环）
+    "pypdf>=6.21.1",  # 修复 CVE-2026-33699, GHSA-3crg-w4f6-42mx；>=6.13.3 修复 CVE-2026-48155/48156/48735/49460/49461/54530/54531, GHSA-jm82-fx9c-mx94（处理不可信 PDF，全部 DoS：内存耗尽/长运行时/死循环）；>=6.19.0 修复 PYSEC-2026-4153..4160（I-231 2026-10-17 增补，处理不可信 PDF）；>=6.21.1 修复 CVE-2026-113786（I-237 2026-10-23 增补）
     # --- PDF 引擎 ---
-    "docling>=2.94.0",  # PDF 处理引擎 (GPU 加速)；>=2.94.0 修复 CVE-2026-44016/44017/44018/47214（处理不可信 PDF，必须升级）
+    "docling>=2.132.0",  # PDF 处理引擎 (GPU 加速)；>=2.94.0 修复 CVE-2026-44016/44017/44018/47214；>=2.132.0 修复 PYSEC-2026-4189..4196/4208/4210..4216（I-231 2026-10-17 增补，处理不可信 PDF，必须升级；2.140.0 实测邻接钉 torch/torchvision/transformers 零牵动）
     "mineru>=3.0.9",  # PDF 处理引擎 (VLM 自动引擎)
     "marker-pdf>=1.10.2",  # PDF 处理引擎 (高精度 OCR)
     "pdfplumber>=0.11.0",  # 表格提取补充引擎
@@ -62,16 +62,16 @@ dependencies = [
     # --- PDF 表格补充引擎 ---
     "camelot-py>=0.11.0",  # 表格提取补充引擎（需系统级 ghostscript）
     # --- LLM 编排（Smart 模式） ---
-    "litellm>=1.83.7",  # >=1.83.7 修复 GHSA-9566(SQLi/SSTI) / 9590(MCP-RCE) / 9588(hash exposure) / 9589(OIDC bypass)
+    "litellm>=1.96.2",  # >=1.83.7 修复 GHSA-9566(SQLi/SSTI) / 9590(MCP-RCE) / 9588(hash exposure) / 9589(OIDC bypass)；>=1.96.2 修复 PYSEC-2026-4066（I-231，锁 1.96.2 最小修复线）
     # --- CLI ---
-    "typer>=0.21.2",  # docling 2.89 要求 typer<0.22.0
+    "typer>=0.21.2",  # docling 2.140 要求 typer>=0.19.0,<0.27.0（0.21.2 为本项目自设地板）
     "rich>=15.0.0",
     # --- 数据模型与配置 ---
     "pydantic>=2.12.5",
     "pydantic-settings>=2.14.2",  # 修复 GHSA-4xgf-cpjx-pc3j（2.14.1 及以下）
     "pyyaml>=6.0.3",              # YAML 配置文件解析
     # --- 运行时基础设施 ---
-    "setuptools>=83.0.0",  # 历史运行时地板；原注释「undetected-chromedriver 依赖 pkg_resources」已证伪——上游早于 82 即移除（82/83 实测皆无，ISSUE-092）。抬至 83.0.0 修 CVE-2026-59890（Dependabot #555）：82↔83 对本项目零功能差异已隔离验证，直接消因优于 ignore
+    "setuptools>=83.0.0",  # 历史运行时地板；原注释「undetected-chromedriver 依赖 pkg_resources」已证伪——上游早于 82 即移除（82/83 实测皆无，I-092）。抬至 83.0.0 修 CVE-2026-59890（Dependabot #555）：82↔83 对本项目零功能差异已隔离验证，直接消因优于 ignore
     "opendataloader-pdf>=2.4.3",
 ]
 
@@ -187,26 +187,29 @@ ignore_missing_imports = true
 [tool.uv]
 # Pillow 版本统一：surya-ocr(<11) 与 MinerU(>=11) 冲突，上游 PR datalab-to/surya#489 待发布
 # lxml>=6.1.0：修复 CVE-2026-41066（间接依赖）
-# urllib3>=2.7.0：修复 CVE-2026-44431, CVE-2026-44432（间接依赖）
+# urllib3>=2.8.0：修复 CVE-2026-44431, CVE-2026-44432 与 PYSEC-2026-4175/4176/4177（间接依赖；I-231 抬地板）
 # idna>=3.15：修复 CVE-2026-45409（间接依赖，requests/urllib3 传递依赖）
 # authlib>=1.7.1：修复 GHSA-r95x-qfjj-fjj2（OIDC Implicit/Hybrid Open Redirect，medium）
 # joserfc>=1.6.7：修复 CVE-2026-48990（间接依赖 fastmcp → authlib → joserfc）
 # openai>=2.20.0：litellm>=1.83.7 要求 openai>=2.20.0（覆盖 marker-pdf<2.0.0 约束）
-# transformers 锁定 4.x——根因已更新（2026-09-06）：marker-pdf 2.0.0 / surya-ocr 0.22.1 已适配 transformers>=5.12.1（旧「transformers.onnx 崩溃」不再成立），但二者同时要求 pillow<11，与本项目 pillow>=12.3.0（修 8 条图像解析 CVE，本项目直接解析不可信 PDF/图片、攻击面可达）直接冲突；transformers 零直接 import、仅加载第一方模型 artifact，攻击面不可达——升级为负收益交换。mineru 3.0.9 的 transformers<5.0.0 仅 vlm/pipeline extra 生效，不构成约束
-# CVE-2026-4372 (config.json _attn_implementation_internal 注入 RCE，绕 trust_remote_code=False) 4.x 无回溯补丁；威胁模型见 docs/.agents/issue.md ISSUE-092（仅加载第一方模型 artifact，无不可信模型/转换路径），dismiss 为 tolerable_risk
+# transformers 锁定 4.x——根因已更新（2026-09-06）：marker-pdf 2.0.0 / surya-ocr 0.22.1 已适配 transformers>=5.12.1（旧「transformers.onnx 崩溃」不再成立），但二者同时要求 pillow<11，与本项目 pillow 系列抬地板（12.3.0 修 8 条、13.0.0 修 35 条图像解析 CVE，本项目直接解析不可信 PDF/图片、攻击面可达）直接冲突；transformers 零直接 import、仅加载第一方模型 artifact，攻击面不可达——升级为负收益交换。mineru 3.0.9 的 transformers<5.0.0 仅 vlm/pipeline extra 生效，不构成约束
+# CVE-2026-4372 (config.json _attn_implementation_internal 注入 RCE，绕 trust_remote_code=False) 4.x 无回溯补丁；威胁模型见 docs/.agents/issue.md I-092（仅加载第一方模型 artifact，无不可信模型/转换路径），dismiss 为 tolerable_risk
 # 解锁条件：待 marker-pdf/surya-ocr 放开 pillow<11 上界（与 transformers 5.x 适配与否已无关）
-# pyjwt>=2.13.0：修复 PYSEC-2026-175/177/178/179（间接依赖 mcp[crypto] → fastmcp）
-# docling-core>=2.74.1：修复 CVE-2026-44019 / CVE-2026-44023（间接依赖 docling）
+# pyjwt>=2.15.0：修复 PYSEC-2026-175/177/178/179 与 PYSEC-2026-4140..4152（间接依赖 mcp[crypto] → fastmcp；I-231 抬地板）
+# docling-core>=2.101.1：修复 CVE-2026-44019 / CVE-2026-44023；2.101.1 为 docling 2.140 运行时硬需求（FileSizeLimitExceededError 导入，欠紧上游约束的实测补钉——I-231）
 # starlette>=1.3.1：修复 CVE-2026-48817/48818/54282/54283（间接依赖 fastapi，MCP http-transport 攻击面）
 # python-multipart>=0.0.32：修复 CVE-2026-53538/53539/53540（间接依赖 fastapi，表单解析攻击面）
 # cryptography>=48.0.1：修复 GHSA-537c-gmf6-5ccf（间接依赖 authlib/google-auth/joserfc/pdfminer-six/secretstorage）
 # msgpack>=1.2.1：修复 GHSA-6v7p-g79w-8964（传递依赖，反序列化 DoS）
-# pillow>=12.3.0（覆盖上方 12.2.0 统一约束）：修复 PYSEC-2026-2253/2254/2255/2256/2257/3451/3452/3453（图像解析攻击面，perceives 处理不可信 PDF/图片，必须升级）
+# pillow>=13.0.0（覆盖上方 12.2.0 统一约束）：12.3.0 修 PYSEC-2026-2253/2254/2255/2256/2257/3451/3452/3453；13.0.0 修 2026-10-23 新报 35 条（CVE-2026-112390..112406/112891..112901/96636..96644/96778, GHSA-78g4-xqwv-q3g8，fixed 仅 13.0.0；图像解析攻击面，perceives 直接解析不可信 PDF/图片，必须升级）——marker-pdf/surya 的 pillow<11 声明在 12.3.0 抬地板时已越（见上），13.0.0 同机制继续 override（I-237）
 # click>=8.3.3：修复 PYSEC-2026-2132（传递依赖 typer/uvicorn/litellm/marker-pdf/mineru/surya-ocr 等）
 # json-repair>=0.60.1：修复 GHSA-xf7x-x43h-rpqh（传递依赖 mineru）
-# mcp>=1.28.1：修复 CVE-2026-52869/52870/59950（MCP SDK http-transport 攻击面，传递依赖 fastmcp）
+# mcp>=1.30.0：修复 CVE-2026-52869/52870/59950/59951（MCP SDK http-transport 攻击面，传递依赖 fastmcp；I-231 抬地板并锁 1.30.0——不跨 2.x 大版本，2.x 留待 fastmcp 生态验证）
 # datasets>=5.0.1：修复 CVE-2026-66007 (PYSEC-2026-3716)——folder-based dataset builder 路径穿越任意文件读（需加载攻击者构造的数据集再 save_to_disk/push_to_hub；本项目不加载第三方数据集、向量不可达。mlx-vlm 仅要求 >=2.19.1 无上界，直接升级而非新增 ignore 债）
-override-dependencies = ["pillow>=12.3.0", "lxml>=6.1.0", "urllib3>=2.7.0", "idna>=3.15", "authlib>=1.7.1", "joserfc>=1.6.7", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.13.0", "docling-core>=2.74.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1", "msgpack>=1.2.1", "click>=8.3.3", "json-repair>=0.60.1", "mcp>=1.28.1", "datasets>=5.0.1"]
+# certifi>=2026.10.19：修复 PYSEC-2026-4320（间接依赖 requests/httpx/selenium/trafilatura/docling-slim；I-237）
+# opentelemetry-api>=1.45.1：修复 CVE-2026-114603（间接依赖 fastmcp；I-237）
+# virtualenv>=21.14.9：修复 CVE-2026-113722/113725（dev 组 pre-commit 传递；I-237）
+override-dependencies = ["pillow>=13.0.0", "lxml>=6.1.0", "urllib3>=2.8.0", "idna>=3.15", "authlib>=1.7.1", "joserfc>=1.6.7", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.15.0", "docling-core>=2.101.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1", "msgpack>=1.2.1", "click>=8.3.3", "json-repair>=0.60.1", "mcp>=1.30.0", "datasets>=5.0.1", "certifi>=2026.10.19", "opentelemetry-api>=1.45.1", "virtualenv>=21.14.9"]
 
 [dependency-groups]
 dev = [

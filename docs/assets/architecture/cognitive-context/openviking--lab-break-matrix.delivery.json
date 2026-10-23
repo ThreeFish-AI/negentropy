@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4f436b09-0e69-4f89-a1e3-411d63bfefe7",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--lab-break-matrix-20261022-003214/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--lab-break-matrix.html",
+  "specification": {
+    "sha256": "c312e2eeb50aad3a12d954634d66b353f91bdec00a39a9a5b1f96c35f669abde",
+    "bytes": 3205
+  },
+  "artifact": {
+    "sha256": "66440603b6b23627bf9a2c2a893b4e05db55ead8c06ec68d4e17b757275ee37a",
+    "bytes": 750756
+  }
+}

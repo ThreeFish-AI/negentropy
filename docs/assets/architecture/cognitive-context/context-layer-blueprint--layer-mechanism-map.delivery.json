@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "09e837ea-7a73-4ee2-ba87-becf7930b48c",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer-blueprint--layer-mechanism-map/context-layer-blueprint--layer-mechanism-map.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--layer-mechanism-map.html",
+  "specification": {
+    "sha256": "894e90a0bffba4619719057ccc649a5a248e59e86c876f0479f89493e2281e75",
+    "bytes": 8087
+  },
+  "artifact": {
+    "sha256": "b7dfc2d630cd31331a59ef67468c1dbc18ef8bbbcd81e828f2b0575e36b536dd",
+    "bytes": 775396
+  }
+}

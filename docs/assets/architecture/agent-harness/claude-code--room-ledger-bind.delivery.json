@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a832ded2-54cf-4c14-8c17-2bcbf20e0841",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/.archify/architecture-room-ledger-bind-20261003-003558/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/docs/assets/architecture/agent-harness/claude-code--room-ledger-bind.html",
+  "specification": {
+    "sha256": "db2ee26e193dad83017210961dc4fc3944587b780079196ef8975e64eb6c2501",
+    "bytes": 4708
+  },
+  "artifact": {
+    "sha256": "d2ca3d88b0a1f2fe5a0199f64ebf3398cbd13ce574df17f787f9d6013f60dc9f",
+    "bytes": 765972
+  }
+}

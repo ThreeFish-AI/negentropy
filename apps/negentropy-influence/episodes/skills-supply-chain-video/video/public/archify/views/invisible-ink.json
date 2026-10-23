@@ -1,0 +1,41 @@
+[
+ {
+  "id": "ii-tag",
+  "label": "隐形墨水",
+  "focus": [
+   "atk",
+   "screen",
+   "model"
+  ],
+  "note": "U+E0000–E007F · 171 个隐形字符"
+ },
+ {
+  "id": "ii-calc",
+  "label": "三分钟不修",
+  "focus": [
+   "model",
+   "screen",
+   "atk",
+   "vrp"
+  ],
+  "note": "--yolo 弹计算器 · 判 Won't Fix"
+ },
+ {
+  "id": "ii-replay",
+  "label": "复刻实验",
+  "focus": [
+   "atk",
+   "screen"
+  ],
+  "note": "E-03 · 26 字符仅 hexdump 显形"
+ },
+ {
+  "id": "ii-typo",
+  "label": "一字母之差",
+  "focus": [
+   "atk",
+   "model"
+  ],
+  "note": "E-06 · 双装 0 告警 · digest 双合法"
+ }
+]

@@ -1,0 +1,11 @@
+[
+ {
+  "id": "semi-additive",
+  "label": "半可加：跨账户 vs 跨时间",
+  "focus": [
+   "weekGrid",
+   "semiNote"
+  ],
+  "note": "存款余额能跨账户相加，但绝不能把周一到周日加在一起。"
+ }
+]

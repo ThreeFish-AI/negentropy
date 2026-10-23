@@ -13,7 +13,7 @@ SSOT 为仓库根 ``VERSION`` 文件（单行 PEP440 / SemVer 字符串，如 ``
 
 设计要点（贴合 AGENTS.md「单一事实源 + 最小干预 + 正交分解」）：
 
-* **管辖清单显式列出** —— 不用 glob 扫描，避免误纳入独立项目（cognizes / cognizes-ui）。
+* **管辖清单显式列出** —— 不用 glob 扫描，新增 app 须显式登记方纳入版本管辖。
 * **保格式写入** —— pyproject 经 tomlkit（保留注释 / 缩进 / 行序 / 行内注释），
   package.json 经行级正则替换首个顶层 ``"version"`` 行（保留缩进 / 引号风格），
   两者写回均经 tomllib / json 复验语法合法。
@@ -44,7 +44,7 @@ from packaging.version import InvalidVersion, Version, parse as parse_version
 REPO_ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = REPO_ROOT / "VERSION"
 
-# ── 主栈管辖清单（cognizes / cognizes-ui 为独立项目，刻意排除）─────────────
+# ── 主栈管辖清单（显式登记制：新增 app 必须显式登记）─────────────────────────
 JS_TARGETS: list[str] = [
     "package.json",  # monorepo root
     "apps/negentropy-ui/package.json",

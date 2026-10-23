@@ -1,6 +1,6 @@
 """T3 — F4 PII 写入接线 + 检索守门员集成测试（真实 PostgreSQL）。
 
-验证修复 ISSUE-099：写入路径改经 ``detect_pii_for_storage``（工厂引擎）落
+验证修复 I-099：写入路径改经 ``detect_pii_for_storage``（工厂引擎）落
 ``metadata.pii_flags`` + ``metadata.pii_spans``；检索路径经 ``PIIGatekeeper``
 按 viewer_role 遮蔽。
 
@@ -249,7 +249,7 @@ def _zh_model_available() -> bool:
     reason="presidio / zh_core_web_sm 未安装",
 )
 def test_presidio_detects_cn_mobile_via_zh_nlp_engine():
-    """zh NLP 引擎正确装配后，CN_MOBILE 自定义识别器对中文手机号生效（ISSUE-101）。"""
+    """zh NLP 引擎正确装配后，CN_MOBILE 自定义识别器对中文手机号生效（I-101）。"""
     from negentropy.engine.governance.pii.presidio_detector import PresidioPIIDetector
 
     d = PresidioPIIDetector(languages=["en", "zh"], score_threshold=0.5)

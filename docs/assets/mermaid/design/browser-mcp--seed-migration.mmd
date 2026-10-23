@@ -1,0 +1,38 @@
+%%source: docs/concepts/design/browser-automation-mcp-integration.md#block0 (L26-L61, §2 架构总览)
+%%slug: design/browser-mcp--seed-migration
+%%type: workflow
+%%derived: archify workflow v2, byte-extract of source mermaid
+flowchart TD
+    subgraph SEED["种子层 · 迁移 0062（单一事实源）"]
+        MIG["0062_seed_playwright_browser_mcp.py<br/>PLAYWRIGHT_ARGS（钉死版本）"]
+        MIG -->|"B1 幂等 upsert"| CARD["mcp_servers(playwright)<br/>is_system=TRUE · auto_start"]
+        MIG -->|"B2 幂等合并"| BT["builtin_tools(claude_code).config<br/>mcp_config.playwright + allowed_tools+=mcp__playwright"]
+    end
+
+    subgraph ENTRY["执行入口（三者同源）"]
+        R["Routine<br/>orchestrator._build_config"]
+        S["Scheduler<br/>claude_code handler"]
+        A["6 Agents<br/>ActionFaculty.invoke_claude_code"]
+    end
+
+    BT -->|"_load_claude_code_defaults()"| R
+    BT -->|"_load_claude_code_defaults()"| S
+    BT -->|"state 缺省回退 _load_claude_code_defaults()"| A
+
+    R --> CFG["ClaudeCodeConfig.mcp_config<br/>+ allowed_tools(含 mcp__playwright)"]
+    S --> CFG
+    A --> CFG
+
+    CFG -->|"CLI: --mcp-config {mcpServers}"| CC["Claude Code 子进程"]
+    CFG -->|"SDK: options.mcp_servers"| CC
+    CC -->|"stdio · npx @playwright/mcp"| PW["Playwright MCP Server<br/>headless chromium"]
+    PW --> WEB(["目标站点 · 实机回归验证"])
+
+    CARD -.->|"实时拉取展示"| UI["Interface/MCP 卡片<br/>+ Routine 迭代 McpServersPanel"]
+
+    classDef seed fill:#1e3a5f,stroke:#4a90d9,color:#e8f0fe
+    classDef entry fill:#2d4a22,stroke:#5cb85c,color:#eaf7ea
+    classDef run fill:#5c2d2d,stroke:#d9534f,color:#fdeaea
+    class MIG,CARD,BT seed
+    class R,S,A entry
+    class CFG,CC,PW,WEB run

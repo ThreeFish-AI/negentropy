@@ -1,0 +1,18 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §7
+%% slug: dream-rsi--teardown-d5-lockin
+%% type: lifecycle
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--teardown-d5-lockin.html
+flowchart TD
+    subgraph GUIDE["D5 · 语义引导替代重放"]
+        direction TB
+        G1["历史摘要成方向性洞见<br/>「深耕香料最有前途」注入 prompt"] --> G2["强归纳偏置 over-constrain 搜索空间<br/>终局 max = 0.80<br/>锁死分支 A"]
+    end
+    subgraph REPLAY["重放改进（对照组）"]
+        direction TB
+        R1["历史当可交互的重放模拟器<br/>章程各走时间线"] --> R2["终局 max = 0.92<br/>可达 E 分支"]
+    end
+    G2 --> VERDICT["同预算对比（论文 §5.1 两种范式 + 玩具域复现）：<br/>洞见锁方向，重放保多样"]
+    R2 --> VERDICT
+    VERDICT --> LESSON["历史当可交互模拟器 &gt; 当 prompt 引导<br/>（§5.1 消融：两种范式下语义引导都劣于无引导版）"]
+    style GUIDE fill:#3a1414,stroke:#FF5C5C,color:#fff
+    style REPLAY fill:#0F3244,stroke:#7DD3FC,color:#fff

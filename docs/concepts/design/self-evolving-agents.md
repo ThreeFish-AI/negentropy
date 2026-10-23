@@ -66,59 +66,9 @@ title: "自进化 Agents Team 系统技术方案"
 
 ## 2. 四层架构总览
 
-```mermaid
-flowchart TB
-    subgraph "Meta-Layer（固定框架，不可被进化修改）"
-        direction LR
-        TEL["📡 遥测采集<br/>tool_invocations<br/>interaction_feedback"]
-        EVAL["🔬 评测引擎<br/>LLM-as-Judge<br/>Agent-as-a-Judge<br/>Golden Set 双轨"]
-        PROP["🧬 进化提案器<br/>GEPA 反思→变异<br/>ACE delta 沉淀"]
-        ORCH["⚙️ 编排调度<br/>evolution_proposals 状态机<br/>evolution_inspector 心跳"]
-        DEC["🛡️ 护栏裁决<br/>decision.py 纯函数<br/>人审门控矩阵"]
-    end
+![自进化 Agents 四层闭环：可进化资产经遥测采集、LLM-as-Judge 评测、GEPA 反思变异提案、影子评测与金丝雀验证，由 decision 纯函数与人审门控发布，指针切换回写资产，失败反思负样本回流提案器。](../../assets/architecture/design/self-evolving--four-layer-loop-dark.png)
 
-    subgraph "Evolvable-1：动态 Agent 定义"
-        A1["PerceptionFaculty"]
-        A2["InternalizationFaculty"]
-        A3["ContemplationFaculty"]
-        A4["ActionFaculty"]
-        A5["InfluenceFaculty"]
-    end
-
-    subgraph "Evolvable-2：外部能力工具"
-        S["Skills<br/>prompt_template"]
-        BT["Builtin Tools<br/>config JSONB"]
-        MCP["MCP Pipeline<br/>Stage 参数"]
-    end
-
-    subgraph "Evolvable-3：记忆与知识系统"
-        MEM["Memory<br/>检索参数 / 遗忘 λ / 管线 prompt"]
-        KB["Knowledge Base<br/>chunking / 检索权重 / rerank"]
-        KG["Knowledge Graph<br/>抽取 prompt / 实体解析阈值"]
-    end
-
-    A1 & A2 & A3 & A4 & A5 -->|"执行轨迹 + 反馈"| TEL
-    S & BT & MCP -->|"调用结果 + 延迟/成本"| TEL
-    MEM & KB & KG -->|"检索反馈 + 零命中率<br/>+ 图谱质量指标"| TEL
-    MEM -.->|"基质角色：reflections / playbook<br/>/ 采收用例沉淀于此"| PROP
-    TEL -->|"信号聚合"| EVAL
-    EVAL -->|"标量分 + 归因<br/>+ 反思文本"| PROP
-    PROP -->|"候选版本<br/>(SemVer 快照)"| ORCH
-    ORCH -->|"shadow eval<br/>+ canary 验证"| DEC
-    DEC -->|"promote/rollback<br/>(指针切换)"| A1 & A2 & A3 & A4 & A5
-    DEC -->|"promote/rollback<br/>(指针切换)"| S
-    DEC -->|"参数/排名更新"| BT & MCP
-    DEC -->|"配置版本晋升/回滚"| MEM & KB & KG
-
-    style TEL fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    style EVAL fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
-    style PROP fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
-    style ORCH fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-    style DEC fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
-    style MEM fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
-    style KB fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
-    style KG fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
-```
+> 图源（可 diff 文本）：[`self-evolving--four-layer-loop.mmd`](../../assets/mermaid/design/self-evolving--four-layer-loop.mmd) · 交互版（下载到本地打开）：[`self-evolving--four-layer-loop.html`](../../assets/architecture/design/self-evolving--four-layer-loop.html)
 
 ### 2.1 「框架不自改」四道边界
 
@@ -373,32 +323,9 @@ perceives 的 `competition_mode` 从「运行时每次竞争」升格为「进�
 - **条目级演化（基质侧，高频）**：fact 写入/更新、反思生成、ACE 式 delta 沉淀、记忆淘汰——继续走既有 consolidation 回路（`consolidation_jobs` 队列 + `reflection_worker`），**不进** `evolution_proposals` 状态机。条目级操作每天成百上千次，状态机门控会成为瓶颈；且其已有 retention / dedup / conflict 三重治理。Letta sleep-time compute<sup>[[12]](#ref12)</sup> 证明离线巩固窗口是该回路的正确调度时机——`consolidation_jobs` 即既有实现；
 - **配置级进化（客体侧，低频）**：检索参数、遗忘 λ、管线 prompt、抽取策略的变更——走 `evolution_proposals` 统一状态机，享受 shadow eval / canary / 人审门控全套保护。
 
-```mermaid
-flowchart LR
-    subgraph "基质回路（高频，consolidation 驱动）"
-        CJ["consolidation_jobs<br/>reflection_worker"]
-        ENTRY["记忆条目<br/>facts / reflections / summaries"]
-        CJ -->|"写入 / 更新 / 淘汰"| ENTRY
-    end
+![记忆自迭代双回路：consolidation_jobs 巩固队列高频写入记忆条目，检索反馈信号一边以 irrelevant/harmful 负反馈即时触发反思沉淀、一边以零命中率/引用率窗口指标驱动 evolution_proposals 配置进化，生效检索权重经 is_active 指针回流检索。](../../assets/architecture/design/self-evolving--consolidation-loop-dark.png)
 
-    SIG["检索反馈信号<br/>memory_retrieval_logs"]
-
-    subgraph "客体回路（低频，提案驱动）"
-        EP["evolution_proposals<br/>shadow → canary → promote"]
-        CFG["记忆/知识配置版本<br/>检索参数 / λ / 管线 prompt"]
-        EP -->|"晋升 / 回滚"| CFG
-    end
-
-    ENTRY -->|"检索 → 引用 → 反馈"| SIG
-    SIG -->|"零命中率 / 引用率<br/>触发配置提案"| EP
-    CFG -->|"约束检索与巩固行为"| CJ
-
-    style CJ fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
-    style ENTRY fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
-    style SIG fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
-    style EP fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
-    style CFG fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
-```
+> 图源（可 diff 文本）：[`self-evolving--consolidation-loop.mmd`](../../assets/mermaid/design/self-evolving--consolidation-loop.mmd) · 交互版（下载到本地打开）：[`self-evolving--consolidation-loop.html`](../../assets/architecture/design/self-evolving--consolidation-loop.html)
 
 ### 7.2 可进化资产白名单
 
@@ -622,7 +549,7 @@ evolution_proposals
 | 评测引擎 | `engine/routine/evaluator.py` | `engine/evolution/eval_runner.py` |
 | 版本快照范式 | `models/skill.py` (SkillVersion) | `models/evolution.py` (agent_versions, builtin_tool_versions) |
 | 动态加载 + 缓存 | `agents/_dynamic_instruction.py`, `config/model_resolver.py` | 金丝雀路由（按 assignment 分键） |
-| 遥测采集 | perceives `core/logging.py` (ContextVar) | `engine/evolution/telemetry.py` (ADK callback + 三源归一) |
+| 遥测采集 | perceives `core/logging.py` (ContextVar) | `engine/observability/tool_telemetry.py` (ADK callback + 三源归一) |
 | 调度心跳 | `engine/schedulers/registry.py` | `engine/evolution/orchestrator.py` (evolution_inspector) |
 | 状态机 tick | `engine/routine/orchestrator.py` (SKIP LOCKED) | 复用同构模式 |
 | 反思生成 | `engine/consolidation/reflection_generator.py` | `engine/evolution/proposer.py` (GEPA 式) |

@@ -1,0 +1,11 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P4（事实源 research/source-notes.md P4「描述评测法」；optimizing-descriptions.mdx @69ef37e9）
+%% slug: agent-skills--description-eval
+%% type: workflow
+%% derived: docs/assets/architecture/agent-infra/agent-skills--description-eval.html
+flowchart LR
+    Q["约 20 条提问<br/>一半应触发 · 一半不应触发"] --> RUN["每条跑 3 次<br/>触发率过半才算触发"]
+    RUN --> SPLIT["分两组约 60 / 40<br/>训练组 · 验证组"]
+    SPLIT --> EDIT["只看训练组的失败改描述"]
+    EDIT --> RUN
+    SPLIT --> PICK["约 5 轮后<br/>按验证组得分挑最好的一版"]
+    PICK --> CAP["硬上限 1024 字符<br/>描述越改越容易变长"]

@@ -1,0 +1,82 @@
+%% source: docs/concepts/subsystems/036-the-knowledge-graph.md#9
+%% slug: subsystems/036-kg--engine-integration
+%% type: architecture
+%% derived: archify
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff", "primaryBorderColor": "#0b3d91", "secondaryColor": "#0f5132", "secondaryTextColor": "#ffffff", "tertiaryColor": "#842029", "tertiaryTextColor": "#ffffff"}}}%%
+flowchart TB
+    subgraph Root["🔮 NegentropyEngine"]
+        Engine["本我<br/>调度与协调"]
+    end
+
+    subgraph Perception["👁️ 感知系部"]
+        ScanWeb["广域扫描"]
+        SearchKB["知识库检索"]
+    end
+
+    subgraph KnowledgeGraph["💎 Knowledge Graph"]
+        direction TB
+        KG_Build["图谱构建<br/>实体/关系提取"]
+        KG_Store["图存储<br/>Apache AGE"]
+        KG_Algo["图算法<br/>PageRank · 社区"]
+        KG_Search["混合检索<br/>Vector + Graph"]
+    end
+
+    subgraph Internalization["💎 内化系部"]
+        Memory_Ep["情景记忆<br/>(Memory)"]
+        Memory_Sem["语义记忆<br/>(Fact)"]
+    end
+
+    subgraph Contemplation["🧠 坐照系部"]
+        SecondOrder["二阶思维"]
+        Strategy["策略规划"]
+    end
+
+    subgraph Action["✋ 知行系部"]
+        CodeExec["代码执行"]
+        FileOps["文件操作"]
+    end
+
+    subgraph Influence["🗣️ 影响系部"]
+        Publish["内容发布"]
+        Convince["循证说服"]
+    end
+
+    %% 感知 → 知识图谱
+    SearchKB -->|"知识块"| KG_Build
+    ScanWeb -->|"外部文档"| KG_Build
+
+    %% 知识图谱 → 内化
+    KG_Store -->|"实体网络"| Memory_Sem
+    KG_Build -->|"结构化事实"| Memory_Sem
+
+    %% 知识图谱 → 坐照
+    KG_Algo -->|"社区摘要"| SecondOrder
+    KG_Algo -->|"实体重要性"| Strategy
+
+    %% 知识图谱 → 知行
+    KG_Search -->|"GraphRAG 上下文"| CodeExec
+
+    %% 知识图谱 → 影响
+    KG_Search -->|"实体关系网络"| Convince
+
+    %% 引擎协调
+    Engine -.->|transfer_to_agent| Perception
+    Engine -.->|transfer_to_agent| Internalization
+    Engine -.->|transfer_to_agent| Contemplation
+    Engine -.->|transfer_to_agent| Action
+    Engine -.->|transfer_to_agent| Influence
+
+    classDef root fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef perception fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef kg fill:#F59E0B,stroke:#92400E,color:#000
+    classDef wing fill:#10B981,stroke:#065F46,color:#FFF
+    classDef thinking fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef influence fill:#EC4899,stroke:#831843,color:#FFF
+
+    class Engine root
+    class ScanWeb,SearchKB perception
+    class KG_Build,KG_Store,KG_Algo,KG_Search kg
+    class Memory_Ep,Memory_Sem wing
+    class SecondOrder,Strategy thinking
+    class CodeExec,FileOps wing
+    class Publish,Convince influence

@@ -1,0 +1,2364 @@
+{
+  "meta": {
+    "seed": 20260926,
+    "torch": "2.14.0",
+    "transformers": "5.17.0",
+    "laya_source_sha": "4066d5d5fbf08b66c6757ddeedbd797bd7655bc0",
+    "hf_revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+    "device": "mps",
+    "note": "复刻模型实测，非 Jev",
+    "total_seconds": 58.7
+  },
+  "experiments": {
+    "E1": {
+      "solo_mps_fp32_1row": 0.6728,
+      "batch_mps_fp16_6row": 0.6754,
+      "abs_diff": 0.0026000000000000467,
+      "equal_at_4dp": false,
+      "control_mps_both_fp32": {
+        "solo": 0.6728,
+        "batch": 0.6728,
+        "abs_diff": 0.0,
+        "equal_at_4dp": true
+      },
+      "control_cpu_fp32": {
+        "solo": 0.6728,
+        "batch": 0.6728,
+        "abs_diff": 0.0,
+        "equal_at_4dp": true
+      },
+      "passphrase_probe": {
+        "A_code_in_sibling_question": 0.0803,
+        "B_code_in_state": 0.8653,
+        "baseline_code_nowhere": 0.1006,
+        "leak_A_minus_baseline": -0.0203
+      },
+      "siblings_batch_answers": {
+        "lang": 0.1804,
+        "tone": 0.8146,
+        "order": 0.8833,
+        "warranty": 0.9269,
+        "shipping": 0.3537
+      },
+      "_seconds": 4.3
+    },
+    "E3": {
+      "n_choice_rows": 24,
+      "formula_check_vs_api": {
+        "match_within_5e-4": 24,
+        "mismatches": []
+      },
+      "spearman_laya_vs_adapter": 0.7849,
+      "mean_abs_diff": 0.1231,
+      "max_abs_diff_example": {
+        "p": {
+          "opt0": 0.6424,
+          "opt1": 0.3576
+        },
+        "conf_laya_1_minus_H_over_logk": 0.0593,
+        "conf_adapter_rescaled_pmax": 0.2848
+      },
+      "_seconds": 1.8
+    },
+    "E5": {
+      "n": 10,
+      "sum_mean": 1.3773,
+      "sum_min": 0.0003,
+      "sum_max": 1.8079,
+      "sum_within_0.05_of_1": 0,
+      "abs_noul_minus_choice_mean": 0.0905,
+      "abs_noul_minus_choice_max": 0.1406,
+      "rows": [
+        {
+          "stmt": "The customer requests a refund",
+          "p_yes": 0.6728,
+          "p_neg_yes": 0.7698,
+          "sum": 1.4426,
+          "choice_yes": 0.8134,
+          "abs_noul_minus_choice": 0.1406
+        },
+        {
+          "stmt": "The product is still under warranty",
+          "p_yes": 0.7993,
+          "p_neg_yes": 0.8428,
+          "sum": 1.6421,
+          "choice_yes": 0.7616,
+          "abs_noul_minus_choice": 0.0377
+        },
+        {
+          "stmt": "The customer has already tried a factory reset",
+          "p_yes": 0.7161,
+          "p_neg_yes": 0.7653,
+          "sum": 1.4814,
+          "choice_yes": 0.8276,
+          "abs_noul_minus_choice": 0.1115
+        },
+        {
+          "stmt": "The order number is provided in the message",
+          "p_yes": 0.9048,
+          "p_neg_yes": 0.9031,
+          "sum": 1.8079,
+          "choice_yes": 0.9653,
+          "abs_noul_minus_choice": 0.0605
+        },
+        {
+          "stmt": "The customer threatens to leave a negative review",
+          "p_yes": 0.8337,
+          "p_neg_yes": 0.9054,
+          "sum": 1.7391,
+          "choice_yes": 0.9463,
+          "abs_noul_minus_choice": 0.1126
+        },
+        {
+          "stmt": "The issue is a hardware defect",
+          "p_yes": 0.8348,
+          "p_neg_yes": 0.8481,
+          "sum": 1.6829,
+          "choice_yes": 0.9581,
+          "abs_noul_minus_choice": 0.1233
+        },
+        {
+          "stmt": "The customer wants a replacement instead of a repair",
+          "p_yes": 0.8864,
+          "p_neg_yes": 0.8554,
+          "sum": 1.7418,
+          "choice_yes": 0.9545,
+          "abs_noul_minus_choice": 0.0681
+        },
+        {
+          "stmt": "The message contains profanity",
+          "p_yes": 0.0001,
+          "p_neg_yes": 0.0002,
+          "sum": 0.0003,
+          "choice_yes": 0.0304,
+          "abs_noul_minus_choice": 0.0303
+        },
+        {
+          "stmt": "The customer mentions the two-year warranty term",
+          "p_yes": 0.7118,
+          "p_neg_yes": 0.1882,
+          "sum": 0.9,
+          "choice_yes": 0.8482,
+          "abs_noul_minus_choice": 0.1364
+        },
+        {
+          "stmt": "The ticket was opened within 30 days of purchase",
+          "p_yes": 0.6421,
+          "p_neg_yes": 0.6925,
+          "sum": 1.3346,
+          "choice_yes": 0.7265,
+          "abs_noul_minus_choice": 0.0844
+        }
+      ],
+      "_seconds": 1.6
+    },
+    "E6": {
+      "base_top1": "replacement",
+      "shuffle_top1s": [
+        "replacement",
+        "replacement",
+        "replacement",
+        "replacement",
+        "replacement"
+      ],
+      "top1_flip_rate_vs_first": 0.0,
+      "p_max_range_over_shuffles": 0.3338,
+      "iia": {
+        "irrelevant_option": "color",
+        "top2_before": [
+          "replacement",
+          "refund"
+        ],
+        "log_odds_before": 1.1585,
+        "log_odds_after": 1.5449,
+        "delta_log_odds": 0.3864
+      },
+      "_seconds": 0.4
+    },
+    "E2": {
+      "n": 12,
+      "always_inside_options": true,
+      "mean_p_max_wrong_answer": 0.5115,
+      "share_p_max_ge_0.9": 0.1667,
+      "mean_confidence_on_wrong": 0.2157,
+      "with_none_mean_p_none": 0.972,
+      "with_none_max_p_none": 0.9997,
+      "rows": [
+        {
+          "domain": "venue",
+          "true_value": "Atlas Room",
+          "options": [
+            "Beacon Suite",
+            "Fjord Room",
+            "Delta Den",
+            "Ember Loft"
+          ],
+          "top1": "Fjord Room",
+          "p_max": 0.3329,
+          "confidence": 0.0128,
+          "with_none_p_none": 0.9836,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "courier",
+          "true_value": "Elgin Courier",
+          "options": [
+            "Bexley Freight",
+            "Corvus Post",
+            "Aldo Express",
+            "Drayton Cargo"
+          ],
+          "top1": "Bexley Freight",
+          "p_max": 0.3421,
+          "confidence": 0.0243,
+          "with_none_p_none": 0.9997,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "code",
+          "true_value": "AUTUMN15",
+          "options": [
+            "FLASH25",
+            "SUMMER10",
+            "SPRING5",
+            "WINTER20"
+          ],
+          "top1": "SPRING5",
+          "p_max": 0.4243,
+          "confidence": 0.1303,
+          "with_none_p_none": 0.9155,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "venue",
+          "true_value": "Fjord Room",
+          "options": [
+            "Delta Den",
+            "Atlas Room",
+            "Cedar Hall",
+            "Beacon Suite"
+          ],
+          "top1": "Atlas Room",
+          "p_max": 0.9107,
+          "confidence": 0.714,
+          "with_none_p_none": 0.985,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "courier",
+          "true_value": "Elgin Courier",
+          "options": [
+            "Bexley Freight",
+            "Corvus Post",
+            "Drayton Cargo",
+            "Aldo Express"
+          ],
+          "top1": "Bexley Freight",
+          "p_max": 0.3458,
+          "confidence": 0.0342,
+          "with_none_p_none": 0.9996,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "code",
+          "true_value": "SUMMER10",
+          "options": [
+            "SPRING5",
+            "WINTER20",
+            "AUTUMN15",
+            "FLASH25"
+          ],
+          "top1": "AUTUMN15",
+          "p_max": 0.4518,
+          "confidence": 0.1608,
+          "with_none_p_none": 0.9352,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "venue",
+          "true_value": "Beacon Suite",
+          "options": [
+            "Delta Den",
+            "Atlas Room",
+            "Cedar Hall",
+            "Fjord Room"
+          ],
+          "top1": "Atlas Room",
+          "p_max": 0.5793,
+          "confidence": 0.1977,
+          "with_none_p_none": 0.9827,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "courier",
+          "true_value": "Elgin Courier",
+          "options": [
+            "Corvus Post",
+            "Drayton Cargo",
+            "Aldo Express",
+            "Bexley Freight"
+          ],
+          "top1": "Aldo Express",
+          "p_max": 0.3353,
+          "confidence": 0.0241,
+          "with_none_p_none": 0.9997,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "code",
+          "true_value": "SUMMER10",
+          "options": [
+            "NOVA35",
+            "FLASH25",
+            "WINTER20",
+            "AUTUMN15"
+          ],
+          "top1": "AUTUMN15",
+          "p_max": 0.7539,
+          "confidence": 0.4052,
+          "with_none_p_none": 0.9494,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "venue",
+          "true_value": "Fjord Room",
+          "options": [
+            "Beacon Suite",
+            "Delta Den",
+            "Cedar Hall",
+            "Atlas Room"
+          ],
+          "top1": "Atlas Room",
+          "p_max": 0.9354,
+          "confidence": 0.7762,
+          "with_none_p_none": 0.9834,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "courier",
+          "true_value": "Elgin Courier",
+          "options": [
+            "Bexley Freight",
+            "Drayton Cargo",
+            "Aldo Express",
+            "Corvus Post"
+          ],
+          "top1": "Aldo Express",
+          "p_max": 0.3028,
+          "confidence": 0.0132,
+          "with_none_p_none": 0.9996,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        },
+        {
+          "domain": "code",
+          "true_value": "SUMMER10",
+          "options": [
+            "AUTUMN15",
+            "SPRING5",
+            "NOVA35",
+            "FLASH25"
+          ],
+          "top1": "SPRING5",
+          "p_max": 0.4241,
+          "confidence": 0.0961,
+          "with_none_p_none": 0.9308,
+          "with_none_top1": "none of the above",
+          "top1_changed": false
+        }
+      ],
+      "_seconds": 1.0
+    },
+    "E9": {
+      "device": {
+        "hw_model": "Mac16,12",
+        "chip": "Apple M4",
+        "torch_device": "mps"
+      },
+      "median_ms_1q": 49.5,
+      "min_ms_1q": 48.83,
+      "median_ms_10q": 358.5,
+      "min_ms_10q": 358.07,
+      "median_ms_50q": 1763.99,
+      "min_ms_50q": 1751.51,
+      "_seconds": 13.1
+    },
+    "E4": {
+      "laya_note": "复刻模型实测，非 Jev",
+      "s5_regeneration_check": {
+        "raw_items": 200,
+        "items": 200,
+        "option_set_matches": 200,
+        "set_match_rate": 1.0,
+        "gold_index_matches": 200,
+        "options_reordered_to_raw": 200
+      },
+      "laya_no_good_option": {
+        "n": 100,
+        "mean_p_max": 0.4192,
+        "mean_answer_confidence": 0.4192,
+        "share_answer_conf_le_0.5": 0.75,
+        "share_confidence_field_le_0.5": 0.93
+      },
+      "laya_underdetermined": {
+        "n": 100,
+        "accuracy": 0.14,
+        "mean_answer_confidence": 0.4171
+      },
+      "laya_all200_ece_answer_confidence": 0.3482,
+      "laya_all200_ece_p_max": 0.3482,
+      "laya_high_answer_conf_ge_0.9": {
+        "n": 4,
+        "accuracy": 0
+      },
+      "jev_same_items": {
+        "source": "nibzard/decision-model-benchmark v1.1 raw (typesafe:jev, model jev-1.13.0, repeat=0)",
+        "n_total": 200,
+        "no_good_option": {
+          "n": 100,
+          "mean_confidence": 0.5452,
+          "share_conf_le_0.5": 0.5
+        },
+        "underdetermined": {
+          "n": 100,
+          "accuracy": 0.14,
+          "mean_confidence": 0.3867
+        },
+        "all_s5_ece_confidence_field": 0.3959,
+        "high_conf_ge_0.9_share_correct": 0,
+        "high_conf_ge_0.9_n": 17,
+        "latency_ms_median": 266.6
+      },
+      "rows": [
+        {
+          "item_id": "s5-ng-001",
+          "kind": "no_good_option",
+          "pred": "Indigo Lounge",
+          "correct": false,
+          "p_max": 0.2919,
+          "confidence": 0.0053,
+          "answer_confidence": 0.2919
+        },
+        {
+          "item_id": "s5-ng-002",
+          "kind": "no_good_option",
+          "pred": "DASH22",
+          "correct": false,
+          "p_max": 0.3272,
+          "confidence": 0.0203,
+          "answer_confidence": 0.3272
+        },
+        {
+          "item_id": "s5-ng-003",
+          "kind": "no_good_option",
+          "pred": "Indus Cargo",
+          "correct": false,
+          "p_max": 0.3031,
+          "confidence": 0.0382,
+          "answer_confidence": 0.3031
+        },
+        {
+          "item_id": "s5-ng-004",
+          "kind": "no_good_option",
+          "pred": "Zephyr Hall",
+          "correct": false,
+          "p_max": 0.3017,
+          "confidence": 0.0104,
+          "answer_confidence": 0.3017
+        },
+        {
+          "item_id": "s5-ng-005",
+          "kind": "no_good_option",
+          "pred": "XENON85",
+          "correct": false,
+          "p_max": 0.9955,
+          "confidence": 0.9819,
+          "answer_confidence": 0.9955
+        },
+        {
+          "item_id": "s5-ng-006",
+          "kind": "no_good_option",
+          "pred": "Indus Cargo",
+          "correct": false,
+          "p_max": 0.1985,
+          "confidence": 0.0078,
+          "answer_confidence": 0.1985
+        },
+        {
+          "item_id": "s5-ng-007",
+          "kind": "no_good_option",
+          "pred": "SPRING5",
+          "correct": false,
+          "p_max": 0.5062,
+          "confidence": 0.2372,
+          "answer_confidence": 0.5062
+        },
+        {
+          "item_id": "s5-ng-008",
+          "kind": "no_good_option",
+          "pred": "Rowan Lounge",
+          "correct": false,
+          "p_max": 0.2085,
+          "confidence": 0.0402,
+          "answer_confidence": 0.2085
+        },
+        {
+          "item_id": "s5-ng-009",
+          "kind": "no_good_option",
+          "pred": "QUANTA50",
+          "correct": false,
+          "p_max": 0.3659,
+          "confidence": 0.0337,
+          "answer_confidence": 0.3659
+        },
+        {
+          "item_id": "s5-ng-010",
+          "kind": "no_good_option",
+          "pred": "Bay 9",
+          "correct": false,
+          "p_max": 0.5354,
+          "confidence": 0.1341,
+          "answer_confidence": 0.5354
+        },
+        {
+          "item_id": "s5-ng-011",
+          "kind": "no_good_option",
+          "pred": "Aldo Express",
+          "correct": false,
+          "p_max": 0.2159,
+          "confidence": 0.0361,
+          "answer_confidence": 0.2159
+        },
+        {
+          "item_id": "s5-ng-012",
+          "kind": "no_good_option",
+          "pred": "Juturna Freight",
+          "correct": false,
+          "p_max": 0.4868,
+          "confidence": 0.159,
+          "answer_confidence": 0.4868
+        },
+        {
+          "item_id": "s5-ng-013",
+          "kind": "no_good_option",
+          "pred": "Wolverine Freight",
+          "correct": false,
+          "p_max": 0.5875,
+          "confidence": 0.2916,
+          "answer_confidence": 0.5875
+        },
+        {
+          "item_id": "s5-ng-014",
+          "kind": "no_good_option",
+          "pred": "Umber Room",
+          "correct": false,
+          "p_max": 0.7895,
+          "confidence": 0.565,
+          "answer_confidence": 0.7895
+        },
+        {
+          "item_id": "s5-ng-015",
+          "kind": "no_good_option",
+          "pred": "Vireo Cargo",
+          "correct": false,
+          "p_max": 0.1593,
+          "confidence": 0.0098,
+          "answer_confidence": 0.1593
+        },
+        {
+          "item_id": "s5-ng-016",
+          "kind": "no_good_option",
+          "pred": "DASH22",
+          "correct": false,
+          "p_max": 0.3041,
+          "confidence": 0.0105,
+          "answer_confidence": 0.3041
+        },
+        {
+          "item_id": "s5-ng-017",
+          "kind": "no_good_option",
+          "pred": "NOVA35",
+          "correct": false,
+          "p_max": 0.3907,
+          "confidence": 0.1333,
+          "answer_confidence": 0.3907
+        },
+        {
+          "item_id": "s5-ng-018",
+          "kind": "no_good_option",
+          "pred": "Bay 5",
+          "correct": false,
+          "p_max": 0.2675,
+          "confidence": 0.0687,
+          "answer_confidence": 0.2675
+        },
+        {
+          "item_id": "s5-ng-019",
+          "kind": "no_good_option",
+          "pred": "Birchwood Freight",
+          "correct": false,
+          "p_max": 0.6337,
+          "confidence": 0.2372,
+          "answer_confidence": 0.6337
+        },
+        {
+          "item_id": "s5-ng-020",
+          "kind": "no_good_option",
+          "pred": "Bay 14",
+          "correct": false,
+          "p_max": 0.4411,
+          "confidence": 0.1555,
+          "answer_confidence": 0.4411
+        },
+        {
+          "item_id": "s5-ng-021",
+          "kind": "no_good_option",
+          "pred": "IVORY47",
+          "correct": false,
+          "p_max": 0.5561,
+          "confidence": 0.2237,
+          "answer_confidence": 0.5561
+        },
+        {
+          "item_id": "s5-ng-022",
+          "kind": "no_good_option",
+          "pred": "JOLT52",
+          "correct": false,
+          "p_max": 0.3041,
+          "confidence": 0.0067,
+          "answer_confidence": 0.3041
+        },
+        {
+          "item_id": "s5-ng-023",
+          "kind": "no_good_option",
+          "pred": "Nimbus Freight",
+          "correct": false,
+          "p_max": 0.2851,
+          "confidence": 0.0071,
+          "answer_confidence": 0.2851
+        },
+        {
+          "item_id": "s5-ng-024",
+          "kind": "no_good_option",
+          "pred": "PRISM82",
+          "correct": false,
+          "p_max": 0.2912,
+          "confidence": 0.0066,
+          "answer_confidence": 0.2912
+        },
+        {
+          "item_id": "s5-ng-025",
+          "kind": "no_good_option",
+          "pred": "Zephyr Hall",
+          "correct": false,
+          "p_max": 0.4757,
+          "confidence": 0.1898,
+          "answer_confidence": 0.4757
+        },
+        {
+          "item_id": "s5-ng-026",
+          "kind": "no_good_option",
+          "pred": "Beacon Suite",
+          "correct": false,
+          "p_max": 0.5913,
+          "confidence": 0.3746,
+          "answer_confidence": 0.5913
+        },
+        {
+          "item_id": "s5-ng-027",
+          "kind": "no_good_option",
+          "pred": "Bay 9",
+          "correct": false,
+          "p_max": 0.5458,
+          "confidence": 0.3226,
+          "answer_confidence": 0.5458
+        },
+        {
+          "item_id": "s5-ng-028",
+          "kind": "no_good_option",
+          "pred": "RIDGE92",
+          "correct": false,
+          "p_max": 0.4574,
+          "confidence": 0.0754,
+          "answer_confidence": 0.4574
+        },
+        {
+          "item_id": "s5-ng-029",
+          "kind": "no_good_option",
+          "pred": "LATCH62",
+          "correct": false,
+          "p_max": 0.2621,
+          "confidence": 0.0008,
+          "answer_confidence": 0.2621
+        },
+        {
+          "item_id": "s5-ng-030",
+          "kind": "no_good_option",
+          "pred": "ONYX77",
+          "correct": false,
+          "p_max": 0.4751,
+          "confidence": 0.0866,
+          "answer_confidence": 0.4751
+        },
+        {
+          "item_id": "s5-ng-031",
+          "kind": "no_good_option",
+          "pred": "Bay 3",
+          "correct": false,
+          "p_max": 0.4356,
+          "confidence": 0.0658,
+          "answer_confidence": 0.4356
+        },
+        {
+          "item_id": "s5-ng-032",
+          "kind": "no_good_option",
+          "pred": "Foxglove Freight",
+          "correct": false,
+          "p_max": 0.2484,
+          "confidence": 0.0254,
+          "answer_confidence": 0.2484
+        },
+        {
+          "item_id": "s5-ng-033",
+          "kind": "no_good_option",
+          "pred": "Bay 23",
+          "correct": false,
+          "p_max": 0.3592,
+          "confidence": 0.2757,
+          "answer_confidence": 0.3592
+        },
+        {
+          "item_id": "s5-ng-034",
+          "kind": "no_good_option",
+          "pred": "NOVA35",
+          "correct": false,
+          "p_max": 0.6714,
+          "confidence": 0.2896,
+          "answer_confidence": 0.6714
+        },
+        {
+          "item_id": "s5-ng-035",
+          "kind": "no_good_option",
+          "pred": "CARGO17",
+          "correct": false,
+          "p_max": 0.3086,
+          "confidence": 0.0699,
+          "answer_confidence": 0.3086
+        },
+        {
+          "item_id": "s5-ng-036",
+          "kind": "no_good_option",
+          "pred": "Vireo Cargo",
+          "correct": false,
+          "p_max": 0.3653,
+          "confidence": 0.0246,
+          "answer_confidence": 0.3653
+        },
+        {
+          "item_id": "s5-ng-037",
+          "kind": "no_good_option",
+          "pred": "Indigo Lounge",
+          "correct": false,
+          "p_max": 0.4405,
+          "confidence": 0.0643,
+          "answer_confidence": 0.4405
+        },
+        {
+          "item_id": "s5-ng-038",
+          "kind": "no_good_option",
+          "pred": "ORBIT40",
+          "correct": false,
+          "p_max": 0.4523,
+          "confidence": 0.1795,
+          "answer_confidence": 0.4523
+        },
+        {
+          "item_id": "s5-ng-039",
+          "kind": "no_good_option",
+          "pred": "TERRA65",
+          "correct": false,
+          "p_max": 0.6523,
+          "confidence": 0.2588,
+          "answer_confidence": 0.6523
+        },
+        {
+          "item_id": "s5-ng-040",
+          "kind": "no_good_option",
+          "pred": "Foxglove Freight",
+          "correct": false,
+          "p_max": 0.288,
+          "confidence": 0.0032,
+          "answer_confidence": 0.288
+        },
+        {
+          "item_id": "s5-ng-041",
+          "kind": "no_good_option",
+          "pred": "Bay 22",
+          "correct": false,
+          "p_max": 0.4149,
+          "confidence": 0.0684,
+          "answer_confidence": 0.4149
+        },
+        {
+          "item_id": "s5-ng-042",
+          "kind": "no_good_option",
+          "pred": "XENON85",
+          "correct": false,
+          "p_max": 0.2981,
+          "confidence": 0.0655,
+          "answer_confidence": 0.2981
+        },
+        {
+          "item_id": "s5-ng-043",
+          "kind": "no_good_option",
+          "pred": "Elgin Courier",
+          "correct": false,
+          "p_max": 0.3258,
+          "confidence": 0.0767,
+          "answer_confidence": 0.3258
+        },
+        {
+          "item_id": "s5-ng-044",
+          "kind": "no_good_option",
+          "pred": "Indus Cargo",
+          "correct": false,
+          "p_max": 0.3706,
+          "confidence": 0.0313,
+          "answer_confidence": 0.3706
+        },
+        {
+          "item_id": "s5-ng-045",
+          "kind": "no_good_option",
+          "pred": "Ember Loft",
+          "correct": false,
+          "p_max": 0.4529,
+          "confidence": 0.23,
+          "answer_confidence": 0.4529
+        },
+        {
+          "item_id": "s5-ng-046",
+          "kind": "no_good_option",
+          "pred": "Quillon Cargo",
+          "correct": false,
+          "p_max": 0.3363,
+          "confidence": 0.0233,
+          "answer_confidence": 0.3363
+        },
+        {
+          "item_id": "s5-ng-047",
+          "kind": "no_good_option",
+          "pred": "Cinder Post",
+          "correct": false,
+          "p_max": 0.4774,
+          "confidence": 0.0901,
+          "answer_confidence": 0.4774
+        },
+        {
+          "item_id": "s5-ng-048",
+          "kind": "no_good_option",
+          "pred": "Bay 24",
+          "correct": false,
+          "p_max": 0.3598,
+          "confidence": 0.1154,
+          "answer_confidence": 0.3598
+        },
+        {
+          "item_id": "s5-ng-049",
+          "kind": "no_good_option",
+          "pred": "ZENITH95",
+          "correct": false,
+          "p_max": 0.4402,
+          "confidence": 0.1349,
+          "answer_confidence": 0.4402
+        },
+        {
+          "item_id": "s5-ng-050",
+          "kind": "no_good_option",
+          "pred": "Alcove Room",
+          "correct": false,
+          "p_max": 0.3775,
+          "confidence": 0.091,
+          "answer_confidence": 0.3775
+        },
+        {
+          "item_id": "s5-ng-051",
+          "kind": "no_good_option",
+          "pred": "Atlas Room",
+          "correct": false,
+          "p_max": 0.9681,
+          "confidence": 0.8951,
+          "answer_confidence": 0.9681
+        },
+        {
+          "item_id": "s5-ng-052",
+          "kind": "no_good_option",
+          "pred": "Kelvin Courier",
+          "correct": false,
+          "p_max": 0.1893,
+          "confidence": 0.0022,
+          "answer_confidence": 0.1893
+        },
+        {
+          "item_id": "s5-ng-053",
+          "kind": "no_good_option",
+          "pred": "Drayton Cargo",
+          "correct": false,
+          "p_max": 0.2418,
+          "confidence": 0.0363,
+          "answer_confidence": 0.2418
+        },
+        {
+          "item_id": "s5-ng-054",
+          "kind": "no_good_option",
+          "pred": "HATCH42",
+          "correct": false,
+          "p_max": 0.9697,
+          "confidence": 0.9058,
+          "answer_confidence": 0.9697
+        },
+        {
+          "item_id": "s5-ng-055",
+          "kind": "no_good_option",
+          "pred": "PRISM82",
+          "correct": false,
+          "p_max": 0.4108,
+          "confidence": 0.1355,
+          "answer_confidence": 0.4108
+        },
+        {
+          "item_id": "s5-ng-056",
+          "kind": "no_good_option",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.2012,
+          "confidence": 0.028,
+          "answer_confidence": 0.2012
+        },
+        {
+          "item_id": "s5-ng-057",
+          "kind": "no_good_option",
+          "pred": "Founders Suite",
+          "correct": false,
+          "p_max": 0.5795,
+          "confidence": 0.1969,
+          "answer_confidence": 0.5795
+        },
+        {
+          "item_id": "s5-ng-058",
+          "kind": "no_good_option",
+          "pred": "Aldo Express",
+          "correct": false,
+          "p_max": 0.4588,
+          "confidence": 0.1435,
+          "answer_confidence": 0.4588
+        },
+        {
+          "item_id": "s5-ng-059",
+          "kind": "no_good_option",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.314,
+          "confidence": 0.0139,
+          "answer_confidence": 0.314
+        },
+        {
+          "item_id": "s5-ng-060",
+          "kind": "no_good_option",
+          "pred": "XENON85",
+          "correct": false,
+          "p_max": 0.3331,
+          "confidence": 0.042,
+          "answer_confidence": 0.3331
+        },
+        {
+          "item_id": "s5-ng-061",
+          "kind": "no_good_option",
+          "pred": "Elmwood Courier",
+          "correct": false,
+          "p_max": 0.2691,
+          "confidence": 0.0034,
+          "answer_confidence": 0.2691
+        },
+        {
+          "item_id": "s5-ng-062",
+          "kind": "no_good_option",
+          "pred": "Bay 8",
+          "correct": false,
+          "p_max": 0.6084,
+          "confidence": 0.2075,
+          "answer_confidence": 0.6084
+        },
+        {
+          "item_id": "s5-ng-063",
+          "kind": "no_good_option",
+          "pred": "YIELD90",
+          "correct": false,
+          "p_max": 0.8623,
+          "confidence": 0.7314,
+          "answer_confidence": 0.8623
+        },
+        {
+          "item_id": "s5-ng-064",
+          "kind": "no_good_option",
+          "pred": "Bay 37",
+          "correct": false,
+          "p_max": 0.3987,
+          "confidence": 0.1145,
+          "answer_confidence": 0.3987
+        },
+        {
+          "item_id": "s5-ng-065",
+          "kind": "no_good_option",
+          "pred": "Umber Room",
+          "correct": false,
+          "p_max": 0.4093,
+          "confidence": 0.2081,
+          "answer_confidence": 0.4093
+        },
+        {
+          "item_id": "s5-ng-066",
+          "kind": "no_good_option",
+          "pred": "Bay 36",
+          "correct": false,
+          "p_max": 0.3952,
+          "confidence": 0.1404,
+          "answer_confidence": 0.3952
+        },
+        {
+          "item_id": "s5-ng-067",
+          "kind": "no_good_option",
+          "pred": "Yarrow Room",
+          "correct": false,
+          "p_max": 0.1957,
+          "confidence": 0.0244,
+          "answer_confidence": 0.1957
+        },
+        {
+          "item_id": "s5-ng-068",
+          "kind": "no_good_option",
+          "pred": "Bay 28",
+          "correct": false,
+          "p_max": 0.3045,
+          "confidence": 0.1293,
+          "answer_confidence": 0.3045
+        },
+        {
+          "item_id": "s5-ng-069",
+          "kind": "no_good_option",
+          "pred": "Vireo Cargo",
+          "correct": false,
+          "p_max": 0.2521,
+          "confidence": 0.0159,
+          "answer_confidence": 0.2521
+        },
+        {
+          "item_id": "s5-ng-070",
+          "kind": "no_good_option",
+          "pred": "Bay 8",
+          "correct": false,
+          "p_max": 0.3338,
+          "confidence": 0.0439,
+          "answer_confidence": 0.3338
+        },
+        {
+          "item_id": "s5-ng-071",
+          "kind": "no_good_option",
+          "pred": "Drayton Cargo",
+          "correct": false,
+          "p_max": 0.2624,
+          "confidence": 0.0679,
+          "answer_confidence": 0.2624
+        },
+        {
+          "item_id": "s5-ng-072",
+          "kind": "no_good_option",
+          "pred": "Bay 39",
+          "correct": false,
+          "p_max": 0.277,
+          "confidence": 0.0791,
+          "answer_confidence": 0.277
+        },
+        {
+          "item_id": "s5-ng-073",
+          "kind": "no_good_option",
+          "pred": "ZENITH95",
+          "correct": false,
+          "p_max": 0.2556,
+          "confidence": 0.1036,
+          "answer_confidence": 0.2556
+        },
+        {
+          "item_id": "s5-ng-074",
+          "kind": "no_good_option",
+          "pred": "FLINT32",
+          "correct": false,
+          "p_max": 0.3618,
+          "confidence": 0.2116,
+          "answer_confidence": 0.3618
+        },
+        {
+          "item_id": "s5-ng-075",
+          "kind": "no_good_option",
+          "pred": "Umber Room",
+          "correct": false,
+          "p_max": 0.5233,
+          "confidence": 0.2383,
+          "answer_confidence": 0.5233
+        },
+        {
+          "item_id": "s5-ng-076",
+          "kind": "no_good_option",
+          "pred": "Rowan Lounge",
+          "correct": false,
+          "p_max": 0.7725,
+          "confidence": 0.4385,
+          "answer_confidence": 0.7725
+        },
+        {
+          "item_id": "s5-ng-077",
+          "kind": "no_good_option",
+          "pred": "Onyx Hall",
+          "correct": false,
+          "p_max": 0.717,
+          "confidence": 0.4188,
+          "answer_confidence": 0.717
+        },
+        {
+          "item_id": "s5-ng-078",
+          "kind": "no_good_option",
+          "pred": "Bay 28",
+          "correct": false,
+          "p_max": 0.4665,
+          "confidence": 0.0919,
+          "answer_confidence": 0.4665
+        },
+        {
+          "item_id": "s5-ng-079",
+          "kind": "no_good_option",
+          "pred": "Corvus Post",
+          "correct": false,
+          "p_max": 0.296,
+          "confidence": 0.0425,
+          "answer_confidence": 0.296
+        },
+        {
+          "item_id": "s5-ng-080",
+          "kind": "no_good_option",
+          "pred": "Halcyon Express",
+          "correct": false,
+          "p_max": 0.3313,
+          "confidence": 0.0738,
+          "answer_confidence": 0.3313
+        },
+        {
+          "item_id": "s5-ng-081",
+          "kind": "no_good_option",
+          "pred": "ONYX77",
+          "correct": false,
+          "p_max": 0.2587,
+          "confidence": 0.1195,
+          "answer_confidence": 0.2587
+        },
+        {
+          "item_id": "s5-ng-082",
+          "kind": "no_good_option",
+          "pred": "Granite Post",
+          "correct": false,
+          "p_max": 0.2614,
+          "confidence": 0.0009,
+          "answer_confidence": 0.2614
+        },
+        {
+          "item_id": "s5-ng-083",
+          "kind": "no_good_option",
+          "pred": "Atlas Room",
+          "correct": false,
+          "p_max": 0.2081,
+          "confidence": 0.0503,
+          "answer_confidence": 0.2081
+        },
+        {
+          "item_id": "s5-ng-084",
+          "kind": "no_good_option",
+          "pred": "Aldo Express",
+          "correct": false,
+          "p_max": 0.2095,
+          "confidence": 0.0264,
+          "answer_confidence": 0.2095
+        },
+        {
+          "item_id": "s5-ng-085",
+          "kind": "no_good_option",
+          "pred": "Wolverine Freight",
+          "correct": false,
+          "p_max": 0.3672,
+          "confidence": 0.1098,
+          "answer_confidence": 0.3672
+        },
+        {
+          "item_id": "s5-ng-086",
+          "kind": "no_good_option",
+          "pred": "Wolverine Freight",
+          "correct": false,
+          "p_max": 0.3262,
+          "confidence": 0.019,
+          "answer_confidence": 0.3262
+        },
+        {
+          "item_id": "s5-ng-087",
+          "kind": "no_good_option",
+          "pred": "Indigo Lounge",
+          "correct": false,
+          "p_max": 0.3641,
+          "confidence": 0.0444,
+          "answer_confidence": 0.3641
+        },
+        {
+          "item_id": "s5-ng-088",
+          "kind": "no_good_option",
+          "pred": "NOVA35",
+          "correct": false,
+          "p_max": 0.3749,
+          "confidence": 0.3027,
+          "answer_confidence": 0.3749
+        },
+        {
+          "item_id": "s5-ng-089",
+          "kind": "no_good_option",
+          "pred": "Bay 7",
+          "correct": false,
+          "p_max": 0.6714,
+          "confidence": 0.4301,
+          "answer_confidence": 0.6714
+        },
+        {
+          "item_id": "s5-ng-090",
+          "kind": "no_good_option",
+          "pred": "WIDGET80",
+          "correct": false,
+          "p_max": 0.7347,
+          "confidence": 0.5607,
+          "answer_confidence": 0.7347
+        },
+        {
+          "item_id": "s5-ng-091",
+          "kind": "no_good_option",
+          "pred": "Umber Room",
+          "correct": false,
+          "p_max": 0.5956,
+          "confidence": 0.3411,
+          "answer_confidence": 0.5956
+        },
+        {
+          "item_id": "s5-ng-092",
+          "kind": "no_good_option",
+          "pred": "Drayton Cargo",
+          "correct": false,
+          "p_max": 0.2514,
+          "confidence": 0.0156,
+          "answer_confidence": 0.2514
+        },
+        {
+          "item_id": "s5-ng-093",
+          "kind": "no_good_option",
+          "pred": "Drayton Cargo",
+          "correct": false,
+          "p_max": 0.6612,
+          "confidence": 0.3804,
+          "answer_confidence": 0.6612
+        },
+        {
+          "item_id": "s5-ng-094",
+          "kind": "no_good_option",
+          "pred": "Meridian Room",
+          "correct": false,
+          "p_max": 0.2971,
+          "confidence": 0.0116,
+          "answer_confidence": 0.2971
+        },
+        {
+          "item_id": "s5-ng-095",
+          "kind": "no_good_option",
+          "pred": "Onyx Hall",
+          "correct": false,
+          "p_max": 0.2206,
+          "confidence": 0.0736,
+          "answer_confidence": 0.2206
+        },
+        {
+          "item_id": "s5-ng-096",
+          "kind": "no_good_option",
+          "pred": "Bay 18",
+          "correct": false,
+          "p_max": 0.7569,
+          "confidence": 0.5478,
+          "answer_confidence": 0.7569
+        },
+        {
+          "item_id": "s5-ng-097",
+          "kind": "no_good_option",
+          "pred": "Meridian Room",
+          "correct": false,
+          "p_max": 0.4909,
+          "confidence": 0.1681,
+          "answer_confidence": 0.4909
+        },
+        {
+          "item_id": "s5-ng-098",
+          "kind": "no_good_option",
+          "pred": "Bay 2",
+          "correct": false,
+          "p_max": 0.5537,
+          "confidence": 0.156,
+          "answer_confidence": 0.5537
+        },
+        {
+          "item_id": "s5-ng-099",
+          "kind": "no_good_option",
+          "pred": "Bay 5",
+          "correct": false,
+          "p_max": 0.4909,
+          "confidence": 0.3168,
+          "answer_confidence": 0.4909
+        },
+        {
+          "item_id": "s5-ng-100",
+          "kind": "no_good_option",
+          "pred": "Dovetail Cargo",
+          "correct": false,
+          "p_max": 0.2355,
+          "confidence": 0.0205,
+          "answer_confidence": 0.2355
+        },
+        {
+          "item_id": "s5-ud-001",
+          "kind": "underdetermined",
+          "pred": "YIELD90",
+          "correct": false,
+          "p_max": 0.2998,
+          "confidence": 0.1168,
+          "answer_confidence": 0.2998
+        },
+        {
+          "item_id": "s5-ud-002",
+          "kind": "underdetermined",
+          "pred": "Pinnacle Suite",
+          "correct": false,
+          "p_max": 0.5189,
+          "confidence": 0.1666,
+          "answer_confidence": 0.5189
+        },
+        {
+          "item_id": "s5-ud-003",
+          "kind": "underdetermined",
+          "pred": "Harbor Suite",
+          "correct": true,
+          "p_max": 0.4118,
+          "confidence": 0.1703,
+          "answer_confidence": 0.4118
+        },
+        {
+          "item_id": "s5-ud-004",
+          "kind": "underdetermined",
+          "pred": "Founders Suite",
+          "correct": true,
+          "p_max": 0.5156,
+          "confidence": 0.1181,
+          "answer_confidence": 0.5156
+        },
+        {
+          "item_id": "s5-ud-005",
+          "kind": "underdetermined",
+          "pred": "CARGO17",
+          "correct": false,
+          "p_max": 0.2639,
+          "confidence": 0.0923,
+          "answer_confidence": 0.2639
+        },
+        {
+          "item_id": "s5-ud-006",
+          "kind": "underdetermined",
+          "pred": "BRISK12",
+          "correct": false,
+          "p_max": 0.3575,
+          "confidence": 0.0769,
+          "answer_confidence": 0.3575
+        },
+        {
+          "item_id": "s5-ud-007",
+          "kind": "underdetermined",
+          "pred": "Bay 9",
+          "correct": true,
+          "p_max": 0.4183,
+          "confidence": 0.0692,
+          "answer_confidence": 0.4183
+        },
+        {
+          "item_id": "s5-ud-008",
+          "kind": "underdetermined",
+          "pred": "Basin Suite",
+          "correct": false,
+          "p_max": 0.419,
+          "confidence": 0.1194,
+          "answer_confidence": 0.419
+        },
+        {
+          "item_id": "s5-ud-009",
+          "kind": "underdetermined",
+          "pred": "Bay 18",
+          "correct": false,
+          "p_max": 0.4427,
+          "confidence": 0.0879,
+          "answer_confidence": 0.4427
+        },
+        {
+          "item_id": "s5-ud-010",
+          "kind": "underdetermined",
+          "pred": "Sabre Freight",
+          "correct": false,
+          "p_max": 0.4901,
+          "confidence": 0.2931,
+          "answer_confidence": 0.4901
+        },
+        {
+          "item_id": "s5-ud-011",
+          "kind": "underdetermined",
+          "pred": "Sabre Freight",
+          "correct": false,
+          "p_max": 0.3361,
+          "confidence": 0.2294,
+          "answer_confidence": 0.3361
+        },
+        {
+          "item_id": "s5-ud-012",
+          "kind": "underdetermined",
+          "pred": "Bexley Freight",
+          "correct": false,
+          "p_max": 0.4624,
+          "confidence": 0.1534,
+          "answer_confidence": 0.4624
+        },
+        {
+          "item_id": "s5-ud-013",
+          "kind": "underdetermined",
+          "pred": "Pinnacle Suite",
+          "correct": false,
+          "p_max": 0.5308,
+          "confidence": 0.1372,
+          "answer_confidence": 0.5308
+        },
+        {
+          "item_id": "s5-ud-014",
+          "kind": "underdetermined",
+          "pred": "CARGO17",
+          "correct": false,
+          "p_max": 0.244,
+          "confidence": 0.0411,
+          "answer_confidence": 0.244
+        },
+        {
+          "item_id": "s5-ud-015",
+          "kind": "underdetermined",
+          "pred": "Osprey Express",
+          "correct": false,
+          "p_max": 0.4598,
+          "confidence": 0.0812,
+          "answer_confidence": 0.4598
+        },
+        {
+          "item_id": "s5-ud-016",
+          "kind": "underdetermined",
+          "pred": "YIELD90",
+          "correct": false,
+          "p_max": 0.5219,
+          "confidence": 0.1682,
+          "answer_confidence": 0.5219
+        },
+        {
+          "item_id": "s5-ud-017",
+          "kind": "underdetermined",
+          "pred": "PILOT45",
+          "correct": false,
+          "p_max": 0.2661,
+          "confidence": 0.0271,
+          "answer_confidence": 0.2661
+        },
+        {
+          "item_id": "s5-ud-018",
+          "kind": "underdetermined",
+          "pred": "Yarrow Room",
+          "correct": true,
+          "p_max": 0.2784,
+          "confidence": 0.1672,
+          "answer_confidence": 0.2784
+        },
+        {
+          "item_id": "s5-ud-019",
+          "kind": "underdetermined",
+          "pred": "Topaz Express",
+          "correct": false,
+          "p_max": 0.4931,
+          "confidence": 0.2876,
+          "answer_confidence": 0.4931
+        },
+        {
+          "item_id": "s5-ud-020",
+          "kind": "underdetermined",
+          "pred": "Halcyon Express",
+          "correct": false,
+          "p_max": 0.7012,
+          "confidence": 0.4717,
+          "answer_confidence": 0.7012
+        },
+        {
+          "item_id": "s5-ud-021",
+          "kind": "underdetermined",
+          "pred": "IVORY47",
+          "correct": true,
+          "p_max": 0.3052,
+          "confidence": 0.0061,
+          "answer_confidence": 0.3052
+        },
+        {
+          "item_id": "s5-ud-022",
+          "kind": "underdetermined",
+          "pred": "Founders Suite",
+          "correct": false,
+          "p_max": 0.4982,
+          "confidence": 0.1206,
+          "answer_confidence": 0.4982
+        },
+        {
+          "item_id": "s5-ud-023",
+          "kind": "underdetermined",
+          "pred": "Aldo Express",
+          "correct": false,
+          "p_max": 0.5515,
+          "confidence": 0.3737,
+          "answer_confidence": 0.5515
+        },
+        {
+          "item_id": "s5-ud-024",
+          "kind": "underdetermined",
+          "pred": "RALLY55",
+          "correct": false,
+          "p_max": 0.2352,
+          "confidence": 0.0723,
+          "answer_confidence": 0.2352
+        },
+        {
+          "item_id": "s5-ud-025",
+          "kind": "underdetermined",
+          "pred": "Dovetail Cargo",
+          "correct": false,
+          "p_max": 0.2921,
+          "confidence": 0.1003,
+          "answer_confidence": 0.2921
+        },
+        {
+          "item_id": "s5-ud-026",
+          "kind": "underdetermined",
+          "pred": "Bay 6",
+          "correct": false,
+          "p_max": 0.3492,
+          "confidence": 0.1608,
+          "answer_confidence": 0.3492
+        },
+        {
+          "item_id": "s5-ud-027",
+          "kind": "underdetermined",
+          "pred": "Bay 6",
+          "correct": false,
+          "p_max": 0.3193,
+          "confidence": 0.1054,
+          "answer_confidence": 0.3193
+        },
+        {
+          "item_id": "s5-ud-028",
+          "kind": "underdetermined",
+          "pred": "RIDGE92",
+          "correct": false,
+          "p_max": 0.4371,
+          "confidence": 0.0605,
+          "answer_confidence": 0.4371
+        },
+        {
+          "item_id": "s5-ud-029",
+          "kind": "underdetermined",
+          "pred": "Basin Suite",
+          "correct": false,
+          "p_max": 0.3598,
+          "confidence": 0.2289,
+          "answer_confidence": 0.3598
+        },
+        {
+          "item_id": "s5-ud-030",
+          "kind": "underdetermined",
+          "pred": "Beacon Suite",
+          "correct": false,
+          "p_max": 0.346,
+          "confidence": 0.0815,
+          "answer_confidence": 0.346
+        },
+        {
+          "item_id": "s5-ud-031",
+          "kind": "underdetermined",
+          "pred": "Bay 19",
+          "correct": false,
+          "p_max": 0.5524,
+          "confidence": 0.1761,
+          "answer_confidence": 0.5524
+        },
+        {
+          "item_id": "s5-ud-032",
+          "kind": "underdetermined",
+          "pred": "Zephyr Cargo",
+          "correct": false,
+          "p_max": 0.4216,
+          "confidence": 0.1082,
+          "answer_confidence": 0.4216
+        },
+        {
+          "item_id": "s5-ud-033",
+          "kind": "underdetermined",
+          "pred": "ZENITH95",
+          "correct": false,
+          "p_max": 0.2534,
+          "confidence": 0.0393,
+          "answer_confidence": 0.2534
+        },
+        {
+          "item_id": "s5-ud-034",
+          "kind": "underdetermined",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.805,
+          "confidence": 0.5868,
+          "answer_confidence": 0.805
+        },
+        {
+          "item_id": "s5-ud-035",
+          "kind": "underdetermined",
+          "pred": "Nimbus Freight",
+          "correct": false,
+          "p_max": 0.4995,
+          "confidence": 0.1458,
+          "answer_confidence": 0.4995
+        },
+        {
+          "item_id": "s5-ud-036",
+          "kind": "underdetermined",
+          "pred": "Umber Room",
+          "correct": false,
+          "p_max": 0.4171,
+          "confidence": 0.1387,
+          "answer_confidence": 0.4171
+        },
+        {
+          "item_id": "s5-ud-037",
+          "kind": "underdetermined",
+          "pred": "Bay 9",
+          "correct": false,
+          "p_max": 0.244,
+          "confidence": 0.0777,
+          "answer_confidence": 0.244
+        },
+        {
+          "item_id": "s5-ud-038",
+          "kind": "underdetermined",
+          "pred": "IVORY47",
+          "correct": false,
+          "p_max": 0.2315,
+          "confidence": 0.0585,
+          "answer_confidence": 0.2315
+        },
+        {
+          "item_id": "s5-ud-039",
+          "kind": "underdetermined",
+          "pred": "Bay 5",
+          "correct": false,
+          "p_max": 0.1919,
+          "confidence": 0.0414,
+          "answer_confidence": 0.1919
+        },
+        {
+          "item_id": "s5-ud-040",
+          "kind": "underdetermined",
+          "pred": "Bay 7",
+          "correct": false,
+          "p_max": 0.7502,
+          "confidence": 0.4692,
+          "answer_confidence": 0.7502
+        },
+        {
+          "item_id": "s5-ud-041",
+          "kind": "underdetermined",
+          "pred": "Xenon Suite",
+          "correct": false,
+          "p_max": 0.3194,
+          "confidence": 0.044,
+          "answer_confidence": 0.3194
+        },
+        {
+          "item_id": "s5-ud-042",
+          "kind": "underdetermined",
+          "pred": "AUTUMN15",
+          "correct": false,
+          "p_max": 0.3712,
+          "confidence": 0.1779,
+          "answer_confidence": 0.3712
+        },
+        {
+          "item_id": "s5-ud-043",
+          "kind": "underdetermined",
+          "pred": "Bay 4",
+          "correct": true,
+          "p_max": 0.4141,
+          "confidence": 0.1273,
+          "answer_confidence": 0.4141
+        },
+        {
+          "item_id": "s5-ud-044",
+          "kind": "underdetermined",
+          "pred": "Alcove Room",
+          "correct": false,
+          "p_max": 0.2241,
+          "confidence": 0.0443,
+          "answer_confidence": 0.2241
+        },
+        {
+          "item_id": "s5-ud-045",
+          "kind": "underdetermined",
+          "pred": "Mistral Cargo",
+          "correct": false,
+          "p_max": 0.272,
+          "confidence": 0.0969,
+          "answer_confidence": 0.272
+        },
+        {
+          "item_id": "s5-ud-046",
+          "kind": "underdetermined",
+          "pred": "Yarrow Room",
+          "correct": false,
+          "p_max": 0.3799,
+          "confidence": 0.0821,
+          "answer_confidence": 0.3799
+        },
+        {
+          "item_id": "s5-ud-047",
+          "kind": "underdetermined",
+          "pred": "Bay 7",
+          "correct": true,
+          "p_max": 0.3591,
+          "confidence": 0.0436,
+          "answer_confidence": 0.3591
+        },
+        {
+          "item_id": "s5-ud-048",
+          "kind": "underdetermined",
+          "pred": "WINTER20",
+          "correct": false,
+          "p_max": 0.2288,
+          "confidence": 0.0318,
+          "answer_confidence": 0.2288
+        },
+        {
+          "item_id": "s5-ud-049",
+          "kind": "underdetermined",
+          "pred": "Sequoia Hall",
+          "correct": true,
+          "p_max": 0.3681,
+          "confidence": 0.0334,
+          "answer_confidence": 0.3681
+        },
+        {
+          "item_id": "s5-ud-050",
+          "kind": "underdetermined",
+          "pred": "Nimbus Freight",
+          "correct": false,
+          "p_max": 0.5221,
+          "confidence": 0.2904,
+          "answer_confidence": 0.5221
+        },
+        {
+          "item_id": "s5-ud-051",
+          "kind": "underdetermined",
+          "pred": "RALLY55",
+          "correct": false,
+          "p_max": 0.3459,
+          "confidence": 0.1503,
+          "answer_confidence": 0.3459
+        },
+        {
+          "item_id": "s5-ud-052",
+          "kind": "underdetermined",
+          "pred": "URGE8",
+          "correct": false,
+          "p_max": 0.2477,
+          "confidence": 0.0408,
+          "answer_confidence": 0.2477
+        },
+        {
+          "item_id": "s5-ud-053",
+          "kind": "underdetermined",
+          "pred": "Bay 2",
+          "correct": true,
+          "p_max": 0.341,
+          "confidence": 0.2155,
+          "answer_confidence": 0.341
+        },
+        {
+          "item_id": "s5-ud-054",
+          "kind": "underdetermined",
+          "pred": "Xenon Suite",
+          "correct": false,
+          "p_max": 0.4478,
+          "confidence": 0.0977,
+          "answer_confidence": 0.4478
+        },
+        {
+          "item_id": "s5-ud-055",
+          "kind": "underdetermined",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.4075,
+          "confidence": 0.3308,
+          "answer_confidence": 0.4075
+        },
+        {
+          "item_id": "s5-ud-056",
+          "kind": "underdetermined",
+          "pred": "Bay 36",
+          "correct": false,
+          "p_max": 0.3048,
+          "confidence": 0.0131,
+          "answer_confidence": 0.3048
+        },
+        {
+          "item_id": "s5-ud-057",
+          "kind": "underdetermined",
+          "pred": "Foxglove Freight",
+          "correct": true,
+          "p_max": 0.4601,
+          "confidence": 0.3341,
+          "answer_confidence": 0.4601
+        },
+        {
+          "item_id": "s5-ud-058",
+          "kind": "underdetermined",
+          "pred": "WIDGET80",
+          "correct": false,
+          "p_max": 0.5081,
+          "confidence": 0.2438,
+          "answer_confidence": 0.5081
+        },
+        {
+          "item_id": "s5-ud-059",
+          "kind": "underdetermined",
+          "pred": "Topaz Express",
+          "correct": false,
+          "p_max": 0.5206,
+          "confidence": 0.2861,
+          "answer_confidence": 0.5206
+        },
+        {
+          "item_id": "s5-ud-060",
+          "kind": "underdetermined",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.4818,
+          "confidence": 0.356,
+          "answer_confidence": 0.4818
+        },
+        {
+          "item_id": "s5-ud-061",
+          "kind": "underdetermined",
+          "pred": "Bay 7",
+          "correct": true,
+          "p_max": 0.3462,
+          "confidence": 0.1372,
+          "answer_confidence": 0.3462
+        },
+        {
+          "item_id": "s5-ud-062",
+          "kind": "underdetermined",
+          "pred": "Nimbus Freight",
+          "correct": false,
+          "p_max": 0.9401,
+          "confidence": 0.8438,
+          "answer_confidence": 0.9401
+        },
+        {
+          "item_id": "s5-ud-063",
+          "kind": "underdetermined",
+          "pred": "Bay 2",
+          "correct": false,
+          "p_max": 0.2493,
+          "confidence": 0.0968,
+          "answer_confidence": 0.2493
+        },
+        {
+          "item_id": "s5-ud-064",
+          "kind": "underdetermined",
+          "pred": "ZENITH95",
+          "correct": false,
+          "p_max": 0.2911,
+          "confidence": 0.0663,
+          "answer_confidence": 0.2911
+        },
+        {
+          "item_id": "s5-ud-065",
+          "kind": "underdetermined",
+          "pred": "Nimbus Freight",
+          "correct": false,
+          "p_max": 0.794,
+          "confidence": 0.5319,
+          "answer_confidence": 0.794
+        },
+        {
+          "item_id": "s5-ud-066",
+          "kind": "underdetermined",
+          "pred": "Bay 21",
+          "correct": false,
+          "p_max": 0.3988,
+          "confidence": 0.2367,
+          "answer_confidence": 0.3988
+        },
+        {
+          "item_id": "s5-ud-067",
+          "kind": "underdetermined",
+          "pred": "ZENITH95",
+          "correct": false,
+          "p_max": 0.4552,
+          "confidence": 0.2385,
+          "answer_confidence": 0.4552
+        },
+        {
+          "item_id": "s5-ud-068",
+          "kind": "underdetermined",
+          "pred": "Mistral Cargo",
+          "correct": false,
+          "p_max": 0.3898,
+          "confidence": 0.217,
+          "answer_confidence": 0.3898
+        },
+        {
+          "item_id": "s5-ud-069",
+          "kind": "underdetermined",
+          "pred": "Bay 18",
+          "correct": false,
+          "p_max": 0.3985,
+          "confidence": 0.1673,
+          "answer_confidence": 0.3985
+        },
+        {
+          "item_id": "s5-ud-070",
+          "kind": "underdetermined",
+          "pred": "Topaz Express",
+          "correct": false,
+          "p_max": 0.3116,
+          "confidence": 0.1416,
+          "answer_confidence": 0.3116
+        },
+        {
+          "item_id": "s5-ud-071",
+          "kind": "underdetermined",
+          "pred": "Wolverine Freight",
+          "correct": false,
+          "p_max": 0.3167,
+          "confidence": 0.1997,
+          "answer_confidence": 0.3167
+        },
+        {
+          "item_id": "s5-ud-072",
+          "kind": "underdetermined",
+          "pred": "Bay 7",
+          "correct": false,
+          "p_max": 0.5493,
+          "confidence": 0.1852,
+          "answer_confidence": 0.5493
+        },
+        {
+          "item_id": "s5-ud-073",
+          "kind": "underdetermined",
+          "pred": "Bay 6",
+          "correct": false,
+          "p_max": 0.5512,
+          "confidence": 0.3557,
+          "answer_confidence": 0.5512
+        },
+        {
+          "item_id": "s5-ud-074",
+          "kind": "underdetermined",
+          "pred": "Founders Suite",
+          "correct": false,
+          "p_max": 0.3668,
+          "confidence": 0.1377,
+          "answer_confidence": 0.3668
+        },
+        {
+          "item_id": "s5-ud-075",
+          "kind": "underdetermined",
+          "pred": "Aldo Express",
+          "correct": false,
+          "p_max": 0.4505,
+          "confidence": 0.1785,
+          "answer_confidence": 0.4505
+        },
+        {
+          "item_id": "s5-ud-076",
+          "kind": "underdetermined",
+          "pred": "Bay 17",
+          "correct": false,
+          "p_max": 0.319,
+          "confidence": 0.1281,
+          "answer_confidence": 0.319
+        },
+        {
+          "item_id": "s5-ud-077",
+          "kind": "underdetermined",
+          "pred": "Bay 8",
+          "correct": false,
+          "p_max": 0.4779,
+          "confidence": 0.2811,
+          "answer_confidence": 0.4779
+        },
+        {
+          "item_id": "s5-ud-078",
+          "kind": "underdetermined",
+          "pred": "Wolverine Freight",
+          "correct": false,
+          "p_max": 0.849,
+          "confidence": 0.5754,
+          "answer_confidence": 0.849
+        },
+        {
+          "item_id": "s5-ud-079",
+          "kind": "underdetermined",
+          "pred": "RALLY55",
+          "correct": false,
+          "p_max": 0.3102,
+          "confidence": 0.1291,
+          "answer_confidence": 0.3102
+        },
+        {
+          "item_id": "s5-ud-080",
+          "kind": "underdetermined",
+          "pred": "YIELD90",
+          "correct": false,
+          "p_max": 0.3135,
+          "confidence": 0.1165,
+          "answer_confidence": 0.3135
+        },
+        {
+          "item_id": "s5-ud-081",
+          "kind": "underdetermined",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.4865,
+          "confidence": 0.3776,
+          "answer_confidence": 0.4865
+        },
+        {
+          "item_id": "s5-ud-082",
+          "kind": "underdetermined",
+          "pred": "JOLT52",
+          "correct": false,
+          "p_max": 0.3791,
+          "confidence": 0.0353,
+          "answer_confidence": 0.3791
+        },
+        {
+          "item_id": "s5-ud-083",
+          "kind": "underdetermined",
+          "pred": "WIDGET80",
+          "correct": false,
+          "p_max": 0.6098,
+          "confidence": 0.2783,
+          "answer_confidence": 0.6098
+        },
+        {
+          "item_id": "s5-ud-084",
+          "kind": "underdetermined",
+          "pred": "Lumen Suite",
+          "correct": false,
+          "p_max": 0.203,
+          "confidence": 0.0587,
+          "answer_confidence": 0.203
+        },
+        {
+          "item_id": "s5-ud-085",
+          "kind": "underdetermined",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.4463,
+          "confidence": 0.1728,
+          "answer_confidence": 0.4463
+        },
+        {
+          "item_id": "s5-ud-086",
+          "kind": "underdetermined",
+          "pred": "CARGO17",
+          "correct": false,
+          "p_max": 0.3565,
+          "confidence": 0.1597,
+          "answer_confidence": 0.3565
+        },
+        {
+          "item_id": "s5-ud-087",
+          "kind": "underdetermined",
+          "pred": "Bay 2",
+          "correct": false,
+          "p_max": 0.3572,
+          "confidence": 0.2409,
+          "answer_confidence": 0.3572
+        },
+        {
+          "item_id": "s5-ud-088",
+          "kind": "underdetermined",
+          "pred": "Ashline Express",
+          "correct": false,
+          "p_max": 0.3645,
+          "confidence": 0.0568,
+          "answer_confidence": 0.3645
+        },
+        {
+          "item_id": "s5-ud-089",
+          "kind": "underdetermined",
+          "pred": "Bay 28",
+          "correct": true,
+          "p_max": 0.4101,
+          "confidence": 0.2052,
+          "answer_confidence": 0.4101
+        },
+        {
+          "item_id": "s5-ud-090",
+          "kind": "underdetermined",
+          "pred": "Beacon Suite",
+          "correct": true,
+          "p_max": 0.6262,
+          "confidence": 0.2417,
+          "answer_confidence": 0.6262
+        },
+        {
+          "item_id": "s5-ud-091",
+          "kind": "underdetermined",
+          "pred": "Bay 6",
+          "correct": false,
+          "p_max": 0.2989,
+          "confidence": 0.1268,
+          "answer_confidence": 0.2989
+        },
+        {
+          "item_id": "s5-ud-092",
+          "kind": "underdetermined",
+          "pred": "NOMAD72",
+          "correct": false,
+          "p_max": 0.323,
+          "confidence": 0.0418,
+          "answer_confidence": 0.323
+        },
+        {
+          "item_id": "s5-ud-093",
+          "kind": "underdetermined",
+          "pred": "Beacon Suite",
+          "correct": false,
+          "p_max": 0.3898,
+          "confidence": 0.2701,
+          "answer_confidence": 0.3898
+        },
+        {
+          "item_id": "s5-ud-094",
+          "kind": "underdetermined",
+          "pred": "Halcyon Express",
+          "correct": false,
+          "p_max": 0.6755,
+          "confidence": 0.4967,
+          "answer_confidence": 0.6755
+        },
+        {
+          "item_id": "s5-ud-095",
+          "kind": "underdetermined",
+          "pred": "Xenon Suite",
+          "correct": false,
+          "p_max": 0.4909,
+          "confidence": 0.2396,
+          "answer_confidence": 0.4909
+        },
+        {
+          "item_id": "s5-ud-096",
+          "kind": "underdetermined",
+          "pred": "Bay 24",
+          "correct": true,
+          "p_max": 0.3424,
+          "confidence": 0.1129,
+          "answer_confidence": 0.3424
+        },
+        {
+          "item_id": "s5-ud-097",
+          "kind": "underdetermined",
+          "pred": "Fathom Freight",
+          "correct": false,
+          "p_max": 0.3057,
+          "confidence": 0.1689,
+          "answer_confidence": 0.3057
+        },
+        {
+          "item_id": "s5-ud-098",
+          "kind": "underdetermined",
+          "pred": "Atlas Room",
+          "correct": false,
+          "p_max": 0.4861,
+          "confidence": 0.2316,
+          "answer_confidence": 0.4861
+        },
+        {
+          "item_id": "s5-ud-099",
+          "kind": "underdetermined",
+          "pred": "Basin Suite",
+          "correct": false,
+          "p_max": 0.6749,
+          "confidence": 0.4629,
+          "answer_confidence": 0.6749
+        },
+        {
+          "item_id": "s5-ud-100",
+          "kind": "underdetermined",
+          "pred": "Halcyon Express",
+          "correct": false,
+          "p_max": 0.3916,
+          "confidence": 0.2047,
+          "answer_confidence": 0.3916
+        }
+      ],
+      "_seconds": 11.1
+    },
+    "E7": {
+      "laya_note": "复刻模型实测，非 Jev",
+      "n": 100,
+      "laya_die_numeric": {
+        "mean_p_selected": 0.6923,
+        "mean_p_max": 0.6923,
+        "accuracy": 0.16,
+        "theory": 0.1667,
+        "mean_abs_dev_from_uniform": 0.5256
+      },
+      "jev_die_numeric_same_family": {
+        "source": "kantahayashiai/jev-does-not-play-dice data/summary/summary.json（400 trials, jev-1.13.0）",
+        "count": 400,
+        "mean_reported": 0.8286,
+        "accuracy": 0.19,
+        "mean_confidence": 0.7958
+      },
+      "rows_sample": [
+        {
+          "id": "dice:d0000",
+          "p_max": 0.9937,
+          "p_selected": 0.9937,
+          "selected": "1",
+          "observed": "5",
+          "correct": false
+        },
+        {
+          "id": "dice:d0001",
+          "p_max": 0.7995,
+          "p_selected": 0.7995,
+          "selected": "1",
+          "observed": "3",
+          "correct": false
+        },
+        {
+          "id": "dice:d0002",
+          "p_max": 0.4894,
+          "p_selected": 0.4894,
+          "selected": "1",
+          "observed": "4",
+          "correct": false
+        },
+        {
+          "id": "dice:d0003",
+          "p_max": 0.603,
+          "p_selected": 0.603,
+          "selected": "1",
+          "observed": "4",
+          "correct": false
+        },
+        {
+          "id": "dice:d0004",
+          "p_max": 0.8942,
+          "p_selected": 0.8942,
+          "selected": "1",
+          "observed": "2",
+          "correct": false
+        }
+      ],
+      "_seconds": 6.4
+    },
+    "E8": {
+      "note": "复刻模型实测，非 Jev；英文版为作者自译（语义保真，非逐字）；小样本只作方向性证据",
+      "picked_ids": [
+        "ownership-01",
+        "lifecycle-02",
+        "knowledge-02",
+        "ownership-03",
+        "lifecycle-04",
+        "urgency-03",
+        "ownership-05",
+        "lifecycle-06",
+        "lifecycle-08",
+        "urgency-07"
+      ],
+      "expected": [
+        "urgent",
+        "urgent",
+        "urgent",
+        "todo",
+        "todo",
+        "todo",
+        "valuable",
+        "valuable",
+        "noise",
+        "noise"
+      ],
+      "laya_en_zh_text": {
+        "n": 10,
+        "accuracy": 0.4,
+        "mean_answer_confidence": 0.5102
+      },
+      "laya_en_on_chinese": {
+        "n": 10,
+        "accuracy": 0.3,
+        "mean_answer_confidence": 0.4191
+      },
+      "laya_multilingual_on_chinese": {
+        "n": 10,
+        "accuracy": 0.4,
+        "mean_answer_confidence": 0.5553
+      },
+      "laya_multilingual_on_english": {
+        "n": 10,
+        "accuracy": 0.4,
+        "mean_answer_confidence": 0.5508
+      },
+      "jev_feishu_zh_64": {
+        "accuracy": 1.0,
+        "source": "laya 仓 feishu_zh README（Jev 64/64，第三方逐行 raw 复算一致）"
+      },
+      "laya_published_feishu_zh_64": {
+        "accuracy": 0.3125,
+        "source": "laya 仓 feishu_zh README（20/64）"
+      },
+      "_seconds": 6.9
+    }
+  }
+}

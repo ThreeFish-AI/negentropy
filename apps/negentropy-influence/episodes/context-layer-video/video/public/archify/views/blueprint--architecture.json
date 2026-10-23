@@ -1,0 +1,58 @@
+[
+ {
+  "id": "arc-facets",
+  "label": "三面各答一问",
+  "focus": [
+   "registry",
+   "axisAsset",
+   "axisAuth",
+   "axisAssembly",
+   "axisRetrieval",
+   "axisCompounding",
+   "stageL1",
+   "stageL2",
+   "stageL3",
+   "stageL4",
+   "stageL5",
+   "stageL6"
+  ],
+  "note": "验收面防住失效·结构面五轴正交·时间面一生六段——一张蓝图答三个问题"
+ },
+ {
+  "id": "arc-axes",
+  "label": "五轴与独立性",
+  "focus": [
+   "axisAsset",
+   "axisAuth",
+   "axisAssembly",
+   "axisRetrieval",
+   "axisCompounding"
+  ],
+  "note": "五轴各答一题：经营什么/真值在哪/进窗什么/候选怎么来/越用越好，轴间独立演进"
+ },
+ {
+  "id": "arc-seams",
+  "label": "机制＝多轴组合",
+  "focus": [
+   "chipM1M5",
+   "chipM2M6",
+   "chipM3",
+   "chipM4",
+   "chipM7"
+  ],
+  "note": "M1–M7 不新增轴、单轴或跨轴组合：M2/M6 单落权威，其余跨轴组合"
+ },
+ {
+  "id": "arc-stages",
+  "label": "时间面六段",
+  "focus": [
+   "stageL1",
+   "stageL2",
+   "stageL3",
+   "stageL4",
+   "stageL5",
+   "stageL6"
+  ],
+  "note": "L1 采集到 L6 退役的一生主轴，验证环与进化环两条回边详见生命周期图"
+ }
+]

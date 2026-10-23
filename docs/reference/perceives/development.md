@@ -223,15 +223,9 @@ negentropy-perceives/
 
 #### 测试金字塔
 
-```mermaid
-graph BT
-    U["<b>单元测试</b> (40+ files)<br/>独立模块 · Mock 隔离 · 快速执行<br/>120s 超时保护"]
-    I["<b>集成测试</b> (12 files)<br/>组件协作 · 端到端验证 · 真实交互"]
-    U --> I
+![Perceives 测试金字塔：宽底座的单元测试层（tests/unit/ 100 文件、Mock 隔离、120s 超时）分层支撑上层的集成测试层（tests/integration/ 18 文件、端到端真实交互），并附三层事实卡片与运行入口。](../../assets/architecture/perceives/development--test-pyramid-dark.png)
 
-    style U fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style I fill:#7c3aed,stroke:#a78bfa,color:#ffffff
-```
+> 图源（可 diff 文本）：[`development--test-pyramid.mmd`](../../assets/mermaid/perceives/development--test-pyramid.mmd) · 交互版（下载到本地打开）：[`development--test-pyramid.html`](../../assets/architecture/perceives/development--test-pyramid.html)
 
 #### 测试目录结构
 
@@ -565,54 +559,9 @@ Pipeline 框架是 Negentropy Perceives 的核心编排引擎，将文档处理�
 
 ### 架构流程
 
-```mermaid
-graph TD
-    subgraph "MCP 工具层"
-        T["@app.tool() 工具函数"]
-    end
+![Negentropy Perceives Pipeline 编排框架调用链解剖：@app.tool() 工具函数经 method=auto 门控进入 convenience.py 便捷 API，由 PipelineOrchestrator 串联、StageScheduler 降级/竞争调度、registry.py 按名解析工具，驱动 PDF 管线（layout_analysis 后五路提取并行汇聚 assembly）与 WebPage 线性主脊两条 Stage 流水线。](../../assets/architecture/perceives/development--tool-anatomy-dark.png)
 
-    subgraph "Pipeline 层"
-        C["convenience.py<br/>run_pdf_pipeline / run_webpage_pipeline"]
-        O["PipelineOrchestrator<br/>Stage 串联编排"]
-        S["StageScheduler<br/>降级 / 竞争调度"]
-        R["registry.py<br/>工具注册与发现"]
-    end
-
-    subgraph "PDF Pipeline Stages"
-        P1["preprocessing"]
-        P2["layout_analysis"]
-        P3["text_extraction"]
-        P4["table_extraction"]
-        P5["formula_extraction"]
-        P6["image_extraction"]
-        P7["code_detection"]
-        P8["assembly"]
-    end
-
-    subgraph "WebPage Pipeline Stages"
-        W1["page_fetching"]
-        W2["compliance_check"]
-        W3["html_sanitization"]
-        W4["main_content_extraction"]
-        W5["markdown_conversion"]
-        W6["markdown_formatting"]
-    end
-
-    T -->|"method=auto"| C
-    C --> O
-    O --> S
-    S --> R
-    R --> P1
-    P1 --> P2 --> P3 & P4 & P5 & P6 & P7
-    P3 & P4 & P5 & P6 & P7 --> P8
-
-    R --> W1 --> W2 --> W3 --> W4 --> W5 --> W6
-
-    style T fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style C fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style O fill:#166534,stroke:#22c55e,color:#ffffff
-    style S fill:#7c3aed,stroke:#a78bfa,color:#ffffff
-```
+> 图源（可 diff 文本）：[`development--tool-anatomy.mmd`](../../assets/mermaid/perceives/development--tool-anatomy.mmd) · 交互版（下载到本地打开）：[`development--tool-anatomy.html`](../../assets/architecture/perceives/development--tool-anatomy.html)
 
 ### 调度策略
 
@@ -686,62 +635,9 @@ def test_extract_data():
 
 ### 架构概览
 
-```mermaid
-graph TD
-    subgraph "触发源"
-        A["推送 master/main/develop/feature/**"]
-        B0["PR → master/main/develop/feature/**"]
-        C["标签 v*.*.*"]
-        G["计划 / 手动"]
-    end
+![Negentropy Perceives 的 CI/CD 流水线总览：推送与 PR 触发 Perceives CI 五 Job 并行门禁及依赖周改、Claude 审查两条辅助线，版本标签 perceives-v*.*.* 经 workflow_call 复用 CI 验证并构建分发包后进入两阶段发布——GitHub Pre-Release 与 TestPyPI 预发布双通道、production 环境人工审批门禁、Promote 后以 OIDC 可信发布正式上 PyPI。](../../assets/architecture/perceives/development--ci-flow-dark.png)
 
-    subgraph "CI 流水线"
-        B[ci.yml]
-        B1["跨平台测试<br/>(Ubuntu / Windows / macOS)"]
-        B2["Ruff Lint + Format"]
-        B3["MyPy 类型检查"]
-        B4["安全审计<br/>(bandit + pip-audit)"]
-        B5["构建验证"]
-        B6["覆盖率报告 + Codecov"]
-        B --> B1 & B2 & B3 & B4 & B5 & B6
-    end
-
-    subgraph "发布流水线（两阶段）"
-        D[release.yml]
-        D0["CI 验证"]
-        D1["构建分发包"]
-        D2["Pre-Release GitHub<br/>(prerelease: true)"]
-        D3["TestPyPI 发布"]
-        D4["人工审批门禁<br/>(Environment: production)"]
-        D5["Promote 正式 Release<br/>(prerelease: false)"]
-        D6["PyPI 发布 OIDC"]
-        D7["更新 Changelog"]
-        D --> D0 --> D1
-        D1 --> D2
-        D1 --> D3
-        D2 --> D4
-        D3 --> D4
-        D4 --> D5
-        D5 --> D6 --> D7
-    end
-
-    subgraph "辅助流水线"
-        H["dependencies.yml<br/>每周一 9:00 UTC"]
-        K["review.yml<br/>PR + 主分支推送"]
-    end
-
-    A --> B
-    B0 --> B
-    C --> D
-    G -->|"每周依赖更新"| H
-    B0 -->|"代码审查"| K
-
-    style B fill:#2196F3,color:#fff
-    style D fill:#4CAF50,color:#fff
-    style D4 fill:#f44336,color:#fff,stroke-dasharray: 5 5
-    style H fill:#FF9800,color:#000
-    style K fill:#9C27B0,color:#fff
-```
+> 图源（可 diff 文本）：[`development--ci-flow.mmd`](../../assets/mermaid/perceives/development--ci-flow.mmd) · 交互版（下载到本地打开）：[`development--ci-flow.html`](../../assets/architecture/perceives/development--ci-flow.html)
 
 ### CI — [`ci.yml`](../.github/workflows/ci.yml)
 

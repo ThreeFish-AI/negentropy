@@ -111,7 +111,7 @@ sequenceDiagram
 
 ## 3. 核心模块
 
-以下是 Agent Engine Adaptation 核心模块说明与代码关联（实际代码：`apps/cognizes/src/cognizes/adapters/postgres/` 及 `apps/cognizes/src/cognizes/engine/`）。
+以下是 Agent Engine Adaptation 核心模块说明与代码关联（实际代码：`apps/cognizes/src/cognizes/adapters/postgres/` 及 `apps/cognizes/src/cognizes/engine/`；注：apps/cognizes 已于 2026-09 退役删除，下表代码路径为写作时点的历史快照，可从 git 历史找回）。
 
 | Tag     | Component Name            | Function                                                                                             | Code Path                                                        |
 | :------ | :------------------------ | :--------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |

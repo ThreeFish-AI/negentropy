@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2e473e70-c29e-4949-8325-6e23537088e0",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/lifecycle-lookup-failure-1841/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--lookup-failure.html",
+  "specification": {
+    "sha256": "ffe9fb4e7c8d67684064dd109b382edd33410bdcfcb35ff38e220f318ea30cc8",
+    "bytes": 3668
+  },
+  "artifact": {
+    "sha256": "987d0dd3d1607875162892f97a61d8eb9f87cd672bfdde3a8eee6ae111641383",
+    "bytes": 833972
+  }
+}

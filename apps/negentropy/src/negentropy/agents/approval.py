@@ -47,7 +47,7 @@ HIGH_RISK_TOOLS: tuple[str, ...] = (
     # 副作用：写入 KG / 知识库
     "update_knowledge_graph",
     "ingest_paper",  # 会下载 PDF + 写入知识库
-    "ingest_to_corpus",  # ISSUE-096 后续：用户 @ Corpus 主动沉淀（默认 per_tool 拦截）
+    "ingest_to_corpus",  # I-096 后续：用户 @ Corpus 主动沉淀（默认 per_tool 拦截）
     # 副作用：执行代码 / 文件系统
     "execute_code",
     "write_file",
@@ -92,7 +92,7 @@ APPROVAL_POLL_INTERVAL: float = 0.5
 
 
 # ----------------------------------------------------------------------------
-# 审批 denial 缓存（断掉重试循环 · ISSUE-156 续）
+# 审批 denial 缓存（断掉重试循环 · I-156 续）
 # ----------------------------------------------------------------------------
 #
 # 设计动机：工具在审批「超时/被拒」后返回 ``failed``，LLM 看到 failed → 重试 → 再次

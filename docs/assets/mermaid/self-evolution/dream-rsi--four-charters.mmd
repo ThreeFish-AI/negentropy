@@ -1,0 +1,12 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §4
+%% slug: dream-rsi--four-charters
+%% type: dataflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--four-charters.html
+flowchart LR
+    TREE["同一棵 12 节点发现树 T1<br/>（一次在线运行的产物）"] --> C1["π1 并行铺满<br/>V = 0.8280"]
+    TREE --> C2["π* 自适应<br/>V = 0.8520 ← 最高"]
+    TREE --> C3["π 浅尝即止<br/>V = 0.7600"]
+    TREE --> C4["π 串行深挖<br/>V = 0.7700"]
+    C1 & C2 & C3 & C4 --> TAKE["一次在线运行<br/>支撑多次零成本元评估<br/>成千上万种章程各走时间线，全部免费"]
+    style C2 fill:#2E4210,stroke:#A3E635,color:#fff
+    style TREE fill:#0F3244,stroke:#7DD3FC,color:#fff

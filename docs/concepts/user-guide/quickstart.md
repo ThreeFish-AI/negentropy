@@ -64,21 +64,9 @@ pnpm run dev
 
 ### 2.4 首次对话
 
-```mermaid
-sequenceDiagram
-    participant U as 👤 用户
-    participant UI as 🖥️ 前端界面
-    participant BE as ⚙️ 后端引擎
+![Negentropy 首次对话时序：用户打开 localhost:3192（/ 重定向 /studio）并通过 Google 登录门后于 Composer 输入首条消息，Studio 页先 POST /api/agui/sessions 经 BFF 路由转发 ADK 引擎自动建会话并回传 sessionId，再以 POST /api/agui（Accept: x-ndjson）发起 run、由 BFF 转为 POST /run_sse，ADK 引擎分析意图后委派五大系部与三条流水线，产出回汇经 SSE 事件流回到 BFF 并以 NDJSON 帧驱动 StudioTranscript 渲染，最终呈现回复与 State 栏 EventTimeline。](../../assets/architecture/user-guide/quickstart--first-chat-sequence-dark.png)
 
-    U->>UI: 打开 localhost:3192
-    UI->>UI: 显示三栏布局<br/>（Session 列表 / 聊天区 / 调试面板）
-    U->>UI: 在 Composer 输入框输入消息
-    UI->>BE: 自动创建 Session<br/>发送用户消息
-    BE->>BE: NegentropyEngine 分析意图<br/>委派系部 / 触发流水线
-    BE-->>UI: 流式返回 Agent 响应
-    UI->>UI: ChatStream 实时渲染<br/>EventTimeline 更新事件
-    U->>UI: 阅读 Agent 回复<br/>查看右侧调试信息
-```
+> 图源（可 diff 文本）：[`quickstart--first-chat-sequence.mmd`](../../assets/mermaid/user-guide/quickstart--first-chat-sequence.mmd) · 交互版（下载到本地打开）：[`quickstart--first-chat-sequence.html`](../../assets/architecture/user-guide/quickstart--first-chat-sequence.html)
 
 打开浏览器访问 `http://localhost:3192`，你会看到三栏布局的对话界面：
 

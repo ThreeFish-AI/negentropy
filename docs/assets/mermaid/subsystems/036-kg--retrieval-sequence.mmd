@@ -1,0 +1,24 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md#block6
+%%slug: subsystems/036-kg--retrieval-sequence
+%%type: sequence
+%%derived: archify spec .temp/archify/subsystems/036-kg--retrieval-sequence.json
+%% fix: 参与者 API 别名 POST /global_search 为缩写，实际路由 POST /knowledge/base/{corpus_id}/graph/global_search（knowledge/routes/graph.py:1001，挂载于 /knowledge 前缀）
+%% fix: summaries_dirty 判定代码为 MAX(kg_entities.updated_at) > MAX(kg_community_summaries.updated_at)（global_search.py::_check_summaries_stale），文档正文 MIN 表述已过时；本图仅携带标志不展开 SQL
+sequenceDiagram
+    participant U as 用户
+    participant API as POST /global_search
+    participant SVC as GlobalSearchService
+    participant DB as kg_community_summaries
+    participant LLM as LLM
+    U->>API: query (+ max_communities)
+    API->>SVC: search(corpus_id, query, query_embedding)
+    SVC->>DB: SELECT top_k by 1-(emb<=>query)::vector
+    DB-->>SVC: candidates
+    par Map (concurrency=5)
+        SVC->>LLM: MAP_PROMPT(query, summary_i)
+        LLM-->>SVC: partial_answer_i
+    end
+    SVC->>LLM: REDUCE_PROMPT(query, partials)
+    LLM-->>SVC: final_answer
+    SVC-->>API: answer + evidence + summaries_dirty
+    API-->>U: GlobalSearchResponse

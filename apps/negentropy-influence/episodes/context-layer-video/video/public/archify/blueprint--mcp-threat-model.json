@@ -1,0 +1,109 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.52,
+ "story_sec": 25.43,
+ "total_wall_sec": 94.3,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "tm2-open",
+   "label": "供给面全景",
+   "index": 0,
+   "file": "blueprint--mcp-threat-model--tm2-open.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-open-end.png",
+   "beats": 11,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 12.16,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "host-client",
+    "mcp-surface",
+    "compile-gate",
+    "governed-exec",
+    "data-plane",
+    "token-theft",
+    "desc-poison",
+    "deputy",
+    "handle-spoof",
+    "injection",
+    "legitimation"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "tm2-surface",
+   "label": "供给边界",
+   "index": 1,
+   "file": "blueprint--mcp-threat-model--tm2-surface.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-surface-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "host-client",
+    "mcp-surface",
+    "compile-gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "tm2-plane",
+   "label": "数据与执行",
+   "index": 2,
+   "file": "blueprint--mcp-threat-model--tm2-plane.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-plane-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.6,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "governed-exec",
+    "data-plane"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "tm2-threats",
+   "label": "六类威胁",
+   "index": 3,
+   "file": "blueprint--mcp-threat-model--tm2-threats.mp4",
+   "end_still": "blueprint--mcp-threat-model--tm2-threats-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 6.65,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "token-theft",
+    "desc-poison",
+    "deputy",
+    "handle-spoof",
+    "injection",
+    "legitimation"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/blueprint--mcp-threat-model.html",
+ "slug": "blueprint--mcp-threat-model",
+ "type": "architecture"
+}

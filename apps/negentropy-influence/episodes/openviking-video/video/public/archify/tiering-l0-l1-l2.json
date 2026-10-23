@@ -1,0 +1,124 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.32,
+ "total_wall_sec": 269.74,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "layers",
+   "label": "三层",
+   "index": 0,
+   "file": "tiering-l0-l1-l2--layers.mp4",
+   "end_still": "tiering-l0-l1-l2--layers-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "files",
+    "l1",
+    "l0"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "gen",
+   "label": "生成链",
+   "index": 1,
+   "file": "tiering-l0-l1-l2--gen.mp4",
+   "end_still": "tiering-l0-l1-l2--gen-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "fsum",
+    "gen"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "cut",
+   "label": "裁剪",
+   "index": 2,
+   "file": "tiering-l0-l1-l2--cut.mp4",
+   "end_still": "tiering-l0-l1-l2--cut-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "cut"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "sample",
+   "label": "采样闸",
+   "index": 3,
+   "file": "tiering-l0-l1-l2--sample.mp4",
+   "end_still": "tiering-l0-l1-l2--sample-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "sample"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "vec",
+   "label": "向量化",
+   "index": 4,
+   "file": "tiering-l0-l1-l2--vec.mp4",
+   "end_still": "tiering-l0-l1-l2--vec-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "vec"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/karachi-v3/docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html",
+ "slug": "tiering-l0-l1-l2",
+ "type": "architecture"
+}

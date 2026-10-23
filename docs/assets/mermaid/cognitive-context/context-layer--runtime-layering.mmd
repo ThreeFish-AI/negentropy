@@ -1,0 +1,51 @@
+%% source: docs/research/cognitive-context/013-context-layer-blueprint.md §11.2 运行时分层与四信号来源（2026-09-27 重铸：三相→CGAVE 五段）
+%% fix: (2026-10-14 退役存档 · 013 换代联动) 本图已退役存档（视频管线仍引用故保留）；首行 §11.2 锚为退役时点旧版节号，按存档冻结不重锚。
+%% slug: cognitive-context/context-layer--runtime-layering
+%% type: architecture
+%% derived: archify architecture, byte-extract of source mermaid
+%% fix: 原图仅画 M/KB/KG→PG，遗漏 Tools/Skills 的 PG 持久化（builtin_tools、skills/skill_versions 均为 PG 表，文档 §3.2 自身亦列为 Structural 源）——本图补全五子系统→PostgreSQL，其余拓扑逐字节保留
+graph TB
+    subgraph RUNTIME["Agent Runtime"]
+        F["五翼 Faculties + 流水线 Pipelines + Toolset"]
+    end
+    subgraph CONTEXT["Context Layer（上下文治理层）"]
+        direction LR
+        CL1["Collect 采集<br/>Context Catalog"]
+        CL2["Govern 治理<br/>口径 · 可见性 · 注入纪律"]
+        CL3["Activate 激活<br/>Router + Guard"]
+        CL4["Verify 验证<br/>锚定 · 可观测"]
+        CL5["Evolve 进化<br/>富化 · 自纠环"]
+        CL1 --> CL2 --> CL3 --> CL4 --> CL5
+    end
+    subgraph SYS["子系统"]
+        M["Memory<br/>海马体"]
+        KB["Knowledge Base"]
+        KG["Knowledge Graph"]
+        T["Tools"]
+        S["Skills"]
+    end
+    subgraph INFRA["PostgreSQL"]
+        PG["pgvector + Apache AGE + tsvector + pg_cron"]
+    end
+
+    F -->|"统一入口"| CL3
+    CL3 --> CL1
+    CL1 -.指针.-> M
+    CL1 -.指针.-> KB
+    CL1 -.指针.-> KG
+    CL1 -.指针.-> T
+    CL1 -.指针.-> S
+    M --> PG
+    KB --> PG
+    KG --> PG
+    T --> PG
+    S --> PG
+
+    classDef runtime fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
+    classDef context fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
+    classDef sys fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
+    classDef infra fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
+    class F runtime
+    class CL1,CL2,CL3,CL4,CL5 context
+    class M,KB,KG,T,S sys
+    class PG infra

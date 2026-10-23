@@ -45,7 +45,7 @@ async def resolve_user_with_db_roles(user: AuthUser) -> AuthUser:
     管理员把某个用户提升为 admin（PATCH /auth/users/{id}/roles）时，更新落在 DB
     ``UserState.state.roles``，而 JWT 仍是登录瞬间的快照（roles=["user"]）。若 admin
     端点直接用 ``get_current_user`` 解 JWT，会读到旧 roles 导致 403——前端 ``/auth/me``
-    已通过 DB 覆盖把用户当作 admin 显示，前后端视图割裂（参见 ISSUE-049）。
+    已通过 DB 覆盖把用户当作 admin 显示，前后端视图割裂（参见 I-049）。
 
     本函数承载该“DB 覆盖 JWT”规则的单一实现，供 admin 端点的依赖注入复用，
     避免每个 admin endpoint 自行查表 / 漏查导致权限漂移。

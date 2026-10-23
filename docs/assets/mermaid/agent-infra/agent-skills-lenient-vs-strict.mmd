@@ -1,0 +1,22 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P4（p4-06..08；事实源 research/source-notes.md「二、原型实测」；home.mdx @69ef37e9 官方指南口径）
+%% slug: agent-skills-lenient-vs-strict
+%% type: workflow
+%% derived: 2026-09-27 agent-skills-video 分镜 · docs/assets/architecture/agent-infra/agent-skills--lenient-vs-strict.html
+flowchart LR
+    ARRIVAL["他端技能箱<br/>name 与目录名对不上"]
+    subgraph LENIENT["宽容之门 · 官方口径"]
+        LGATE["验关 · 警告一声<br/>name 不匹配 → warn"]
+        LOADED["照装不误<br/>技能装载 · 港内可用"]
+        LTALLY["12 只全进<br/>互操作面 12/12 · 自建实测"]
+    end
+    subgraph STRICT["严格之门 · 对照口径"]
+        SGATE["验关 · 校验失败<br/>name 不匹配 → fail"]
+        REJECTED["拒载<br/>技能进不了港"]
+        STALLY["拒掉 4 只<br/>互操作面损失 33% · 自建实测"]
+    end
+    ARRIVAL --> LGATE
+    ARRIVAL --> SGATE
+    LGATE -->|警告照放| LOADED
+    SGATE -->|fail| REJECTED
+    LOADED -->|12 只实测| LTALLY
+    REJECTED -->|12 只实测| STALLY

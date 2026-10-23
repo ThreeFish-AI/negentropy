@@ -1,0 +1,25 @@
+%%source: docs/concepts/subsystems/041-human-machine-interaction-transcript.md §4 架构方案（块#0，L52-L74）
+%%slug: subsystems/041-transcript--full-view
+%%type: workflow
+%%derived: byte-exact extraction of mermaid block #0
+flowchart LR
+  subgraph ROUTINE["Routine 路径（Iterations Full View）"]
+    direction LR
+    R1["RoutineIterationEventDTO[]<br/>持久化 + live SSE"] --> R2["normalizeTranscript<br/>工具配对 / cc·human 提升"]
+    R2 --> R3["前置 task_dispatch<br/>（iteration.prompt 合成）"]
+    R3 --> R4["TranscriptItemsView<br/>ROUTINE_POLICY"]
+  end
+  subgraph STUDIO["Studio 路径（Home 中栏）"]
+    direction LR
+    S1["ConversationNode[]<br/>AG-UI 树"] --> S2["buildChatDisplayBlocks<br/>turn 分组 / 6 层去重 / 漂移修正"]
+    S2 --> S3["buildStudioTranscript<br/>ChatDisplayBlock → TranscriptItem"]
+    S3 --> S4["TranscriptItemsView<br/>STUDIO_POLICY + itemWrapper"]
+  end
+  R4 --> VIEW["共享渲染原语<br/>components/transcript/*"]
+  S4 --> VIEW
+  classDef routine fill:#3f3a1e,stroke:#fbbf24,color:#fef9c3;
+  classDef studio fill:#1e3a5f,stroke:#60a5fa,color:#e0f2fe;
+  classDef shared fill:#3b1e3f,stroke:#c084fc,color:#f3e8ff;
+  class R1,R2,R3,R4 routine;
+  class S1,S2,S3,S4 studio;
+  class VIEW shared;

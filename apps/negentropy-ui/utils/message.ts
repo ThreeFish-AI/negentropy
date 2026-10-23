@@ -63,9 +63,9 @@ function findOverlapSuffixPrefix(existing: string, incoming: string): number {
 }
 
 /**
- * ISSUE-071 根因层补丁：检测 LLM 流式「改写覆盖」场景。
+ * I-071 根因层补丁：检测 LLM 流式「改写覆盖」场景。
  *
- * 实测在中文流式答复中（见 ISSUE-071 验证日志），LLM 会先吐出残缺
+ * 实测在中文流式答复中（见 I-071 验证日志），LLM 会先吐出残缺
  * 中间态（如「负熵...或入化信息...采选项」），再以一段语义等同但表面
  * 重排的 final 完整版（「负熵...或引入结构化信息...是否采纳哪个选项？」）
  * 重发。两者：
@@ -122,7 +122,7 @@ export function accumulateTextContent(existing: string, incoming: string): strin
   if (overlap > 0) {
     return `${existing}${incoming.slice(overlap)}`;
   }
-  // ISSUE-071：LLM 改写覆盖场景，丢弃残缺 existing 用 incoming 替换。
+  // I-071：LLM 改写覆盖场景，丢弃残缺 existing 用 incoming 替换。
   if (isRewriteCoverOfExisting(existing, incoming)) {
     return incoming;
   }
@@ -276,7 +276,7 @@ export function isEquivalentMessageContent(
 }
 
 /**
- * ISSUE-041: 字符二元组 Jaccard 相似度。原由 chat-display.ts 私有持有，
+ * I-041: 字符二元组 Jaccard 相似度。原由 chat-display.ts 私有持有，
  * 现提升为共享工具，供 conversation-tree.ts::findSubsumingTextNode 在
  * 「realtime 流式 partial vs hydration final」内容差异（非 prefix 关系）
  * 场景下识别同一逻辑消息。Phase 3 RFC 0001 将进一步抽取到 utils/dedup/。

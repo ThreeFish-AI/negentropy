@@ -1,0 +1,24 @@
+%% source: docs/concepts/framework.md §6.1 启动引导流程（原 L349-369）
+%% slug: core/framework--bootstrap-sequence
+%% type: workflow
+%% derived: docs/assets/architecture/core/framework--bootstrap-sequence.html (+ -dark/-light PNG)
+%% fix: 挂载点按 engine/bootstrap.py:565-642 补齐 8 组（原仅 4）：/knowledge(16 子路由聚合)·/memory·/interface(六域+models/task-models/repositories/definitions)·/scheduler·/routines·/auth·/sessions title·/knowledge/corpus task-models·/mcp/knowledge(ASGI mount)；G 改为 ApiServer+AdkWebServer 双 patch（dev_server 置 None 强制 ApiServer 回退）；J 由「注册 startup 事件」改为 lifespan(_negentropy_lifespan) 启动统一心跳调度器，cache_warm 等旧 startup hook 已平移为 ScheduledTask
+flowchart TD
+    A["bootstrap.py 模块加载<br>(import-time)"] --> B["日志系统初始化<br>configure_logging()"]
+    B --> C["OpenTelemetry 环境配置<br>Langfuse OTLP Endpoint"]
+    C --> D["LiteLLM 回调注册<br>success/failure callbacks"]
+    D --> E["apply_adk_patches()"]
+    E --> F["Monkey-Patch ADK 工厂<br>Session · Memory · Artifact · Credential"]
+    F --> G["Patch get_fast_api_app<br>ApiServer + AdkWebServer"]
+
+    G -.->|"延迟执行：服务启动时"| H["注入 Negentropy 中间件<br>TracingInitMiddleware · AuthMiddleware"]
+    H --> I["挂载 API 路由（8 组）<br>/knowledge(16 子路由) · /memory<br>/interface(六域+4) · /scheduler · /routines<br>/auth · /sessions title<br>/knowledge/corpus task-models<br>/mcp/knowledge(ASGI)"]
+    I --> J["注入 lifespan(_negentropy_lifespan)<br>启动统一心跳调度器<br>cache_warm 等以 ScheduledTask 运行"]
+
+    classDef boot fill:#3B82F6,stroke:#1E40AF,color:#FFF
+    classDef patch fill:#F59E0B,stroke:#92400E,color:#000
+    classDef serve fill:#10B981,stroke:#065F46,color:#FFF
+
+    class A,B,C,D boot
+    class E,F,G patch
+    class H,I,J serve

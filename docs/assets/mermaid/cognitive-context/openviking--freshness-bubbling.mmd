@@ -1,0 +1,13 @@
+%% source: docs/research/cognitive-context/014-openviking.md §4 新鲜度冒泡（视频 P2 → 修订重绘）
+%% slug: openviking--freshness-bubbling
+%% type: dataflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.html
+%% fix: 2026-10-22 「重印」统一为「刷新」、补「父目录无基线 → 立即刷新」分支
+flowchart LR
+  CHANGE["文件变更<br/>所在目录先重新生成摘要"] -->|"重新生成摘要"| GATE{"子目录 L0 正文 digest 变了？"}
+  GATE -.->|"未变"| NOOP["NOOP<br/>未变 · 零成本"]
+  GATE -->|"变了"| REPORT["变了才上报父目录"]
+  REPORT -->|"无基线 / 子项 ≤ 32"| REFRESH["父目录立即刷新<br/>父目录无基线 · 或直接子项 ≤ 32"]
+  REPORT -->|"子项 > 32"| COUNT["攒批计数<br/>子项 > 32 · pending / total ≥ 0.10 才刷新"]
+  REFRESH -->|"立即冒泡"| ANCESTOR["祖先链逐层结算<br/>被采样的兄弟文件全部重新摘要"]
+  COUNT -->|"攒满 10%"| ANCESTOR

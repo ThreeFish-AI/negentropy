@@ -1,0 +1,13 @@
+%% source: docs/concepts/framework.md §9.5 UI 交互状态机（连接状态） (原 L642-L652)
+%% slug: core/framework--connection-lifecycle
+%% type: lifecycle
+%% derived: docs/assets/architecture/core/framework--connection-lifecycle.html (+ -dark/-light PNG)
+stateDiagram-v2
+    [*] --> idle
+    idle --> connecting: 创建 Session / 发送消息
+    connecting --> streaming: SSE 连接建立
+    streaming --> idle: 事件流结束
+    streaming --> retrying: SSE 断连
+    retrying --> streaming: 重连成功
+    retrying --> error: 超过重试阈值
+    error --> connecting: 手动重连

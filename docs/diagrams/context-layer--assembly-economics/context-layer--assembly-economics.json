@@ -1,0 +1,226 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Context Layer 装配成本结构：五个设计参数 × 双通道",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html"
+  },
+  "lanes": [
+    {
+      "id": "lane0",
+      "label": "装配成本结构五个设计参数 · ADR-6"
+    },
+    {
+      "id": "lane1",
+      "label": "双通道检索 · ADR-2/3"
+    },
+    {
+      "id": "lane2",
+      "label": "融合 · 出口 · 窗口"
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase0",
+      "label": "双通道检索",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "phase1",
+      "label": "统一融合",
+      "fromCol": 2,
+      "toCol": 2
+    },
+    {
+      "id": "phase2",
+      "label": "出口 · 进入窗口",
+      "fromCol": 3,
+      "toCol": 4
+    }
+  ],
+  "groups": [
+    {
+      "id": "group0",
+      "label": "统一双通道 · ADR-2",
+      "lane": "lane1",
+      "fromCol": 0,
+      "toCol": 1
+    }
+  ],
+  "nodes": [
+    {
+      "id": "k1",
+      "lane": "lane0",
+      "col": 0,
+      "type": "backend",
+      "label": "① 预算分配",
+      "sublabel": "30/50/20 · Core 30% 硬帽",
+      "width": 164
+    },
+    {
+      "id": "k2",
+      "lane": "lane0",
+      "col": 1,
+      "type": "backend",
+      "label": "② 渐进披露",
+      "sublabel": "L1 常驻 · L2/L3 按需",
+      "width": 164
+    },
+    {
+      "id": "k3",
+      "lane": "lane0",
+      "col": 2,
+      "type": "backend",
+      "label": "③ JIT vs 预取",
+      "sublabel": "<200K token 全量放进窗口",
+      "width": 164
+    },
+    {
+      "id": "k4",
+      "lane": "lane0",
+      "col": 3,
+      "type": "backend",
+      "label": "④ 缓存友好排序",
+      "sublabel": "会变的排后面",
+      "width": 164
+    },
+    {
+      "id": "k5",
+      "lane": "lane0",
+      "col": 4,
+      "type": "backend",
+      "label": "⑤ 压缩分级",
+      "sublabel": "结构操作在前 · 模型调用排在最后",
+      "width": 164
+    },
+    {
+      "id": "ch1",
+      "lane": "lane1",
+      "col": 0,
+      "type": "messagebus",
+      "label": "接地摘要",
+      "sublabel": "preload 每轮注入",
+      "tag": "生产实际接线",
+      "width": 140
+    },
+    {
+      "id": "ch2",
+      "lane": "lane1",
+      "col": 1,
+      "type": "backend",
+      "label": "深度检索",
+      "sublabel": "HybridPlanner 四阶段",
+      "width": 148
+    },
+    {
+      "id": "fuse",
+      "lane": "lane2",
+      "col": 2,
+      "type": "backend",
+      "label": "统一融合",
+      "sublabel": "RRF · 信任归一",
+      "width": 136
+    },
+    {
+      "id": "guard",
+      "lane": "lane2",
+      "col": 3,
+      "type": "security",
+      "label": "ContextGuard 出口守卫",
+      "sublabel": "方案位 · 未落地",
+      "width": 168
+    },
+    {
+      "id": "llm",
+      "lane": "lane2",
+      "col": 4,
+      "type": "external",
+      "label": "LLM 窗口",
+      "sublabel": "最小高信号集",
+      "width": 132
+    }
+  ],
+  "edges": [
+    {
+      "id": "ch1-fuse",
+      "from": "ch1",
+      "to": "fuse"
+    },
+    {
+      "id": "ch2-fuse",
+      "from": "ch2",
+      "to": "fuse",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          584,
+          253
+        ],
+        [
+          584,
+          338
+        ]
+      ]
+    },
+    {
+      "id": "fuse-guard",
+      "from": "fuse",
+      "to": "guard"
+    },
+    {
+      "id": "guard-llm",
+      "from": "guard",
+      "to": "llm"
+    },
+    {
+      "id": "knob-constraint",
+      "from": "k3",
+      "to": "fuse",
+      "label": "设计参数约束",
+      "variant": "dashed",
+      "labelAt": [
+        542,
+        225
+      ]
+    },
+    {
+      "id": "rank-share",
+      "from": "ch1",
+      "to": "ch2",
+      "label": "共享归一信任排名（ADR-3）",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "装配成本结构 · 五个设计参数（ADR-6）",
+      "items": [
+        "• 预算 30/50/20，Core 硬帽 30%：贵的不一定进入窗口",
+        "• 渐进披露 + JIT/预取：L1 常驻，L2/L3 按需；<200K token 全量放进窗口",
+        "• 缓存友好排序 + 压缩分级：会变的排后面；结构操作在前，模型调用排在最后"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "双通道统一（ADR-2/3）",
+      "items": [
+        "• 自动通道 preload 每轮注入——生产实际接线",
+        "• 按需通道 HybridPlanner 四阶段深度检索",
+        "• 两通道共享归一信任排名，RRF 统一融合"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "出口与宿主真相",
+      "items": [
+        "• ContextGuard 出口守卫是方案位，尚未落地",
+        "• D1 宿主更正：真实装配面＝五个接入点 + preload，assemble() 仅单测"
+      ]
+    }
+  ]
+}

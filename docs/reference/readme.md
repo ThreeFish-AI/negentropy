@@ -8,6 +8,8 @@
 
 Agentic AI 引擎内核的验证资产：项目级 PRD/计划、五阶段（Pulse / Hippocampus / Perception / Realm of Mind / Demo）实施方案、配套 DDL 与开发/测试/CI 指南。
 
+> 注：`apps/cognizes` 代码项目已于 2026-09 退役删除（功能由 Negentropy 主栈承接），本分部为保留的设计参考资产。
+
 | 文档 | 主旨 |
 |:---|:---|
 | [Cognizes 引擎索引](./cognizes/readme.md) | 引擎内核各 Phase 实现与外部基线调研的阅读入口 |
@@ -32,4 +34,4 @@ Agentic AI 引擎内核的验证资产：项目级 PRD/计划、五阶段（Puls
 
 ---
 
-> 阅读建议：引擎内核设计与 PRD 查「Cognizes 引擎」；数据提取与 PDF 工程化查「Perceives MCP」；Wiki 站点本身的部署与发布查「Wiki 运维」。
+> 阅读建议：引擎内核设计与 PRD 查「Cognizes 引擎」；数据提取与 PDF 工程化查「Perceives MCP」；Wiki 站点本身的部署与发布查「Wiki 运维」。领域材料精读、机制映射与 Context Layer 复刻蓝图已迁入[研究文献](../research/readme.md)分部。

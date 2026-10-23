@@ -1,0 +1,34 @@
+[
+ {
+  "id": "fc-soft404",
+  "label": "查无此货",
+  "focus": [
+   "leiruz",
+   "soft404",
+   "legal"
+  ],
+  "note": "200 加报错体，字面仍是合法舱单"
+ },
+ {
+  "id": "fc-units",
+  "label": "单位未定义",
+  "focus": [
+   "leiruz",
+   "units",
+   "emoji"
+  ],
+  "note": "1024 无单位：JS 与 Go 差两倍"
+ },
+ {
+  "id": "fc-schema",
+  "label": "三个答案",
+  "focus": [
+   "idx",
+   "cf",
+   "p254",
+   "vercel",
+   "unsat"
+  ],
+  "note": "回退·拒收·兼容；旧格式无 digest"
+ }
+]

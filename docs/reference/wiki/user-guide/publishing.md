@@ -24,23 +24,9 @@ Negentropy Wiki 是知识库的**对外发布窗口**，将知识库中整理好
 > 重建 / 推送由后端在「发布」后 **fire-and-forget spawn** 承担；本地 `cli.sh restart` 亦内置相同闭环。
 > 完整部署拓扑见 [`deployment.md`](../deployment.md)。
 
-```mermaid
-flowchart LR
-    KB["📚 知识库<br/>Corpus / Documents"] --> Publish["📤 发布<br/>选节点 + 选目标"]
-    Publish --> Build["🔨 导出 + 重建<br/>content/ → out/"]
-    Build --> Local["🏠 测试环境<br/>本地 :3092"]
-    Build --> Prod["🌐 生产环境<br/>threefish-ai.github.io"]
-    Local --> User["👤 用户浏览"]
-    Prod --> User
+![Wiki 发布用户流程：知识库（Corpus/Documents）经控制台「发布」选节点与目标后，由后端 fire-and-forget spawn 完成「导出 content/ → next build 重建 out/」，按目标分叉为测试环境（本地 :3092）与生产环境（threefish-ai.github.io master），两个站点最终均供用户浏览。](../../../assets/architecture/wiki/publishing--user-flow-dark.png)
 
-    classDef proc fill:#DBEAFE,stroke:#1E3A8A,color:#000
-    classDef wiki fill:#D1FAE5,stroke:#065F46,color:#000
-    classDef prod fill:#FEE2E2,stroke:#991B1B,color:#000
-
-    class Publish,Build proc
-    class Local wiki
-    class Prod prod
-```
+> 图源（可 diff 文本）：[`publishing--user-flow.mmd`](../../../assets/mermaid/wiki/publishing--user-flow.mmd) · 交互版（下载到本地打开）：[`publishing--user-flow.html`](../../../assets/architecture/wiki/publishing--user-flow.html)
 
 #### 8.2.1 在控制台一步步发布（实操指南）
 

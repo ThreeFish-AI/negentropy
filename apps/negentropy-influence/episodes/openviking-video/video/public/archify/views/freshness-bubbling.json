@@ -1,0 +1,28 @@
+[
+ {
+  "id": "funnel",
+  "label": "漏斗入口",
+  "focus": [
+   "gate",
+   "noop"
+  ],
+  "note": "标签没变就零成本跳过。"
+ },
+ {
+  "id": "small",
+  "label": "小架直通",
+  "focus": [
+   "small",
+   "bubble"
+  ],
+  "note": "变了才上报；父级小立即重印。"
+ },
+ {
+  "id": "wide",
+  "label": "宽架攒批",
+  "focus": [
+   "count"
+  ],
+  "note": "攒够一成变动才值得整架重写。"
+ }
+]

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer--lifecycle/context-layer--lifecycle.json",
+    "sha256": "b8931cd16156462511b9d2c11f46f35e1c3af6c2daa4d6b2a1bf1c0289ec9f86",
+    "bytes": 4950
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.html",
+    "sha256": "90621829badea67b61e54d180a313666f5248f5aa1ec074b281ef291dd1a565f",
+    "bytes": 759250
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer--lifecycle.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2128,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-verify-fix",
+            "from": "l4",
+            "to": "l2",
+            "label": "验证环 · 修定义",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 4,
+          "stretch": 1.209,
+          "directCorridorBlockers": [
+            {
+              "id": "l3",
+              "label": "L3 装配执法",
+              "box": [
+                468,
+                56,
+                140,
+                64
+              ]
+            }
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

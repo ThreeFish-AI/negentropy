@@ -54,19 +54,9 @@ description: 认知增强总览
 
 `wiki_docs_ingest.py::_sort_children` 以「有效位次」为主键、文件名自然序为次键：
 
-```mermaid
-flowchart LR
-  A[同级节点] --> B{有显式位次?<br/>sidebar_position / position}
-  B -- 是 --> C[按位次升序]
-  B -- 否 --> D{是索引页?<br/>README / index}
-  D -- 是 --> E["有效位次 = -∞<br/>浮动至最前"]
-  D -- 否 --> F["有效位次 = +∞<br/>沉至末尾"]
-  C --> G[同位次并列<br/>→ 文件名自然序 tiebreak]
-  E --> G
-  F --> G
-  G --> H[确定、非随机顺序]
-  style H fill:#2d6a4f,color:#fff
-```
+![Wiki 文档排序的有效位次决策流：显式位次（sidebar_position / position）恒优先按升序；缺省时索引页取 -∞ 浮至最前、其余取 +∞ 沉至末尾，同位次并列以文件名自然序 tiebreak，最终得到确定、非随机的导航顺序。(EN: Decision flow for effective rank in wiki docs ordering — explicit positions sort ascending first; missing ones fall back to −∞ for index pages or +∞ otherwise, with filename natural-order tiebreak yielding a deterministic, non-random nav order.)](../assets/architecture/agents/wiki-ordering--effective-rank-dark.png)
+
+> 图源（可 diff 文本）：[`wiki-ordering--effective-rank.mmd`](../assets/mermaid/agents/wiki-ordering--effective-rank.mmd) · 交互版（下载到本地打开）：[`wiki-ordering--effective-rank.html`](../assets/architecture/agents/wiki-ordering--effective-rank.html)
 
 要点：
 

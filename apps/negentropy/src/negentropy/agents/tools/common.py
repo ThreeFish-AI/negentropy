@@ -1,12 +1,40 @@
 import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from google.adk.tools import ToolContext
 
 from negentropy.logging import get_logger
 
+if TYPE_CHECKING:
+    from negentropy.knowledge.service import KnowledgeService
+
 logger = get_logger("negentropy.tools.common")
+
+# Agent 工具共享的 KnowledgeService 惰性单例（零 import 时副作用，重初始化防御）
+_knowledge_service: "KnowledgeService | None" = None
+
+
+def get_knowledge_service() -> "KnowledgeService":
+    """Lazily construct the shared ``KnowledgeService`` singleton for agent tools.
+
+    ingest / paper / perception 历史上各自内联同款惰性单例，收敛至此单一事实源；
+    ``knowledge/_shared.py`` 的 ``_get_service`` 额外注入 ``pipeline_dao``（语义
+    不同），故不复用该实现。
+    """
+    global _knowledge_service
+    if _knowledge_service is None:
+        from negentropy.knowledge.ingestion.embedding import (
+            build_batch_embedding_fn,
+            build_embedding_fn,
+        )
+        from negentropy.knowledge.service import KnowledgeService
+
+        _knowledge_service = KnowledgeService(
+            embedding_fn=build_embedding_fn(),
+            batch_embedding_fn=build_batch_embedding_fn(),
+        )
+    return _knowledge_service
 
 
 def get_current_timestamp() -> str:
@@ -71,7 +99,7 @@ def emit_tool_progress(
 
     设计要点：
     - 写入 ``state.tool_progress[tool_call_id]``，前端 home-body 提取后渲染进度条；
-    - 不参与 message-ledger 比对（仅文本内容参与），避开 ISSUE-031 时间窗回归；
+    - 不参与 message-ledger 比对（仅文本内容参与），避开 I-031 时间窗回归；
     - 单点写入语义：调用方按语义里程碑（5%/20%/60%/100%）触发，里程碑天然稀疏，
       不需要时间维度 throttle；如未来增加细粒度推送，应在此处按 ``tool_call_id``
       维护上次推送时间戳实现真正的节流，并同步更新

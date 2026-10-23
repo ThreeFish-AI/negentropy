@@ -1,0 +1,54 @@
+name: Media Assets Consistency
+
+# 媒体固定资产登记制校验 —— 「默认不入库，登记才入库」的 CI 兜底。
+#
+# 音/视频媒体与动图默认被 .gitignore 挡住；确属公共固定资产的先在
+# scripts/media-assets.toml 登记（path/sha256/bytes/reason），白名单由
+# scripts/check_media_assets.py --sync 重放进 .gitignore。本 job 校验：
+#   1) 已入库媒体 ⊆ 登记表（未登记媒体即便 -f 强加也会在此被拦）；
+#   2) 登记项文件存在、sha256/bytes 与登记一致（替换不登记即漂移）；
+#   3) 白名单放行实测生效（目录级忽略陷阱由 check-ignore 实测闭合）；
+#   4) 触发覆盖完整（登记路径都在 pre-commit files 正则与 CI paths 里）。
+#
+# pre-commit 侧有同名钩子做本地前置拦截；CI 侧是兜底。
+# 登记表与判据详见 scripts/media-assets.toml 与 scripts/check_media_assets.py。
+
+on:
+  pull_request:
+    paths:
+      - "scripts/media-assets.toml"
+      - "scripts/check_media_assets.py"
+      - ".gitignore"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/media-assets-consistency.yml"
+      - "docs/assets/architecture/core/negentropy-architecture-story.mp4"
+      - "docs/assets/architecture/core/negentropy-architecture-story.gif"
+      - "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh.mp3"
+  push:
+    branches: [master, main]
+    paths:
+      - "scripts/media-assets.toml"
+      - "scripts/check_media_assets.py"
+      - ".gitignore"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/media-assets-consistency.yml"
+      - "docs/assets/architecture/core/negentropy-architecture-story.mp4"
+      - "docs/assets/architecture/core/negentropy-architecture-story.gif"
+      - "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh.mp3"
+
+permissions:
+  contents: read
+
+jobs:
+  media-assets-consistency:
+    name: Media Assets Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Check media assets registry
+        run: uv run --no-project scripts/check_media_assets.py --check

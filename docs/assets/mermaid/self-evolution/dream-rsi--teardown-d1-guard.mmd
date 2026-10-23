@@ -1,0 +1,13 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §7
+%% slug: dream-rsi--teardown-d1-guard
+%% type: lifecycle
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--teardown-d1-guard.html
+flowchart TD
+    OK(["正常：argmax 候选池<br/>含现任 π1（0.8280 兜底）<br/>+ M 个修订版（0.8520 胜出）"]) -->|拆除：候选池排除现任| BROKEN
+    subgraph BROKEN["D1 · 候选包含保证被拆"]
+        direction TB
+        PICK["被迫选中 serial_depth<br/>V = 0.7700"] --> RET["V* ≥ V⁰ 失守<br/>下一轮带着更差的章程上线"]
+    end
+    BROKEN --> LESSON["教训：零成本的防回退保险<br/>elitism 的最小形态——<br/>候选名单永远保留现任章程，改不动就不换"]
+    style OK fill:#2E4210,stroke:#A3E635,color:#fff
+    style BROKEN fill:#3a1414,stroke:#FF5C5C,color:#fff

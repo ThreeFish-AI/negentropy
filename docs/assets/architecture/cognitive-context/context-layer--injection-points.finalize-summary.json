@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--injection-points/context-layer--injection-points.json",
+    "sha256": "aa5979e31737d9d74627d836a5308bf23299c2c3b2415bd2b3759f0205dc9436",
+    "bytes": 6886
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.html",
+    "sha256": "1b1a2f1d400848dd103dc91dde8530b7e38390b563436d7ce3f06568ec3e29c5",
+    "bytes": 765903
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3215,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 7,
+      "routesOverSuggestedStretch": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "feed_defs",
+            "from": "r7_defs",
+            "to": "h1_instruction",
+            "label": "",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "feed_prefs",
+            "from": "r8_prefs",
+            "to": "h1_instruction",
+            "label": "",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "feed_session",
+            "from": "r6_session",
+            "to": "h2_before_model",
+            "label": "",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "feed_skills",
+            "from": "r2_skills",
+            "to": "h1_instruction",
+            "label": "",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 3,
+          "stretch": 1.144
+        },
+        {
+          "relationship": {
+            "id": "main_identity",
+            "from": "r1_identity",
+            "to": "h1_instruction",
+            "label": "",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "bends": 3,
+          "stretch": 1.676
+        },
+        {
+          "relationship": {
+            "id": "ref_not_wired",
+            "from": "ref_assembler",
+            "to": "h3_tool_registry",
+            "label": "设计存在 ≠ 已接线（D1 宿主更正）",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 3,
+          "stretch": 1.193
+        },
+        {
+          "relationship": {
+            "id": "seq_2_3",
+            "from": "h2_before_model",
+            "to": "h3_tool_registry",
+            "label": "",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "bends": 3,
+          "stretch": 1.424
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "r7_defs → h1_instruction needs 3 bends: move node r7_defs or h1_instruction so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "r8_prefs → h1_instruction needs 3 bends: move node r8_prefs or h1_instruction so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "r6_session → h2_before_model needs 3 bends: move node r6_session or h2_before_model so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "r2_skills → h1_instruction needs 3 bends: move node r2_skills or h1_instruction so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "r1_identity → h1_instruction needs 3 bends: move node r1_identity or h1_instruction so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "ref_assembler → h3_tool_registry needs 3 bends: move node ref_assembler or h3_tool_registry so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "h2_before_model → h3_tool_registry needs 3 bends: move node h2_before_model or h3_tool_registry so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

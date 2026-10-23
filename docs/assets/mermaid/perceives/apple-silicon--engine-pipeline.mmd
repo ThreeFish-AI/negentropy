@@ -1,0 +1,20 @@
+%% source: docs/reference/perceives/agents/apple-silicon-tuning.md §整体架构 (块#0, L16-L31)
+%% slug: perceives/apple-silicon--engine-pipeline
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 「扫描版→Marker」实为 quick_scan 画像驱动的 text_extraction 工具重排（engine_selector.py profile:scanned → marker 优先），非独立 Stage 入口；Marker MPS+FP16+INFERENCE_RAM 为显式 opt-in（默认 TORCH_DEVICE=cpu 保守）
+%% fix: E 自环「缓存复用」为跨 Stage 共享——layout/table/code 三路统一经 build_docling_init_kwargs() 命中 Docling _ConvertCache，不画自环
+%% fix: formula_extraction rank2=docling、code_detection rank2=algorithm_detector 兜底未示（图示 rank1 引擎路由）
+flowchart LR
+    A[hardware/detection<br/>探测 MPS + 代次] --> B[device_config<br/>按内存/代次缩放 batch]
+    B --> C{Stage 入口}
+    C -- text_extraction --> D[PyMuPDF<br/>多页并行]
+    C -- layout_analysis --> E[Docling<br/>MPS + MLX VLM]
+    C -- table_extraction --> E
+    C -- formula_extraction --> F[MinerU<br/>vlm-auto-engine<br/>命中 mlx-engine]
+    C -- code_detection --> E
+    C -- 扫描版 --> G[Marker<br/>device=mps + FP16<br/>+ INFERENCE_RAM]
+    E -.缓存复用.-> E
+```
+
+## 1. 设备探测

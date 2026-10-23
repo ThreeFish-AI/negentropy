@@ -1,0 +1,55 @@
+[
+ {
+  "id": "cause-chain",
+  "label": "病因链",
+  "focus": [
+   "sym-gap",
+   "sym-acc",
+   "sym-col",
+   "verdict"
+  ],
+  "note": "三处症状收于一句判词：没有人算错数，错的是含义。"
+ },
+ {
+  "id": "encircle-pierce",
+  "label": "病灶③合围",
+  "focus": [
+   "pierce",
+   "m2",
+   "m3",
+   "m6"
+  ],
+  "note": "门禁穿透由逐页验放、承重墙拓扑、工牌归因三面合围。"
+ },
+ {
+  "id": "engine-cast",
+  "label": "铸入引擎",
+  "focus": [
+   "m1",
+   "m2",
+   "m3",
+   "m6"
+  ],
+  "note": "病灶①②归 M1 双不变量：口径单点 + 校验门同体。"
+ },
+ {
+  "id": "answer-ledger",
+  "label": "应答与纳管",
+  "focus": [
+   "m4",
+   "m5",
+   "m7"
+  ],
+  "note": "口径锚定应答、执行沉淀入血缘、贴标驱动自动纳管。"
+ },
+ {
+  "id": "downgraded-lane",
+  "label": "降级专章",
+  "focus": [
+   "f10",
+   "f11",
+   "f12"
+  ],
+  "note": "§10–§12 不占机制席：供给与出口皆可替换。"
+ }
+]

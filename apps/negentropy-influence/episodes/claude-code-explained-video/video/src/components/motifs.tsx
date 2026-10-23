@@ -15,6 +15,7 @@
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
+import {DUR, SPRING} from '../motion';
 
 /** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
 export const RING_STROKE = 6;
@@ -500,9 +501,13 @@ export const SlotRing: React.FC<{
   slots: Slot[];
   /** 已点亮到第几个（-1 全暗） */
   lit: number;
+  /** 各槽点亮帧（局部帧）——入场时钟锚，须与 lit 越过该槽 i 的翻转帧同帧：
+   *  弹簧若以挂载帧为时钟（原 i*6 错峰），点亮发生在挂载后数百帧，入场早已
+   *  settle 完毕，点亮退化为一帧硬跳（错落入场从不播放）。 */
+  enterAt: number[];
   /** 环直径——用于推导容器尺寸，须与同容器内 LoopRing 的 size 一致 */
   size?: number;
-}> = ({slots, lit, size = 430}) => {
+}> = ({slots, lit, enterAt, size = 430}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const W = size + 2 * (SLOT_W + SLOT_GAP);
@@ -518,7 +523,14 @@ export const SlotRing: React.FC<{
     <>
       {slots.map((s, i) => {
         const on = i <= lit;
-        const enter = spring({frame: frame - i * 6, fps, config: {damping: 200}});
+        // 点亮错落入场（锚各自点亮帧）：位移走 settle 弹簧、不透明度走时长淡入
+        // ——effects 通道永不吃弹簧（tokens 二分不变量）
+        const seat = spring({frame: frame - enterAt[i], fps, config: SPRING.settle});
+        const fade = interpolate(frame - enterAt[i], [0, DUR.f3], [0, 1], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        });
+        const drift = i === 1 || i === 2 ? 18 : -18;
         const p = pos[i];
         return (
           <div
@@ -529,8 +541,8 @@ export const SlotRing: React.FC<{
               top: p.top,
               bottom: p.bottom,
               width: SLOT_W,
-              opacity: on ? enter : 0.22,
-              transform: `translateX(${on ? 0 : i === 1 || i === 2 ? 18 : -18}px)`,
+              opacity: on ? 0.22 + 0.78 * fade : 0.22,
+              transform: `translateX(${on ? drift * (1 - seat) : drift}px)`,
             }}
           >
             <Panel

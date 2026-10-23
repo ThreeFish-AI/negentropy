@@ -1,0 +1,339 @@
+# Mermaid 文本源索引（archify 图的唯一可编辑源）
+
+> 本目录是现役系统文档全部 Mermaid 图的**集中文本源 SSOT**。每张图四件套：
+> `docs/assets/mermaid/<分类>/<slug>.mmd`（本文本源）→
+> [archify](../../.agents/doc-media-assets.md) 重绘 `docs/assets/architecture/<分类>/<slug>.html` →
+> [`scripts/capture-arch-diagram.mjs`](../../../scripts/capture-arch-diagram.mjs) 采集
+> `<slug>-dark.png` / `<slug>-light.png`（文档内嵌一律用暗色 PNG）。
+>
+> **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
+> `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
+> Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
+> `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
+> `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
+> `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
+
+## 约定
+
+- **修改一张图**：只改对应 `.mmd` → 用 archify 从新文本重新生成 HTML（整体替换，严禁手改 HTML）→
+  跑采集脚本再生 PNG → 三者同一次提交。
+- **`<slug>-notes.md` 侧车**（`lcc-*--panorama-notes.md` 家族，2026-10-07 换代首批引入）：建图期图意
+  说明，供编排者统一渲染 archify 四件套消费（部分被各集 storyboard 引为设计底稿）；与 `.mmd` 同源
+  维护——图意变更时先改 notes 与 `.mmd` 再走上述重渲流程，随四件套同一次提交。
+- **`.mmd` 文件头**：`%% source / %% slug / %% type / %% derived` 溯源注释；头注释之后是
+  从原文档逐字节抽取的 mermaid 体（携带 `%% fix:` 行的图例外，其体为修正后文本）。
+- **源文档锚点**：以 § 章号 + 机制/实验稳定键（如 `§2 M1`、`D5`、`B4`）为准，**不记行号**——
+  行号随文档编辑腐化（本目录 `%% fix:` 史里已五次重锚），2026-09-22 起弃用；历史 `%% fix:` 记录中的行号保持原样不追改。
+- **archify 类型映射**：`flowchart/graph → workflow`（组件图用 `architecture`）、
+  `sequenceDiagram → sequence`、`stateDiagram-v2 → lifecycle`；
+  `erDiagram / timeline / mindmap / quadrantChart / gantt / pie / gitGraph / classDiagram`
+  无对应类型，**原地保留**（下表 `in-place` 行，不建 `.mmd`，避免文本源双份）。
+- **不合格式**（wiki 渲染约束，判据见 [doc-media-assets](../../.agents/doc-media-assets.md)）：
+  进 wiki 的文档只用纯 markdown `![]()` 内嵌暗色 PNG；`<picture>` 双主题仅限根 / i18n README 与 `.agents`。
+
+## 索引
+
+> 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
+
+### agent-harness/（Learn Claude Code 五层精读 · 并发重学（176） · AI Native 手册精读 · Hermes Agent 精读）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §6 末](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批）；2026-10-12 与 L0–L3 统一顺时针回环网格 |
+| [lcc-tooling--loop-simple](./agent-harness/lcc-tooling--loop-simple.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L0：白话主循环一圈（§4/§5/§6 徽标占位）；网格骨架与终态同幅 |
+| [lcc-tooling--loop-full](./agent-harness/lcc-tooling--loop-full.mmd) | [171 工具与执行 §3](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L1：循环本体完整化（两信号判据、Stop 续跑、回喂闭环） |
+| [lcc-tooling--loop-with-tools](./agent-harness/lcc-tooling--loop-with-tools.mmd) | [171 工具与执行 §4](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L2：查表分发 + safe_path 边界（safe_path 在执行链首斜下方） |
+| [lcc-tooling--loop-with-gates](./agent-harness/lcc-tooling--loop-with-gates.mmd) | [171 工具与执行 §5](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L3：三道闸门插进执行之前（拒绝回喂经 tag 承载） |
+| [claude-code-tooling--loop-mounted-layers](./agent-harness/claude-code-tooling--loop-mounted-layers.mmd) | [171 工具与执行 §2（补充图·未内嵌正文）](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 循环内核＋三挂件全景（2026-10-01 精读轮配套；主干 171 换代版未内嵌，作补充视角保留；I-212 archify 3.0.0 采集口径实录） |
+| [lcc-planning--panorama](./agent-harness/lcc-planning--panorama.mmd) | [172 规划与协调 文末（附录后）](../../research/agent-harness/172-claude-code-planning-coordination.md) | architecture | ✓ | done | 五装置与「每轮看到什么」；2026-10-07 重绘工程直陈版（汇合层口径） |
+| [lcc-memory--panorama](./agent-harness/lcc-memory--panorama.mmd) | [173 记忆管理 §2](../../research/agent-harness/173-claude-code-memory-management.md) | architecture | ✓ | done | 压缩管线+磁盘留档+记忆四件套咬合（2026-10-07 换代） |
+| [lcc-concurrency--panorama](./agent-harness/lcc-concurrency--panorama.mmd) | [174 并发与时机 §2](../../research/agent-harness/174-claude-code-concurrency.md) | architecture | ✓ | done | 后台/定时双泳道汇入循环（2026-10-07 换代） |
+| [lcc-multiagent--panorama](./agent-harness/lcc-multiagent--panorama.mmd) | [175 多 Agent 平台 §2](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | architecture | ✓ | done | 六设施一循环收束（2026-10-07 换代） |
+| [claude-code-harness--five-layer-dependency](./agent-harness/claude-code-harness--five-layer-dependency.mmd) | [170 总览 §1](../../research/agent-harness/170-claude-code-harness-overview.md) | architecture | ✓ | done | 五层依赖链总览（trace 动画）；2026-10-07 工程直陈重绘（architecture，隐喻词退场） |
+| [claude-code-memory--memory-panorama](./agent-harness/claude-code-memory--memory-panorama.mmd) | [173 记忆层 §2](../../research/agent-harness/173-claude-code-memory-management.md) | workflow | ✓ | done | 旧版（171–175 2026-10-07 换代前）；仍为 ep3 视频图源 |
+| [claude-code-tooling--execution-panorama](./agent-harness/claude-code-tooling--execution-panorama.mmd) | [171 执行层 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep1 视频图源 |
+| [claude-code-concurrency--timing-panorama](./agent-harness/claude-code-concurrency--timing-panorama.mmd) | [174 时机层 §2](../../research/agent-harness/174-claude-code-concurrency.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep4 视频图源 |
+| [claude-code-planning--planning-panorama](./agent-harness/claude-code-planning--planning-panorama.mmd) | [172 前代全景（换代前嵌于旧 §2）](../../research/agent-harness/172-claude-code-planning-coordination.md) | workflow | ✓ | done | 旧版（换代前）；仍为 ep2 视频图源；垫纸每轮重装配主链 + 手册与补救梯旁支（trace 动画） |
+| [claude-code-multiagent--collab-panorama](./agent-harness/claude-code-multiagent--collab-panorama.mmd) | [175 多 Agent 平台 §2（补充图·未内嵌正文）](../../research/agent-harness/175-claude-code-multi-agent-platform.md) | workflow | ✓ | done | 全部机制挂回同一条循环：四道准备→模型调用→有无工具调用块分岔→权限拦截→分发回填；后台慢任务与共享文件（任务板·信箱·工作树）在循环外（2026-10-01 精读轮配套，archify 3.0 重绘；主干 175 换代版未内嵌，作补充视角保留；仍为 ep5 视频图源） |
+| [ai-native--handbook-panorama](./agent-harness/ai-native--handbook-panorama.mmd) | [180 AI Native 手册 §1](../../research/agent-harness/180-ai-native-handbook.md) | dataflow | ✓ | done | 三案例共同观察 → 五挑战 → 四层基础设施 → 可靠交付；组织配套虚线直达（非基础设施） |
+| [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
+| [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
+| [hermes-agent--learning-loop](./agent-harness/hermes-agent--learning-loop.mmd) | [190 Hermes Agent §2/§5](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（前台 / 后台 review / 技能库与 Curator）：交付后分叉 → 分派侧白名单（越界得拒绝回执）→ skill_manage 记署名 → 下次会话进目录（trace 动画；新创作，无原文 mermaid 块） |
+| [claude-code-bg-tasks--placeholder-notification-loop](./agent-harness/claude-code-bg-tasks--placeholder-notification-loop.mmd) | [176 并发重学 §3](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 三泳道（对话流 / 主循环 / 执行路径）：双闸分派 → 占位回执守住协议名额，后台执行经结果字典以通知回流下一轮（独立重学篇；新创作，无原文 mermaid 块） |
+| [claude-code-cron--four-layer-decoupling](./agent-harness/claude-code-cron--four-layer-decoupling.mmd) | [176 并发重学 §4](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 四泳道（判时 / 缓冲交付 / 执行 / 持久化）：判时→队列→非阻塞抢锁→消费注入，让行回环与 durable 往返旁挂（独立重学篇；新创作，无原文 mermaid 块） |
+
+### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [dream-rsi--two-phase-loop](./self-evolution/dream-rsi--two-phase-loop.mmd) | [144 §2](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 在线真实世界 ↔ 离线重放世界两相闭环（trace 动画） |
+| [dream-rsi--replay-simulator](./self-evolution/dream-rsi--replay-simulator.mmd) | [144 §4](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 决策接口 + 确定性转移 + 重放目标 V 三分量；底部通道回环 |
+| [dream-rsi--expedition-setup](./self-evolution/dream-rsi--expedition-setup.mmd) | [144 总类比](../../research/self-evolution/144-dream-rsi.md) | architecture | ✓ | done | 探险队/台账/沙盘/幕僚长三件套总装与回灌回路 |
+| [dream-rsi--dilemma-cost](./self-evolution/dream-rsi--dilemma-cost.mmd) | [144 §1](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 固定章程砸空转 vs 在线改不起两难，汇流到成本结构与破局 |
+| [dream-rsi--history-as-simulator](./self-evolution/dream-rsi--history-as-simulator.mmd) | [144 §1](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 历史→免费模拟器→四条设计规格→回灌循环 |
+| [dream-rsi--discovery-tree](./self-evolution/dream-rsi--discovery-tree.mmd) | [144 §3](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 台账页 primary parent 长成树 + 共享决策接口批次 |
+| [dream-rsi--determinism-proof](./self-evolution/dream-rsi--determinism-proof.mmd) | [144 §4](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 重放两条转移规则与终止计分（确定性） |
+| [dream-rsi--four-charters](./self-evolution/dream-rsi--four-charters.mmd) | [144 §4](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 同一棵 T1 树上四章程重放分高下 0.83/0.85/0.76/0.77 |
+| [dream-rsi--v-three-terms](./self-evolution/dream-rsi--v-three-terms.mmd) | [144 §5](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 重放分 V 三分量解剖 + 附录 B.2 口径分裂注记 |
+| [dream-rsi--proto-two-rounds](./self-evolution/dream-rsi--proto-two-rounds.mmd) | [144 §5](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 两轮递归 0.90→0.92、探测 12→11 与收放批次 |
+| [dream-rsi--teardown-d1-guard](./self-evolution/dream-rsi--teardown-d1-guard.mmd) | [144 §7](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | D1 拆候选包含保证：0.77 上位、下轮退化 0.80 |
+| [dream-rsi--teardown-d4-peek](./self-evolution/dream-rsi--teardown-d4-peek.mmd) | [144 §7](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | D4 越权跳读排名反转：0.76→0.86 反超 0.85 |
+| [dream-rsi--teardown-d5-lockin](./self-evolution/dream-rsi--teardown-d5-lockin.mmd) | [144 §7](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | D5 语义引导锁死 0.80 vs 重放改进 0.92 |
+| [dream-rsi--evidence-162x-caliber](./self-evolution/dream-rsi--evidence-162x-caliber.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | dataflow | ✓ | done | 317/550/51200 三柱 + 口径警示 + 数据集拆解 |
+| [dream-rsi--behavior-adaptive](./self-evolution/dream-rsi--behavior-adaptive.mmd) | [144 §6](../../research/self-evolution/144-dream-rsi.md) | lifecycle | ✓ | done | 先省后探：110→50→回升与性能 0.427→1.898 |
+| [dream-rsi--unproven-list](./self-evolution/dream-rsi--unproven-list.mmd) | [144 §8](../../research/self-evolution/144-dream-rsi.md) | workflow | ✓ | done | 论文未证明五件事清单（panel+编号反枚举） |
+
+### agent-infra/（docs/research/agent-infra/ 的 Agent Skills 规范精读（230）+ 客户域 Memory 规划（230）+ Jev 精读）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [agent-skills--progressive-disclosure](./agent-infra/agent-skills--progressive-disclosure.mmd) | [230 §4](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 运行相：发现→解析→Tier 1 目录→Tier 2 激活→Tier 3 资源，四泳道阶梯 + 预算/激活/契约三卡 |
+| [agent-skills-std-lifecycle](./agent-infra/agent-skills-std-lifecycle.mmd) | [230 §4/§6](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 运行相（三代版）：发现双域→宽容装载→目录 tier1 常驻→激活 tier2 整读→执行 tier3 按需→压缩豁免；旁路=严格校验器与注入防御；三级账本/静默退化红线两卡 |
+| [agent-skills-std-dual-track](./agent-infra/agent-skills-std-dual-track.mmd) | [230 §8/§11](../../research/agent-infra/230-agent-skills-standard.md) | workflow | ✓ | done | 治理相（三代版）：守门哲学→规范面（唯一权威）→校验轨道严格/装载轨道宽容（同一官方两口径）→Claude Code 20 字段、claude.ai 六字段硬门、Codex .agents/skills+旁车→生态 46 家·51 条 PR；三轨分工/互操作锚点两卡 |
+| [jev--shared-read-isolated-branches](./agent-infra/jev--shared-read-isolated-branches.mmd) | [200 §4](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 共享读 · 隔离问：state 只编码一次、题面附于前缀后、分支互不可见 → 概率 + confidence → 代码三档分流；多问近乎免费 / 隔离是真的 / 无跨题不变量三卡 |
+| [jev--calibration-territory](./agent-infra/jev--calibration-territory.mmd) | [200 §5](../../research/agent-infra/200-jev-system-one-model.md) | dataflow | ✓ | done | 校准的领地：RLCD 受训分布内可对账（ECE 0.031）→ 漂移后照报七成（密封集 ECE 0.220）/ 内在随机无基准 → 影子运行抽检 + 温度缩放重标 |
+| [agent-skills--package-and-validation](./agent-infra/agent-skills--package-and-validation.mmd) | [230 §3/§8](../../research/agent-infra/230-agent-skills-standard.md) | architecture | ✓ | done | 作者相：技能包解剖 × skills-ref 三命令 × 规范↔实现 13 处分歧 |
+| [agent-skills--disclosure-lifecycle](./agent-infra/agent-skills-disclosure-lifecycle.mmd) | [E1 成片冻结快照 §4/§6](../../../apps/negentropy-influence/episodes/agent-skills-video/research/gl-notes.md) | workflow | ✓ | done | 运行相（E1 成片版）：发现→宽容解析→作用域→台账常驻→语义路由→整载→解释执行 + 压缩豁免/激活去重守护 |
+| [agent-skills--governance-layers](./agent-infra/agent-skills-governance-layers.mmd) | [E1 成片冻结快照 §3/§8/§9](../../../apps/negentropy-influence/episodes/agent-skills-video/research/gl-notes.md) | architecture | ✓ | done | 治理相（E1 成片版）：规范 MUST/建议/留白 × 指南层 × 生态四家抽样 × 48 PR 悬案三行网格 |
+| [supply-chain--ious-route](./agent-infra/supply-chain-ious-route.mmd) | [220 §9](../../research/agent-infra/220-skills-supply-chain.md) | workflow | ✓ | done | 三张欠条兑付路线：签名/分发/版本三泳道并行回收+PR 状态橡皮章（E3 精读首绘） |
+| [supply-chain--dual-harbor](./agent-infra/supply-chain-dual-harbor.mmd) | [220 §2/§6](../../research/agent-infra/220-skills-supply-chain.md) | architecture | ✓ | done | 双港区对照：agentskills 冻结 49 天 vs MCP ext-skills 81 天 Final + jonathanhefner 人事桥 + #546 报关单（E3 精读首绘） |
+| [customer-memory--rw-pipeline](./agent-infra/customer-memory--rw-pipeline.mmd) | [230 §二/§四](../../research/agent-infra/230-customer-domain-long-memory-2027-planning.md) | workflow | ✓ | done | 客户域记忆读写目标态：写链 session_end→归档→抽取→LLM 去重决策→memory_diff→add-memory 审计；读链主体前缀检索→RRF 信任重排→Guard→预算裁剪→ContextBundle，写读同源 |
+| [agent-skills--port-46-adoption](./agent-infra/agent-skills-port-46-adoption.mmd) | [分镜 0-A/0-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 生态采纳全景（视频 E1 重绘）：2025 捐出→竞对全接→整张牌桌（视频 E1 重绘新绘） |
+| [agent-skills--two-old-roads](./agent-infra/agent-skills-two-old-roads.mmd) | [分镜 0-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 两条老路死法：盲航/超载/成本函数之问双泳道（视频 E1 重绘新绘） |
+| [agent-skills--box-anatomy](./agent-infra/agent-skills-box-anatomy.mmd) | [分镜 1-A/1-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 技能包解剖：箱体/角件六字段/箱号=登记名/正文附件/选填验箱五章（视频 E1 重绘新绘） |
+| [agent-skills--identity-registry](./agent-infra/agent-skills-identity-registry.mmd) | [分镜 1-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | sequence | ✓ | done | 身份登记处时序：无注册中心→文件系统即登记（视频 E1 重绘新绘） |
+| [agent-skills--craft-real-tasks](./agent-infra/agent-skills-craft-real-tasks.mmd) | [分镜 1-D/1-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 正文工艺：真实任务长出→坑点上册→跑了再改→会的别写（视频 E1 重绘新绘） |
+| [agent-skills--budget-flipboard](./agent-infra/agent-skills-budget-flipboard.mmd) | [分镜 2-D/2-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 成本翻牌：玩具实测 39222vs2321/≈17×/OpenAI 2% 红线（视频 E1 重绘新绘） |
+| [agent-skills--script-craft](./agent-infra/agent-skills-script-craft.mmd) | [分镜 2-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 箱内脚本工艺：钉版本+四条家规（视频 E1 重绘新绘） |
+| [agent-skills--label-good-bad](./agent-infra/agent-skills-label-good-bad.mmd) | [分镜 3-A/3-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 好签差签并排：静默退化/没说关键词（视频 E1 重绘新绘） |
+| [agent-skills--routing-eval-protocol](./agent-infra/agent-skills-routing-eval-protocol.mmd) | [分镜 3-C/3-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 货签的考试：近失配/20×3 触发率/六四分/一秒面试（视频 E1 重绘新绘） |
+| [agent-skills--four-ports-charter](./agent-infra/agent-skills-four-ports-charter.mmd) | [分镜 4-A..4-C/4-F](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | architecture | ✓ | done | 四港章程：四联卡/四港画像/堆场锚点/验箱师/签名真空（视频 E1 重绘新绘） |
+| [agent-skills--lenient-vs-strict](./agent-infra/agent-skills-lenient-vs-strict.mmd) | [分镜 4-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 宽容 vs 严格双泳道：警告照放/12 只实测门（视频 E1 重绘新绘） |
+| [agent-skills--eval-twin-runs](./agent-infra/agent-skills-eval-twin-runs.mmd) | [分镜 4-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 双跑盲评：匿名两跑/断言记账（视频 E1 重绘新绘） |
+| [agent-skills--experiment-scan-order](./agent-infra/agent-skills-experiment-scan-order.mmd) | [分镜 5-A/5-B](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | workflow | ✓ | done | 实验一：拆优先级→两港漂移→无报错（视频 E1 重绘新绘） |
+| [agent-skills--shadow-warning](./agent-infra/agent-skills-shadow-warning.mmd) | [分镜 5-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 遮蔽生命周期：复制→项目域遮蔽→告警/静默双分支（视频 E1 重绘新绘） |
+| [agent-skills--experiment-label-injection](./agent-infra/agent-skills-experiment-label-injection.mmd) | [分镜 5-D/5-E](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | sequence | ✓ | done | 实验二时序：缩进伪字段→误收→若当真→truthiness（视频 E1 重绘新绘） |
+| [agent-skills--pending-wars](./agent-infra/agent-skills-pending-wars.mmd) | [分镜 6-B/6-C](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | dataflow | ✓ | done | 治理悬案流：四向压力→48 PR→停摆/对冲/互通三结局（视频 E1 重绘新绘） |
+| [agent-skills--box-history-rhyme](./agent-infra/agent-skills-box-history-rhyme.mmd) | [分镜 6-D](../../../apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md) | lifecycle | ✓ | done | 集装箱史押韵：1956→CSI→先事实后条文（视频 E1 重绘新绘） |
+
+> 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
+
+### core/（framework 与总览）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [negentropy-architecture](./core/negentropy-architecture.mmd) | [framework.md §2.1](../../concepts/framework.md) | architecture | ✓ +svg/mp4/gif | 旗舰 | 11 源码深链；文本源自原 `<details>` 折叠块迁入 |
+| [framework--faculties-orchestration](./core/framework--faculties-orchestration.mmd) | framework.md §3.2 | architecture | ✓ | done | 源码深链；边标签升级为逐系部委派意图 |
+| [framework--agent-collaboration-sequence](./core/framework--agent-collaboration-sequence.mmd) | framework.md §3.4 | sequence | ✓ | done | |
+| [framework--standard-pipelines](./core/framework--standard-pipelines.mmd) | framework.md §4.1 | workflow | ✓ | done | |
+| [framework--bootstrap-sequence](./core/framework--bootstrap-sequence.mmd) | framework.md §6.1 | workflow | ✓ | done | fix: D-9 挂载点 4→8 组（/knowledge 16 子路由） |
+| [framework--observability-dataflow](./core/framework--observability-dataflow.mmd) | framework.md §6.4 | dataflow | ✓ | done | |
+| [framework--engine-interior](./core/framework--engine-interior.mmd) | framework.md §6.5（新增） | architecture | ✓ | done | fix: D-1/D-2/D-14 全新补齐引擎内部七子系统 |
+| [framework--schema-domains](./core/framework--schema-domains.mmd) | framework.md §8.2 | architecture | ✓ | done | fix: D-8 cognizes 遗产 .sql → models/ 九域 76 表 |
+| [framework--connection-lifecycle](./core/framework--connection-lifecycle.mmd) | framework.md §9.5 | lifecycle | ✓ | done | 设计层状态机；代码口径差已在正文注记 |
+| [framework--testing-pyramid](./core/framework--testing-pyramid.mmd) | framework.md §10.1 | architecture | ✓ | done | 单元基座按端拆分承载各自覆盖率门 |
+| [framework--ci-cd-pipeline](./core/framework--ci-cd-pipeline.mmd) | framework.md §10.4 | workflow | ✓ | done | fix: 补 perceives/wiki 质量门事实 |
+| [a2ui--fact-source](./core/a2ui--fact-source.mmd) | a2ui.md §3 | workflow | ✓ | done | 13 节点全部代码实证 |
+| [a2ui--main-rail](./core/a2ui--main-rail.mmd) | a2ui.md §4 | workflow | ✓ | done | |
+| [conversation-foundation--architecture](./core/conversation-foundation--architecture.mmd) | conversation-foundation.md | workflow | ✓ | done | Guide 节点按 user-guide/ 目录实况改绘 |
+| [readme--faculties-en](./core/readme--faculties-en.mmd) | README.md（根） | architecture | ✓ | done | 英文内容，locale=en |
+| [readme-zh--faculties](./core/readme-zh--faculties.mmd) | docs/i18n/zh-CN/README.md | architecture | ✓ | done | |
+
+### design/（docs/concepts/design/）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [self-evolving--consolidation-loop](./design/self-evolving--consolidation-loop.mmd) | design/self-evolving-agents.md §7 |  | ✓ | done | fix: 1) 补码证负反馈闭环边：memory_retrieval_logs 的 irr |
+| [self-evolving--four-layer-loop](./design/self-evolving--four-layer-loop.mmd) | design/self-evolving-agents.md §2 |  | ✓ | done | fix: 对照仓库代码修正三处：(1) 评测引擎删「Agent-as-a-Judge」（文 |
+| [0002-ui--phase-roadmap](./design/0002-ui--phase-roadmap.mmd) | design/0002-ui-interaction-enhancements.md | workflow | ✓ | done | fix: 以代码为准修正五处：(1) 原图把 4.1-4.6 六项全部画成 RFC 000 |
+| [qa-delivery--push-gate](./design/qa-delivery--push-gate.mmd) | design/qa-delivery-pipeline.md | workflow | ✓ | done | fix: 三处按代码修正：1) 原图 PRGate 子图只画「入口→reusable」两层 |
+| [docker-release--pipeline](./design/docker-release--pipeline.mmd) | design/docker-release-pipeline.md | workflow | ✓ | done | fix: D-7 修正已核验并落入产物：workflow matrix 实际为 wiki← |
+| [sso--auth-flow](./design/sso--auth-flow.mmd) | design/sso.md | sequence | ✓ | done | fix: validate 三轮收敛（18 err → 1 err → 0/0）：R1 修 |
+| [browser-mcp--seed-migration](./design/browser-mcp--seed-migration.mmd) | design/browser-automation-mcp-integration.md | workflow | ✓ | done | fix: 源图 11 节点精简为 8（workflow v2 ≤8 预算）：三执行入口（R |
+| [skills--management-ui](./design/skills--management-ui.mmd) | design/skills.md | workflow | ✓ | done | fix: (1) SkillFormDialog → SkillFormDrawer：实际 |
+
+### operations/（docs/concepts/operations/）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [development--workflow](./operations/development--workflow.mmd) | operations/development.md §3 | workflow | ✓ | done | fix: D-11：后端开发入口按真实流程用 uv run negentropy  |
+| [docker-operations--compose-topology](./operations/docker-operations--compose-topology.mmd) | operations/docker-operations.md §1.1 | architecture | ✓ | done | fix: D-5/D-6 必改项均已落实并带 %% fix 行：(1) 移除幽灵边 |
+| [docker-operations--troubleshooting](./operations/docker-operations--troubleshooting.mmd) | operations/docker-operations.md §6 | workflow | ✓ | done | fix: mmd 携带 3 条 %% fix：(1)「按启动顺序」实为 compo |
+| [local-llm-ollama--setup-path](./operations/local-llm-ollama--setup-path.mmd) | operations/local-llm-ollama.md | workflow | ✓ | done | fix: 4 条 %% fix：(1) 原图云 Key 路径止于「对话」无对照终点 |
+
+### subsystems/（docs/concepts/subsystems/）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [025-memory--automation-gates](./subsystems/025-memory--automation-gates.mmd) | subsystems/025 §5 | workflow | ✓ | done | fix: 无需 %% fix: 修正（文档块与引用源码逐项核验一致：24h/5 会话阈值、 |
+| [025-memory--session-summarizer](./subsystems/025-memory--session-summarizer.mmd) | subsystems/025 §5.4 | workflow | ✓ | done | fix: 两处 %% fix：(1) 源图「Session Summarizer」节点在代 |
+| [025-memory--runner-sequence](./subsystems/025-memory--runner-sequence.mmd) | subsystems/025 §4 | sequence | ✓ | done | fix: 1) 事实修正（mmd 头部 %% fix: 三行 + notes）：简化路径由 |
+| [025-memory--dedup-stages](./subsystems/025-memory--dedup-stages.mmd) | subsystems/025 §5.6 | workflow | ✓ | done | fix: mmd 头 %% fix 两项：(1) 补 Stage 3「判定无矛盾 → 通过 |
+| [025-memory--hybrid-search-levels](./subsystems/025-memory--hybrid-search-levels.mmd) | subsystems/025 §6.1 | workflow | ✓ | done | fix: ①决策门「有 embedding_fn？」校正为「query 向量可用？」：代码 |
+| [025-memory--forms-dimensions](./subsystems/025-memory--forms-dimensions.mmd) | subsystems/025 §1 | architecture | ✓ | done | fix: EX→FL 边标签由「instructions 表」改为「memories /  |
+| [025-memory--dashboard-ui](./subsystems/025-memory--dashboard-ui.mmd) | subsystems/025 §3 | architecture | ✓ | done | fix: 五处文档-代码偏差校正（详见 .mmd %% fix 行与 .temp/arch |
+| [025-memory--audit-api-sequence](./subsystems/025-memory--audit-api-sequence.mmd) | subsystems/025 §7.3 | sequence | ✓ | done | fix: 1) 幂等性检查从源图 MGS 自环改为 MGS→PostgreSQL 的 SE |
+| [037-federated--cross-corpus-search](./subsystems/037-federated--cross-corpus-search.mmd) | subsystems/037 §4 | workflow | ✓ | done | fix: ① Stage 3 触发集合补 global_summary（hybrid_pl |
+| [025-memory--lifecycle](./subsystems/025-memory--lifecycle.mmd) | subsystems/025 §2 | lifecycle | ✓ | done | fix: 无 %% fix: 行——代码核验未发现需改拓扑的文档-代码不一致（全部转换与  |
+| [037-federated--kg-topology](./subsystems/037-federated--kg-topology.mmd) | subsystems/037 §3 | architecture | ✓ | done | fix: 1) KgRelation 原图是 Corpus-A 内孤立节点，实为 corp |
+| [025-memory--retrieval-logging](./subsystems/025-memory--retrieval-logging.mmd) | subsystems/025 §6.5 | dataflow | ✓ | done | fix: 终点节点「调整 retention_score 权重」校正为「自进化调权」：代码 |
+| [025-memory--control-plane](./subsystems/025-memory--control-plane.mmd) | subsystems/025 §8 | architecture | ✓ | done | fix: 4 处文档-代码不一致按当前实现修正（mmd 头 %% fix: 行）：1) p |
+| [025-memory--telemetry-collection](./subsystems/025-memory--telemetry-collection.mmd) | subsystems/025 §11.4 | dataflow | ✓ | done | fix: 无内容级修正（faithful redraw，未加 %% fix 行）。结构性调 |
+| [035-kb--search-functions](./subsystems/035-kb--search-functions.mmd) | subsystems/035 §3 | workflow | ✓ | done | fix: 三条 %% fix 已写入 .mmd 头部：(1) 文档 §6.1 模块 |
+| [035-kb--ingestion-sequence](./subsystems/035-kb--ingestion-sequence.mmd) | subsystems/035 §5.1 | sequence | ✓ | done | fix: 5 条 %% fix 已写入 .mmd 头部：(1) 摄取入口已异步化— |
+| [035-kb--retrieval-levels](./subsystems/035-kb--retrieval-levels.mmd) | subsystems/035 §6 | workflow | ✓ | done | fix: 1) 源图「L0 扇出 Semantic/Keyword/RRF 三路并 |
+| [035-kb--multi-catalog](./subsystems/035-kb--multi-catalog.mmd) | subsystems/035 §15.4（设计态 ADR） | architecture | ✓ | done | fix: 设计态 ADR 如实标注（未实现） |
+| [035-kb--catalog-page-ui](./subsystems/035-kb--catalog-page-ui.mmd) | subsystems/035 §13 | architecture | ✓ | done | fix: 未解诊断为 6 条纯标签几何冲突（3× composition/labe |
+| [036-kg--perception-pipeline](./subsystems/036-kg--perception-pipeline.mmd) | subsystems/036 §2 | workflow | ✓ | done |  |
+| [036-kg--api-layering](./subsystems/036-kg--api-layering.mmd) | subsystems/036 §4.2 | architecture | ✓ | done | fix: GRAG 状态修正（已落地端点补绘） |
+| [036-kg--llm-extraction-sequence](./subsystems/036-kg--llm-extraction-sequence.mmd) | subsystems/036 §5 | sequence | ✓ | done |  |
+| [036-kg--dual-write](./subsystems/036-kg--dual-write.mmd) | subsystems/036 §5.2 | workflow | ✓ | done | fix: 1) 源块「写 AGE Edge」/「读 AGE (优先)」与实现不符： |
+| [036-kg--extraction-sequence](./subsystems/036-kg--extraction-sequence.mmd) | subsystems/036 §6 | sequence | ✓ | done | fix: .mmd 头部记录 5 条 %% fix（均为「源图 = §5.4 目标 |
+| [036-kg--index-build](./subsystems/036-kg--index-build.mmd) | subsystems/036 §7 | dataflow | ✓ | done |  |
+| [036-kg--retrieval-sequence](./subsystems/036-kg--retrieval-sequence.mmd) | subsystems/036 §8 | sequence | ✓ | done | fix: 两处文档-代码漂移已在 .mmd 头部以 %% fix 行记录（均不影响 |
+| [036-kg--retrieval-lifecycle](./subsystems/036-kg--retrieval-lifecycle.mmd) | subsystems/036 §9 | lifecycle | ✓ | done |  |
+| [036-kg--feedback-loop](./subsystems/036-kg--feedback-loop.mmd) | subsystems/036 §10 | dataflow | ✓ | done | fix: 根因不是「边穿节点」本身，而是 alert 与 feedback 被放在 |
+| [036-kg--engine-integration](./subsystems/036-kg--engine-integration.mmd) | subsystems/036 §11 |  | ✓ | done | fix: 事实核验零修正：15 节点与 11 条边全部命中代码锚点（agent.p |
+| [039-routine--architecture-overview](./subsystems/039-routine--architecture-overview.mmd) | subsystems/039 §2 | architecture | ✓ | done |  |
+| [039-routine--iteration-lifecycle](./subsystems/039-routine--iteration-lifecycle.mmd) | subsystems/039 §4.1 | lifecycle | ✓ | done |  |
+| [039-routine--decision-lifecycle](./subsystems/039-routine--decision-lifecycle.mmd) | subsystems/039 §4.2 | lifecycle | ✓ | done | fix: 1) 未解诊断（转移标签「评分写回」压盖 evaluating）：按建议 |
+| [039-routine--inspector-heartbeat](./subsystems/039-routine--inspector-heartbeat.mmd) | subsystems/039 §5 | sequence | ✓ | done |  |
+| [039-routine--orchestration-loop](./subsystems/039-routine--orchestration-loop.mmd) | subsystems/039 §6 | workflow | ✓ | done | fix: ① 工作分支名以代码为准：routine/&lt;sanitize(ke |
+| [040-faculty--routine-bridge](./subsystems/040-faculty--routine-bridge.mmd) | subsystems/040 | architecture | ✓ | done | fix: 落地状态修正：FacultyBridge 真实调用已接 INJECT-2 |
+| [041-transcript--full-view](./subsystems/041-transcript--full-view.mmd) | subsystems/041 | workflow | ✓ | done |  |
+
+### user-guide/（docs/concepts/user-guide/）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [chat-essentials--request-sequence](./user-guide/chat-essentials--request-sequence.mmd) | user-guide/chat-essentials | sequence | ✓ | done | fix: 原图 3 处失真已在 .mmd 头部以 %% fix: 标注并落图：(1 |
+| [chat-essentials--agent-dispatch-sequence](./user-guide/chat-essentials--agent-dispatch-sequence.mmd) | user-guide/chat-essentials | sequence | ✓ | done | fix: 共 6 条 %% fix（已写入 .mmd 头部，均有代码行号佐证）：
+ |
+| [interface--plugin-system](./user-guide/interface--plugin-system.mmd) | user-guide/interface | architecture | ✓ | done | fix: 三处事实纠偏（均已写入 .mmd 的 %% fix: 行与 facts  |
+| [interface--model-onboarding](./user-guide/interface--model-onboarding.mmd) | user-guide/interface | workflow | ✓ | done | fix: 依代码取证修正源图 4 处语义错位（均在 .mmd 以 %% fix:  |
+| [knowledge-management--ingest-flow](./user-guide/knowledge-management--ingest-flow.mmd) | user-guide/knowledge-management | workflow | ✓ | done | fix: 对照代码核出原 Mermaid 三处失真，已写入 .mmd 的 %% f |
+| [memory-automation--tasks-tab](./user-guide/memory-automation--tasks-tab.mmd) | user-guide/memory-automation | workflow | ✓ | done | fix: 三处修正（均已写入 .mmd 的 %% fix: 行）：(1) 结构性错 |
+| [memory-basics--write-read](./user-guide/memory-basics--write-read.mmd) | user-guide/memory-basics | workflow | ✓ | done | fix: ①巩固管线步骤修正：原图 Segment→Dedup→Store→Ext |
+| [papers-curation--sequence](./user-guide/papers-curation--sequence.mmd) | user-guide/papers-curation | sequence | ✓ | done | fix: 对照代码核出源图 4 处需修正/补全，已在 .mmd 头部以 %% fi |
+| [quickstart--first-chat-sequence](./user-guide/quickstart--first-chat-sequence.mmd) | user-guide/quickstart | sequence | ✓ | done | fix: 共 8 条修正（全部写入 .mmd 头部 %% fix: 行，逐条证据见 |
+| [transcript-view--studio-layout](./user-guide/transcript-view--studio-layout.mmd) | user-guide/transcript-view | workflow | ✓ | done |  |
+
+### perceives/（docs/reference/perceives/）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [framework--five-layers](./perceives/framework--five-layers.mmd) | perceives/framework.md | architecture | ✓ | done | fix: 对照代码核出 3 处修正，已写入 .mmd 头部 %% fix: 行并在 |
+| [framework--engine-registry](./perceives/framework--engine-registry.mmd) | perceives/framework.md | architecture | ✓ | done | fix: 三处修正（均附 %% fix: 行）：1) 原图 R 节点 "app · |
+| [framework--mcp-tools](./perceives/framework--mcp-tools.mmd) | perceives/framework.md | architecture | ✓ | done | fix: D-12 事实修正（均已写入 .mmd %% fix: 行与图内 amb |
+| [framework--degradation-fallback](./perceives/framework--degradation-fallback.mmd) | perceives/framework.md | workflow | ✓ | done | fix: ① 按代码真实引擎集绘制降级链：Docling → OpenDataLo |
+| [framework--pdf-stages](./perceives/framework--pdf-stages.mmd) | perceives/framework.md | dataflow | ✓ | done | fix: 引擎清单补齐：S2/S3/S4 补 opendataloader（con |
+| [framework--webpage-stages](./perceives/framework--webpage-stages.mmd) | perceives/framework.md | workflow | ✓ | done | fix: mmd 携 1 条 %% fix：S3 短路语义补正——anti_det |
+| [framework--engine-matrix](./perceives/framework--engine-matrix.mmd) | perceives/framework.md | architecture | ✓ | done | fix: ① R1 f3（MinerU→Marker）竖边"降级"标签与 Mine |
+| [framework--prescan-strategy](./perceives/framework--prescan-strategy.mmd) | perceives/framework.md | workflow | ✓ | done | fix: 事实修正（写入 mmd %% fix: 行并落图/卡片）：1) 计划引擎 |
+| [framework--lifecycle-sequence](./perceives/framework--lifecycle-sequence.mmd) | perceives/framework.md | sequence | ✓ | done | fix: 1) 「指标记录 (_observability)」幽灵引用修正：too |
+| [framework--request-flow](./perceives/framework--request-flow.mmd) | perceives/framework.md | workflow | ✓ | done | fix: 1) "Memory Cache" 实为引擎 worker 子进程内 _ |
+| [development--test-pyramid](./perceives/development--test-pyramid.mmd) | perceives/development.md | architecture | ✓ | done | fix: 单元测试文件数 40+ → 100（apps/negentropy-pe |
+| [development--tool-anatomy](./perceives/development--tool-anatomy.mmd) | perceives/development.md | architecture | ✓ | done | fix: 事实修正（已写入 .mmd 头部 %% fix: 行并在图中更正）：1) |
+| [development--ci-flow](./perceives/development--ci-flow.mmd) | perceives/development.md | workflow | ✓ | done | fix: 对照 monorepo 根 .github/workflows/nege |
+| [apple-silicon--engine-pipeline](./perceives/apple-silicon--engine-pipeline.mmd) | perceives/agents/apple-silicon-tuning.md | workflow | ✓ | done | fix: (1)「扫描版→Marker」修正为 quick_scan 画像 is_ |
+| [apple-silicon--vlm-auto-engine](./perceives/apple-silicon--vlm-auto-engine.mmd) | perceives/agents/apple-silicon-tuning.md | workflow | ✓ | done | fix: ① 判定序按代码校正：源图 pref=auto? 先于 is_apple |
+| [pdf-engine--selection-matrix](./perceives/pdf-engine--selection-matrix.mmd) | perceives/agents/pdf-engine-selection.md | architecture | ✓ | done | fix: 3 条 %% fix: ① reason 串实际带 profile: 前 |
+| [pdf-engine--reflow-chain](./perceives/pdf-engine--reflow-chain.mmd) | perceives/agents/pdf-engine-selection.md | workflow | ✓ | done | fix: 事实修正（写入 .mmd %% fix: 行）：1) reason 前缀 |
+| [pdf-engine--fast-path](./perceives/pdf-engine--fast-path.mmd) | perceives/agents/pdf-engine-selection.md | workflow | ✓ | done | fix: ① reason 实串带 profile: 前缀（profile:sim |
+| [readme-zh--five-layers](./perceives/readme-zh--five-layers.mmd) | perceives/zh-CN/README.md | architecture | ✓ | done | fix: 4 处修正（均有代码证据）：1) SDK 双模式——mode="mcp" |
+
+### wiki/（docs/reference/wiki/）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [deployment--production-topology](./wiki/deployment--production-topology.mmd) | wiki/deployment.md | architecture | ✓ | done | fix: D-13 逐项核验并修正：(1) 生产出口改画 GitHub Pages |
+| [deployment--local-build](./wiki/deployment--local-build.mmd) | wiki/deployment.md | workflow | ✓ | done | fix: 事实层零修正：8 节点/6 边全部对照 apps/negentropy/ |
+| [kg--build-pipeline](./wiki/kg--build-pipeline.mmd) | wiki/design/knowledge-graph.md | workflow | ✓ | done | fix: 图体字节保持原样，修正以 5 条 %% fix 注释行随 .mmd 归档 |
+| [ops--publish-flows](./wiki/ops--publish-flows.mmd) | wiki/ops.md | workflow | ✓ | done | fix: 源图 §2.1 为已作废的 SSG+ISR 架构，按仓库代码修正为现行纯 |
+| [publishing--user-flow](./wiki/publishing--user-flow.mmd) | wiki/user-guide/publishing.md | workflow | ✓ | done | fix: 事实核验 6 节点/6 边全部与代码一致，无需语义修正（故 .mmd 未 |
+
+### apps/（apps/*/ README）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [perceives-readme--five-layers](./apps/perceives-readme--five-layers.mmd) | apps/negentropy-perceives/README.md | architecture | ✓ | done | fix: Round 1 diagnostics: mcp→engines 自动路 |
+
+> 迁出注记（2026-09-21）：influence--pipeline-layers / voice-cloning--architecture / indextts--synthesis-flow / indextts--reference-audio 四图已随科普视频流水线机制外置删除（源文档迁入 [vibe-video 技能](https://github.com/ThreeFish-AI/vibe-video) 仓），对应 .mmd/HTML/PNG 资产同步移除。
+
+### agents/（docs/.agents/ 巡检与决策文档）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [patrol--doc-status-lifecycle](./agents/patrol--doc-status-lifecycle.mmd) | .agents/pdf-fidelity-patrol-status.md | lifecycle | ✓ | done | fix: ① 合格阈值默认已由 95 收紧至 99（PR #1080，config |
+| [patrol--patrol-sequence](./agents/patrol--patrol-sequence.mmd) | .agents/pdf-fidelity-patrol-status.md | sequence | ✓ | done | fix: 见上 |
+| [patrol--escalation-flow](./agents/patrol--escalation-flow.mmd) | .agents/pdf-fidelity-patrol-status.md | workflow | ✓ | done | fix: 三条 %% fix 随 .mmd 携带并落入图/cards：(1) 清  |
+| [issue--session-stale-sequence](./agents/issue--session-stale-sequence.mmd) | .agents/issue.md（I-220 缩进块） | sequence | ✓ | done | fix: 1) 源图 SUS->>SUS 自环（POST /api/agui/se |
+| [wiki-ordering--effective-rank](./agents/wiki-ordering--effective-rank.mmd) | .agents/wiki-docs-ordering.md | workflow | ✓ | done | fix: 源图与代码零偏差，无 %% fix: 行。重绘适配：① 5 泳道语义分组 |
+
+### cognitive-context/（docs/research/cognitive-context/ 的精读笔记与设计蓝图）
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [context-layer--failure-map](./cognitive-context/context-layer--failure-map.mmd) | cognitive-context/013-context-layer-blueprint.md §1 失效模式登记簿 | architecture | ✓ | done | 十簇蛇形主链×三条问题带；sublabel=代表失效+行数、tag=主要防护；三卡：十簇×五轴对位/绕开测试/回路在线三条件 |
+| [context-layer--five-sources](./cognitive-context/context-layer--five-sources.mmd) | 已退役（013 无正文引用——五源为资产轴子集投影；v4 重制后 pipeline.toml 无引用，资产仅存档） | architecture | ✓ | retired | 退役：投影关系见 013 §4 五源投影注记 |
+| [context-layer-blueprint--industry-landscape](./cognitive-context/context-layer-blueprint--industry-landscape.mmd) | cognitive-context/013-context-layer-blueprint.md §11.1 描述还是执行（2026-10-10 微改重锚） | architecture | ✓ | done | 微改：四路线谱系+Palantir 异类收敛「治理往 SQL 生成之前挪」；+Forrester 双阵营与传输vs含义判词、Gartner 60% projection 带口径注 |
+| [context-layer-blueprint--first-class-object](./cognitive-context/context-layer-blueprint--first-class-object.mmd) | cognitive-context/013-context-layer-blueprint.md §2 问题定义与分析单元（式2/式3/式4 与四类失效四个根因） | dataflow | ✓ | done | 新增：ℰ→E_rel→Char→C→(C,𝒯)→f_context 装配事务主链；四类失效挂事务内部、八算子作加工位；验收以事务为最小单元入卡 |
+| [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §3 总纲：三面蓝图（§3.1 三面承重/§3.3 机制＝多轴组合/§3.4 六段两环） | architecture | ✓ | done | v3 重设计：三轴顺序链→三面独立承重（验收面十簇×结构面五轴+M1–M7 跨轴组合挂件×时间面六段两环回边；v2 见 git 史） |
+| [context-layer-blueprint--layer-mechanism-map](./cognitive-context/context-layer-blueprint--layer-mechanism-map.mmd) | cognitive-context/013-context-layer-blueprint.md §3.3 机制＝多轴组合（2026-10-10 重绘） | architecture | ✓ | done | 重绘：层×机制→五轴虚线主链（各轴挂专属失效锚）+M1–M7 按轴向量跨轴组合（M2/M6 单轴独色全落权威）；无全轴/无落不进轴两否定判词入卡 |
+| [context-layer--lifecycle](./cognitive-context/context-layer--lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §9 时间面：生命周期六段两环 | lifecycle | ✓ | done | 重绘：CGAVE 五段单程→六段两环（L1–L6 主轴 + 验证环 L4→L2/L6、进化环 L5→L2 一等化；G 法则钉段间转换，嵌套时间尺度入卡） |
+| [context-layer-blueprint--object-lifecycle](./cognitive-context/context-layer-blueprint--object-lifecycle.mmd) | cognitive-context/013-context-layer-blueprint.md §9.2 L6 衰减退役与 §4 资产轴 | lifecycle | ✓ | done | 微改：增 retired 显式退役终态；两级死亡两口径（轮内可恢复 vs 目录级有账）入结论卡 |
+| [context-layer-blueprint--mcp-threat-model](./cognitive-context/context-layer-blueprint--mcp-threat-model.mmd) | cognitive-context/013-context-layer-blueprint.md §5.4–§5.5 供给面威胁模型（2026-10-10 微改重锚） | architecture | ✓ | done | 微改：+intent legitimation 单列记忆面新威胁（非注入）+写入端扫描先于巩固时序注；六威胁×拦截位一一对应 |
+| [context-layer--assembly-economics](./cognitive-context/context-layer--assembly-economics.mmd) | cognitive-context/013-context-layer-blueprint.md §6 装配轴（2026-10-10 复用重锚） | workflow | ✓ | done | 复用图（拓扑未变）：五旋钮+双通道统一+出口守卫；正文经 170–175 新代口径重写 |
+| [context-layer--read-pipeline](./cognitive-context/context-layer--read-pipeline.mmd) | cognitive-context/013-context-layer-blueprint.md §7 章首（Context Engine 读路径目标态总览）＋ agent-infra/230 §二读路径同构 | workflow | ✓ | done | 新增：ContextRequest→①Resolve→②Plan→③Retrieve 双范式→④Fuse RRF 信任重排→⑤Guard 五查→⑥Compose→⑦Emit ContextBundle；dropped/overrides 旁路；五类型为 Context Engine 口径、非 013 五源投影（ADR-5），Context Pack 为设计新词（两处同名不同义已标），目标态现状对账 §12.4/§12.1 |
+| [context-layer--ingest-pipeline](./cognitive-context/context-layer--ingest-pipeline.mmd) | cognitive-context/013-context-layer-blueprint.md §4 资产轴章首（纳管管线目标态总览）＋ 014 §2/§4 编目相前四段同构（第 5 段新鲜度冒泡无对应节点） | workflow | ✓ | done | 新增：Ingest 登记指针→Normalize 归一四件套（不调用 LLM）→Classify→Tier L0≤256/L1≤4000/L2 指针阶梯→Tag/Index（条目元数据·向量化·ctx:// URI）；治理形态/所属域/效力与作用域/Parser 四件套/条目元数据/复核周期/ctx:// 为设计新词已标；与 §7 读路径图首尾相接 |
+| [context-layer--injection-points](./cognitive-context/context-layer--injection-points.mmd) | cognitive-context/013-context-layer-blueprint.md §12.1 五源注入点实况 | workflow | ✓ | done | 复用图：九路×五个接入点×assemble() 未接线 |
+| [context-layer--runtime-layering](./cognitive-context/context-layer--runtime-layering.mmd) | 已退役（2026-10-10 013 重铸后无正文引用；资产三件套保留存档） | architecture | ✓ | retired | 退役：§12.2 四信号表以表格承载；CGAVE 已由六段两环取代 |
+| [context-layer--evolution-levers](./cognitive-context/context-layer--evolution-levers.mmd) | cognitive-context/013-context-layer-blueprint.md §8.5 进化杠杆 | architecture | ✓ | done | 复用图：6+1 杠杆与 8 态状态机（context_strategy 仅为提案、代码零命中） |
+| [context-layer-design--three-stage-governance](./cognitive-context/context-layer-design--three-stage-governance.mmd) | origin/master:docs/concepts/design/context-layer.md §1.1 行业对标（旧版，feature/1.x.x 已由 013 取代） | dataflow | ✓ | done | 独立重制，不嵌入现役文档：三阶段九格并列 + 两个交接节点五列漏斗，成熟度/锚点入 sublabel；与 horizon-context--three-stage-governance 同口径同拓扑 |
+| [context-layer-design--runtime-overview](./cognitive-context/context-layer-design--runtime-overview.mmd) | origin/master:docs/concepts/design/context-layer.md §3.1 总览（旧版，feature/1.x.x 已由 013 取代） | architecture | ✓ | done | 独立重制，不嵌入现役文档：Runtime→Context Layer 三段→五子系统→PG；补 Tools/Skills→PG 两条边，Catalog=PG VIEW（ADR-1）、Guard 未落地标注 |
+| [context-layer-design--unified-activation](./cognitive-context/context-layer-design--unified-activation.mmd) | origin/master:docs/concepts/design/context-layer.md §5.2 统一 Context Router（旧版，feature/1.x.x 已由 013 取代） | workflow | ✓ | done | 独立重制，不嵌入现役文档：auto/on_demand 双通道→归一融合→ContextGuard→LLM；Router 标 ADR-2 并入、assemble()/memory 种子/Guard 按 013 §12 标未接线或目标态 |
+| [context-layer-design--evolution-levers](./cognitive-context/context-layer-design--evolution-levers.mmd) | origin/master:docs/concepts/design/context-layer.md §7.1 进化集成（旧版，feature/1.x.x 已由 013 取代） | architecture | ✓ | done | 独立重制，不嵌入现役文档：7 杠杆→单在途护栏→横向状态机；补 rejected 终态（8 个 status 值）、护栏精确到 target_ref；与 context-layer--evolution-levers 同口径换版面 |
+| [context-layer-blueprint--dual-track-roadmap](./cognitive-context/context-layer-blueprint--dual-track-roadmap.mmd) | 已退役（2026-10-10 013 重铸后无正文引用——双轨表由修复序×轴依赖序取代；v4 重制后 pipeline.toml 无引用，资产仅存档） | architecture | ✓ | retired | 退役：新路线见 §14 |
+| [horizon-context--problem-to-mechanisms](./cognitive-context/horizon-context--problem-to-mechanisms.mmd) | cognitive-context/011-horizon-context.md §1 | dataflow | ✓ | done | 病因链与机制对位：三类失效现象（对账崩塌/裸问准确率/密码般列名）归因「语义无人治理」共同根源 → 三个根因 → M1（口径单点）/M2·M3·M6（治理执法）对位拦截（§3.1 富化回补长尾）→ M4 应答锚定与 §3.2–§3.3 送达；机制节点三合一（机制名/设计规格/类比装备），§8 边界由结论卡承载；2026-09-18 随合并按新 M 集重制（图本体三件套待重渲同步 011 新口径） |
+| [horizon-context--three-stage-governance](./cognitive-context/horizon-context--three-stage-governance.mmd) | cognitive-context/011-horizon-context.md §3 三阶段治理 | dataflow | ✓ | done | 三阶段治理骨架：三路并列汇聚 → Horizon Catalog 脊柱 → 三路并列富化 → AI-ready 上下文脊柱 → 三面并列激活；节点副标注成熟度与承重/降级锚点（M1·M5 / §3.1–§3.3），结论卡载「三阶段是供给不是承重」与本轮未采纳的校准；2026-09-21 抽源重制，原块三条串行链按 %% fix 修正为并列 |
+| [horizon-context--collect-enrich-activate](./cognitive-context/horizon-context--collect-enrich-activate.mmd) | cognitive-context/011-horizon-context.md §3.1 供给富化 | dataflow | ✓ | done | 三段流水线：三源并列汇入目录 → 显式/隐式双轨（冲突浮出人工裁决）→ 四因子排序 → 三类消费者；2026-09-17 重评选后随 §3.1 嵌入 |
+| [horizon-context--declaration-execution](./cognitive-context/horizon-context--declaration-execution.mmd) | cognitive-context/011-horizon-context.md §2 M1 语义视图 | workflow | ✓ | done | 双不变量：声明相（口径单点：五段式+结构校验门）→ 执行相（查询期重算：RBAC + 策略 A 聚合）；2026-09-17 重评选 M1+M2 合并后重制 |
+| [horizon-context--autopilot-loop](./cognitive-context/horizon-context--autopilot-loop.mmd) | cognitive-context/011-horizon-context.md §3.1 富化 | workflow | ✓ | done | Autopilot 创作闭环：六路输入面 → 验证门（无效即弃）→ SV+VQR 受治理入库 → 激活 → 反馈回流 Suggestions；trace 动效版 |
+| [horizon-context--engine-governance](./cognitive-context/horizon-context--engine-governance.mmd) | cognitive-context/011-horizon-context.md §2 M3 语义级治理 | workflow | ✓ | done | 语义级治理拓扑：定义与策略同体（defined-once-enforced-everywhere）+ 双层防线（检索过滤=体验/执行拒绝=底线）；2026-09-17 重评选一拆为三后重制（出口安检移 §3.3） |
+| [horizon-context--resolve-activation](./cognitive-context/horizon-context--resolve-activation.mmd) | cognitive-context/011-horizon-context.md §2 M4 验证锚定 | sequence | ✓ | done | 应答层验证锚定时序：VQR 相似路由 → 以已验证 SQL 为生成依据 + 对账重算 / 未命中标「未经核准」/ no_governed_coverage 警告 + 评测闭环墙外边界；2026-09-17 重评选升格后重制 |
+| [horizon-context--four-factor-ranking](./cognitive-context/horizon-context--four-factor-ranking.mmd) | cognitive-context/011-horizon-context.md §3.2 检索 | dataflow | ✓ | done | 四因子排序数据流：五路信号 → R/A/P/F 四因子 → 加权合成 + 显式 tie-break → top-k；trace 动效版 |
+| [horizon-context--open-interop](./cognitive-context/horizon-context--open-interop.mmd) | cognitive-context/011-horizon-context.md §3.3 生态 | architecture | ✓ | done | 开放互操作双路径：Ossie/SYSTEM$ 静态互通（已交付转换器）+ MCP/OAuth 运行时受控供给 + Automatic Data Agents 生态分发，反馈回流 popularity；trace 动效版 |
+| [horizon-context--component-panorama](./cognitive-context/horizon-context--component-panorama.mmd) | cognitive-context/011-horizon-context.md §4.1 组件全景 | architecture | ✓ | done | 组件全景：组件按重评选后四簇（口径与应答/治理执法/账本/供给与出口降级区+消费端）分段，机制锚点入节点；2026-09-17 重评选后重制（dataflow 行上限装不下 7 节点降级簇，改 architecture 渲染器） |
+| [horizon-context--evolution-timeline](./cognitive-context/horizon-context--evolution-timeline.mmd) | cognitive-context/011-horizon-context.md §4.2 演进时间线 | dataflow | ✓ | done | 三阶段演进时间线：14 里程碑排入五段泳道，机制锚点按重评选后口径重标（含 MS14 2026-09 生态加码）；2026-09-17 重评选后重制 |
+| [horizon-context--row-column-policy](./cognitive-context/horizon-context--row-column-policy.mmd) | cognitive-context/011-horizon-context.md §2 M2 行列级策略 | workflow | ✓ | done | 查询期行列级访问策略：masking/row access/aggregation/projection 四策略对象 + 策略所有者角色求值 + IS_AGENT_ACTIVATED 严拒面 + tag-based 衔接 M7；2026-09-17 重评选 M3 拆分后新增 |
+| [horizon-context--lineage-ledger](./cognitive-context/horizon-context--lineage-ledger.mmd) | cognitive-context/011-horizon-context.md §2 M5 列级血缘 | dataflow | ✓ | done | 端到端列级血缘：引擎执行自动沉淀依赖边 + OpenLineage 三道闸摄取 → 内外单一账本 + GET_LINEAGE 取数 + 盲区如实；2026-09-17 重评选新晋机制新增 |
+| [horizon-context--agent-identity](./cognitive-context/horizon-context--agent-identity.mmd) | cognitive-context/011-horizon-context.md §2 M6 Agent Identity | workflow | ✓ | done | Agent Identity：RSS 会话权限上界（用户权限∩代理允许面·只减不增）→ 会话身份 → agent_type 归因审计 + 谓词衔接 M2；2026-09-17 重评选新晋机制新增（图本体待重渲同步 011 新口径） |
+| [horizon-context--classification-tagging](./cognitive-context/horizon-context--classification-tagging.mmd) | cognitive-context/011-horizon-context.md §2 M7 分类标签 | workflow | ✓ | done | 分类与标签驱动策略传播：持续分类 → 系统标签 → 一次性映射（掩码不可直绑系统标签）→ 用户标签驱动 tag-based 策略 → 新列自动纳管；未映射=显式缺口；2026-09-17 重评选新晋机制新增 |
+| [openviking--panorama](./cognitive-context/openviking--panorama.mmd) | cognitive-context/014-openviking.md §2 全貌 | architecture | ✓ | done | 一树三相三面总览：viking:// 三空间居中入治理面边界，编目/检索/记忆三相为绕树写·读·回写三路径，网关面代理读写、编译面虚线不展开；三卡分载一棵树/三个相/三个面定位；2026-10-22 §2 图例补全新增并挂 014 §2 图 1 |
+| [openviking--causal-chain](./cognitive-context/openviking--causal-chain.mmd) | cognitive-context/014-openviking.md §2.2 图 6 | workflow | ✓ | done | 因果脉络链（2026-10-22 新增）：列=观察→归因→规格→机制→证据五阶段、泳道=机制谱系；§1 表映射边固化（可寻址+可归属同落树基座、可治理分代理+治理两路）；#5450 注记与全部数字实值入图入卡；写读耦合边（L0/L1 供精排读）为 §5 补强；lab 检索实验（精排致盲/池边界）属读路径、由证据节点文案承载（K2,2 平面性取舍不加独立边）；2026-10-23 随 #1202 合并重编号图 6 并对齐回写路径命名；2026-10-23 树基座口径对齐 §3.1 保留段（resources/agent/user·保留段，卡片补 peers·privacy·sessions 枚举）重渲 |
+| [openviking--gateway-proxy](./cognitive-context/openviking--gateway-proxy.mmd) | cognitive-context/014-openviking.md §7.1–§7.4 | workflow | ✓ | done | 网关面五步一轮垂直主链：识别会话（六层 header 优先级链）→ 回放记忆（逐字节原位保 prompt cache）→ 召回（至多等 2 秒）→ 转发上游（三协议直通）→ 滞后保存（下一轮或 10 分钟静默 / 20,000 tokens）；侧支工具代理（默认 13 只读、8 写须勾选）与下一轮闭环；2026-10-22 §2 图例补全新增并挂 014 §7 图 12 |
+| [openviking--governance-layers](./cognitive-context/openviking--governance-layers.mmd) | cognitive-context/014-openviking.md §8.1–§8.6 | architecture | ✓ | done | 治理面六层并列（§8 直讲顺序 2×3 阅读序，不造因果边）：租户角色三认证 / ACL 默认关 / 三层信封 OVE1 / 隐私占位 / git 快照前向提交 / OVPack；两卡载官方明示边界与多写 V2；2026-10-22 §2 图例补全新增并挂 014 §8 图 13 || [openviking--ingest-phase](./cognitive-context/openviking--ingest-phase.mmd) | cognitive-context/014-openviking.md §4 编目相 | dataflow | ✓ | done | 编目相五段流水线：请求 → 解析落盘（0×LLM）→ 语义队列 → 摘要与派生（L1 1×LLM、L0 首段裁出 0×LLM）→ 索引与冒泡（L0 未变 NOOP / ≤32 立刷 / 宽目录攒 10%）；结论卡载成本公式、三道异步边界与新鲜度漏斗；2026-09-24 随 014 精读笔记新增；2026-10-22 §2 图例补全挂载（图 1→图 3 重编号） |
+| [openviking--retrieval-phase](./cognitive-context/openviking--retrieval-phase.mmd) | cognitive-context/014-openviking.md §5 检索相 | workflow | ✓ | done | 检索相换代版（2026-10-22 随 014 换代重绘）：find 恒平铺；search 自动选档——无精排模型同为平铺，配了才「全局召回 2×limit → URI 去重 → 单遍精排读 abstract → 阈值 0.1 后置」；context 模式六域配额装配（1600 预算、空位补足、降档不截断）；目录递归/父分传播/收敛刹车已随上游 #5450 删除；结论卡载「默认部署即平铺/池边界是新的早剪，不可逆/阈值后置防误杀」；2026-10-22 §2 图例补全挂载（图 2→图 4 重编号） |
+| [openviking--namespace](./cognitive-context/openviking--namespace.mmd) | cognitive-context/014-openviking.md §3 | architecture | ✓ | done | 三空间命名地图（换代钉点版）：visible_roots() 恒给三可见根（resources/agent/user/{uid}）+ user 保留段（peers·privacy·sessions，虚线区分）+ peers 内容段仅 memories\|resources（skills 回落 resource ⚠ 反例）+ resources/memories 结构反例；结论卡「类型由挂在哪一段推导」；2026-10-22 随 014 §3 讲透整改新增（I-235），挂 014 §3 图 7（#1201 因果链图 6 并入后顺延）；与 uri-scope-tree 并存——彼为 §2 总览、此为 §3 机制明细 |
+| [openviking--uri-scope-tree](./cognitive-context/openviking--uri-scope-tree.mmd) | cognitive-context/014-openviking.md §3（视频 P1） | architecture | ✓ | done | 一棵树三分区（resources/user/agent）+ peers/{peer} 一等子树 + 类型由 URI 结构推导（resources/memories 仍是 resource 反例）；结论卡「位置即语义/写窄读宽」；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（补 peers 子树、去旧代喻体）并挂 014 §2 图 2 |
+| [openviking--tiering-l0-l1-l2](./cognitive-context/openviking--tiering-l0-l1-l2.mmd) | cognitive-context/014-openviking.md §4（视频 P2） | architecture | ✓ | done | 分层生成链：文件摘要 → 确定性等距采样（>32 子项）→ L1 导览（1×LLM/目录）→ L0 首段按句界裁出（0×LLM）→ 向量化（文件摘要写入 L2 abstract 标量）；软上限 256/4000 字符语义；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（术语对齐、删「H1 后首段」）并挂 014 §4 图 8 |
+| [openviking--freshness-bubbling](./cognitive-context/openviking--freshness-bubbling.mmd) | cognitive-context/014-openviking.md §4 新鲜度冒泡（视频 P2） | dataflow | ✓ | done | 新鲜度漏斗：digest 未变 NOOP / 变了上报 / 父目录无基线或子项 ≤32 立即刷新 / 攒到 pending/total ≥ 0.10 才刷新；代价=兄弟文件重新摘要与陈旧窗口；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（「重印」→「刷新」、补无基线分支）并挂 014 §4 图 9 |
+| [openviking--intent-typed-queries](./cognitive-context/openviking--intent-typed-queries.mmd) | cognitive-context/014-openviking.md §5.2（视频 P3 → 换代重绘） | workflow | ✓ | done | 意图拆单三路（资料/记忆/技能）+ 两坑：各路独立走完整检索（默认平铺、配 rerank 才精排）成本 ×N、结果直接拼接不去重不归一；2026-10-22 随 014 换代重绘（递归表述随上游 #5450 删除更新）并挂 014 §5 图 10 |
+| [openviking--session-commit-two-phase](./cognitive-context/openviking--session-commit-two-phase.mmd) | cognitive-context/014-openviking.md §6.1（视频 P4） | lifecycle | ✓ | done | 两阶段提交状态机：Phase 1 同步归档（事实层）→ Phase 2 异步长期记忆提炼（WM 归档概览默认关、按次开启）→ .done 提交点 / .failed 终态；队列重投的幂等跳过；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（WM 口径对齐 v0.5.0、去喻体）并挂 014 §2 图 5 |
+| [openviking--memory-identity](./cognitive-context/openviking--memory-identity.mmd) | cognitive-context/014-openviking.md §6.3（视频 P4） | workflow | ✓ | done | 相似 ≠ 同一：预取提名（top-5）→ schema 身份字段裁决（filename_template）→ 确定性 URI → 文件名直查落卡；宁可重复不可错并；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（「查号」→「文件名直查」）并挂 014 §6 图 11 |
+| [openviking--lab-break-matrix](./cognitive-context/openviking--lab-break-matrix.mmd) | cognitive-context/014-openviking.md §10（视频 P6 → 换代重绘） | workflow | ✓ | done | 五组破坏实验退化矩阵 v2（B1 拔摘要精排致盲/B3 身份/B4 冒泡/B6 提交点/B7 候选池边界）+ 教训关联（摘要-池、身份-提交点、保鲜-提交点）；B2/B5 随上游机制删除退役；2026-10-22 随 014 换代重绘并挂 014 §10 图 14 |
+
+### 原地保留（无 archify 对应类型 / 不在本管线）
+
+| 位置 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| 025-the-memory-system.md（ER / timeline） | erDiagram / timeline | 无对应类型 |
+| 035-the-knowledge-base.md（ER） | erDiagram | 无对应类型 |
+| 036-the-knowledge-graph.md（timeline） | timeline | 无对应类型 |
+| 039-the-routine-system.md（ER） | erDiagram | 无对应类型 |
+| conversation-foundation.md（象限图） | quadrantChart | 无对应类型 |
+| docs/research/**（247 块，cognitive-context/ 的 archify 图除外） | 各类 | 第三方系统调研，不进本管线 |
+| docs/reference/cognizes/**（96 块） | 各类 | 已退役项目遗产，不进本管线 |
+| apps/negentropy-influence/episodes/**/planning.md（8 块） | flowchart | 分集内容分镜，非架构图 |
+| apps/negentropy-wiki/content.fixture/**（1 块） | flowchart | 测试 fixture |

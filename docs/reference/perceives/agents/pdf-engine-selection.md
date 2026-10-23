@@ -15,49 +15,21 @@ title: "PDF 引擎选择决策图"
 
 ## 决策入口
 
-```mermaid
-flowchart TD
-    A([Stage 开始]) --> B{selector 策略}
-    B -- identity --> Y[YAML 静态顺序<br/>不重排不跳过]
-    B -- profile_aware --> C{characteristics<br/>是否就绪?}
-    C -- 否 --> D[回退 YAML 默认<br/>reason=missing_characteristics]
-    C -- 是 --> E{Stage 是否<br/>「特征驱动型」?}
-    E -- 是 --> F{对应特征<br/>= False?}
-    F -- 是 --> G[短路跳过<br/>返回空 output<br/>reason=no_has_*]
-    F -- 否 --> H[继续路由]
-    E -- 否 --> H
-    H --> I{Stage 名称}
-    I -- text_extraction --> J[扫描/小文档/默认 子规则]
-    I -- layout_analysis --> K[简单布局快路径]
-    I -- 其他 --> Y
-```
+![engine_selector 决策入口：策略工厂在 identity 直通与 profile_aware 画像路由间分派，经 characteristics 就绪、特征驱动两道门控后按 Stage 名称路由至子规则，未就绪回退 YAML 默认、特征缺失短路跳过。](../../../assets/architecture/perceives/pdf-engine--selection-matrix-dark.png)
+
+> 图源（可 diff 文本）：[`pdf-engine--selection-matrix.mmd`](../../../assets/mermaid/perceives/pdf-engine--selection-matrix.mmd) · 交互版（下载到本地打开）：[`pdf-engine--selection-matrix.html`](../../../assets/architecture/perceives/pdf-engine--selection-matrix.html)
 
 ## text_extraction 子规则
 
-```mermaid
-flowchart TD
-    A([text_extraction]) --> B{is_scanned?}
-    B -- 是 --> C["重排: marker → docling → opendataloader<br/>→ pymupdf → pypdf"]
-    B -- 否 --> D{page_count < 5?}
-    D -- 是 --> E["快路径: 仅 pymupdf<br/>跳过 docling 10s 冷启动"]
-    D -- 否 --> F[保持 YAML 顺序]
-    C --> G[reason=scanned]
-    E --> H["reason=small_doc_{N}p"]
-    F --> I[reason=default]
-```
+![text_extraction Stage 依据 quick_scan 特征信号路由引擎：扫描版重排为 marker→docling→opendataloader→pymupdf→pypdf，非扫描小文档仅走 pymupdf 快路径，其余保持 YAML 默认顺序。](../../../assets/architecture/perceives/pdf-engine--reflow-chain-dark.png)
+
+> 图源（可 diff 文本）：[`pdf-engine--reflow-chain.mmd`](../../../assets/mermaid/perceives/pdf-engine--reflow-chain.mmd) · 交互版（下载到本地打开）：[`pdf-engine--reflow-chain.html`](../../../assets/architecture/perceives/pdf-engine--reflow-chain.html)
 
 ## layout_analysis 子规则
 
-```mermaid
-flowchart TD
-    A([layout_analysis]) --> B{has_complex_layout<br/>= False?}
-    B -- 否 --> Z[保持 YAML 顺序]
-    B -- 是 --> C{is_scanned = False?}
-    C -- 否 --> Z
-    C -- 是 --> D{page_count < 5?}
-    D -- 否 --> Z
-    D -- 是 --> E["快路径: 仅 pymupdf<br/>reason=simple_layout_{N}p"]
-```
+![layout_analysis 引擎路由决策流程：文档画像经非复杂布局、非扫描版、小于 5 页、候选链含 pymupdf 四道守卫合取短路，全过才走仅 pymupdf 快路径（跳过 docling 10s 冷启动），任一不过即回退 docling→…→pymupdf 的 YAML 默认引擎链。](../../../assets/architecture/perceives/pdf-engine--fast-path-dark.png)
+
+> 图源（可 diff 文本）：[`pdf-engine--fast-path.mmd`](../../../assets/mermaid/perceives/pdf-engine--fast-path.mmd) · 交互版（下载到本地打开）：[`pdf-engine--fast-path.html`](../../../assets/architecture/perceives/pdf-engine--fast-path.html)
 
 ## 特征驱动型 Stage 跳过表
 

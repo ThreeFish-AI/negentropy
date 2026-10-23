@@ -18,40 +18,9 @@ title: "单点登录（SSO）方案：Google OAuth + 用户权限管理"
 
 ## 2. 架构总览
 
-```mermaid
-flowchart TD
-  subgraph FE["Frontend / negentropy-ui"]
-    A["Browser"] --> B["/api/auth/login"]
-    A --> C["/api/auth/me"]
-    A --> D["/api/agui/*"]
-  end
+![Google OAuth SSO 认证流时序图：浏览器经前端 BFF 与后端发起 /auth/google/login，Google 授权回调后由后端用授权码换取 id_token（OIDC 验签）、写入 user_states 并签发 ne_sso 会话 Cookie，最后经 /api/auth/me → /auth/me 拉取登录态与权限。](../../assets/architecture/design/sso--auth-flow-dark.png)
 
-  subgraph BE["Backend / negentropy (ADK FastAPI)"]
-    E["/auth/google/login"] --> F["Google OAuth Consent"]
-    F --> G["/auth/google/callback"]
-    G --> H["Set Cookie + user_states"]
-    H --> I["/auth/me"]
-    J["AuthMiddleware"] --> K["/run_sse + /apps/*/sessions"]
-  end
-
-  subgraph DB["PostgreSQL"]
-    L["user_states (profile + roles)"]
-    M["threads/events (sessions)"]
-  end
-
-  B --> E
-  C --> I
-  D --> K
-  H --> L
-  K --> M
-
-  %% styles (high contrast for dark mode)
-  style FE fill:#0b1f2a,stroke:#3b82f6,color:#e6edf3
-  style BE fill:#1f2937,stroke:#10b981,color:#ecfdf5
-  style DB fill:#111827,stroke:#f59e0b,color:#fff7ed
-  style A fill:#0f172a,stroke:#60a5fa,color:#e2e8f0
-  style K fill:#0f172a,stroke:#34d399,color:#ecfdf5
-```
+> 图源（可 diff 文本）：[`sso--auth-flow.mmd`](../../assets/mermaid/design/sso--auth-flow.mmd) · 交互版（下载到本地打开）：[`sso--auth-flow.html`](../../assets/architecture/design/sso--auth-flow.html)
 
 ## 3. 登录流程与状态机
 

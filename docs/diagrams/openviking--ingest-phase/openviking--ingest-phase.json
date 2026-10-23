@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "OpenViking 编目相：入库到 L0/L1 的自底向上流水线",
+    "output": "docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1080, 640]
+  },
+  "stages": [
+    { "label": "同步入库" },
+    { "label": "异步入队" },
+    { "label": "摘要与分层" },
+    { "label": "L0 与索引" },
+    { "label": "新鲜度冒泡" }
+  ],
+  "nodes": [
+    { "id": "agfs", "type": "database", "label": "内容提交 AGFS", "sublabel": "ls/read 已可见 · 尚不可检索", "stage": 0, "row": 0, "width": 132 },
+    { "id": "tb", "type": "backend", "label": "URI 规划", "sublabel": "结构推导 · 类型与归属", "stage": 0, "row": 1 },
+    { "id": "par", "type": "backend", "label": "Parser 切分", "sublabel": "无LLM · ≤2048估算token · ≤6000字符", "stage": 0, "row": 2, "width": 152 },
+    { "id": "req", "type": "external", "label": "add-resource 请求", "stage": 0, "row": 3 },
+    { "id": "semq", "type": "messagebus", "label": "语义队列", "sublabel": "异步", "stage": 1, "row": 0 },
+    { "id": "fsum", "type": "backend", "label": "文件摘要", "sublabel": "1×LLM/文件", "stage": 2, "row": 0, "width": 130 },
+    { "id": "dir", "type": "backend", "label": "目录 L1", "sublabel": "1×LLM/目录", "stage": 2, "row": 1 },
+    { "id": "embq", "type": "database", "label": "嵌入队列 → 向量索引", "sublabel": "此后才可检索", "stage": 3, "row": 0, "width": 124 },
+    { "id": "l0", "type": "backend", "label": "L0 = L1 首段裁出", "sublabel": "0×LLM · ≤256 字符", "stage": 3, "row": 1 },
+    { "id": "noop", "type": "cloud", "label": "NOOP", "sublabel": "零成本", "stage": 4, "row": 1 },
+    { "id": "gate", "type": "security", "label": "子目录 L0 正文变了？", "stage": 4, "row": 2, "width": 126 },
+    { "id": "bubble", "type": "backend", "label": "新鲜度冒泡", "sublabel": "父级≤32子项立即刷新·否则攒pending/total≥10%", "stage": 4, "row": 3, "width": 192 }
+  ],
+  "flows": [
+    { "id": "req-par", "from": "req", "to": "par", "label": "请求", "variant": "emphasis" },
+    { "id": "par-tb", "from": "par", "to": "tb", "label": "切分结果", "variant": "emphasis" },
+    { "id": "tb-agfs", "from": "tb", "to": "agfs", "label": "编目 URI", "variant": "emphasis" },
+    { "id": "agfs-semq", "from": "agfs", "to": "semq", "label": "异步入队", "variant": "dashed" },
+    { "id": "semq-fsum", "from": "semq", "to": "fsum", "label": "文件摘要任务", "variant": "emphasis" },
+    { "id": "semq-dir", "from": "semq", "to": "dir", "label": "目录 L1 任务", "variant": "emphasis", "fromSide": "bottom", "via": [[315, 271], [474, 271]] },
+    { "id": "dir-l0", "from": "dir", "to": "l0", "label": "首段裁出", "variant": "emphasis", "labelDx": 14, "labelDy": -6 },
+    { "id": "dir-embq", "from": "dir", "to": "embq", "label": "目录 L1", "variant": "emphasis", "fromSide": "right", "toSide": "top", "via": [[620, 271], [620, 110], [745, 110]], "labelSegment": 2 },
+    { "id": "fsum-embq", "from": "fsum", "to": "embq", "label": "文件摘要", "variant": "emphasis", "labelDx": 13 },
+    { "id": "l0-embq", "from": "l0", "to": "embq", "label": "L0", "variant": "emphasis" },
+    { "id": "dir-gate", "from": "dir", "to": "gate", "label": "子目录 L0", "variant": "default", "fromSide": "bottom", "toSide": "left", "via": [[530, 327], [860, 327], [860, 385]] },
+    { "id": "gate-noop", "from": "gate", "to": "noop", "label": "否", "variant": "dashed" },
+    { "id": "gate-bubble", "from": "gate", "to": "bubble", "label": "是", "variant": "emphasis", "labelDy": 30 }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "可见 ≠ 可检索",
+      "items": [
+        "内容提交 AGFS 后 ls/read 即可见，但检索要等嵌入队列完成向量索引",
+        "L0 由 L1 首段裁出，0×LLM · ≤256 字符"
+      ]
+    }
+  ]
+}

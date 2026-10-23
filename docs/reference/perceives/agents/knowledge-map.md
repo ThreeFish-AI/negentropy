@@ -26,12 +26,6 @@ title: "Knowledge Map · 知识索引"
 - [../user-guide.md](../user-guide.md) — MCP 工具使用指南。
 - [../issue.md](../issue.md) — 历史 Issue 摘要与教训。
 
-## 基准与脚本
-
-- [scripts/benchmark/parse_pdf_bench.py](../../scripts/benchmark/parse_pdf_bench.py)
-  — `parse_pdf_to_markdown` 端到端基准测试（输出每 Stage `engine_used` /
-  `elapsed_ms` / `selector_decision`）。
-
 ## 测试入口
 
 - 单元：`tests/unit/`（含 `test_engine_selector.py`、

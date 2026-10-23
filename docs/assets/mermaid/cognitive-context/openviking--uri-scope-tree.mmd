@@ -1,0 +1,11 @@
+%% source: docs/research/cognitive-context/014-openviking.md §3（视频 P1 → 修订重绘）
+%% slug: openviking--uri-scope-tree
+%% type: architecture
+%% derived: docs/assets/architecture/cognitive-context/openviking--uri-scope-tree.html
+%% fix: 2026-10-22 补 peers/{peer} 一等子树（换代后一等化）、去「馆藏区/档案室/手册室」旧代喻体为工程直陈；钉点 6227af51
+flowchart TB
+  VIKING["viking:// 根 · 统一命名空间<br/>~ 展开为 user/{uid}"] --> RES["resources · 公共资源空间<br/>文档与资料 · 按目录组织"]
+  VIKING --> USR["user/{uid} · 个人空间<br/>memories/ 九类记忆 · preferences / events / …"]
+  VIKING --> AGT["agent · 技能空间<br/>skills/** · 技能"]
+  USR -->|"user 空间内的子树"| PEERS["peers/{peer}/memories · 交互对象子树<br/>一等路径段 · 类型推导与检索过滤都识别 · 无密钥 · 非租户"]
+  RES -.->|"结构推导 · 不按关键字"| CTR["resources/memories/x<br/>碰巧叫 memories · 仍是 resource"]

@@ -1,32 +1,15 @@
-# 取证字节归档 · 上游许可与出处
-
-本目录下的文件是**上游第三方内容的原样字节副本**，不是本仓作品。归档的唯一目的
-是取证可复现性：台账登记的 raw URL 钉在一个未合并分支上，分支一旦强推或删除，
-`source_ledger.py verify` 只能报 FAIL，被引用的原文就再也取不回来。
+# 取证字节归档 · 出处表
 
 | 项 | 值 |
 |---|---|
-| 上游项目 | shareAI-lab/learn-claude-code |
-| 仓库 | <https://github.com/shareAI-lab/learn-claude-code> |
-| 许可 | MIT，版权归 shareAI Lab —— 声明副本见 [LICENSE](./LICENSE) |
-| 固定提交 | `67a9126c6435a8654ba7a6f68c0fd2130f00a462`（2026-07-28） |
-| 取数日期 | 2026-08-22 |
-| 逐条指纹 | 同集 `research/sources.toml`（raw_sha256 / text_sha256 双指纹） |
-| 章节→集归属 | `source-map/claude-code-explained.md`（系列级唯一登记处，此处不重述） |
+| 上游项目 | shareAI-lab/learn-claude-code（"Bash is all you need" 教学仓） |
+| 仓库 URL | https://github.com/shareAI-lab/learn-claude-code |
+| 许可 | MIT（`67a9126/LICENSE`、`ce8f9f1/LICENSE` 为各自固定提交下许可文件的字节副本） |
+| 固定提交（双轨） | 站点轨 `67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix 分支，20 章版，提交日 2026-07-29；站点 learn.shareai.run 实况与之 2026-10-07 对账一致）＋ main 轨 `ce8f9f186058939da54c9d6fead78dfb5d0fd6c3`（17 章版，提交日 2026-09-28） |
+| 归档布局 | `67a9126/` = 站点轨 s08_context_compact / s09_memory 两章（README.md 中文默认 + code.py）；`ce8f9f1/` = main 轨同两章（README.md 英文默认 + README.zh.md 中文 + code.py，**s08 机制级演进对照信源**：占位符幂等 / seen-unseen 未读豁免 / 压前落盘） |
+| 取数日期 | 2026-10-07（剧本 v3 换代重归档；本集 C 型信源 = gl-notes.md，冻结自 docs/research/agent-harness/173 精读） |
+| 指纹台账 | 同目录 `../sources.toml`（`source_ledger.py fetch` 逐条登记于两钉点；撞号防御纪律：引用一律「轨名 + 目录名」，禁裸章号；三轨对照唯一展开层在 [source-map](../../../../source-map/claude-code-explained.md)） |
 
-[LICENSE](./LICENSE) 是上游同一提交下 `LICENSE` 文件的字节副本
-（sha256 `204ff5ee216c8f895268a23b66d959f82aa4d868e871e0690fbf2844eff8a26b`）。
-
-## 为什么许可声明按集重复而不收敛到一处
-
-MIT 要求「所有副本或实质性部分」附带版权与许可声明，而本目录归档的是**整文件级**
-副本（单文件最大逾两千行），属实质性部分。声明必须与被声明的字节同行：各集工程
-目录是可以被单独取出、单独交付的单位，声明收敛到系列级一处，取出单集时就会丢。
-这是单一事实源纪律的显式例外，也是唯一一处——归档之外的一切出处信息仍只登记在
-系列信源地图里。
-
-## 为什么归档文件的后缀被改过
-
-`README.md.txt` 的 `.txt` 是刻意加的：第三方原文里含相对链接，若以 `.md` 落盘会
-进入 `check_series.py` 规则 5 的受检面，被当成本仓死链误报。`.py` 不受影响，原样
-保留、字节未动。
+章→集归属与钉选不在此重述：唯一登记处为系列信源地图
+[../../../../source-map/claude-code-explained.md](../../../../source-map/claude-code-explained.md)。
+归档文件用 `.md.txt`/`.py` 后缀（避免上游原文相对链接被 check_series 规则 5 误判）。

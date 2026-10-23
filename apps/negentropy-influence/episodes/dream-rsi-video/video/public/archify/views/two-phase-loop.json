@@ -1,0 +1,7 @@
+[
+ {"id":"online","label":"白天进山：章程带队探索","focus":["policy","workers","tree"],"note":"现行章程选批次、W 个 worker 并行生成评估，产出发现树。"},
+ {"id":"offline","label":"夜里做梦：历史钉上沙盘","focus":["history","sim","score"],"note":"历史池固定成重放世界，候选章程零成本推演打分。"},
+ {"id":"revise","label":"做梦内环：幕僚长改章程","focus":["sim","score","dev"],"note":"LLM 看推演轨迹与得分，修订策略代码产出候选版本。"},
+ {"id":"guard","label":"防回退闸：候选含现任","focus":["score","select"],"note":"argmax 候选永远含现任章程，V*≥V⁰ 保底不回退。"},
+ {"id":"loop","label":"递归闭环：新章程再上线","focus":["tree","history","policy"],"note":"终树并入历史、胜出章程重新带队——沙盘越铺越大。"}
+]

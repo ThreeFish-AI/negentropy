@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "aa08e501-c4ef-4425-b29f-ac8add8f82f7",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--memory-identity/openviking--memory-identity.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--memory-identity.html",
+  "specification": {
+    "sha256": "b4b46a44bc92b588c6b9d0eade624a69f839f5d60fc3b8db1b579f420591b449",
+    "bytes": 2699
+  },
+  "artifact": {
+    "sha256": "1f7ad694ef822a3f604dd13835e7b6690f616fb3ecd69f232bac6b53479cb088",
+    "bytes": 750943
+  }
+}

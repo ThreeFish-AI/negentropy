@@ -858,7 +858,7 @@ class DoclingEngine:
 
         优先路径（``iterate_items`` + ``label='formula'``）：遍历 doc items，
         提取每个公式项的 LaTeX 文本、页码与 bbox（TopLeft 坐标系）。这是
-        ISSUE-094 R8 修复"公式按视觉顺序排序"的关键 — assembly 阶段的五级
+        I-094 R8 修复"公式按视觉顺序排序"的关键 — assembly 阶段的五级
         稳定排序依赖 ``(page, col, y0, x0, reading_order)``，缺失 bbox 会让
         公式落到同页末尾按 reading_order 兜底，破坏阅读顺序（典型表象：
         Context Engineering 2.0 中 Eq(1) 与 Eq(2) 顺序倒置）。

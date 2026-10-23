@@ -1,0 +1,56 @@
+%%source: docs/concepts/design/self-evolving-agents.md#block0 (L69-121, §2)
+%%slug: design/self-evolving--four-layer-loop
+%%type: workflow
+%%derived: archify workflow v2, byte-extract of source mermaid
+%% fix: (1) EVAL 节点删「Agent-as-a-Judge」——文档 §4 散文与代码双零命中，仅源图自造（LLM-as-Judge 与 Golden Set 双轨均核实：evaluator.py 范式 / 迁移 0083 partition=visible|holdout）；(2) TEL 节点 interaction_feedback 标注（提案）——全仓 grep 零命中未落地，已落地口径 = tool_invocations（迁移 0082 + engine/observability/tool_telemetry.py，模型注释自述「本切片仅 ADK 源」）；(3) PROP 节点「ACE delta 沉淀」→「负样本喂回」（ACE 为理论锚点非管线级，evolution 代码零命中；proposer.py recent_negatives 负样本回流已落地）
+flowchart TB
+    subgraph "Meta-Layer（固定框架，不可被进化修改）"
+        direction LR
+        TEL["📡 遥测采集<br/>tool_invocations（已落地，本切片仅 ADK 源）<br/>interaction_feedback（提案）"]
+        EVAL["🔬 评测引擎<br/>LLM-as-Judge<br/>Golden Set 双轨"]
+        PROP["🧬 进化提案器<br/>GEPA 反思→变异<br/>负样本喂回（recent_negatives）"]
+        ORCH["⚙️ 编排调度<br/>evolution_proposals 状态机<br/>evolution_inspector 心跳"]
+        DEC["🛡️ 护栏裁决<br/>decision.py 纯函数<br/>人审门控矩阵"]
+    end
+
+    subgraph "Evolvable-1：动态 Agent 定义"
+        A1["PerceptionFaculty"]
+        A2["InternalizationFaculty"]
+        A3["ContemplationFaculty"]
+        A4["ActionFaculty"]
+        A5["InfluenceFaculty"]
+    end
+
+    subgraph "Evolvable-2：外部能力工具"
+        S["Skills<br/>prompt_template"]
+        BT["Builtin Tools<br/>config JSONB"]
+        MCP["MCP Pipeline<br/>Stage 参数"]
+    end
+
+    subgraph "Evolvable-3：记忆与知识系统"
+        MEM["Memory<br/>检索参数 / 遗忘 λ / 管线 prompt"]
+        KB["Knowledge Base<br/>chunking / 检索权重 / rerank"]
+        KG["Knowledge Graph<br/>抽取 prompt / 实体解析阈值"]
+    end
+
+    A1 & A2 & A3 & A4 & A5 -->|"执行轨迹 + 反馈"| TEL
+    S & BT & MCP -->|"调用结果 + 延迟/成本"| TEL
+    MEM & KB & KG -->|"检索反馈 + 零命中率<br/>+ 图谱质量指标"| TEL
+    MEM -.->|"基质角色：reflections / playbook<br/>/ 采收用例沉淀于此"| PROP
+    TEL -->|"信号聚合"| EVAL
+    EVAL -->|"标量分 + 归因<br/>+ 反思文本"| PROP
+    PROP -->|"候选版本<br/>(SemVer 快照)"| ORCH
+    ORCH -->|"shadow eval<br/>+ canary 验证"| DEC
+    DEC -->|"promote/rollback<br/>(指针切换)"| A1 & A2 & A3 & A4 & A5
+    DEC -->|"promote/rollback<br/>(指针切换)"| S
+    DEC -->|"参数/排名更新"| BT & MCP
+    DEC -->|"配置版本晋升/回滚"| MEM & KB & KG
+
+    style TEL fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
+    style EVAL fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
+    style PROP fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
+    style ORCH fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef
+    style DEC fill:#4d1f1f,stroke:#d55b5b,stroke-width:2px,color:#fde8e8
+    style MEM fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
+    style KB fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
+    style KG fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5

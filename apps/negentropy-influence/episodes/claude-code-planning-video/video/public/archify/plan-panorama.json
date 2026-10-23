@@ -1,0 +1,260 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 35.88,
+ "total_wall_sec": 146.71,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "desk-reread",
+   "label": "每轮从头读台面",
+   "index": 0,
+   "file": "plan-panorama--desk-reread.mp4",
+   "end_still": "plan-panorama--desk-reread-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208
+   ],
+   "beat_nodes": [
+    "desk",
+    "read-sweep",
+    "five-devices"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "five-devices",
+   "label": "五件东西总览",
+   "index": 1,
+   "file": "plan-panorama--five-devices.mp4",
+   "end_still": "plan-panorama--five-devices-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "desk",
+    "five-devices"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tool-fade",
+   "label": "能力留 · 工具退",
+   "index": 2,
+   "file": "plan-panorama--tool-fade.mp4",
+   "end_still": "plan-panorama--tool-fade-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "device-todo",
+    "fade-mark"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "question-return",
+   "label": "开头之问",
+   "index": 3,
+   "file": "plan-panorama--question-return.mp4",
+   "end_still": "plan-panorama--question-return-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "desk",
+    "question-mark"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "workshop-answers",
+   "label": "工坊的安排",
+   "index": 4,
+   "file": "plan-panorama--workshop-answers.mp4",
+   "end_still": "plan-panorama--workshop-answers-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "desk",
+    "five-devices",
+    "answer-glow"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "m1-pinned",
+   "label": "工序卡：钉回可见",
+   "index": 5,
+   "file": "plan-panorama--m1-pinned.mp4",
+   "end_still": "plan-panorama--m1-pinned-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "device-todo",
+    "desk"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "m2-isolated",
+   "label": "副台：隔走过程",
+   "index": 6,
+   "file": "plan-panorama--m2-isolated.mp4",
+   "end_still": "plan-panorama--m2-isolated-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "device-side",
+    "desk"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "m3-two-books",
+   "label": "抽屉：两笔账",
+   "index": 7,
+   "file": "plan-panorama--m3-two-books.mp4",
+   "end_still": "plan-panorama--m3-two-books-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "device-drawer",
+    "desk"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "m4-relaid",
+   "label": "垫纸：按状态重铺",
+   "index": 8,
+   "file": "plan-panorama--m4-relaid.mp4",
+   "end_still": "plan-panorama--m4-relaid-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "device-pad",
+    "desk"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "m5-protected",
+   "label": "补救梯：保住台面",
+   "index": 9,
+   "file": "plan-panorama--m5-protected.mp4",
+   "end_still": "plan-panorama--m5-protected-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "device-ladder",
+    "desk"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "visibility-only",
+   "label": "只改看得见什么",
+   "index": 10,
+   "file": "plan-panorama--visibility-only.mp4",
+   "end_still": "plan-panorama--visibility-only-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "five-devices",
+    "desk",
+    "visibility-beam"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-panorama.html",
+ "slug": "plan-panorama",
+ "type": "architecture"
+}

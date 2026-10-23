@@ -98,7 +98,7 @@ def test_decide_success_blocked_by_failing_gate():
 
 
 def test_decide_success_blocked_by_gate_timeout_sentinel():
-    """门控超时(124)不等于通过：即便评分达标也不应判成功（ISSUE-115，超时≠门控通过）。"""
+    """门控超时(124)不等于通过：即便评分达标也不应判成功（I-115，超时≠门控通过）。"""
     r = FakeRoutine(best_score=92)
     it = FakeIter(score=92, verdict="pass", gate_exit_code=124)
     assert d.decide(r, it, [it]).action == "continue"
@@ -128,7 +128,7 @@ def test_decide_verdict_pass_not_success_by_default():
 
 
 def test_decide_verdict_pass_optin_blocked_by_failing_gate():
-    """门控守卫对 pass 旁路同样生效（ISSUE-115 回归锁）：gate 失败时即便 opt-in + verdict=pass
+    """门控守卫对 pass 旁路同样生效（I-115 回归锁）：gate 失败时即便 opt-in + verdict=pass
     也不判成功，避免把失败验证状态误判成功。"""
     r = FakeRoutine(success_score_threshold=100, best_score=88)
     it = FakeIter(score=88, verdict="pass", gate_exit_code=1)
@@ -136,7 +136,7 @@ def test_decide_verdict_pass_optin_blocked_by_failing_gate():
 
 
 def test_decide_verdict_pass_optin_blocked_by_gate_timeout():
-    """门控超时(124)≠通过（ISSUE-115）：opt-in + verdict=pass 但 gate 超时亦不判成功。"""
+    """门控超时(124)≠通过（I-115）：opt-in + verdict=pass 但 gate 超时亦不判成功。"""
     r = FakeRoutine(success_score_threshold=100, best_score=88)
     it = FakeIter(score=88, verdict="pass", gate_exit_code=124)
     assert d.decide(r, it, [it], accept_verdict_pass=True).action == "continue"
@@ -516,7 +516,7 @@ async def test_routine_inspector_noop_when_disabled(monkeypatch):
 
 
 def _issue128_iters() -> list[d.FakeIter]:
-    """ISSUE-128 真实轨迹 72→84→62→72→42→72。"""
+    """I-128 真实轨迹 72→84→62→72→42→72。"""
     scores_verdicts = [
         (72, "progressing"),
         (84, "progressing"),
@@ -542,7 +542,7 @@ def _rising_iters() -> list[d.FakeIter]:
 
 
 def test_decide_oscillation_quant_default_off_preserves_issue128_rescue():
-    """核心回归：ISSUE-128 轨迹 + tolerance=20、不传 amplitude → continue（量化振荡默认不误杀）。"""
+    """核心回归：I-128 轨迹 + tolerance=20、不传 amplitude → continue（量化振荡默认不误杀）。"""
     iters = _issue128_iters()
     latest = iters[-1]
     routine = FakeRoutine(success_score_threshold=100, no_progress_patience=3)
@@ -556,7 +556,7 @@ def test_decide_oscillation_quant_default_off_preserves_issue128_rescue():
 
 
 def test_decide_oscillation_quant_optin_catches_stalled_verdict_thrash():
-    """opt-in：同一 ISSUE-128 轨迹 + oscillation_min_amplitude=15 → terminate/REASON_OSCILLATION。"""
+    """opt-in：同一 I-128 轨迹 + oscillation_min_amplitude=15 → terminate/REASON_OSCILLATION。"""
     iters = _issue128_iters()
     latest = iters[-1]
     routine = FakeRoutine(success_score_threshold=100, no_progress_patience=3)

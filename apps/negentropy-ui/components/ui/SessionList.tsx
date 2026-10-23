@@ -95,7 +95,7 @@ export function SessionList({
   // list.items 为已排序数组的连续前缀，直接对前缀分组即得有序时间组。
   const groups = useMemo(() => bucketSessionsByRecency(list.items), [list.items]);
 
-  // 确认弹窗状态：归档 / 解档 / 删除共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 ISSUE-045 / ISSUE-054）
+  // 确认弹窗状态：归档 / 解档 / 删除共用一套对话框，避免浏览器原生弹窗的样式割裂（参考 I-045 / I-054）
   const [confirmTarget, setConfirmTarget] = useState<
     | { kind: "archive" | "unarchive" | "delete"; session: SessionItem }
     | null

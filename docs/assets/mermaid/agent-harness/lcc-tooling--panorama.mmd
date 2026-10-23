@@ -1,0 +1,17 @@
+%% source: docs/research/agent-harness/171-claude-code-tooling-execution.md（§6 末 终态全景）
+%% slug: lcc-tooling--panorama
+%% type: architecture
+%% derived: 首次绘制（2026-10-07）；2026-10-10 评审改造——主循环一圈走到底（主干串联），生产保护层由独立子图改为节点徽标（不添加子节点）；2026-10-12 视觉优化轮——五图统一顺时针回环网格（上排决策、中排裁决、下排执行回喂，回喂边为 c2 单竖线），节点/边/文案与前版逐字一致
+%% grid: llm=(r0,c2) crit=(r0,c3) pre=(r1,c3) g123=(r1,c4) run=(r1,c5) post=(r2,c5) tr=(r2,c2)；槽位跨级不变，详见 docs/diagrams/lcc-tooling--panorama/lcc-tooling--panorama.json
+flowchart LR
+    ASK["用户输入<br/>新一轮输入"] --> UPS["UserPromptSubmit<br/>输入级钩子<br/>§6 钩子"]
+    UPS --> LLM["调用模型<br/>附全部工具定义"]
+    LLM --> CRIT["有工具调用块？<br/>判据<br/>needsFollowUp·认内容块"]
+    CRIT -- "有" --> PRE["PreToolUse<br/>先于闸门·可否决<br/>不变式：allow 压不过 deny"]
+    PRE --> G["三道闸门<br/>硬拒绝→规则→审批<br/>auto 分类器替换闸门 3"]
+    G -- "放行" --> RUN["查表执行<br/>TOOL_HANDLERS<br/>partitionToolCalls"]
+    RUN --> POST["PostToolUse<br/>执行后钩子"]
+    POST --> TR["tool_result 配对<br/>按 tool_use_id 回喂<br/>拒绝结果同样回喂"]
+    TR -- "回喂·接着想下一步" --> LLM
+    CRIT -. "没有" .-> STOP["Stop 钩子<br/>没有→续跑或退出<br/>stopHookActive 防死循环"]
+    STOP -. "返回空" .-> DONE["循环退出<br/>交回用户"]

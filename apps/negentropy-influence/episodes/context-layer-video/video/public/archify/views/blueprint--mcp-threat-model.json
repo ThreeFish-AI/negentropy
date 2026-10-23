@@ -1,0 +1,52 @@
+[
+ {
+  "id": "tm2-open",
+  "label": "供给面全景",
+  "focus": [
+   "host-client",
+   "mcp-surface",
+   "compile-gate",
+   "governed-exec",
+   "data-plane",
+   "token-theft",
+   "desc-poison",
+   "deputy",
+   "handle-spoof",
+   "injection",
+   "legitimation"
+  ],
+  "note": "六类威胁×五基建节点——威胁与拦截位一一对应"
+ },
+ {
+  "id": "tm2-surface",
+  "label": "供给边界",
+  "focus": [
+   "host-client",
+   "mcp-surface",
+   "compile-gate"
+  ],
+  "note": "宿主客户端·MCP 供给面·编译期闸门"
+ },
+ {
+  "id": "tm2-plane",
+  "label": "数据与执行",
+  "focus": [
+   "governed-exec",
+   "data-plane"
+  ],
+  "note": "受治理执行层·数据平面"
+ },
+ {
+  "id": "tm2-threats",
+  "label": "六类威胁",
+  "focus": [
+   "token-theft",
+   "desc-poison",
+   "deputy",
+   "handle-spoof",
+   "injection",
+   "legitimation"
+  ],
+  "note": "令牌窃取·描述投毒·混淆代理人·句柄仿冒·间接注入·意图合法化"
+ }
+]

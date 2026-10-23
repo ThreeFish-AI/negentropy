@@ -1,0 +1,29 @@
+%% source: docs/.agents/pdf-fidelity-patrol-status.md §3 写入路径（块#1，sequenceDiagram 巡检时序）
+%% slug: agents/patrol--patrol-sequence
+%% type: sequence
+%% derived: byte-exact extraction of mermaid block #1
+%% fix: R 的终态是 H 在下一 tick 开头扫 negentropy.routines 表拉取发现（_finalize_terminal_patrols 的 SELECT），非 R 主动推送；图示 R-->>H 为时序抽象
+sequenceDiagram
+    autonumber
+    participant S as Scheduler tick
+    participant H as pdf_fidelity_patrol handler
+    participant DB as knowledge_documents
+    participant R as routine_inspector
+    participant M as PatrolMemoryStore
+    participant Mem as memories
+
+    S->>H: _run_patrol_tick
+    H->>DB: _select_next_pending_doc（WHERE patrol_status IS NULL）
+    DB-->>H: doc
+    H->>H: _create_and_start_patrol_routine（flush Routine）
+    H->>DB: UPDATE patrol_status='in_progress', patrol_routine_id=:rid
+    Note over H,DB: spawn 即 in_progress（SSOT 列）
+    R->>R: 跑 Claude Code 迭代闭环（worktree + PR + Judge）
+    R-->>H: Routine 终态（succeeded/failed/cancelled）
+    H->>M: _finalize_terminal_patrols → persist_terminal_outcome
+    alt done / unfixable
+        M->>Mem: upsert TAG_STATUS（dual-write 过渡）
+        M->>DB: UPDATE patrol_status=done|unfixable, patrol_score=:sc
+    else cancelled（用户干预）
+        H->>DB: UPDATE patrol_status=NULL（双守卫：patrol_routine_id=:rid AND in_progress）
+    end

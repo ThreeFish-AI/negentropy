@@ -1,0 +1,103 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.12,
+ "total_wall_sec": 87.79,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "quality",
+   "label": "第一项：最好收获",
+   "index": 0,
+   "file": "v-three-terms--quality.mp4",
+   "end_still": "v-three-terms--quality-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "quality"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 16.0
+  },
+  {
+   "id": "cost",
+   "label": "第二项：翻页工钱",
+   "index": 1,
+   "file": "v-three-terms--cost.mp4",
+   "end_still": "v-three-terms--cost-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "cost"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 23.0
+  },
+  {
+   "id": "parallel",
+   "label": "第三项：并行奖励",
+   "index": 2,
+   "file": "v-three-terms--parallel.mp4",
+   "end_still": "v-three-terms--parallel-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "parallel"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 22.0
+  },
+  {
+   "id": "total",
+   "label": "性价比与它的另一副面孔",
+   "index": 3,
+   "file": "v-three-terms--total.mp4",
+   "end_still": "v-three-terms--total-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.209
+   ],
+   "beat_nodes": [
+    "score",
+    "average",
+    "caliber-note"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 43.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--v-three-terms.html",
+ "slug": "v-three-terms",
+ "type": "dataflow"
+}

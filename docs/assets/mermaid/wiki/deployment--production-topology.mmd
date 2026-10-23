@@ -1,0 +1,27 @@
+%% source: docs/reference/wiki/deployment.md §1.1 数据流（发布 → 上线）（块#0，L28-L46）
+%% slug: wiki/deployment--production-topology
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: 生产出口修正（D-13）——原图「远程部署 Docker / nginx / CDN」是 §2.2/§2.3 可选自托管路径，非生产实际出口；生产拓扑出口 = GitHub Pages：wiki_service.publish(target=production) fire-and-forget spawn scripts/publish-wiki-pages.sh（L336-337），脚本三步「导出（烘焙图片）→ next build → rsync --delete + .nojekyll + push」推 threefish-ai.github.io master（脚本 L36/L128/L135），GitHub Pages 数十秒上线
+%% fix: 本地出口补全（D-13）——publish(target=local)（默认）spawn scripts/build-wiki-local.sh（wiki_service.py L339），「导出 + 重建」后由 serve out -l 3092 提供静态产物（build-wiki-local.sh L6、package.json start）
+%% fix: 纯静态边界核验（D-13）——apps/negentropy-wiki/next.config.ts L61 output:"export"：禁止 server runtime / API routes / ISR；运行时零后端依赖（无 AG-UI / 无 agents-chat-core / 无 API 路由边），断网 docker run --network none 仍可渲染
+%% fix: 生产/本地导出均 bake_assets=true 烘焙图片为自包含静态文件（content/assets/ → out/assets/），访客侧零主站运行时依赖；content/ 是发布边界、整体 gitignored（构建兜底 content.fixture/）
+flowchart LR
+  subgraph Main["主站（negentropy）"]
+    UI["/UI 同步并发布/"] --> DB[("PostgreSQL<br/>wiki_publications<br/>+ Catalog 树")]
+  end
+  subgraph Export["导出（主站职责，持 DB 访问）"]
+    CLI["export_wiki_content.py<br/>或 sync-wiki-content.sh"]
+  end
+  subgraph Build["构建（纯静态）"]
+    SRC["content/<br/>静态内容包"] --> NEXT["next build<br/>output:export"]
+    NEXT --> OUT["out/<br/>HTML + pagefind"]
+  end
+  subgraph Remote["远程部署"]
+    HOST["Docker / nginx / CDN"]
+  end
+  USER(["👤 访客"])
+
+  DB --> CLI --> SRC
+  OUT -->|"烘焙进镜像 / 上传"| HOST
+  HOST --> USER

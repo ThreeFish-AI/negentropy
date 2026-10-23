@@ -1,0 +1,194 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "工具与执行：三道闸门进场",
+  "subtitle": "渐进图 L3（§5 之后）：执行之前插入三道闸门——事前把关，因为事后无从撤销",
+  "locale": "zh-CN",
+  "quality_profile": "showcase",
+  "output": "docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html",
+  "legend": {
+   "mode": "auto",
+   "entries": {
+    "backend": {
+     "label": "Agent 逻辑"
+    },
+    "security": {
+     "label": "策略"
+    },
+    "messagebus": {
+     "label": "Hook"
+    },
+    "database": {
+     "label": "上下文 / 追踪"
+    },
+    "external": {
+     "label": "外部系统"
+    }
+   }
+  }
+ },
+ "layout": {
+  "mode": "grid",
+  "origin": [
+   40,
+   40
+  ],
+  "cols": 6,
+  "cellW": 150,
+  "cellH": 64,
+  "gapX": 44,
+  "gapY": 56
+ },
+ "components": [
+  {
+   "id": "think",
+   "type": "backend",
+   "label": "调用模型",
+   "row": 0,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "有工具调用块"
+  },
+  {
+   "id": "g1",
+   "type": "security",
+   "label": "闸门 1：硬拒绝表",
+   "row": 1,
+   "col": 3,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "rm -rf / · sudo",
+   "tag": "命中即拦"
+  },
+  {
+   "id": "g2",
+   "type": "security",
+   "label": "闸门 2：规则匹配",
+   "row": 1,
+   "col": 4,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "rm · > /etc/",
+   "tag": "命中交闸门 3"
+  },
+  {
+   "id": "g3",
+   "type": "security",
+   "label": "闸门 3：用户审批",
+   "row": 1,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "打印原因·等 y/n",
+   "tag": "拒绝则拒因回喂"
+  },
+  {
+   "id": "run",
+   "type": "backend",
+   "label": "查表执行",
+   "row": 2,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "TOOL_HANDLERS"
+  },
+  {
+   "id": "feed",
+   "type": "database",
+   "label": "tool_result 回喂",
+   "row": 2,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "按编号配对",
+   "tag": "结果交还 LLM"
+  }
+ ],
+ "connections": [
+  {
+   "id": "g1e",
+   "from": "think",
+   "to": "g1",
+   "label": "有工具调用块",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "top",
+   "labelSegment": 1
+  },
+  {
+   "id": "g2e",
+   "from": "g1",
+   "to": "g2",
+   "label": "未命中",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left",
+   "labelAt": [
+    794.0,
+    179.0
+   ]
+  },
+  {
+   "id": "g4e",
+   "from": "g2",
+   "to": "g3",
+   "label": "命中",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left",
+   "labelAt": [
+    988.0,
+    179.0
+   ]
+  },
+  {
+   "id": "g6e",
+   "from": "g3",
+   "to": "run",
+   "label": "允许",
+   "variant": "emphasis",
+   "fromSide": "bottom",
+   "toSide": "top",
+   "labelAt": [
+    1085.0,
+    255.0
+   ]
+  },
+  {
+   "id": "rb",
+   "from": "feed",
+   "to": "think",
+   "label": "回喂·接着想下一步",
+   "variant": "emphasis",
+   "fromSide": "top",
+   "toSide": "bottom",
+   "labelAt": [
+    503.0,
+    195.0
+   ]
+  },
+  {
+   "id": "g9e",
+   "from": "run",
+   "to": "feed",
+   "label": "执行结果",
+   "variant": "emphasis",
+   "fromSide": "left",
+   "toSide": "right"
+  }
+ ]
+}

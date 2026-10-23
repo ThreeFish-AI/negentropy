@@ -1,0 +1,15 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §4
+%% slug: dream-rsi--determinism-proof
+%% type: lifecycle
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--determinism-proof.html
+flowchart TD
+    START(["重放开始：历史 ℋt 固定<br/>重置到只含根 r"]) --> PICK["策略选批次 C"]
+    PICK -->|"选非根节点 v"| REVEAL["揭示 v 的唯一记录子节点<br/>（若存在）"]
+    PICK -->|"选根 r"| EARLIEST["揭示最早创建的<br/>未揭示根子节点（开已录分支）"]
+    REVEAL --> SEEN["已见子树长大"]
+    EARLIEST --> SEEN
+    SEEN -->|"上限 K₂ 轮 / 选空批次 / 全部揭示"| TERM(["终止：N · k · max s"])
+    SEEN --> PICK
+    PICK --> GROUND["保真度声明：重放不产生任何<br/>超出已录树 𝒯i 的结果，分支严格按<br/>记录的 parent–child 序遍历<br/>（a grounded model of the portion of the discovery space that has already been observed）"]
+    GROUND --> FREEZE["结构性边界：在线转移是随机的<br/>重放把随机性冻结成单次抽样<br/>（同策略同树两次重放逐位一致）"]
+    style GROUND fill:#0F3244,stroke:#7DD3FC,color:#fff

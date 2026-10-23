@@ -1,38 +1,50 @@
-/** 全片视觉规范（见 script/planning.md 与 storyboard.md）
+/**
+ * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
  *
- *  本集三色语义契约。反枚举原则：四个章节**不给四色**——四章讲的不是四个并列
- *  概念，而是「一个不变的内核 + 三层可拆卸的外挂」，色彩映射的是这个深层轴：
- *
- *    陶土橙 core   = 循环内核（s01）。全片**恒定不变**，是「循环始终不变」这个
- *                    主题的视觉载体：每次画面上出现循环，它都是这个颜色、这个粗细。
- *    石青   mech   = 挂在内核外面的机制（s02 分发表 / s04 钩子插槽）。可增可减、
- *                    可插拔，视觉上永远「附着」在 core 之外。
- *    警示红 deny   = 拒绝与危险（s03 闸门的硬拒绝、DENY_LIST、rm -rf /）。
- *                    语义唯一，不做装饰用途——出现即代表「这条路被挡住了」。
- *
- *  s03 的三种权限结果不各占一色：allow 走 core（放行 = 回到主干）、
- *  ask 走 mech（需要一次外部介入）、deny 走 danger。
- *
- *  对比度（对 bg #0E1116，WCAG 2.x 相对亮度法，qa_frames.py --check-theme 复验）：
- *    core 6.06:1 · mech 9.18:1 · deny 6.00:1 —— 均过 4.5:1。
+ * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
+ * references/08-remotion-implementation.md：
+ *   - 2–3 个概念色，映射「深度轴」而非枚举条目
+ *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
+ *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
+ *     运行时打印的 occupied-hex INFO 行）
+ *   - 覆写任何底座 token 须在 theme.ts / planning.md / README 三处留决策记录
  */
 export const theme = {
+  // ── 底座（跨集通用，勿改）──
   bg: '#0E1116',
   panel: '#171C26',
   panelBorder: '#2A3242',
   text: '#F2F5FA',
   dim: '#9AA7B8',
-  /** 陶土橙 = 循环内核（全片恒定，「循环不变」的视觉锚） */
-  core: '#D97757',
-  coreDeep: '#5a2f1f',
-  /** 石青 = 外挂机制（分发表 / 钩子插槽，可插拔） */
-  mech: '#64C4C0',
-  mechDeep: '#1d4a48',
-  /** 警示红 = 拒绝与危险（语义唯一，不作装饰） */
-  deny: '#EF6461',
-  denyDeep: '#5c2422',
+  // danger 曾缺席本 seed（既有四集 theme.ts 全都有、场景代码读 theme.danger，
+  // scaffold 出的新集开箱即 TS2339）——补齐即与四集现状对齐。
+  danger: '#FF5C5C',
   ok: '#7ED321',
+
+  // ── 字体族（跨集通用，勿改）──
+  // **必须留在 theme 内**：frozen 档的 cards.tsx 与 Subtitle.tsx 读的是
+  // `theme.serif` / `theme.sans`。拆成独立的 `font` 导出会让 scaffold 出的新集
+  // 开箱即 6 个 TS2339 —— 而 theme.ts 属 seeded 档、不受 verify_skeleton 执法，
+  // 漂移门报 0 处也证明不了新集可编译（判据见 tests/test_skeleton.py 的
+  // test_template_theme_covers_frozen_component_tokens）。
   serif: "'Songti SC', 'STSong', 'Noto Serif SC', serif",
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
+
+  // ── 本集概念色（重制种子：沿用系列维度色系，Stage ② 策划时终定并复算对比度）──
+  // 语义：陶土橙=执行/工具；青=模型侧；红=危险门
+  concept: '#D97757',
+  conceptDeep: '#B45A3C',
+  accent: '#EF6461',
+  model: '#64C4C0',
+
+  // ── 系列语义键（V3D 3D 层读；HarnessStack/motifs 消费）──
+  // core = 循环内核：**全系列恒定 #D97757**（「循环始终不变」主线的视觉锚）；
+  // mech/mechDeep = 挂在内核外的机制：**每集维度色**（本集 #64C4C0）——
+  // 「循环不变、机制每集不同」的语义分工。deny 复用 danger（拒绝/危险唯一语义）。
+  core: '#D97757',
+  coreDeep: '#B45A3C',
+  deny: '#EF6461', // 拒绝/危险唯一语义（3D 层读；与 danger 同源）
+  mech: '#64C4C0',
+  mechDeep: '#4A8F8B',
 } as const;

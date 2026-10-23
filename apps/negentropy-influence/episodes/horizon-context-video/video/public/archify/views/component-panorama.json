@@ -1,0 +1,40 @@
+[
+ {
+  "id": "caliber-spine",
+  "label": "口径主线",
+  "focus": [
+   "ap",
+   "sv",
+   "gov",
+   "pol"
+  ],
+  "note": "供给起草验证 → 口径进入治理引擎 → 策略随含义传播。"
+ },
+ {
+  "id": "consumer-feed",
+  "label": "消费端五路汇入",
+  "focus": [
+   "vqr",
+   "us",
+   "mcp",
+   "el",
+   "grd",
+   "agents"
+  ],
+  "note": "核准问答、检索、工具面、血缘与出口安检五路汇入官方 Agent 矩阵。"
+ },
+ {
+  "id": "reserved-supply",
+  "label": "降级保留区",
+  "focus": [
+   "ap",
+   "cs",
+   "us",
+   "oss",
+   "mcp",
+   "ada",
+   "grd"
+  ],
+  "note": "§10–§12 供给与出口组件整体以降级口径保留在全景中。"
+ }
+]

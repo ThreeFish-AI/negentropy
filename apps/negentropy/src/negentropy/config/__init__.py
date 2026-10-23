@@ -23,6 +23,7 @@ Note:
     通过 Admin UI 管理，使用 model_resolver 解析。
 """
 
+import os
 from functools import cached_property
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -261,9 +262,30 @@ class Settings(BaseSettings):
 # Singleton instance
 settings = Settings()
 
+
+def parse_env_bool(name: str, default: bool) -> bool:
+    """Parse env var *name* as a boolean toggle; unset falls back to *default*.
+
+    Falsy spellings: ``0`` / ``false`` / ``no``（大小写不敏感），其余任意值（含
+    ``1`` / ``yes`` / 乱值）均为真 —— 与历史内联惯用法
+    ``os.environ.get(name, "true").lower() in ("0", "false", "no")`` 语义完全一致。
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.lower() not in ("0", "false", "no")
+
+
+def resolve_app_name(app_name: str | None) -> str:
+    """Resolve the effective app name, defaulting to the configured ``app.name``."""
+    return app_name or settings.app_name
+
+
 __all__ = [
     "Settings",
     "settings",
+    "parse_env_bool",
+    "resolve_app_name",
     "AppSettings",
     "EnvironmentSettings",
     "KnowledgeSettings",

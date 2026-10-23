@@ -14,7 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from negentropy.auth.deps import get_current_user, resolve_user_with_db_roles
+from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import require_admin as _require_admin
 from negentropy.auth.service import AuthUser
 from negentropy.db.session import AsyncSessionLocal
 from negentropy.logging import get_logger
@@ -73,7 +74,7 @@ def _model_config_to_dict(mc) -> dict[str, Any]:
 
 
 def _model_config_to_public_dict(mc) -> dict[str, Any]:
-    """ISSUE-066 / ISSUE-071：面向普通用户的精简版 model_config 字典。
+    """I-066 / I-071：面向普通用户的精简版 model_config 字典。
 
     剔除 ``config`` 字段（供应商特定参数，如 temperature / thinking_mode 等
     管理员视角的可调参数）与时间戳，仅返回 Home 页 LLM 下拉渲染所需的
@@ -102,19 +103,6 @@ def _validate_model_type(value: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported model_type: {value}. Allowed: llm / embedding / rerank",
         ) from exc
-
-
-async def _require_admin(user: AuthUser) -> AuthUser:
-    """以 DB ``user_states`` 中持久化的 roles 为权威，校验 admin 身份。
-
-    JWT 中的 roles 是登录瞬间的快照，DB UserState.state.roles 为运行时权威。当
-    管理员后置提升用户角色时，旧 JWT 仍是 user，但 DB 已是 admin —— 必须以
-    ``resolve_user_with_db_roles`` 拉齐两者，避免 ISSUE-049 描述的视图割裂。
-    """
-    resolved = await resolve_user_with_db_roles(user)
-    if "admin" not in resolved.roles:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin role required")
-    return resolved
 
 
 # =============================================================================
@@ -278,7 +266,7 @@ async def list_model_configs(
 ) -> dict[str, Any]:
     """列出 model_configs 表条目。
 
-    ISSUE-066 / ISSUE-071：``enabled=True`` 是普通用户为了在 Home 页 LLM
+    I-066 / I-071：``enabled=True`` 是普通用户为了在 Home 页 LLM
     下拉中渲染「自己可用的模型列表」必走的查询路径。原实现一律 403 admin
     role required，导致 UI 浏览器层留下 console error（``Failed to load
     resource: 403`` 无法在 JS 静默），且让 dev mode build 出现两次原生错误

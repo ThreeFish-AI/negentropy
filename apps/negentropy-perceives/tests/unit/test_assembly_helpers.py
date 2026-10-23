@@ -31,7 +31,7 @@ class TestImageToMarkdown:
     def test_emits_html_img_with_bbox_display_size(self) -> None:
         """有 ``bbox`` 时应输出 HTML ``<img>``，width/height 由 bbox 尺寸 × 96/72 换算。
 
-        ISSUE-094 R7：PDF 点（72pt = 1in）→ CSS 像素（96px = 1in）换算因子 4/3。
+        I-094 R7：PDF 点（72pt = 1in）→ CSS 像素（96px = 1in）换算因子 4/3。
         bbox 宽 35pt → CSS 47px、bbox 高 27pt → CSS 36px。修复前直接把 pt 当
         px 输出导致 figure 在 markdown view 中显示为 PDF 原版尺寸的 75%。
         """
@@ -75,7 +75,7 @@ class TestImageToMarkdown:
     def test_full_width_figure_region_outputs_pixel_width(self) -> None:
         """A4 全宽 figure region（595pt × 730pt）→ PDF pt × 4/3 输出 793 × 973 CSS px。
 
-        ISSUE-094 R9 D-3 修复：之前 ``is_large_figure → width="100%"`` 分支让
+        I-094 R9 D-3 修复：之前 ``is_large_figure → width="100%"`` 分支让
         所有全宽 figure 拍扁到容器宽度，丢失 PDF 中半宽 / 全宽 figure 的相对比例
         信息。修复后始终输出 CSS px，配合 ``style="max-width:100%;height:auto"``
         在窄屏自适应，等价于 R7 设计意图。
@@ -96,7 +96,7 @@ class TestImageToMarkdown:
     def test_context_engineering_figure1_real_dims_outputs_pixel_width(self) -> None:
         """Context Engineering 2.0 Figure 1 实测尺寸 373pt × 215pt → 497 × 287 CSS px。
 
-        ISSUE-094 R9 D-3 修复：取消 ``is_large_figure`` 阈值判定，统一输出 px。
+        I-094 R9 D-3 修复：取消 ``is_large_figure`` 阈值判定，统一输出 px。
         """
         img = ExtractedImage(
             image_id="rendered_0_5",

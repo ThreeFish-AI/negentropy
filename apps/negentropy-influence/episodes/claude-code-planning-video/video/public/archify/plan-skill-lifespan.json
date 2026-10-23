@@ -1,0 +1,151 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.6,
+ "story_sec": 20.11,
+ "total_wall_sec": 143.87,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "lifespan-split",
+   "label": "两层寿命分岔",
+   "index": 0,
+   "file": "plan-skill-lifespan--lifespan-split.mp4",
+   "end_still": "plan-skill-lifespan--lifespan-split-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.6,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "label-track",
+    "manual-track"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "manual-in-history",
+   "label": "手册随历史走",
+   "index": 1,
+   "file": "plan-skill-lifespan--manual-in-history.mp4",
+   "end_still": "plan-skill-lifespan--manual-in-history-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "tool-result",
+    "history-flow"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "compact-sweeps",
+   "label": "清台时逃不掉",
+   "index": 2,
+   "file": "plan-skill-lifespan--compact-sweeps.mp4",
+   "end_still": "plan-skill-lifespan--compact-sweeps-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "compact-wave",
+    "manual"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "label-stays",
+   "label": "标签每轮都在",
+   "index": 3,
+   "file": "plan-skill-lifespan--label-stays.mp4",
+   "end_still": "plan-skill-lifespan--label-stays-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "labels-strip",
+    "system-prompt"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  },
+  {
+   "id": "re-paste-budget",
+   "label": "重贴留头有封顶",
+   "index": 4,
+   "file": "plan-skill-lifespan--re-paste-budget.mp4",
+   "end_still": "plan-skill-lifespan--re-paste-budget-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.78,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "re-paste",
+    "cap-mark"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 47.0
+  },
+  {
+   "id": "pair-not-either",
+   "label": "配套不是二选一",
+   "index": 5,
+   "file": "plan-skill-lifespan--pair-not-either.mp4",
+   "end_still": "plan-skill-lifespan--pair-not-either-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "load-on-demand",
+    "cleanup",
+    "pair-bond"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 48.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-skill-lifespan.html",
+ "slug": "plan-skill-lifespan",
+ "type": "lifecycle"
+}

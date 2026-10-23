@@ -1,0 +1,32 @@
+%% source: docs/research/agent-harness/180-ai-native-handbook.md §2
+%% slug: ai-native--harness-control-loop
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/ai-native--harness-control-loop.html
+flowchart TD
+    subgraph M["概率性执行 · 模型"]
+        G["用户目标"] --> C["获取上下文<br/>知识库 · 环境"]
+        C --> P["规划下一步<br/>模型推理"]
+        P --> T["提出工具调用<br/>只是意图"]
+    end
+    subgraph K["确定性控制面"]
+        PEP["PEP ⇄ PDP 授权<br/>用户∩能力∩委托∩运行时<br/>工牌与作业票核验"]
+        CRED["凭证代理<br/>按需兑换短期凭证 · 长期凭证不进 Agent<br/>库管发放限时钥匙"]
+        GR{"Guardrail 三态门控<br/>PASS / BLOCKED / UNKNOWN<br/>开工前安全核查"}
+        TR["Trajectory 可观测<br/>Session→Task→Step→Outcome<br/>施工日志"]
+        H["转交人工<br/>歧义 · 高风险 · 多次失败<br/>总工"]
+    end
+    subgraph R["资源与证据 · Sandbox"]
+        X["工具与资源<br/>Sandbox 内执行"]
+        V{"观察与验证<br/>编译 / 测试 / 运行证据<br/>工序验收"}
+        D["交付<br/>改动+验证命令+结果+残余风险"]
+    end
+    T --> PEP
+    PEP -- "授权通过" --> CRED
+    CRED --> X
+    CRED -- "生产变更" --> GR
+    GR -- "仅 PASS" --> X
+    X -- "执行结果" --> V
+    V -- "通过" --> D
+    V -- "未通过 · 证据回流" --> C
+    V -.-> H
+    PEP -. "全链路事件" .-> TR

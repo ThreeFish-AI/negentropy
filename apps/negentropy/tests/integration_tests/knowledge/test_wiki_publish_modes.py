@@ -392,7 +392,7 @@ class TestWikiPublicationCatalogBinding:
 
 
 class TestWikiPublicationEntriesEagerLoading:
-    """回归 ISSUE-010 三阶问题：async SQLAlchemy 中 pub.entries 必须 eager-load。
+    """回归 I-010 三阶问题：async SQLAlchemy 中 pub.entries 必须 eager-load。
 
     若 DAO 查询不挂 selectinload(WikiPublication.entries)，handler 在
     `len(pub.entries)` 处会以 sqlalchemy.exc.MissingGreenlet 失败 → 500。
@@ -511,7 +511,7 @@ class TestWikiPublicationEntriesEagerLoading:
 def patch_knowledge_api_session(db_engine, monkeypatch):
     """将 routes 子模块中 `from db.session import AsyncSessionLocal` 重定向到测试引擎。
 
-    conftest.patch_db_globals 仅覆盖 db.session/db.deps 命名空间，不影响已通过
+    conftest.patch_db_globals 仅覆盖 db.session 命名空间，不影响已通过
     `from X import Y` 形式静态绑定到其他模块的引用——本 fixture 形成互补，
     与 test_catalog_cross_corpus.patch_handler_sessions 同源。
     """
@@ -570,7 +570,7 @@ async def isolated_wiki_catalog(db_engine):
 class TestCreateWikiPublicationApiConflict:
     """POST /knowledge/wiki/publications 409 路径回归
 
-    覆盖 ISSUE-024 修复：原本 `uq_wiki_pub_catalog_active` /
+    覆盖 I-024 修复：原本 `uq_wiki_pub_catalog_active` /
     `uq_wiki_pub_catalog_slug` 唯一约束触发后会以 500 InternalServerError 抛
     出（IntegrityError 漏出），现按业务前置检查 + IntegrityError 兜底改为
     `409 Conflict` + `{code, message, details}` 结构化响应。

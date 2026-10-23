@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "研究对象与分析单元：每轮装配事务",
+    "subtitle": "ℰ → E_rel → Char(e) → C → (C,𝒯) → f_context：式 4 每被实际调用一次＝一次装配事务（实线部分出自 arXiv:2510.26493）",
+    "locale": "zh-CN",
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
+    "viewBox": [
+      1080,
+      694
+    ]
+  },
+  "stages": [
+    {
+      "label": "实体空间"
+    },
+    {
+      "label": "表征函数"
+    },
+    {
+      "label": "上下文与任务域"
+    },
+    {
+      "label": "装配事务"
+    },
+    {
+      "label": "窗口定型"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "espace",
+      "type": "external",
+      "label": "实体空间 ℰ",
+      "sublabel": "用户·应用·环境·工具·记忆",
+      "stage": 0,
+      "row": 1,
+      "width": 152
+    },
+    {
+      "id": "erel",
+      "type": "database",
+      "label": "相关子集 E_rel",
+      "sublabel": "按本轮交互圈定",
+      "stage": 0,
+      "row": 2
+    },
+    {
+      "id": "charfn",
+      "type": "backend",
+      "label": "表征函数 Char",
+      "sublabel": "式1 ℰ→𝒫(ℱ)",
+      "stage": 1,
+      "row": 2
+    },
+    {
+      "id": "rawctx",
+      "type": "cloud",
+      "label": "原始上下文 C",
+      "sublabel": "⋃ Char(e)",
+      "tag": "式2 并集",
+      "stage": 2,
+      "row": 2
+    },
+    {
+      "id": "taskdom",
+      "type": "external",
+      "label": "目标任务域 𝒯",
+      "sublabel": "好坏＝任务相对量",
+      "stage": 2,
+      "row": 3
+    },
+    {
+      "id": "operators",
+      "type": "messagebus",
+      "label": "八算子 φ₁…φ₈",
+      "sublabel": "完备性核对表",
+      "tag": "式4",
+      "stage": 3,
+      "row": 0
+    },
+    {
+      "id": "txn",
+      "type": "backend",
+      "label": "装配事务",
+      "sublabel": "f_context(C,𝒯)",
+      "tag": "实际调用一次＝一次事务",
+      "stage": 3,
+      "row": 2
+    },
+    {
+      "id": "answer",
+      "type": "frontend",
+      "label": "窗口定型·应答",
+      "sublabel": "本轮窗口内容",
+      "stage": 4,
+      "row": 2
+    },
+    {
+      "id": "symptoms",
+      "type": "security",
+      "label": "四类失效",
+      "sublabel": "口径/证据/越权/过量缺失",
+      "tag": "全部在事务内部",
+      "stage": 3,
+      "row": 3
+    }
+  ],
+  "flows": [
+    {
+      "id": "fsel",
+      "from": "espace",
+      "to": "erel",
+      "label": "取相关子集",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        100,
+        315
+      ]
+    },
+    {
+      "id": "fent",
+      "from": "erel",
+      "to": "charfn",
+      "label": "e ∈ E_rel",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        207.5,
+        375
+      ]
+    },
+    {
+      "id": "funion",
+      "from": "charfn",
+      "to": "rawctx",
+      "label": "⋃ 并集·式2",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        422.5,
+        375
+      ]
+    },
+    {
+      "id": "fpair",
+      "from": "taskdom",
+      "to": "rawctx",
+      "label": "(C,𝒯)",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [
+        530,
+        442
+      ]
+    },
+    {
+      "id": "fce",
+      "from": "rawctx",
+      "to": "txn",
+      "label": "实际调用 式4",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        637.5,
+        375
+      ]
+    },
+    {
+      "id": "fops",
+      "from": "operators",
+      "to": "txn",
+      "label": "ℱ 组合",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        745,
+        201
+      ]
+    },
+    {
+      "id": "fwindow",
+      "from": "txn",
+      "to": "answer",
+      "label": "窗口定型",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        852.5,
+        375
+      ]
+    },
+    {
+      "id": "fsym",
+      "from": "txn",
+      "to": "symptoms",
+      "label": "错装配进窗口",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        745,
+        429
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "四类失效·全部发生在事务内部",
+      "items": [
+        "现象一 两个收入数：「Q3 收入」答 $14.2M 与 $12.8M——口径散落，每个消费者自带定义副本（Snowflake 官方博客开场例，虚线）",
+        "现象二 裸问大面积答错：内部产品分析题约 25%、Anthropic 独立测 21%、Spider 2.0 上 GPT-4o 仅 10.1%——模型会写 SQL，但不知道列存什么、周末快照不能跨天相加",
+        "现象三 访问控制被绕过：Agent 持用户全权凭证默认继承一切，含生产写权限与 ACCOUNTADMIN 级角色（官方文档，虚线）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "八算子＝完备性核对表（式4）",
+      "items": [
+        "CE2 may-include 八操作：①采集 ②存储管理 ③一致可互操作表示 ④多模态处理 ⑤整合复用过去上下文（self-baking）⑥选取最相关元素 ⑦跨代理共享 ⑧依反馈动态适配",
+        "f_context(C)＝ℱ(φ₁,…,φₙ)(C)：算子组合出每轮装配；蓝图把八算子逐项对到五轴（§3.5），检验分解无漏项"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "验收以装配事务为最小单元",
+      "items": [
+        "正确性与安全性在每次装配时决定，不在资产入库时决定：错口径、错证据、越权数据都是被装配进窗口的",
+        "三条独立证据同向：M1 查询期重算不存成数；Claude Code 每轮重装配；本仓记忆注入走每轮检索注入（as-of b2fbb51f5）",
+        "工程口径同构：上下文＝本轮窗口内容＝从 LLM 采样时纳入的 token 集（Anthropic 官方定义）"
+      ]
+    }
+  ]
+}

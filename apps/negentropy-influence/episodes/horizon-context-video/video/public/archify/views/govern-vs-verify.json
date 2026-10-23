@@ -1,0 +1,22 @@
+[
+ {
+  "id": "third-party-critique",
+  "label": "第三方批判",
+  "focus": [
+   "thirdPartyCritique",
+   "agentCalc",
+   "wrongResult"
+  ],
+  "note": "这就是第三方机构提出来的深刻批判。"
+ },
+ {
+  "id": "upstream-collapse",
+  "label": "上游提前汇总塌陷",
+  "focus": [
+   "rawDetail",
+   "upstreamRollup",
+   "semanticView"
+  ],
+  "note": "上游在送数据前，就已经把数据提前汇总塌陷了。"
+ }
+]

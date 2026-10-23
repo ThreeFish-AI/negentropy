@@ -1,0 +1,14 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/storyboard.md 5-C（p5-05a..05c）
+%% slug: agent-skills-shadow-warning
+%% type: lifecycle
+%% derived: 2026-09-27 agent-skills-video 分镜
+stateDiagram-v2
+    [*] --> 公司版生效: 团队仓库 · 唯一副本
+    公司版生效 --> 复制自用: 拷入个人目录 · 改一行
+    复制自用 --> 项目域遮蔽: 盘上两份 · 生效一份
+    项目域遮蔽 --> 告警点名: 合规客户端点名「已被 shadowed」+ 路径
+    项目域遮蔽 --> 静默失效: 不点名 · 改公司仓不生效
+    note right of 项目域遮蔽
+        项目压个人
+        修改在公司仓失效
+    end note

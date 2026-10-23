@@ -1,0 +1,20 @@
+%%source: docs/concepts/subsystems/035-the-knowledge-base.md#block2
+%%slug: subsystems/035-kb--retrieval-levels
+%%type: workflow
+%%derived: byte-exact extraction of mermaid block #2
+%% fix: 四种模式互斥分派（SearchConfig.mode 默认 hybrid），非「L0 扇出三路并行」——source: knowledge/service.py:3199 起 search() 按 config.mode 分支
+%% fix: RRF 与 Hybrid 是同层两种融合策略，RRF 在 DB kb_rrf_search() 内自行融合 vector+keyword 双路 rank（rrf_k=60），不向 Score Merge 供料——source: retrieval/repository.py:1021-1190
+%% fix: Score Merge（_merge_matches，semantic_weight=0.7/keyword_weight=0.3）仅 hybrid 模式调用，semantic/keyword 单模式无融合步——source: knowledge/types.py:470-471
+%% fix: L1 精排对四种模式一律执行（service.py:3307/3391/3412/3441），且默认 NoopReranker 恒等（service.py:621），源图暗示「仅融合后精排」失真
+%% fix: Top-K 口径为 SearchConfig.limit 默认 20（1~1000），rerank 后还有层级块提升与检索计数回写两步——source: knowledge/types.py:469
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91"}}}%%
+flowchart LR
+  Query["Query"] --> L0["L0: 混合召回"]
+  L0 --> Semantic["Semantic<br/>(pgvector)"]
+  L0 --> Keyword["Keyword<br/>(BM25)"]
+  L0 --> RRF["RRF<br/>(Rank Fusion)"]
+  Semantic --> Merge["Score Merge"]
+  Keyword --> Merge
+  RRF --> Merge
+  Merge --> L1["L1: Cross-Encoder<br/>Reranking"]
+  L1 --> Results["Top-K Results"]

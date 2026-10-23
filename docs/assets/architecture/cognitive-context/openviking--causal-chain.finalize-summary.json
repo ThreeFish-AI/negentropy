@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+    "sha256": "a662a44628e47b9a7152069c123c188766e0339cf0b78611c8a41b518fb999f0",
+    "bytes": 14513
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+    "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+    "bytes": 786717
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 14201,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 1,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e_r_ev2",
+            "from": "path_read",
+            "to": "ev_upstream",
+            "label": "递归撤回 #5450",
+            "collectionIndex": 15,
+            "artifactIndex": 16
+          },
+          "bends": 2,
+          "stretch": 1.44
+        },
+        {
+          "relationship": {
+            "id": "e_w_r",
+            "from": "path_write",
+            "to": "path_read",
+            "label": "L0/L1 摘要供精排读",
+            "collectionIndex": 18,
+            "artifactIndex": 19
+          },
+          "bends": 3,
+          "stretch": 1.121
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "path_read → ev_upstream needs 2 bends: move node path_read or ev_upstream so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "path_write → path_read needs 3 bends: move node path_write or path_read so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

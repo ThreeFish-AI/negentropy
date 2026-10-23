@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "708df84f-cc85-44a7-b202-267a753b4fac",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-protocol-roundtrip/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-roundtrip.html",
+  "specification": {
+    "sha256": "d4ae8109b9f145448620d65e79666a20c737c557a365e22b985462b93c918698",
+    "bytes": 9365
+  },
+  "artifact": {
+    "sha256": "3156f1a980940402ae473354f5444f41f668d956c88e99acf891e4d542d81c57",
+    "bytes": 853760
+  }
+}

@@ -1,0 +1,73 @@
+{
+ "E-01": {
+  "off": {
+   "installed": [
+    "skill-a",
+    "skill-b"
+   ],
+   "errors": []
+  },
+  "on": {
+   "installed": [
+    "skill-a"
+   ],
+   "errors": 1
+  }
+ },
+ "E-02": {
+  "stale_index_strict_client": {
+   "errors": 1,
+   "note": "全挂：严格客户端整站不可用"
+  },
+  "soft404": {
+   "accepted_as_index": "raise",
+   "note": "200+error 体的形态分叉由实现自决（三读取器分叉）"
+  }
+ },
+ "E-03": {
+  "total_chars": 46,
+  "invisible_tag_chars": 26,
+  "screen_and_diff_identical": true,
+  "hexdump_visible": true
+ },
+ "E-04": {
+  "a": {
+   "channel": "pre-approved",
+   "model_sees_command": false,
+   "permission_prompt": false,
+   "executed": true
+  },
+  "b": {
+   "channel": "explicit",
+   "model_sees_command": true,
+   "permission_prompt": true,
+   "executed": false,
+   "flagged_as": "prompt injection"
+  }
+ },
+ "E-05": {
+  "pinned": {
+   "user_sees": [
+    "1.0.0",
+    "1.0.0",
+    "1.0.0"
+   ],
+   "bugfix_delivered": false,
+   "note": "写死 version：连推 3 个修复 commit，用户端永远 1.0.0"
+  },
+  "floating": {
+   "user_sees": [
+    "aaa",
+    "bbb",
+    "ccc"
+   ],
+   "all_users_jumped": true,
+   "note": "省略 version：一次 update 全员跟随 HEAD 变脑"
+  }
+ },
+ "E-06": {
+  "both_installed": true,
+  "warnings": 0,
+  "digest_valid_for_both": true
+ }
+}

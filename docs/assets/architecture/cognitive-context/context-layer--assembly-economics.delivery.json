@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3ad4c295-63a3-4a4f-b7c6-5ea3961d30b6",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--assembly-economics/context-layer--assembly-economics.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--assembly-economics.html",
+  "specification": {
+    "sha256": "77078a2705cb9fa63df30535d5910bea9434a02e89da27894ec7207870e2fd62",
+    "bytes": 4985
+  },
+  "artifact": {
+    "sha256": "c6081621c40661053a150577aba962e6621392abeb729ba04e6fa31d370ce0e5",
+    "bytes": 759209
+  }
+}

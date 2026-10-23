@@ -1,0 +1,21 @@
+%%source: docs/concepts/subsystems/039-the-routine-system.md#block3 (§4.2 迭代状态机（含审批门控），原 L183-L195)
+%%slug: subsystems/039-routine--decision-lifecycle
+%%type: lifecycle
+%%derived: docs/assets/architecture/subsystems/039-routine--decision-lifecycle.html (+ -dark/-light PNG)
+%% fix: 补 evaluating 中间态——executed 不直达 evaluated；orchestrator._claim_for_eval 先锁定翻转 evaluating + 设 eval lease（orchestrator.py:694），再起后台评估任务
+%% fix: 补 evaluating --> executed 回退边（两来源）：后台评估异常兜底 _reset_evaluating_to_executed（orchestrator.py:739）与 eval lease 过期孤儿回收（orchestrator.py:412-435，「评估幂等可重入，回退优于标记 reaped」）
+%% fix: reaped 原画作 [*] 终点，实为「迭代终态但 routine 重新派发」——models/routine.py:203 明示 reaper 标记后重新派发；图中改为虚线回入口
+%% fix: approval_mode=first 的门控语义精化——相位化工作流门控首个 IMPLEMENT 迭代（非 seq==1），扁平工作流才是 seq==1（orchestrator._needs_approval:1220-1244）
+stateDiagram-v2
+    [*] --> pending_approval: approval_mode≠auto
+    [*] --> dispatched: approval_mode=auto
+    pending_approval --> dispatched: 用户 approve
+    pending_approval --> aborted: 用户 reject
+    dispatched --> in_flight: Runner 拾取
+    in_flight --> executed: Claude Code 返回
+    in_flight --> reaped: lease 过期(崩溃)
+    in_flight --> aborted: 用户 cancel
+    executed --> evaluated: 评估器评分
+    evaluated --> [*]
+    reaped --> [*]
+    aborted --> [*]

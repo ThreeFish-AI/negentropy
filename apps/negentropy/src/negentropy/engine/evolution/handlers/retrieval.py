@@ -34,6 +34,7 @@ from negentropy.models.evolution import (
     EvolutionProposal,
     MemoryConfigVersion,
 )
+from negentropy.timeutil import utcnow
 
 from .. import eval_runner
 from .. import weights as weights_mod
@@ -50,7 +51,7 @@ from ..decision import (
 from ..proposer import RetrievalWeightProposer
 from ..queries import fetch_today_eval_cost as _fetch_today_eval_cost
 from ..queries import invalidate_canary_cache
-from ._shared import _bump_patch, _emit_evolution_event, _enter_canary, _td, _utcnow
+from ._shared import _bump_patch, _emit_evolution_event, _enter_canary, _td
 
 logger = get_logger("negentropy.engine.evolution.retrieval")
 
@@ -170,7 +171,7 @@ class RetrievalConfigHandler:
                     .select_from(EvolutionProposal)
                     .where(
                         EvolutionProposal.target_ref == self._target_ref,
-                        EvolutionProposal.created_at >= _utcnow() - _td(days=1),
+                        EvolutionProposal.created_at >= utcnow() - _td(days=1),
                     )
                 )
             ).scalar_one()

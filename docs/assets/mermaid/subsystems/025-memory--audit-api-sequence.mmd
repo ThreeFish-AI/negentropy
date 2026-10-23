@@ -1,0 +1,35 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block10
+%%slug: subsystems/025-memory--audit-api-sequence
+%%type: sequence
+%%derived: true
+%% fix: 幂等检查实为 MGS 对 DB memory_audit_logs 的 SELECT 查询（源画作 MGS 自环）
+%% fix: 版本冲突 ValueError 在 API 层转为 HTTP 409 Conflict 返回调用方（源图缺失该返回）
+sequenceDiagram
+    participant Admin
+    participant API as Memory Audit API
+    participant MGS as MemoryGovernanceService
+    participant DB as PostgreSQL
+
+    Admin->>API: POST /memory/audit
+    API->>MGS: audit_memory(decisions, expected_versions, idempotency_key)
+
+    MGS->>MGS: 幂等性检查 (idempotency_key)
+    alt 已存在相同幂等键
+        MGS-->>API: 返回已有 AuditRecord
+    end
+
+    MGS->>MGS: _validate_decisions (retain/delete/anonymize)
+
+    loop 逐个决策处理
+        MGS->>DB: 获取当前版本号
+        MGS->>MGS: 检测版本冲突
+        alt 版本冲突
+            MGS-->>API: 抛出 ValueError
+        end
+        MGS->>DB: _execute_decision (delete/anonymize/retain)
+        MGS->>DB: INSERT memory_audit_logs (version++)
+    end
+
+    MGS->>DB: COMMIT
+    MGS-->>API: AuditRecord[]
+    API-->>Admin: 200 OK

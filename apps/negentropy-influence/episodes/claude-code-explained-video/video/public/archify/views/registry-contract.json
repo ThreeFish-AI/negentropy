@@ -1,0 +1,32 @@
+[
+ {
+  "id": "two-step-signup",
+  "label": "注册两步",
+  "focus": ["signup-flow", "schema-card", "handler-def"],
+  "note": "一步写工具说明书，一步登记处理函数——明面上只有两步。"
+ },
+ {
+  "id": "hidden-third-boom",
+  "label": "第三处暗契约",
+  "focus": ["schema-card", "handler-def", "kwarg-unpack", "name-mismatch", "runtime-boom"],
+  "note": "暗契约：schema 参数名必须与函数形参名一字不差（handler(**block.input) 按关键字展开）；名字对不上，运行时就地炸——两步注册其实有三处要对齐。"
+ },
+ {
+  "id": "unknown-fallback",
+  "label": "查不到不崩",
+  "focus": ["unknown-name", "fallback-string"],
+  "note": "查不到的号码不崩，回一句不认识这个名字，继续干活。"
+ },
+ {
+  "id": "per-tool-try",
+  "label": "每台机器自己兜故障",
+  "focus": ["try-except", "error-note"],
+  "note": "每个工具自带 try/except，把错误写成一张字条回传。"
+ },
+ {
+  "id": "loop-immune",
+  "label": "伤不到循环分毫",
+  "focus": ["try-except", "error-note", "shielded-loop"],
+  "note": "坏名字、坏输入全被机器侧兜住——循环对故障免疫（终态）。"
+ }
+]

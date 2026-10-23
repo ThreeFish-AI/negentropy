@@ -1,0 +1,23 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md 总类比
+%% slug: dream-rsi--expedition-setup
+%% type: architecture
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--expedition-setup.html
+flowchart LR
+    subgraph TEAM["探险队（每趟进山都贵）"]
+        EXP["discovery agent<br/>真实生成候选并接受评估"]
+        LED["领队章程 = 探索策略 πt<br/>一段可执行代码：选哪几站 · 并行几队"]
+    end
+    subgraph LEDGER["台账（越铺越大）"]
+        BOOK["发现树 𝒯<br/>每页：从哪出发 · 带什么 · 挖到什么 · 值多少分"]
+    end
+    subgraph SAND["航拍沙盘（翻旧账免费）"]
+        MAP["历史池 ℋ → 重放模拟器<br/>章程在已录台账上兵棋推演"]
+    end
+    subgraph STAFF["幕僚长（改章程的唯一执笔人）"]
+        DEV["policy-development agent<br/>照推演结果修订章程代码"]
+    end
+    EXP -->|"每趟进山留下完整路线与收获"| BOOK
+    BOOK -->|"历趟台账钉上沙盘"| MAP
+    MAP -->|"谁章程好，一看推演分便知"| DEV
+    DEV -->|"改得动就换 · 改不动保留现任<br/>（V* ≥ V⁰）"| LED
+    LED -->|"带队再进山"| EXP

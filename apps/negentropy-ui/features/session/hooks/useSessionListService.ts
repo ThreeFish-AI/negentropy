@@ -55,16 +55,16 @@ export function useSessionListService(
   } = options;
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
 
-  // ISSUE-061 v2-D：sessionListView（active / archived）改用 URL 单源派生，
+  // I-061 v2-D：sessionListView（active / archived）改用 URL 单源派生，
   // 与 sessionId 对齐。刷新 / 复制 URL / 浏览器返回前进后会自然回到目标视图，
   // 也让"分享归档面板"成为可能。
   //
-  // ISSUE-062：useSearchParams() 每次 render 返回新引用，直接列入 useCallback
+  // I-062：useSearchParams() 每次 render 返回新引用，直接列入 useCallback
   // deps 会让 setSessionListView 引用持续重建。改用 ``toString()`` 派生的稳定
   // 字符串作为 dep，让 React 用值相等性比较保持 callback 稳定，避免下游
   // useEffect 反复触发与 loadSessions 竞速覆盖 sessionId。
   //
-  // ISSUE-088：与 page.tsx 的 setSessionId 同源——Next.js 16.2.3 的
+  // I-088：与 page.tsx 的 setSessionId 同源——Next.js 16.2.3 的
   // useRouter().replace 在「同 pathname、仅 query 变更」场景下会输出
   // __NA:true 的 no-op replaceState，URL 不更新。统一改走
   // window.history.replaceState，由 useSearchParams 监听 history API 重渲染。
@@ -129,7 +129,7 @@ export function useSessionListService(
         sessionId &&
         !nextSessions.some((session) => session.id === sessionId)
       ) {
-        // ISSUE-063：归档视图 Back → 实时视图后，sessionId 自动切换到新列表
+        // I-063：归档视图 Back → 实时视图后，sessionId 自动切换到新列表
         // 头部时，必须先 clear projection（messages / state / event timeline），
         // 否则前一会话（如归档下选中的 b8676a4a）的内容会残留在主区与右栏，
         // 与 URL 上的 sessionId 不一致。手动点 sidebar 的 selectSession 路径

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
+    "sha256": "c6f46536c163db337cb912c273eb47b52aa0134ffc3680e0d0772c5f8916bf9d",
+    "bytes": 2859
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
+    "sha256": "1834ab74b89356ec93ed907089527cdf6d23136a023137755551b58b7edb5c5c",
+    "bytes": 755214
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3480,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e-gate-merge",
+            "from": "gate",
+            "to": "merge",
+            "label": "无会话·原问题",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 2,
+          "stretch": 1.489,
+          "directCorridorBlockers": [
+            {
+              "id": "an",
+              "label": "意图分析",
+              "box": [
+                348.8,
+                206,
+                140,
+                52
+              ]
+            },
+            {
+              "id": "qres",
+              "label": "资料检索单",
+              "box": [
+                526.8,
+                206,
+                104,
+                52
+              ]
+            }
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

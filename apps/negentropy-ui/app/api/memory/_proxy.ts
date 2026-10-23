@@ -1,161 +1,23 @@
-import { NextResponse } from "next/server";
-import { buildAuthHeaders } from "@/lib/sso";
+/**
+ * Memory 域 BFF 代理工具（薄绑定层）
+ *
+ * 实现收敛至单一事实源 `app/api/_lib/proxy.ts`（三域能力并集），本文件仅绑定
+ * 域配置并保持导出面不变。
+ *
+ * 行为增强说明：本域原实现无超时，收敛后 JSON 方法族默认 30s 超时
+ * （memory 域全部为快查询端点：search / facts / audit / job 控制面动作）。
+ */
+
 import { getMemoryBaseUrl } from "@/lib/server/backend-url";
+import { createBffProxy, DEFAULT_PROXY_TIMEOUT_MS } from "@/app/api/_lib/proxy";
 
-const getBaseUrl = getMemoryBaseUrl;
+const proxy = createBffProxy({
+  codePrefix: "MEMORY",
+  envName: "MEMORY_BASE_URL",
+  baseUrl: getMemoryBaseUrl,
+  defaultTimeoutMs: DEFAULT_PROXY_TIMEOUT_MS,
+});
 
-function extractForwardHeaders(request: Request) {
-  const headers = buildAuthHeaders(request);
-
-  const auth = request.headers.get("authorization");
-  if (auth) {
-    headers.set("authorization", auth);
-  }
-
-  const sessionId = request.headers.get("x-session-id");
-  if (sessionId) {
-    headers.set("x-session-id", sessionId);
-  }
-
-  const userId = request.headers.get("x-user-id");
-  if (userId) {
-    headers.set("x-user-id", userId);
-  }
-
-  return headers;
-}
-
-function errorResponse(code: string, message: string, status = 500) {
-  return NextResponse.json(
-    {
-      error: {
-        code,
-        message,
-      },
-    },
-    { status }
-  );
-}
-
-export async function proxyGet(request: Request, path: string) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return errorResponse("MEMORY_INTERNAL_ERROR", "MEMORY_BASE_URL is not configured", 500);
-  }
-
-  const upstreamUrl = new URL(path, baseUrl);
-  const incomingUrl = new URL(request.url);
-  upstreamUrl.search = incomingUrl.search;
-
-  let upstreamResponse: Response;
-  try {
-    upstreamResponse = await fetch(upstreamUrl, {
-      method: "GET",
-      headers: extractForwardHeaders(request),
-      cache: "no-store",
-    });
-  } catch (error) {
-    return errorResponse("MEMORY_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
-  }
-
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return errorResponse("MEMORY_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
-  }
-
-  try {
-    return NextResponse.json(JSON.parse(text));
-  } catch {
-    // 后端返回空或非 JSON 时，安全降级
-    return NextResponse.json({ data: text || null });
-  }
-}
-
-export async function proxyDelete(request: Request, path: string) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return errorResponse("MEMORY_INTERNAL_ERROR", "MEMORY_BASE_URL is not configured", 500);
-  }
-
-  // DELETE 端点（如 /memory/core-blocks）的标识参数走 query string（与后端 Query(...)
-  // 契约一致），因此与 proxyGet 一样转发 search、不带 body。
-  const upstreamUrl = new URL(path, baseUrl);
-  const incomingUrl = new URL(request.url);
-  upstreamUrl.search = incomingUrl.search;
-
-  let upstreamResponse: Response;
-  try {
-    upstreamResponse = await fetch(upstreamUrl, {
-      method: "DELETE",
-      headers: extractForwardHeaders(request),
-      cache: "no-store",
-    });
-  } catch (error) {
-    return errorResponse("MEMORY_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
-  }
-
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return errorResponse("MEMORY_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
-  }
-
-  try {
-    return NextResponse.json(JSON.parse(text));
-  } catch {
-    // 后端返回空或非 JSON 时，安全降级
-    return NextResponse.json({ data: text || null });
-  }
-}
-
-export async function proxyPost(request: Request, path: string) {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    return errorResponse("MEMORY_INTERNAL_ERROR", "MEMORY_BASE_URL is not configured", 500);
-  }
-
-  // 容忍空 body：动作型端点（job enable / disable / run / reconcile）通常无请求体。
-  const rawBody = await request.text();
-  let forwardBody: string | undefined;
-  if (rawBody.trim().length === 0) {
-    forwardBody = undefined;
-  } else {
-    try {
-      JSON.parse(rawBody);
-    } catch (error) {
-      return errorResponse("MEMORY_BAD_REQUEST", `Invalid JSON body: ${String(error)}`, 400);
-    }
-    forwardBody = rawBody;
-  }
-
-  const upstreamUrl = new URL(path, baseUrl);
-  const incomingUrl = new URL(request.url);
-  upstreamUrl.search = incomingUrl.search;
-  const headers = extractForwardHeaders(request);
-  if (forwardBody !== undefined) {
-    headers.set("content-type", "application/json");
-  }
-
-  let upstreamResponse: Response;
-  try {
-    upstreamResponse = await fetch(upstreamUrl, {
-      method: "POST",
-      headers,
-      body: forwardBody,
-      cache: "no-store",
-    });
-  } catch (error) {
-    return errorResponse("MEMORY_UPSTREAM_ERROR", `Upstream connection failed: ${String(error)}`, 502);
-  }
-
-  const text = await upstreamResponse.text();
-  if (!upstreamResponse.ok) {
-    return errorResponse("MEMORY_UPSTREAM_ERROR", text || "Upstream returned non-OK status", upstreamResponse.status);
-  }
-
-  try {
-    return NextResponse.json(JSON.parse(text));
-  } catch {
-    // 后端返回空或非 JSON 时，安全降级
-    return NextResponse.json({ data: text || null });
-  }
-}
+export const proxyGet = proxy.proxyGet;
+export const proxyPost = proxy.proxyPost;
+export const proxyDelete = proxy.proxyDelete;

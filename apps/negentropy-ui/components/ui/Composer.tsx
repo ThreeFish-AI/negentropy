@@ -30,13 +30,13 @@ type ComposerProps = {
   /**
    * 中断门 — 当 isGenerating=true 时，主按钮切换为 Stop；点击触发本回调。
    * 复用 NdjsonHttpAgent.abortRun()（最小干预，不引入新协议事件）。
-   * 详见 docs/issue.md ISSUE-040 关于运行中状态的人因学需求。
+   * 详见 docs/issue.md I-040 关于运行中状态的人因学需求。
    */
   onCancel?: () => void;
   /**
    * 强制显示 Stop 按钮（逃生门）：即使 ``isGenerating=false``，只要本值为 true 且
    * ``onCancel`` 存在，就显示 Stop。用于「有待决审批 / 通道阻塞」等非 streaming 但
-   * 用户需自救的场景（ISSUE-156 续：审批弹窗陷阱时 Send 被禁用、又无 Stop 可点）。
+   * 用户需自救的场景（I-156 续：审批弹窗陷阱时 Send 被禁用、又无 Stop 可点）。
    */
   forceShowStop?: boolean;
   /**

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "55f04af8-c884-4ee6-b6b5-5235ffdb63c6",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/diagrams/context-layer-blueprint--mcp-threat-model/context-layer-blueprint--mcp-threat-model.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/chisinau/docs/assets/architecture/cognitive-context/context-layer-blueprint--mcp-threat-model.html",
+  "specification": {
+    "sha256": "23db469b90fbaa273b6e88f49be6329899ba893363b63ccdb60f6e0cbb3d4948",
+    "bytes": 7134
+  },
+  "artifact": {
+    "sha256": "ccf9658e5cadad0de401aaff671e43ef59f4cc5fb21f7f104cbb2ca495dcd60d",
+    "bytes": 764507
+  }
+}

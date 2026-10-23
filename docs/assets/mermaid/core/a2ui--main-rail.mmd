@@ -1,0 +1,15 @@
+%% source: docs/concepts/a2ui.md L263
+%% slug: core/a2ui--main-rail
+%% type: workflow
+%% derived: docs/assets/architecture/core/a2ui--main-rail.html (+ -dark/-light PNG)
+flowchart TD
+  subgraph ChatRail["Chat Main Rail"]
+    U[User Bubble]
+    A[Assistant Bubble]
+    T[Tool Attachments]
+    S[State / Activity Summary]
+  end
+
+  U --> A
+  A --> T
+  A --> S

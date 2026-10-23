@@ -1,0 +1,88 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 11.0,
+ "total_wall_sec": 106.77,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "origin",
+   "label": "旧台账变免费试验场",
+   "index": 0,
+   "file": "history-as-simulator--origin.mp4",
+   "end_still": "history-as-simulator--origin-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.609
+   ],
+   "beat_nodes": [
+    "history",
+    "simulator"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 30.0
+  },
+  {
+   "id": "specs",
+   "label": "四块基石",
+   "index": 1,
+   "file": "history-as-simulator--specs.mp4",
+   "end_still": "history-as-simulator--specs-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.21,
+    3.318
+   ],
+   "beat_nodes": [
+    "spec-code",
+    "spec-replay",
+    "spec-bound",
+    "spec-loop"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 20.0
+  },
+  {
+   "id": "cycle",
+   "label": "回灌循环",
+   "index": 2,
+   "file": "history-as-simulator--cycle.mp4",
+   "end_still": "history-as-simulator--cycle-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.56,
+   "story_sec": 3.3,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "cycle"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 4.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--history-as-simulator.html",
+ "slug": "history-as-simulator",
+ "type": "dataflow"
+}

@@ -110,7 +110,7 @@ describe("MessageBubble", () => {
     expect(container).toBeTruthy();
   });
 
-  it("Agent 等首个 token 时（streaming=true 且 content=空）显示三点脉冲占位（ISSUE-070）", () => {
+  it("Agent 等首个 token 时（streaming=true 且 content=空）显示三点脉冲占位（I-070）", () => {
     render(
       <MessageBubble
         message={{

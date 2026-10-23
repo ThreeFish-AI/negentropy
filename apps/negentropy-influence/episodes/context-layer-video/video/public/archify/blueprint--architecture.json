@@ -1,0 +1,115 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 31.05,
+ "total_wall_sec": 86.7,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "arc-facets",
+   "label": "三面各答一问",
+   "index": 0,
+   "file": "blueprint--architecture--arc-facets.mp4",
+   "end_still": "blueprint--architecture--arc-facets-end.png",
+   "beats": 12,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 13.28,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "registry",
+    "axisAsset",
+    "axisAuth",
+    "axisAssembly",
+    "axisRetrieval",
+    "axisCompounding",
+    "stageL1",
+    "stageL2",
+    "stageL3",
+    "stageL4",
+    "stageL5",
+    "stageL6"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "arc-axes",
+   "label": "五轴与独立性",
+   "index": 1,
+   "file": "blueprint--architecture--arc-axes.mp4",
+   "end_still": "blueprint--architecture--arc-axes-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.55,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "axisAsset",
+    "axisAuth",
+    "axisAssembly",
+    "axisRetrieval",
+    "axisCompounding"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 63.0
+  },
+  {
+   "id": "arc-seams",
+   "label": "机制＝多轴组合",
+   "index": 2,
+   "file": "blueprint--architecture--arc-seams.mp4",
+   "end_still": "blueprint--architecture--arc-seams-end.png",
+   "beats": 5,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 5.55,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "chipM1M5",
+    "chipM2M6",
+    "chipM3",
+    "chipM4",
+    "chipM7"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "arc-stages",
+   "label": "时间面六段",
+   "index": 3,
+   "file": "blueprint--architecture--arc-stages.mp4",
+   "end_still": "blueprint--architecture--arc-stages-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.67,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "stageL1",
+    "stageL2",
+    "stageL3",
+    "stageL4",
+    "stageL5",
+    "stageL6"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/blueprint--architecture.html",
+ "slug": "blueprint--architecture",
+ "type": "architecture"
+}

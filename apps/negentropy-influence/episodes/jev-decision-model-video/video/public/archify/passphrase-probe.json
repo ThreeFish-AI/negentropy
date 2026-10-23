@@ -1,0 +1,113 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.31,
+ "total_wall_sec": 59.0,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "pp-design",
+   "label": "实验设计",
+   "index": 0,
+   "file": "passphrase-probe--pp-design.mp4",
+   "end_still": "passphrase-probe--pp-design-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208
+   ],
+   "beat_nodes": [
+    "researcher",
+    "sibling",
+    "screen"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "pp-sibling",
+   "label": "暗号在卡上",
+   "index": 1,
+   "file": "passphrase-probe--pp-sibling.mp4",
+   "end_still": "passphrase-probe--pp-sibling-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "researcher",
+    "sibling",
+    "judge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "pp-state",
+   "label": "暗号进大屏",
+   "index": 2,
+   "file": "passphrase-probe--pp-state.mp4",
+   "end_still": "passphrase-probe--pp-state-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209
+   ],
+   "beat_nodes": [
+    "researcher",
+    "screen",
+    "judge"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "pp-replica",
+   "label": "复刻对拍",
+   "index": 3,
+   "file": "passphrase-probe--pp-replica.mp4",
+   "end_still": "passphrase-probe--pp-replica-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "researcher",
+    "replica"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sao-paulo-v3/docs/assets/architecture/agent-infra/jev--passphrase-probe.html",
+ "slug": "passphrase-probe",
+ "type": "sequence"
+}

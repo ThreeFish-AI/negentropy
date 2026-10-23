@@ -1,0 +1,12 @@
+[
+ {
+  "id": "stale-manual",
+  "label": "按旧手册猜",
+  "focus": [
+   "stale-dict",
+   "ai-stale-manual",
+   "wrong-answers"
+  ],
+  "note": "AI 跟着旧手册猜——定义漂移的病灶成型。"
+ }
+]

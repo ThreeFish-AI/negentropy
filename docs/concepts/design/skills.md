@@ -33,8 +33,8 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 | 核心载体                | `SKILL.md` + frontmatter                       | Python/TS 类 + 装饰器                    | Markdown spec + tool 契约                  | DB 表（`skills`）+ 14 字段（含 `enforcement_mode` / `resources`）                                                             |
 | Frontmatter 元数据      | ✓（`name`/`description`/`license`/`version`）  | ✓（class metadata）                      | ✓                                          | ~（DB 列即元数据）                                                                                                            |
 | 描述常驻（Layer 1）     | ✓                                              | ✓                                        | ✓                                          | ✓（Phase 1）                                                                                                                  |
-| 模板按需（Layer 2）     | ✓                                              | ✓                                        | ~                                          | ✓（**Phase 2**：`expand_skill` ADK tool + `POST /skills/{id}/invoke` REST + Jinja2 沙箱）                                     |
-| 资源文件挂载（Layer 3） | ✓（`scripts/` `references/` `assets/`）        | ✓                                        | ~                                          | ✓（**Phase 2**：JSONB `resources` 数组 + `fetch_skill_resource` 路由到 KG/Memory/Knowledge corpus，不直接 fetch URL 防 SSRF） |
+| 模板按需（Layer 2）     | ✓                                              | ✓                                        | ~                                          | ~（**Phase 2**：`expand_skill` ADK tool 未挂载，见 §3.2 校正；`POST /skills/{id}/invoke` REST + Jinja2 沙箱）                                     |
+| 资源文件挂载（Layer 3） | ✓（`scripts/` `references/` `assets/`）        | ✓                                        | ~                                          | ~（**Phase 2**：JSONB `resources` 数组 + `fetch_skill_resource` 路由到 KG/Memory/Knowledge corpus，不直接 fetch URL 防 SSRF；该工具未挂载，见 §3.2 校正） |
 | 工具白名单              | ✓（`allowed-tools`）                           | ✓                                        | ✓                                          | ✓（**Phase 2**：`enforcement_mode=warning\|strict`，strict 抛 `SkillToolMissingError` → SubAgent 降级启动）                   |
 | 模板分发 / 一键安装     | ✗（手动复制 SKILL.md）                         | ✗                                        | ✓（manifest 包）                           | ✓（**Phase 2**：YAML 模板 + `GET /skills/templates` + `POST /skills/from-template`）                                          |
 | 版本管理                | ✓（SemVer）                                    | ✓                                        | ✗                                          | ~（字段保留，模板层 SemVer 强校验，DB 层尚无历史表）                                                                          |
@@ -47,41 +47,13 @@ LLM Agent 的可控性与可扩展性，从根本上是**上下文工程**问题
 
 ## 3. Negentropy 实现边界
 
-```mermaid
-flowchart LR
-  subgraph UI["/interface/skills - UI"]
-    A1[SkillsPage] -->|CRUD| A2[SkillFormDialog]
-    A2 -->|JSON 校验<br/>字段级锚定| A3[ConfirmDialog]
-    A1 -->|Inline toggle| A4[PATCH is_enabled]
-  end
+![Skills 管理 UI 链路：/interface/skills 页面经 Next.js BFF 代理（cookie ne_sso 透传）调用 FastAPI /interface/skills CRUDL 落 skills 表，From Template 经模板端点查 definitions SSOT 并物化 .agent/skills（seed 11/12），运行时经 skills_injector 以 <available_skills> 注入 SubAgent 系统提示词。](../../assets/architecture/design/skills--management-ui-dark.png)
 
-  subgraph BFF[Next.js BFF]
-    B1["/api/interface/skills*"]
-  end
-
-  subgraph Backend[FastAPI / negentropy]
-    C1["/interface/skills CRUDL"]
-    C2[Skill ORM + permissions]
-    C3[skills_injector]
-    C4[_load_subagent_row]
-  end
-
-  subgraph Runtime[ADK Agent Runtime]
-    D1[InstructionProvider]
-    D2[LLM Call]
-  end
-
-  UI -->|cookie ne_sso| BFF
-  BFF -->|Authorization 透传| Backend
-  C1 --> C2
-  C4 -->|fetch SubAgent.skills| C3
-  C3 -->|Progressive Disclosure| D1
-  D1 -->|system_prompt + <available_skills>| D2
-```
+> 图源（可 diff 文本）：[`skills--management-ui.mmd`](../../assets/mermaid/design/skills--management-ui.mmd) · 交互版（下载到本地打开）：[`skills--management-ui.html`](../../assets/architecture/design/skills--management-ui.html)
 
 ### 3.1 Phase 1 已落地
 
-- **CRUDL**：完整增删改查 + 分类过滤（`apps/negentropy/src/negentropy/interface/api.py`）；
+- **CRUDL**：完整增删改查 + 分类过滤（`apps/negentropy/src/negentropy/interface/skills_api.py`）；
 - **权限模型**：admin > owner > visibility（PRIVATE/SHARED/PUBLIC）+ `PluginPermission` 表；
 - **UI**：在线编辑 + Inline 启停 + ConfirmDialog + JSON 字段级错误锚定 + sonner toast；
 - **Layer 1 描述常驻**：`agents/skills_injector.py` 在 `_load_subagent_row` 注入 `<available_skills>` 块到 SubAgent 系统 prompt；
@@ -89,6 +61,8 @@ flowchart LR
 - **mocked E2E 覆盖**：5 个 sibling spec / 17 case。
 
 ### 3.2 Phase 2 增强（本 PR）
+
+> ⚠️ **校正（2026-09-23）**：`expand_skill` / `list_available_skills` / `fetch_skill_resource` 已实现，但**从未挂载**到任何 Agent（未进 `TOOL_REGISTRY`），模型驱动的 Layer 2/3 激活当前不可达；生效的只有 REST invoke、调度器、翻译服务等显式注入路径。详见 [机制映射汇总·Skills 的 SK-M3](../../research/mapping-negentropy.md)。
 
 - **Layer 2 按需展开（P0）**：
   - `agents/tools/skill_registry.py:expand_skill(name, vars)`：ADK 内置工具，LLM 决定使用某 Skill 时调用即得到 Jinja2 渲染后的完整 prompt_template；

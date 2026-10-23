@@ -163,7 +163,7 @@ YAML 必填字段：`preset_id`、`display_name`、`description`、`category`、
 
 可选字段与 [RoutineCreateRequest](../../.agents/knowledge-map.md) 对齐：`title`、`features_showcase`、`verification_command`、`max_iterations`、`max_cost_usd`、`success_score_threshold`、`no_progress_patience`、`approval_mode`、`config`。
 
-参考既有 YAML 文件（如 [code_quality_audit.yaml](../../../apps/negentropy/src/negentropy/agents/routine_presets/code_quality_audit.yaml)）的字段格式。
+参考既有 YAML 文件（如 [code_quality_audit.yaml](../../../apps/negentropy/src/negentropy/agents/routine_presets/)）的字段格式。
 
 ## 相关文档
 

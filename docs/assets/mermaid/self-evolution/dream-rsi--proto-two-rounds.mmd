@@ -1,0 +1,11 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §5
+%% slug: dream-rsi--proto-two-rounds
+%% type: lifecycle
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--proto-two-rounds.html
+flowchart LR
+    T1["外层 t=1<br/>π1 并行铺满上线探索<br/>3 分支 · 12 次探测<br/>best = 0.90"] --> DREAM["离线做梦：在 T1 上重放评估<br/>π1 得 0.8280 · 自适应版得 0.8520<br/>→ 胜出章程 = 自适应"]
+    DREAM --> T2["外层 t=2<br/>胜出章程上线探索<br/>11 次探测<br/>best = 0.92"]
+    T2 --> BATCH["t=2 第 5 轮批次 = {C 分支叶, E 分支叶, root}<br/>深挖 exploit + 试探 explore + 开新根<br/>（附录 B.2 动态组合批次规则）"]
+    BATCH --> RESULT["更少探测拿到更高发现：<br/>12 → 11 次，0.90 → 0.92<br/>全程只有章程代码在变<br/>模型 · 评估器 · 执行接口全部冻结"]
+    style DREAM fill:#0F3244,stroke:#7DD3FC,color:#fff
+    style RESULT fill:#2E4210,stroke:#A3E635,color:#fff

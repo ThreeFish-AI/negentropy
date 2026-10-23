@@ -1,0 +1,20 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §2
+%% slug: dream-rsi--two-phase-loop
+%% type: workflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--two-phase-loop.html
+flowchart TD
+    subgraph ONLINE["在线相 · 真实世界（贵且慢，转移随机）"]
+        direction TB
+        P["探索策略 πt（领队选路章程）<br/>只改这一层，模型/评估器不动"] -->|"每轮选批次 C ⊆ {root} ∪ 已见叶子，｜C｜ ≤ W"| WORK["W 个并行 worker<br/>各自从所选节点 workspace 生成新候选并评估"]
+        WORK --> TREE["发现树 𝒯t<br/>节点 = workspace 快照 + 评估诊断 + 分数 sv"]
+    end
+    subgraph OFFLINE["离线相 · 重放世界（零执行成本，转移确定）"]
+        direction TB
+        HIST["历史池 ℋt<br/>全部往轮发现树"] --> SIM["重放模拟器<br/>候选策略在已录树上走替代轨迹"]
+        SIM -->|"M 个候选策略版本逐一做梦推演"| SCORE["重放目标 V<br/>= max s − β₁·N + β₂·N/max(1,k)"]
+        SCORE --> DEV["policy-development agent<br/>LLM 看重放轨迹与得分修订策略代码"]
+        DEV -->|"修订反馈回灌"| SIM
+        SCORE --> ARG["argmax 选择<br/>候选含 πt ⇒ V* ≥ V⁰ 防回退下界"]
+    end
+    TREE -->|"终树并入历史"| HIST
+    ARG -->|"π(t+1) 重新上线"| P

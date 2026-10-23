@@ -45,7 +45,7 @@ type Props = {
    */
   onDismiss?: (actionId: string) => void;
   /**
-   * 一键延后全部（可选）：当 ``pending`` 有多条时，避免用户被迫逐条点 N 次（ISSUE-157
+   * 一键延后全部（可选）：当 ``pending`` 有多条时，避免用户被迫逐条点 N 次（I-157
    * 实测根因——多条孤儿堆叠时「点一个顶一个」体感「关不掉」）。触发后调用方一次性把
    * 所有待审 id 加入本地「已处理」集，弹窗彻底消失。仅在 pending 条数 > 1 时渲染按钮。
    */
@@ -83,7 +83,7 @@ export function ApprovalDialog({ pending, onRespond, onDismiss, onDismissAll }: 
   const [error, setError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const current = useMemo(() => pickFirstRequest(pending), [pending]);
-  // 多条堆叠时显示计数 + 「全部稍后」按钮（ISSUE-157：避免逐条点 N 次的「关不掉」错觉）。
+  // 多条堆叠时显示计数 + 「全部稍后」按钮（I-157：避免逐条点 N 次的「关不掉」错觉）。
   const pendingCount = useMemo(
     () =>
       pending

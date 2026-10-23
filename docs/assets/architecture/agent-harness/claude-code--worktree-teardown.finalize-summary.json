@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-worktree-teardown/candidate.json",
+    "sha256": "d68fd07fdc910916a2493acff55e89c43f7b3617c23e94971a02cc5029d0e7da",
+    "bytes": 9715
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-teardown.html",
+    "sha256": "cf4a5cd99152ea259c4462e9744c17445153035e0d8dc5136f8673fc7a67c0cb",
+    "bytes": 846861
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-teardown.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-teardown.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-teardown.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 9262,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-call-refuse",
+            "from": "remove-call",
+            "to": "refuse",
+            "label": "默认不拆",
+            "collectionIndex": 3,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.092
+        },
+        {
+          "relationship": {
+            "id": "t-unknown-refuse",
+            "from": "status-unknown",
+            "to": "refuse",
+            "label": "一律拒绝",
+            "collectionIndex": 7,
+            "artifactIndex": 9
+          },
+          "bends": 2,
+          "stretch": 1.361
+        },
+        {
+          "relationship": {
+            "id": "t-gone-events",
+            "from": "gone",
+            "to": "events",
+            "label": "记一条",
+            "collectionIndex": 12,
+            "artifactIndex": 14
+          },
+          "bends": 3,
+          "stretch": 1.273,
+          "directCorridorBlockers": [
+            {
+              "id": "branch",
+              "label": "分支",
+              "box": [
+                654,
+                278,
+                112,
+                58
+              ]
+            }
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "remove-call → refuse needs 3 bends: move node remove-call or refuse so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "status-unknown → refuse needs 2 bends: move node status-unknown or refuse so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

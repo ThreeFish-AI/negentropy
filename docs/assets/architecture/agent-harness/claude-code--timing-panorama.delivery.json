@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0fd22d05-a6a1-4221-a849-bc0ca4ff73cf",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-timing-panorama/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--timing-panorama.html",
+  "specification": {
+    "sha256": "b69554370562e32fd0af707ca9d5565ab899ed58315d422bfc40837a0b9af006",
+    "bytes": 7579
+  },
+  "artifact": {
+    "sha256": "f82b45df1095bd3b4cca5a4799e3f4a7902b4a209645f484c4523f080cd6f4ca",
+    "bytes": 853272
+  }
+}

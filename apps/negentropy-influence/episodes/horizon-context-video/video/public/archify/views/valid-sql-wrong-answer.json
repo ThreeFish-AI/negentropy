@@ -1,0 +1,21 @@
+[
+ {
+  "id": "syntax-pass",
+  "label": "语法检查通过",
+  "focus": [
+   "queryCard",
+   "syntaxPass",
+   "disciplineGuard"
+  ],
+  "note": "同一枚语句语法层全绿放行；计算纪律守护的工程常识正待业务语义拷问。"
+ },
+ {
+  "id": "business-fail",
+  "label": "业务语义错误",
+  "focus": [
+   "bizFail",
+   "verdict"
+  ],
+  "note": "未先聚后联收入 200 虚增 440【一】、不遵末快照活跃 7 虚增 24【一】——语法正确救不回业务错误。"
+ }
+]

@@ -1,0 +1,6 @@
+[
+ {"id":"bars","label":"三根柱子","focus":["ours","controlled","simples"],"note":"317 次智能体调用 vs 同配置基线 550 vs 对比系统五万一千二百代。"},
+ {"id":"ratio","label":"约两个数量级","focus":["ratio"],"note":"同配置下平均运行时更低、调用更省——论文的核心卖点。"},
+ {"id":"warn","label":"口径警示","focus":["caliber-warn"],"note":"调用数与生成次数是两个口径，论文没做定义级对齐，倍数别当精确账。"},
+ {"id":"split","label":"拆开看","focus":["dataset-split"],"note":"平均优势由两个大矩阵驱动，四个小数据集全部落败。"}
+]

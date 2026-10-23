@@ -39,7 +39,7 @@ echo "✅ Pre-commit hooks installed"
 # Copy environment configuration if it doesn't exist
 if [ ! -f .env ]; then
     echo "📝 Creating environment configuration..."
-    cp .env.example .env
+    [ -f .env.example ] && cp -n .env.example .env 2>/dev/null || echo "skip: .env.example 不存在"
     echo "✏️  Please edit .env file to configure your settings"
 else
     echo "ℹ️  .env file already exists"

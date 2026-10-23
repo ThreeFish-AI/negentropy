@@ -1,6 +1,6 @@
 """单元测试：``assembly`` 2.5.5 段 — 公式残片清理。
 
-ISSUE-094 R8：PyMuPDF 在公式视觉区抽 text block 时，对长公式（含
+I-094 R8：PyMuPDF 在公式视觉区抽 text block 时，对长公式（含
 ``\\bigcup`` / 矩阵等多行结构）常仅抽出公式起手残片（``C = [``、
 ``M_l =``、``x = \\{``），与公式 stage 的 LaTeX 主体重复出现。
 ``_formula_text_signature`` 最小长度 20 字符无法命中这些短残片，导致

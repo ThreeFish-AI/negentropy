@@ -1,0 +1,93 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "客户域长期记忆 · 读写路径（目标态）",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/agent-infra/customer-memory--rw-pipeline.html",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "66f4e5403805752b2b0e8a0b2284c4c92d50d78c"
+    }
+  },
+  "lanes": [
+    { "id": "session", "label": "会话侧 · Session Committer" },
+    { "id": "mb", "label": "Memory Back · 记忆内核" },
+    { "id": "guard", "label": "组装层 · 治理与预算" },
+    { "id": "agent", "label": "面客 Agent · 读取方" }
+  ],
+  "groups": [
+    { "id": "write_chain", "label": "会话提交管线", "lane": "session", "fromCol": 0, "toCol": 4, "variant": "emphasis" },
+    { "id": "mb_core", "label": "存储 · 检索 · 隔离 · TTL", "lane": "mb", "fromCol": 1, "toCol": 5 },
+    { "id": "read_chain", "label": "检索治理管线", "lane": "guard", "fromCol": 2, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["s1", "s2", "s3", "s4", "s5", "w1", "audit"],
+  "nodes": [
+    { "id": "s1", "lane": "session", "col": 0, "type": "external", "label": "会话结束", "sublabel": "session_end 触发", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 60, "label": "读写路径 · 写" }] },
+    { "id": "s2", "lane": "session", "col": 1, "type": "backend", "label": "压缩与归档", "sublabel": "摘要 + 事件流", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 60, "label": "读写路径 · 写" }] },
+    { "id": "s3", "lane": "session", "col": 2, "type": "backend", "label": "事实抽取", "sublabel": "向量预筛相似项", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 60, "label": "读写路径 · 写" }] },
+    { "id": "s4", "lane": "session", "col": 3, "type": "backend", "label": "LLM 去重决策", "sublabel": "对照相似记忆", "tag": "skip / create / merge / delete", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 60, "label": "读写路径 · 写" }] },
+    { "id": "s5", "lane": "session", "col": 4, "type": "backend", "label": "生成 memory_diff", "sublabel": "op · uri · evidence", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 82, "label": "W1 写入契约" }] },
+    { "id": "w1", "lane": "mb", "col": 4, "type": "database", "label": "add-memory 写入", "sublabel": "唯一写接口", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 82, "label": "W1 写入契约" }] },
+    { "id": "audit", "lane": "mb", "col": 5, "type": "database", "label": "审计与 Retention", "sublabel": "可查可回放", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 82, "label": "W1 写入契约" }] },
+    { "id": "r1", "lane": "agent", "col": 0, "type": "external", "label": "请求携带主体", "sublabel": "网关注入主体", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 61, "label": "读写路径 · 读" }] },
+    { "id": "r2", "lane": "mb", "col": 1, "type": "database", "label": "主体前缀内检索", "sublabel": "Push 摘要 / Pull 展开", "width": 124,
+      "sources": [
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 61, "label": "读写路径 · 读" },
+        { "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 100, "label": "R1 检索与注入" }
+      ] },
+    { "id": "r3", "lane": "guard", "col": 2, "type": "backend", "label": "RRF 融合与重排", "sublabel": "时间感知信任分", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 61, "label": "读写路径 · 读" }] },
+    { "id": "r4", "lane": "guard", "col": 3, "type": "security", "label": "Guard 裁决", "sublabel": "作用域 · 效力 · PII", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 61, "label": "读写路径 · 读" }] },
+    { "id": "drop", "lane": "guard", "col": 4, "type": "security", "label": "剔除与覆盖", "sublabel": "dropped / overrides", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 61, "label": "读写路径 · 读" }] },
+    { "id": "comp", "lane": "guard", "col": 5, "type": "backend", "label": "预算裁剪", "sublabel": "只裁参考材料", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 100, "label": "R1 检索与注入" }] },
+    { "id": "r6", "lane": "agent", "col": 5, "type": "frontend", "label": "ContextBundle", "sublabel": "uri@version · 弱依据", "width": 124,
+      "sources": [{ "path": "docs/research/agent-infra/230-customer-domain-long-memory-2027-planning.md", "line": 61, "label": "读写路径 · 读" }] }
+  ],
+  "edges": [
+    { "id": "e1", "from": "s1", "to": "s2", "variant": "default" },
+    { "id": "e2", "from": "s2", "to": "s3", "variant": "default" },
+    { "id": "e3", "from": "s3", "to": "s4", "variant": "default" },
+    { "id": "e4", "from": "s4", "to": "s5", "label": "非 skip", "variant": "emphasis" },
+    { "id": "e5", "from": "s5", "to": "w1", "label": "session_end 提交", "variant": "emphasis" },
+    { "id": "e6", "from": "w1", "to": "audit", "label": "memory_diff 审计", "variant": "default" },
+    { "id": "e7", "from": "r1", "to": "r2", "label": "Pull / Push", "variant": "emphasis" },
+    { "id": "e8", "from": "r2", "to": "r3", "label": "候选记忆", "variant": "default" },
+    { "id": "e9", "from": "r3", "to": "r4", "variant": "default" },
+    { "id": "e10", "from": "r4", "to": "drop", "label": "越界 / PII", "variant": "security", "role": "error" },
+    { "id": "e11", "from": "r4", "to": "comp", "label": "通过", "variant": "emphasis" },
+    { "id": "e12", "from": "comp", "to": "r6", "label": "注入上下文", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "写入契约",
+      "items": [
+        "add-memory 是唯一写接口，Agent 侧无直接写记忆工具",
+        "100% 写入带 evidence 与审计，近似重复不堆积"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "治理要点",
+      "items": [
+        "记忆恒为最弱一票，冲突写 overrides 并转工单",
+        "预算超限只裁参考材料，硬约束不让位"
+      ]
+    }
+  ]
+}

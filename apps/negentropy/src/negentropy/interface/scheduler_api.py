@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time as _time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID
 
@@ -40,6 +40,7 @@ from negentropy.logging import get_logger
 from negentropy.models.agent import Agent
 from negentropy.models.scheduled_task import ScheduledTask, TaskExecution
 from negentropy.models.state import UserState
+from negentropy.timeutil import utcnow
 
 logger = get_logger("negentropy.interface.scheduler_api")
 
@@ -59,10 +60,6 @@ _WINDOWS = {
 
 def _window_to_delta(window: str) -> timedelta:
     return _WINDOWS.get(window, _WINDOWS["24h"])
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +169,7 @@ async def get_kpis(window: Literal["1h", "24h", "7d", "all"] = Query("24h")) -> 
 
     async def _compute():
         # "all" → 不下推时间下界（全量）；其余按时间窗计算 since。
-        since = None if window == "all" else _utcnow() - _window_to_delta(window)
+        since = None if window == "all" else utcnow() - _window_to_delta(window)
         async with AsyncSessionLocal() as db:
             total_tasks = (await db.execute(select(func.count(ScheduledTask.id)))).scalar() or 0
             enabled_tasks = (
@@ -421,7 +418,7 @@ async def get_stats(
 
     async def _compute():
         # "all" → 不下推时间下界（全量）；其余按时间窗计算 since。
-        since = None if window == "all" else _utcnow() - _window_to_delta(window)
+        since = None if window == "all" else utcnow() - _window_to_delta(window)
         column_map = {
             "role": ScheduledTask.role,
             "scenario": ScheduledTask.scenario,
@@ -762,7 +759,7 @@ def _validate_task_spec(
         try:
             from croniter import croniter
 
-            croniter(cron_expr, _utcnow())
+            croniter(cron_expr, utcnow())
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"invalid cron expression: {exc}") from exc
     elif trigger_type == "oneshot":
@@ -822,7 +819,7 @@ def _compute_next_fire_for_spec(
     trigger_type: str, interval_seconds: float | None, cron_expr: str | None
 ) -> datetime | None:
     """根据 trigger 配置计算 next_fire_at（与 registry._compute_next_fire 对齐）。"""
-    now = _utcnow()
+    now = utcnow()
     if trigger_type == "interval" and interval_seconds:
         return now + timedelta(seconds=float(interval_seconds))
     if trigger_type == "cron" and cron_expr:

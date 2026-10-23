@@ -1,0 +1,103 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 12.93,
+ "total_wall_sec": 128.23,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "team",
+   "label": "探险队与选路章程",
+   "index": 0,
+   "file": "expedition-setup--team.mp4",
+   "end_still": "expedition-setup--team-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.608
+   ],
+   "beat_nodes": [
+    "expedition",
+    "policy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 24.0
+  },
+  {
+   "id": "ledger",
+   "label": "台账：越铺越大的发现树",
+   "index": 1,
+   "file": "expedition-setup--ledger.mp4",
+   "end_still": "expedition-setup--ledger-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "ledger"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 15.0
+  },
+  {
+   "id": "sandbox",
+   "label": "沙盘：翻旧账免费",
+   "index": 2,
+   "file": "expedition-setup--sandbox.mp4",
+   "end_still": "expedition-setup--sandbox-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "sandbox"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 8.0
+  },
+  {
+   "id": "staff",
+   "label": "幕僚长照推演改章程",
+   "index": 3,
+   "file": "expedition-setup--staff.mp4",
+   "end_still": "expedition-setup--staff-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.607
+   ],
+   "beat_nodes": [
+    "dev",
+    "policy"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 17.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--expedition-setup.html",
+ "slug": "expedition-setup",
+ "type": "architecture"
+}

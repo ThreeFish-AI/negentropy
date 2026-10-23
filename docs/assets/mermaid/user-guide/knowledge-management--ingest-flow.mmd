@@ -1,0 +1,31 @@
+%% source: docs/concepts/user-guide/knowledge-management.md §4.3 文档摄取 (块#0, 围栏 L62-L89)
+%% slug: user-guide/knowledge-management--ingest-flow
+%% type: workflow
+%% derived: docs/assets/architecture/user-guide/knowledge-management--ingest-flow.html (+ -dark/-light PNG)
+%% fix: 文本摄取不经提取器（execute_ingest_text_pipeline 直入 chunk），仅 URL/文件走 Perceives MCP 提取；汇合点是 chunk 而非「文档解析」；embed 阶段在无 embedding_fn 时 skip_stage；persist 按 source_uri 择 replace/append；三入口均为 BackgroundTasks 异步管线（立即返回 run_id）
+flowchart LR
+    subgraph Ingest["📥 文档摄取"]
+        Text["📝 文本摄取<br/>直接粘贴文本"]
+        URL["🔗 URL 摄取<br/>抓取网页内容"]
+        File["📁 文件摄取<br/>上传本地文件"]
+    end
+
+    subgraph Process["⚙️ 处理流程"]
+        Doc["📄 Document<br/>文档解析"]
+        Chunk["🧩 Chunk<br/>语义分块"]
+        Embed["🔢 Embedding<br/>向量嵌入"]
+        Store["💾 存储<br/>PostgreSQL + pgvector"]
+    end
+
+    Text --> Doc
+    URL --> Doc
+    File --> Doc
+    Doc --> Chunk
+    Chunk --> Embed
+    Embed --> Store
+
+    classDef ing fill:#DBEAFE,stroke:#1E3A8A,color:#000
+    classDef proc fill:#FEF3C7,stroke:#92400E,color:#000
+
+    class Text,URL,File ing
+    class Doc,Chunk,Embed,Store proc

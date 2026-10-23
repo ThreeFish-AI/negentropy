@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "ceed9407-b6ae-4e75-bd0f-b3aca072253b",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify/bg-two-verdicts.workflow.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-two-verdicts.html",
+  "specification": {
+    "sha256": "a76404840673c2487982301b41b9be42d9256428a807a658f8599796b6f46101",
+    "bytes": 6439
+  },
+  "artifact": {
+    "sha256": "acdc37f7c505eec28a09b48095a47d1939592d9a10a9625b8ab3eb8c0e093727",
+    "bytes": 839840
+  }
+}

@@ -1,0 +1,31 @@
+%% source: docs/concepts/user-guide/quickstart.md
+%% slug: user-guide/quickstart--first-chat-sequence
+%% type: sequence
+%% derived: archify
+%% fix: 落地页订正——`/` 不承载内容，app/page.tsx 用 server-side redirect() 全量透传 query 到 `/studio`
+%% fix: 补画登录门——studio/page.tsx 在 authStatus=unauthenticated 时渲染「使用 Google 登录」，原图缺此前置条件
+%% fix: 拆出 BFF 一跳，并把原 `UI->>BE` 一条边还原为两次独立往返：POST /api/agui/sessions（建会话）与 POST /api/agui（发指令）
+%% fix: BFF 对上游是 SSE /run_sse（route.ts:132/136），NDJSON 仅存于浏览器↔BFF 一侧
+%% fix: 消除两处自环——三栏布局与前端渲染无网络语义；委派改为跨参与者边，sub_agents = 5 系部 + 3 流水线（agent.py:250）
+%% fix: 组件名订正——ChatStream 在 app 中未被挂载（仅单测引用），Studio 实渲组件是 StudioTranscript（home-body.tsx:1409）
+%% fix: 右栏订正——StateDrawer 是浮层抽屉「悬浮于对话之上、不挤占中栏」，自称 State 而非「调试面板」，EventTimeline 位于其内
+sequenceDiagram
+  participant U as 用户
+  participant S as Studio 页
+  participant B as BFF 路由
+  participant E as ADK 引擎
+  participant F as 五大系部
+
+  U->>S: 打开 localhost:3192（/ → /studio）
+  S-->>U: 未登录先过 Google 登录门
+  U->>S: Composer 输入首条消息
+  S->>B: POST /api/agui/sessions（无 sessionId 时自动建）
+  B->>E: 转发创建 session
+  B-->>S: sessionId（pendingSendRef 接力发送）
+  S->>B: POST /api/agui（Accept: x-ndjson）
+  B->>E: POST /run_sse（SSE）
+  E->>F: 委派 5 系部 / 3 流水线
+  F-->>E: 系部产出回汇
+  E-->>B: ADK 事件流（SSE）
+  B-->>S: NDJSON 帧 → StudioTranscript 渲染
+  S-->>U: 回复 + State 栏 EventTimeline

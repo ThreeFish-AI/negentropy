@@ -1,0 +1,136 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 16.55,
+ "total_wall_sec": 136.88,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "raise-budget",
+   "label": "先抬一大截预算",
+   "index": 0,
+   "file": "plan-truncation-order--raise-budget.mp4",
+   "end_still": "plan-truncation-order--raise-budget-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.602
+   ],
+   "beat_nodes": [
+    "loop",
+    "budget-raise"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "resend-verbatim",
+   "label": "原样重发不落账",
+   "index": 1,
+   "file": "plan-truncation-order--resend-verbatim.mp4",
+   "end_still": "plan-truncation-order--resend-verbatim-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.31,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "budget-raise",
+    "api",
+    "messages"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "judge-before-write",
+   "label": "判断抢在落笔前",
+   "index": 2,
+   "file": "plan-truncation-order--judge-before-write.mp4",
+   "end_still": "plan-truncation-order--judge-before-write-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.206
+   ],
+   "beat_nodes": [
+    "loop",
+    "judge-step",
+    "messages"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "order-is-correctness",
+   "label": "顺序即正确性",
+   "index": 3,
+   "file": "plan-truncation-order--order-is-correctness.mp4",
+   "end_still": "plan-truncation-order--order-is-correctness-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.102,
+    2.204
+   ],
+   "beat_nodes": [
+    "messages",
+    "api",
+    "judge-step"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "continuation-capped",
+   "label": "续写次数有限",
+   "index": 4,
+   "file": "plan-truncation-order--continuation-capped.mp4",
+   "end_still": "plan-truncation-order--continuation-capped-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.207
+   ],
+   "beat_nodes": [
+    "messages",
+    "continuation-note",
+    "api"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-truncation-order.html",
+ "slug": "plan-truncation-order",
+ "type": "sequence"
+}

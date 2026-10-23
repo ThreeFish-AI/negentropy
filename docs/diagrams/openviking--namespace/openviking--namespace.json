@@ -1,0 +1,502 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenViking 三空间命名地图",
+    "locale": "zh-CN",
+    "output": "docs/assets/architecture/cognitive-context/openviking--namespace.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy.git",
+      "provider": "github",
+      "revision": "ae6247c5bb796cbd7fa33792d69a9867bb7a8b41"
+    }
+  },
+  "components": [
+    {
+      "id": "root",
+      "type": "external",
+      "label": "viking:// 根",
+      "sublabel": "统一地址命名空间",
+      "pos": [
+        450,
+        40
+      ],
+      "size": [
+        200,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "三空间地图"
+        }
+      ]
+    },
+    {
+      "id": "res",
+      "type": "cloud",
+      "label": "resources",
+      "sublabel": "公共资源空间 · 账户内共享",
+      "tag": "恒 resource",
+      "pos": [
+        30,
+        200
+      ],
+      "size": [
+        200,
+        60
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "visible_roots 三根"
+        },
+        {
+          "path": "docs/research/cognitive-context/assets/openviking_lab.py",
+          "line": 62,
+          "label": "context_type"
+        }
+      ]
+    },
+    {
+      "id": "agt",
+      "type": "backend",
+      "label": "agent",
+      "sublabel": "技能空间 · 仅认 skills 内容段",
+      "tag": "skills → skill",
+      "pos": [
+        450,
+        200
+      ],
+      "size": [
+        200,
+        60
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "visible_roots 三根"
+        },
+        {
+          "path": "docs/research/cognitive-context/assets/openviking_lab.py",
+          "line": 62,
+          "label": "context_type"
+        }
+      ]
+    },
+    {
+      "id": "usr",
+      "type": "security",
+      "label": "user/{uid}",
+      "sublabel": "私域空间 · 数据属主 {uid}",
+      "pos": [
+        850,
+        200
+      ],
+      "size": [
+        220,
+        60
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "visible_roots 三根"
+        },
+        {
+          "path": "docs/research/cognitive-context/assets/openviking_lab.py",
+          "line": 75,
+          "label": "owner_and_peer"
+        }
+      ]
+    },
+    {
+      "id": "rdocs",
+      "type": "cloud",
+      "label": "policies/ handbook/ …",
+      "sublabel": "按目录组织的共享文档树",
+      "tag": "→ resource",
+      "pos": [
+        10,
+        350
+      ],
+      "size": [
+        190,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "类型按段推导"
+        }
+      ]
+    },
+    {
+      "id": "rc",
+      "type": "external",
+      "label": "resources/memories/x",
+      "sublabel": "段名叫 memories 仍是 resource",
+      "tag": "⚠ 结构反例",
+      "pos": [
+        220,
+        350
+      ],
+      "size": [
+        210,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 119,
+          "label": "结构反例"
+        }
+      ]
+    },
+    {
+      "id": "ask",
+      "type": "backend",
+      "label": "skills/**",
+      "sublabel": "agent 下唯一内容段",
+      "tag": "→ skill",
+      "pos": [
+        450,
+        350
+      ],
+      "size": [
+        200,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "类型按段推导"
+        }
+      ]
+    },
+    {
+      "id": "umem",
+      "type": "database",
+      "label": "memories/**",
+      "sublabel": "用户记忆（九类记忆卡）",
+      "tag": "→ memory",
+      "pos": [
+        700,
+        350
+      ],
+      "size": [
+        180,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "类型按段推导"
+        }
+      ]
+    },
+    {
+      "id": "ures",
+      "type": "cloud",
+      "label": "resources/**",
+      "sublabel": "用户私域资源",
+      "tag": "→ resource",
+      "pos": [
+        700,
+        450
+      ],
+      "size": [
+        180,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "类型按段推导"
+        }
+      ]
+    },
+    {
+      "id": "uskill",
+      "type": "backend",
+      "label": "skills/**",
+      "sublabel": "用户技能",
+      "tag": "→ skill",
+      "pos": [
+        700,
+        550
+      ],
+      "size": [
+        180,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 116,
+          "label": "类型按段推导"
+        }
+      ]
+    },
+    {
+      "id": "peers",
+      "type": "external",
+      "label": "peers/{peer}",
+      "sublabel": "交互对象子树 · 写窄读宽",
+      "tag": "保留段",
+      "pos": [
+        1000,
+        350
+      ],
+      "size": [
+        190,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 118,
+          "label": "user 保留段"
+        },
+        {
+          "path": "docs/research/cognitive-context/assets/openviking_lab.py",
+          "line": 75,
+          "label": "owner_and_peer"
+        }
+      ]
+    },
+    {
+      "id": "priv",
+      "type": "external",
+      "label": "privacy/**",
+      "sublabel": "敏感值树（§8.5 占位符还原）",
+      "tag": "保留段",
+      "pos": [
+        1000,
+        450
+      ],
+      "size": [
+        190,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 118,
+          "label": "user 保留段"
+        }
+      ]
+    },
+    {
+      "id": "sess",
+      "type": "external",
+      "label": "sessions/**",
+      "sublabel": "会话归档落点（§6 两阶段）",
+      "tag": "保留段",
+      "pos": [
+        1000,
+        550
+      ],
+      "size": [
+        190,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 118,
+          "label": "user 保留段"
+        }
+      ]
+    },
+    {
+      "id": "pem",
+      "type": "database",
+      "label": "memories/**",
+      "sublabel": "peer 记忆（一等 memory）",
+      "tag": "→ memory",
+      "pos": [
+        1000,
+        650
+      ],
+      "size": [
+        190,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 118,
+          "label": "peers 内容段"
+        },
+        {
+          "path": "docs/research/cognitive-context/assets/openviking_lab.py",
+          "line": 66,
+          "label": "peer 记忆子树"
+        }
+      ]
+    },
+    {
+      "id": "per",
+      "type": "cloud",
+      "label": "resources/**",
+      "sublabel": "peer 资源",
+      "tag": "→ resource",
+      "pos": [
+        1210,
+        650
+      ],
+      "size": [
+        190,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 118,
+          "label": "peers 内容段"
+        }
+      ]
+    },
+    {
+      "id": "pes",
+      "type": "external",
+      "label": "skills/**",
+      "sublabel": "不命中 peer 内容段",
+      "tag": "⚠ 类型回落 resource",
+      "pos": [
+        1420,
+        650
+      ],
+      "size": [
+        190,
+        52
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "line": 119,
+          "label": "结构反例"
+        },
+        {
+          "path": "docs/research/cognitive-context/assets/openviking_lab.py",
+          "line": 71,
+          "label": "回落 resource"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "visible_roots() 恒返回这三个可见根（NS:180）",
+      "wraps": [
+        "res",
+        "agt",
+        "usr"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "root-res",
+      "from": "root",
+      "to": "res"
+    },
+    {
+      "id": "root-agt",
+      "from": "root",
+      "to": "agt"
+    },
+    {
+      "id": "root-usr",
+      "from": "root",
+      "to": "usr"
+    },
+    {
+      "id": "res-rdocs",
+      "from": "res",
+      "to": "rdocs"
+    },
+    {
+      "id": "res-rc",
+      "from": "res",
+      "to": "rc",
+      "variant": "dashed"
+    },
+    {
+      "id": "agt-ask",
+      "from": "agt",
+      "to": "ask"
+    },
+    {
+      "id": "usr-umem",
+      "from": "usr",
+      "to": "umem"
+    },
+    {
+      "id": "usr-ures",
+      "from": "usr",
+      "to": "ures"
+    },
+    {
+      "id": "usr-uskill",
+      "from": "usr",
+      "to": "uskill"
+    },
+    {
+      "id": "usr-peers",
+      "from": "usr",
+      "to": "peers",
+      "variant": "dashed",
+      "label": "保留段"
+    },
+    {
+      "id": "usr-priv",
+      "from": "usr",
+      "to": "priv",
+      "variant": "dashed"
+    },
+    {
+      "id": "usr-sess",
+      "from": "usr",
+      "to": "sess",
+      "variant": "dashed"
+    },
+    {
+      "id": "peers-pem",
+      "from": "peers",
+      "to": "pem"
+    },
+    {
+      "id": "peers-per",
+      "from": "peers",
+      "to": "per"
+    },
+    {
+      "id": "peers-pes",
+      "from": "peers",
+      "to": "pes",
+      "variant": "dashed",
+      "label": "不命中内容段"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "读图结论",
+      "items": [
+        "类型由挂在哪一段推导，不看段名与内容：resources/memories/x、peers/*/skills 都仍是 resource",
+        "保留段不是内容段：privacy/sessions 类型回落 resource；peers 子树内容段仅 memories|resources（NS:18）"
+      ]
+    }
+  ]
+}

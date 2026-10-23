@@ -1,0 +1,8 @@
+[
+ {"id": "entries-overview", "label": "入口不止一个", "focus": ["entry-sign", "auto-precheck", "manual-tool", "rescue-lane"], "note": "压缩的入口 lifecycle 总览：自动、主动、应急三条道并排。"},
+ {"id": "auto-gate", "label": "自动预处理", "focus": ["auto-precheck"], "note": "自动口：每轮调用模型前先过一遍预处理，超了才动手。"},
+ {"id": "manual-tool", "label": "主动请压缩", "focus": ["manual-tool"], "note": "主动口：工具清单里专门备了一个压缩工具，模型自己可以请。"},
+ {"id": "rescue-lane", "label": "应急车道", "focus": ["rescue-lane", "reject-stamp"], "note": "应急口：接口已经拒收了才触发——最后兜底的车道。"},
+ {"id": "tail-five", "label": "保尾五条", "focus": ["tail-guard", "rescue-lane"], "note": "应急反而温和些：保留最近五条原文，只总结更早的历史。"},
+ {"id": "once-only", "label": "只救一次", "focus": ["retry-limit", "rescue-lane"], "note": "只补救一次，再失败就直接抛异常，不无限循环（终态）。"}
+]

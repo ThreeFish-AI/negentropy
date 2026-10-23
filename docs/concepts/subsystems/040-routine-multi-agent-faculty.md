@@ -27,54 +27,9 @@ title: "Routine 多 Agent 归因：一核五翼 Faculty 接入 Routine 编排链
 
 ## 2. 目标架构
 
-```mermaid
-flowchart LR
-  subgraph ADK["一核五翼 Agent 层（已存在，真实 ADK LlmAgent）"]
-    direction TB
-    ENG["一核 NegentropyEngine<br/>编排 / 归档"]
-    EYE["慧眼 PerceptionFaculty<br/>search_kb / web / memory"]
-    HAND["妙手 ActionFaculty<br/>execute_code / read / write"]
-    CORE["本心 InternalizationFaculty<br/>save_memory / kg / corpus"]
-    MIND["元神 ContemplationFaculty<br/>analyze_context / create_plan"]
-    MOUTH["喉舌 InfluenceFaculty<br/>publish / notify（预留）"]
-  end
+![一核五翼六个真实 ADK LlmAgent 经 FacultyBridge 桥接 Routine 编排器五个注入点（慧眼感知/元神审 Plan/妙手门控/本心答问/元神评估），与 Claude Code CLI 同写带 agent_role 的 routine_iteration_events，经 routine_api SSE/REST 呈现于 negentropy-ui TranscriptView 的多 Agent 归因架构图。](../../assets/architecture/subsystems/040-faculty--routine-bridge-dark.png)
 
-  subgraph ROUTINE["Routine 编排器 engine/routine/"]
-    direction TB
-    DISP["_dispatch_due 派发"]
-    PLAN["_inject_plan_review Plan 审"]
-    GATE["_run_gate 命令门控"]
-    ANS["_auto_answer_question 答问"]
-    EVAL["_do_evaluate 评估"]
-  end
-
-  FB["FacultyBridge<br/>同步调用 ADK Faculty + litellm 降级"]
-
-  CC["Claude Code CLI<br/>（机器）"]
-  EVT[("routine_iteration_events<br/>+ agent_role")]
-  API["routine_api SSE / REST"]
-  UI["negentropy-ui<br/>TranscriptView"]
-
-  ENG -.编排.- DISP
-  DISP -->|INJECT-1 慧眼感知| FB
-  PLAN -->|INJECT-2 元神审 Plan| FB
-  GATE -->|INJECT-3 妙手门控| FB
-  ANS -->|INJECT-4 本心答问| FB
-  EVAL -->|INJECT-5 元神 + 慧眼| FB
-  FB --> EYE & HAND & CORE & MIND
-  DISP --> CC
-  CC --> EVT
-  FB -->|带 agent_role| EVT
-  EVAL -->|带 agent_role| EVT
-  EVT --> API --> UI
-
-  classDef adk fill:#1e3a5f,stroke:#60a5fa,color:#e0f2fe;
-  classDef routine fill:#3f3a1e,stroke:#fbbf24,color:#fef9c3;
-  classDef bridge fill:#3b1e3f,stroke:#c084fc,color:#f3e8ff;
-  class ENG,EYE,HAND,CORE,MIND,MOUTH adk;
-  class DISP,PLAN,GATE,ANS,EVAL routine;
-  class FB bridge;
-```
+> 图源（可 diff 文本）：[`040-faculty--routine-bridge.mmd`](../../assets/mermaid/subsystems/040-faculty--routine-bridge.mmd) · 交互版（下载到本地打开）：[`040-faculty--routine-bridge.html`](../../assets/architecture/subsystems/040-faculty--routine-bridge.html)
 
 核心改造：在 Routine 编排器的 5 个注入点，通过新建 **FacultyBridge** 同步调用现有 ADK Faculty Agent，产出的事件携带 `agent_role` 归因；保留现有 `litellm.acompletion` 直调作降级。前端从「事件类型推导角色」平滑切换到「读后端 `agent_role`」。
 

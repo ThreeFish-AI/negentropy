@@ -1,0 +1,20 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block7
+%%slug: subsystems/025-memory--dedup-stages
+%%type: workflow
+%%derived: archify
+%% fix: 补 Stage 3「判定无矛盾 → 通过」出口（源图 Stage 3 仅画『确认矛盾』单出口，docstring『使用 LLM 判断是否真正矛盾』隐含无矛盾分支）；主路径补「冲突分类」节点（源文紧邻表格 + 代码 _classify_conflict/_determine_resolution：contradiction/temporal_update→supersede，refinement 按置信度→supersede/keep_both）
+flowchart LR
+    NEW["新事实插入"] --> K["Stage 1: Key-based<br/>(快速路径)"]
+    K --> |"同 key 不同 value"| EMB["Stage 2: Embedding-based<br/>(中速路径)"]
+    EMB --> |"高相似度 ≥ 0.85"| LLM["Stage 3: LLM-based<br/>(深度路径)"]
+    K --> |"无冲突"| PASS["通过"]
+    EMB --> |"低相似度"| PASS
+    LLM --> |"确认矛盾"| RES["执行解决策略"]
+
+    classDef detect fill:#F59E0B,stroke:#92400E,color:#000
+    classDef pass fill:#10B981,stroke:#065F46,color:#FFF
+    classDef resolve fill:#EF4444,stroke:#991B1B,color:#FFF
+
+    class K,EMB,LLM detect
+    class PASS pass
+    class RES resolve

@@ -24,7 +24,7 @@ import json
 import os
 import time
 from contextlib import suppress
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -42,15 +42,12 @@ from negentropy.engine.claude_code.service import (
 )
 from negentropy.logging import get_logger
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
+from negentropy.timeutil import utcnow
 
 from .bus import get_bus
 from .streaming_persister import StreamingEventPersister
 
 logger = get_logger("negentropy.engine.routine.runner")
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +174,7 @@ class RoutineRunner:
                 await self._mark_aborted(iteration_id)
                 return
             # 1) 翻转 in_flight + 设置 lease
-            lease = _utcnow() + timedelta(seconds=config.timeout_seconds + 60)
+            lease = utcnow() + timedelta(seconds=config.timeout_seconds + 60)
             await self._mark_in_flight(iteration_id, lease)
             await get_bus().publish(
                 {"type": "iteration", "id": str(iteration_id), "routine_id": str(routine_id), "status": "in_flight"}
@@ -355,7 +352,7 @@ class RoutineRunner:
                 # ts：服务端 emit 时刻（与持久化 created_at 同为服务端时间），供前端为在途行渲染时间戳；
                 # 仅注入发布载荷，不污染用于写回持久化的 result.events（其时间走 DB server_default）。
                 await get_bus().publish(
-                    {"type": "action", "routine_id": rid, "iteration_id": iid, "ts": _utcnow().isoformat(), **evt}
+                    {"type": "action", "routine_id": rid, "iteration_id": iid, "ts": utcnow().isoformat(), **evt}
                 )
             if persister is not None:
                 persister.buffer(evt)
@@ -417,7 +414,7 @@ class RoutineRunner:
             await db.execute(
                 update(RoutineIteration)
                 .where(RoutineIteration.id == iteration_id)
-                .values(status="in_flight", started_at=_utcnow(), lease_expires_at=lease)
+                .values(status="in_flight", started_at=utcnow(), lease_expires_at=lease)
             )
             await db.commit()
 
@@ -426,7 +423,7 @@ class RoutineRunner:
             await db.execute(
                 update(RoutineIteration)
                 .where(RoutineIteration.id == iteration_id)
-                .values(status="aborted", finished_at=_utcnow(), lease_expires_at=None)
+                .values(status="aborted", finished_at=utcnow(), lease_expires_at=None)
             )
             await db.commit()
 
@@ -482,7 +479,7 @@ class RoutineRunner:
                     cost_usd=result.cost_usd or 0.0,
                     turn_count=result.turn_count or 0,
                     exec_error=result.error,
-                    finished_at=_utcnow(),
+                    finished_at=utcnow(),
                     lease_expires_at=None,
                 )
             )
@@ -500,7 +497,7 @@ class RoutineRunner:
                     routine.total_cost_usd = (routine.total_cost_usd or 0.0) + (result.cost_usd or 0.0)
                     routine.iteration_count = (routine.iteration_count or 0) + 1
                     # 检查点提交快照：worktree routine + 本轮执行成功 + 非 PLAN 相位（PLAN 只读无产物）。
-                    # 引擎确定性 auto-commit，不依赖 CC 遵循 prompt（ISSUE-114）。
+                    # 引擎确定性 auto-commit，不依赖 CC 遵循 prompt（I-114）。
                     if (
                         settings.routine.checkpoint_commit_enabled
                         and exec_status == "success"
@@ -554,7 +551,7 @@ class RoutineRunner:
             await db.commit()
 
         # 检查点提交（事务外、best-effort）：成功 worktree 迭代后确定性 auto-commit，
-        # 防 worktree 丢失致进度损毁 + 为 PR 留存提交历史（ISSUE-114）。异常不冒泡。
+        # 防 worktree 丢失致进度损毁 + 为 PR 留存提交历史（I-114）。异常不冒泡。
         if checkpoint_path:
             from . import workspace
 

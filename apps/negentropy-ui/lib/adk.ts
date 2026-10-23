@@ -69,7 +69,7 @@ function getPayloadRole(payload: AdkEventPayload): NormalizedRole {
 // - `type` ∈ {thinking, thought, reasoning, reasoning_summary, reasoning_text}：
 //   各供应商在 part-level 区分推理与正文的常见 type 值。
 // 这类 part 不应进入 TEXT_MESSAGE_CONTENT 流，否则会以「LLM 思考独白」形式
-// 污染用户可见答复（参见 docs/issue.md::ISSUE-040）。
+// 污染用户可见答复（参见 docs/issue.md::I-040）。
 const REASONING_PART_TYPES = new Set([
   "thinking",
   "thought",
@@ -174,7 +174,7 @@ export class AdkMessageStreamNormalizer {
   private synthStepId: string | null = null;
   private synthStepAuthor: string | null = null;
   private synthStepCounter = 0;
-  // ISSUE-040 H2: 跟踪 stepId → stepName 映射，在 STEP_FINISHED 时把同名字段
+  // I-040 H2: 跟踪 stepId → stepName 映射，在 STEP_FINISHED 时把同名字段
   // 透出给 ag-ui 校验器（v0.0.47 的 `STEP_FINISHED` validator 用 `stepName` 比对，
   // 缺失会触发 `Cannot send 'STEP_FINISHED' for step "undefined" that was not
   // started`，导致整个 run 被中断、推理头永驻）。

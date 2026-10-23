@@ -1,0 +1,32 @@
+[
+ {
+  "id": "drawer-labels",
+  "label": "抽屉贴标签",
+  "focus": ["cabinet", "drawer", "label"],
+  "note": "工具柜每个抽屉贴一张标签——只写名字和一句用途。"
+ },
+ {
+  "id": "manual-inside",
+  "label": "手册躺抽屉里",
+  "focus": ["drawer", "manual"],
+  "note": "手册躺在抽屉里，不占台面。"
+ },
+ {
+  "id": "cheap-catalog",
+  "label": "标签常驻垫纸",
+  "focus": ["labels-strip", "system-prompt", "cheap-mark"],
+  "note": "所有标签开工时都看得见——一张百来个字，常驻垫纸，这部分便宜。"
+ },
+ {
+  "id": "costly-fulltext",
+  "label": "手册按需上台面",
+  "focus": ["manual", "lift-path", "desk-surface", "costly-mark"],
+  "note": "手册全文贵一个量级——真用到那道工序，才拿到台面上读。"
+ },
+ {
+  "id": "split-in-time",
+  "label": "知道与读到拆开",
+  "focus": ["labels-strip", "manual", "time-split"],
+  "note": "知道有什么，和读到内容，在时间上是拆开的——两级按需加载。"
+ }
+]

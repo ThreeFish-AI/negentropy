@@ -1,0 +1,12 @@
+[
+ {
+  "id": "guessed-name",
+  "label": "猜出指标名",
+  "focus": [
+   "retrieval",
+   "intern",
+   "exec"
+  ],
+  "note": "如果实习生猜出机密指标名，强行发起查询呢？"
+ }
+]

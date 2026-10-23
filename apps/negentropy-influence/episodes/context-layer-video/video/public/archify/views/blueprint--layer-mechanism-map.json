@@ -1,0 +1,42 @@
+[
+ {
+  "id": "lmm-open",
+  "label": "矩阵总览",
+  "focus": [
+   "axis_asset",
+   "axis_authority",
+   "axis_assembly",
+   "axis_retrieval",
+   "axis_compounding",
+   "m1_semantic_view",
+   "m2_row_policy",
+   "m3_semantic_gov",
+   "m4_vqr",
+   "m5_lineage",
+   "m6_agent_identity",
+   "m7_tagging"
+  ],
+  "note": "五轴 × M1–M7 轴向量矩阵：机制要么单轴落位、要么跨轴组合"
+ },
+ {
+  "id": "lmm-single",
+  "label": "单轴全落权威",
+  "focus": [
+   "m2_row_policy",
+   "m6_agent_identity"
+  ],
+  "note": "M2 行列级策略·M6 Agent 身份——唯二单轴机制，全落权威轴"
+ },
+ {
+  "id": "lmm-seam",
+  "label": "跨轴组合",
+  "focus": [
+   "m1_semantic_view",
+   "m3_semantic_gov",
+   "m4_vqr",
+   "m5_lineage",
+   "m7_tagging"
+  ],
+  "note": "五个跨轴机制：资产×权威×装配 / 权威×检索 / 检索×沉淀 / 资产×权威 / 沉淀×权威"
+ }
+]

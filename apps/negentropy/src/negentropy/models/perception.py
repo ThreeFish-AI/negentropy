@@ -261,7 +261,7 @@ class WikiPublication(Base, UUIDMixin, TimestampMixin):
     - ``app_name``：从关联 :class:`DocCatalog` 派生的应用归属，作为 SSG 多租户路由
       的隔离键（同一 SSG 实例内，不同 ``app_name`` 的发布互不串扰）。**冗余但
       不可变**：值在 ``create_publication`` 时由后端从 catalog 拷入，不接受外部
-      PATCH，确保每篇 entry 路径定位稳定（详见 ISSUE-016 修复）。
+      PATCH，确保每篇 entry 路径定位稳定（详见 I-016 修复）。
     - ``publish_mode``：发布行为模式。
         - ``LIVE``：SSG 通过 ISR 主动拉取最新 ``entries``，内容随源文档变更滚动；
         - ``SNAPSHOT``：发布时冻结当前 ``entries`` 到 :class:`WikiPublicationSnapshot`，

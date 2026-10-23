@@ -1,0 +1,14 @@
+%% source: docs/research/cognitive-context/014-openviking.md §10（视频 P6 → 换代重绘）
+%% slug: openviking--lab-break-matrix
+%% type: workflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--lab-break-matrix.html
+%% fix: 2026-10-22 B2/B5 随上游机制删除退役；B1 重铸为「拔 abstract→精排致盲」；新增 B7 池边界；钉点 6227af51
+flowchart TB
+  B1["B1 拔掉摘要<br/>精排致盲：THINKING 1.00→0.50<br/>退款查询整组空手；平铺档免疫"]
+  B3["B3 卡名不再由身份字段决定<br/>3 张矛盾偏好卡并存"]
+  B4["B4 关掉冒泡<br/>祖先标签过期：浏览式导航致盲"]
+  B6["B6 去掉 .done<br/>重投一次：事件卡 ×2"]
+  B7["B7 候选池 2×→1×<br/>向量第 6 名锁死池外<br/>THINKING 1.00→0.75；平铺不变"]
+  B1 -.->|"摘要质量是精排的全部赌注"| B7
+  B3 -.->|"身份与提交点双保险"| B6
+  B4 -.->|"派生物保鲜纪律"| B6

@@ -466,7 +466,7 @@ cmd_start() {
   # pnpm workspace 为单一 lockfile + 单一 store：在任一成员目录执行 pnpm install
   # 都会触发全工作区安装（日志 Scope: all N projects）。原先并行的两个 member-dir
   # install（ui + wiki）实为对同一 workspace 的重复全量安装，且会并发向共享成员
-  # （cognizes-ui / travel-agent-ui）的 node_modules/.bin 写同名 bin（vitest/eslint），
+  # （当时的 cognizes-ui / travel-agent-ui 成员，均已退役）的 node_modules/.bin 写同名 bin（vitest/eslint），
   # 引发 "Failed to create bin ... ENOENT chmod" 进程间竞态告警。改为根目录单次安装：
   # 覆盖面不变（仍是全部成员），消除竞态告警，且免去一次重复全量安装。
   log_info "安装前端依赖 (pnpm workspace)..."

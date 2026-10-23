@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "9a4f5f1f-cd07-4dcf-85a4-fe0a48c2c971",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify/bg-board-and-lock.architecture.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--bg-board-and-lock.html",
+  "specification": {
+    "sha256": "659035c02e89078a5361d0d71d2e734047a409451a15d41063e328b5c0e5642e",
+    "bytes": 5215
+  },
+  "artifact": {
+    "sha256": "e7b5105d9bf667ace48f4b64b48430c5703f0e483f7e9c2736a2dd0339221c8a",
+    "bytes": 841354
+  }
+}

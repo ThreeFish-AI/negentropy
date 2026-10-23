@@ -1,4 +1,4 @@
-"""LLM JSON 输出鲁棒解析 — 剥离 markdown 代码围栏后再 ``json.loads``（ISSUE-127）。
+"""LLM JSON 输出鲁棒解析 — 剥离 markdown 代码围栏后再 ``json.loads``（I-127）。
 
 动机：部分模型即便指定 ``response_format={"type":"json_object"}`` 仍把 JSON 包在 markdown
 代码围栏里（实测 ``anthropic/claude-sonnet-4-6`` 经代理恒返回 ```json\\n{...}\\n``` ）。

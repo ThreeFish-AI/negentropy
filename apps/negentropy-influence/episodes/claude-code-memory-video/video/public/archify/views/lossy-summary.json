@@ -1,0 +1,7 @@
+[
+ {"id": "taste-lost", "label": "留得住目标", "focus": ["verbatim-tabs", "generic-style"], "note": "摘要留得住目标，留不住口味——具体叮嘱与笼统类别先两头摆开。"},
+ {"id": "tabs-verbatim", "label": "原话在册", "focus": ["verbatim-tabs"], "note": "你叮嘱过的原话：缩进用制表符，别用空格——逐字在册。"},
+ {"id": "collapse-rounds", "label": "几轮压下来", "focus": ["round-1", "round-n", "generic-style"], "note": "几轮压缩之后，摘要里只剩一句：用户有代码风格偏好——字粒度逐级塌缩。"},
+ {"id": "forgetting-per-round", "label": "压一次丢一层", "focus": ["forget-depth", "generic-style"], "note": "压缩即遗忘：每压一次，用户的偏好和约束就跟着丢一层。"},
+ {"id": "all-for-one-line", "label": "全部历史一条消息", "focus": ["history-one-line", "round-n"], "note": "教学版的丢弃面：全部历史换一条消息，丢得干脆（官方对照段回放）。"}
+]

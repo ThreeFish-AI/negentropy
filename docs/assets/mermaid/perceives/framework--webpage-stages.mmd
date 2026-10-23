@@ -1,0 +1,34 @@
+%% source: docs/reference/perceives/framework.md §WebPage Pipeline（S1 - S12）(块#5, L239-L267)
+%% slug: perceives/framework--webpage-stages
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #5
+%% fix: S3 短路语义补正——anti_detection.py 中 raw_html≥1KB 时 S3 直接 success(skip)，即 S2 成功后 S3 非必经阻塞步，源图未示
+    WS1["S1 合规检查<br/>robotparser"] --> WS2["S2 网页获取<br/>aiohttp/playwright/selenium"]
+    WS2 --> WS3["S3 反检测降级<br/>playwright_stealth/undetected_chromedriver"]
+    WS3 --> WS4["S4 主内容提取<br/>trafilatura/readability/bs4<br/>⚡ 可竞争"]
+    WS4 --> WS5["S5 HTML 清洗<br/>beautifulsoup"]
+
+    WS5 --> WS6["S6 公式提取<br/>beautifulsoup_math"]
+    WS5 --> WS7["S7 代码识别<br/>beautifulsoup_code"]
+    WS5 --> WS8["S8 表格提取<br/>beautifulsoup_table"]
+    WS5 --> WS9["S9 图片提取<br/>beautifulsoup_image"]
+
+    WS6 --> WS10["S10 Markdown 转换<br/>markitdown/html2text<br/>⚡ 可竞争"]
+    WS7 --> WS10
+    WS8 --> WS10
+    WS9 --> WS10
+    WS10 --> WS11["S11 排版格式化<br/>builtin_formatter"]
+    WS11 --> WS12["S12 资源打包<br/>builtin_bundler"]
+
+    style WS1 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS2 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS3 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS4 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style WS5 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS6 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS7 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS8 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS9 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS10 fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style WS11 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style WS12 fill:#1e3a8a,stroke:#3b82f6,color:#ffffff

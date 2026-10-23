@@ -1,0 +1,20 @@
+[
+ {
+  "id": "sectioned-define",
+  "label": "分段各改各的",
+  "focus": ["section-dict", "topic-blocks"],
+  "note": "垫纸分段定义：每段一个主题，各改各的，互不牵连。"
+ },
+ {
+  "id": "always-sections",
+  "label": "常铺三段",
+  "focus": ["sec-identity", "sec-tools", "sec-workdir", "always-bus"],
+  "note": "始终段策略：身份、工具、工作目录三段，每轮都铺。"
+ },
+ {
+  "id": "conditional-memory",
+  "label": "记忆段看文件",
+  "focus": ["sec-memory", "file-check", "conditional-bus"],
+  "note": "按需段策略：记忆那一段，只在磁盘上真有那份文件时才铺。"
+ }
+]

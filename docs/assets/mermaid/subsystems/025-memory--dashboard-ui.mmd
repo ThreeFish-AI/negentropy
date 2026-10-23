@@ -1,0 +1,76 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block3
+%%slug: subsystems/025-memory--dashboard-ui
+%%type: architecture
+%%derived: archify
+%% fix: 展示层二级页由 DASH/Timeline/Facts/Audit/Automation 五页校正为 MemoryNav 七页——Overview(原 Dashboard)/Timeline/Facts/Conflicts/Core Memory/Audit/Insights（MemoryNav.tsx；Automation 页已移除）；UI 经 Next.js BFF 代理(app/api/memory/*) 转发后端
+%% fix: API 层「Automation API (AAPI)」不存在——/memory/* 单路由（engine/api.py router prefix="/memory"，28 端点，无 /memory/automation/*）；自动化任务状态由 /memory list 直查 scheduled_tasks(handler_kind='memory_automation') 派生 policies.managed_jobs
+%% fix: MemoryAutomationService 已删除（migration 0042/0043）——pg_cron 三作业迁 Unified Scheduler ScheduledTaskRegistry 的 memory_automation handler（cleanup_memories/trigger_consolidation/reweight_relevance，参数取自 payload）；SQL 函数改静态迁移定义，get_context_window 不再创建
+%% fix: SessionSummarizer 现仅生成会话标题（engine/summarization.py）不写 memories，移出服务层；补 Phase 4 实存 CoreBlockService（/core-blocks 路由 ↔ memory_core_blocks）与 MemorySummarizer→memory_summaries
+%% fix: instructions 表（程序性记忆）规划中未实现，代码无此模型，不绘制；存储层新增实存 memory_conflicts/memory_core_blocks/memory_summaries/memory_retrieval_logs/memory_associations
+flowchart TB
+    subgraph UI["展示层 (negentropy-ui)"]
+        DASH["Memory Dashboard"]
+        TL["Timeline"]
+        FACTS["Facts"]
+        AUDIT["Audit"]
+        AUTO["Automation"]
+    end
+
+    subgraph API["API 层 (/memory/*)"]
+        MAPI["Memory REST API<br/>(engine/api.py)"]
+        AAPI["Automation API<br/>(engine/api.py)"]
+    end
+
+    subgraph Service["服务层"]
+        PMS["PostgresMemoryService<br/>混合检索 + 访问记录"]
+        FS["FactService<br/>语义记忆 CRUD"]
+        MGS["MemoryGovernanceService<br/>审计 + 遗忘曲线"]
+        MAS["MemoryAutomationService<br/>配置 + reconcile + pg_cron"]
+        SS["SessionSummarizer<br/>LLM 会话摘要"]
+    end
+
+    subgraph Storage["持久化层 (PostgreSQL 16+)"]
+        MEM[("memories<br/>情景记忆")]
+        FACT[("facts<br/>语义记忆")]
+        INST[("instructions<br/>程序性记忆")]
+        CJOB[("consolidation_jobs<br/>巩固任务")]
+        MCFG[("memory_automation_configs<br/>自动化配置")]
+        MALOG[("memory_audit_logs<br/>审计日志")]
+        FN["受管 SQL 函数<br/>calculate_retention_score<br/>cleanup_low_value_memories<br/>get_context_window<br/>trigger_maintenance_consolidation"]
+        CRON["pg_cron 调度"]
+    end
+
+    DASH --> MAPI
+    TL --> MAPI
+    FACTS --> MAPI
+    AUDIT --> MAPI
+    AUTO --> AAPI
+
+    MAPI --> PMS
+    MAPI --> FS
+    MAPI --> MGS
+    AAPI --> MAS
+
+    PMS --> MEM
+    FS --> FACT
+    MGS --> MEM
+    MGS --> FACT
+    MGS --> MALOG
+    MAS --> MCFG
+    MAS --> FN
+    MAS --> CRON
+    SS --> MEM
+
+    FN --> MEM
+    FN --> CJOB
+    CRON --> FN
+
+    classDef ui fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef api fill:#A78BFA,stroke:#4C1D95,color:#FFF
+    classDef svc fill:#F59E0B,stroke:#92400E,color:#000
+    classDef store fill:#10B981,stroke:#065F46,color:#FFF
+
+    class DASH,TL,FACTS,AUDIT,AUTO ui
+    class MAPI,AAPI api
+    class PMS,FS,MGS,MAS,SS svc
+    class MEM,FACT,INST,CJOB,MCFG,MALOG,FN,CRON store

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "8b8ad0f9-ccf4-4248-a2f9-e2c1f1ca10b9",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+  "specification": {
+    "sha256": "a662a44628e47b9a7152069c123c188766e0339cf0b78611c8a41b518fb999f0",
+    "bytes": 14513
+  },
+  "artifact": {
+    "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+    "bytes": 786717
+  }
+}

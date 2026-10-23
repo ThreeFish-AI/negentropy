@@ -5,7 +5,7 @@
 1. ``_safe_plugin_stats`` helper 异常隔离 —— 单类 plugin 查询失败不再
    抛出，返回 ``{total: 0, enabled: 0}`` 且 ``logger.exception`` 被调用。
 2. ``get_stats`` 端点使用 ``get_current_user_with_db_roles`` 依赖 ——
-   与 ``/auth/me`` 对齐到 ISSUE-049 的 DB-roles 覆盖路径，避免 admin 用户被
+   与 ``/auth/me`` 对齐到 I-049 的 DB-roles 覆盖路径，避免 admin 用户被
    JWT 旧 roles 误判为 user。
 3. ``StatsResponse`` schema 与 ``_safe_plugin_stats`` 返回值兼容 ——
    ``dict[str, int]`` 字段不会被破坏。
@@ -64,7 +64,7 @@ class TestSafePluginStats:
     @pytest.mark.asyncio
     async def test_visible_ids_failure_returns_zero(self, _non_admin_user) -> None:
         """``get_visible_plugin_ids`` 抛 SQLAlchemy 异常 → 返回 0/0 + 日志。"""
-        from negentropy.interface import api as interface_api
+        from negentropy.interface import stats_api as interface_api
 
         db = MagicMock()
 
@@ -83,7 +83,7 @@ class TestSafePluginStats:
     @pytest.mark.asyncio
     async def test_enabled_count_failure_returns_zero(self, _non_admin_user) -> None:
         """``db.scalar(count)`` 抛异常 → 返回 0/0（不让单段错误传染整张 Dashboard）。"""
-        from negentropy.interface import api as interface_api
+        from negentropy.interface import stats_api as interface_api
 
         db = MagicMock()
         db.scalar = AsyncMock(side_effect=RuntimeError("simulated count failure"))
@@ -105,7 +105,7 @@ class TestSafePluginStats:
     @pytest.mark.asyncio
     async def test_empty_visible_ids_short_circuits(self, _non_admin_user) -> None:
         """visible_ids 为空时不应再发起 count 查询（性能）+ 返回 0/0。"""
-        from negentropy.interface import api as interface_api
+        from negentropy.interface import stats_api as interface_api
 
         db = MagicMock()
         db.scalar = AsyncMock(return_value=99)  # 不应被调用，否则下面断言失败
@@ -128,7 +128,7 @@ class TestSafePluginStats:
         """
         from uuid import uuid4
 
-        from negentropy.interface import api as interface_api
+        from negentropy.interface import stats_api as interface_api
         from negentropy.models.plugin import Agent
 
         db = MagicMock()
@@ -155,7 +155,7 @@ class TestSafePluginStats:
 
 
 def test_get_stats_uses_db_roles_dependency() -> None:
-    """ISSUE-049：admin 端点必须用 ``get_current_user_with_db_roles``，避免 JWT 旧 roles 误判。
+    """I-049：admin 端点必须用 ``get_current_user_with_db_roles``，避免 JWT 旧 roles 误判。
 
     通过 inspect 路由依赖签名验证：``get_stats`` 的 ``user`` 参数默认值是
     ``Depends(get_current_user_with_db_roles)`` 而非 ``Depends(get_current_user)``。
@@ -163,7 +163,7 @@ def test_get_stats_uses_db_roles_dependency() -> None:
     import inspect
 
     from negentropy.auth.deps import get_current_user_with_db_roles
-    from negentropy.interface.api import get_stats
+    from negentropy.interface.stats_api import get_stats
 
     sig = inspect.signature(get_stats)
     user_param = sig.parameters["user"]
@@ -181,7 +181,7 @@ def test_get_stats_uses_db_roles_dependency() -> None:
 class TestStatsResponseShape:
     def test_accepts_safe_stats_return(self) -> None:
         """StatsResponse 接受 dict[str, int] 字段，与 _safe_plugin_stats 输出契合。"""
-        from negentropy.interface.api import StatsResponse
+        from negentropy.interface.stats_api import StatsResponse
 
         resp = StatsResponse(
             mcp_servers={"total": 1, "enabled": 1},
@@ -196,7 +196,7 @@ class TestStatsResponseShape:
 
     def test_accepts_all_zero_fallback(self) -> None:
         """全 0 兜底（极端故障路径）也必须能被序列化。"""
-        from negentropy.interface.api import StatsResponse
+        from negentropy.interface.stats_api import StatsResponse
 
         resp = StatsResponse(
             mcp_servers={"total": 0, "enabled": 0},

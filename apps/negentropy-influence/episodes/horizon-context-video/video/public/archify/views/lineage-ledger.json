@@ -1,0 +1,33 @@
+[
+ {
+  "id": "engine-lane",
+  "label": "引擎执行",
+  "focus": [
+   "sql",
+   "edg",
+   "ledger"
+  ],
+  "note": "自动沉淀 · 执行事实投影：对 ad-hoc 无盲区"
+ },
+ {
+  "id": "ingest-lane",
+  "label": "外部摄取",
+  "focus": [
+   "evt",
+   "gate",
+   "rej",
+   "ledger"
+  ],
+  "note": "OpenLineage REST · 公开预览：三道闸校验"
+ },
+ {
+  "id": "ledger-and-blind",
+  "label": "账本与盲区",
+  "focus": [
+   "ledger",
+   "q",
+   "blind"
+  ],
+  "note": "内外合流 · 保留一年；盲区如实"
+ }
+]

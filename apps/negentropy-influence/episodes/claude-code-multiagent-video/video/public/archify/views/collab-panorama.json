@@ -1,0 +1,42 @@
+[
+ {
+  "id": "four-prep",
+  "label": "调模型前四道准备",
+  "focus": [
+   "input",
+   "inject",
+   "compact",
+   "assemble"
+  ],
+  "note": "输入钩子、通知注入、压缩、组装系统提示。"
+ },
+ {
+  "id": "llm-judge",
+  "label": "单岔口判据",
+  "focus": [
+   "llm",
+   "decide"
+  ],
+  "note": "调模型后只问一个问题：回答里有没有工具调用块？"
+ },
+ {
+  "id": "dispatch",
+  "label": "权限与三分发",
+  "focus": [
+   "gate",
+   "dispatch",
+   "writeback",
+   "stop"
+  ],
+  "note": "先过权限再分发——内置/外接/后台三个去向；结果回填进下一轮。"
+ },
+ {
+  "id": "externals",
+  "label": "循环外的外部状态",
+  "focus": [
+   "background",
+   "shared"
+  ],
+  "note": "后台慢任务以通知回流；共享文件不在循环里，是被工具读写的外部状态。"
+ }
+]

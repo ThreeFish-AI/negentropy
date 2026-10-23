@@ -1,0 +1,20 @@
+%%source: docs/concepts/subsystems/025-the-memory-system.md#block9
+%%slug: subsystems/025-memory--retrieval-logging
+%%type: dataflow
+%%derived: archify
+%% fix: 终点节点「调整 retention_score 权重」校正为「自进化调权」——代码中反馈信号经 evolution/eval_runner 按 config_version 分桶影子评估（迁移 0081 列）进入 memory_config_versions 对比，retention_score 本身由 calculate_retention_score() 时间衰减×频率函数重算，反馈不直接改写该分数；补数据中枢 memory_retrieval_logs 表（检索/引用/反馈/指标四类读写均落此表）；mark/record 的真实调用方是 Routine orchestrator _fire_reference_feedback（引用解析与注入集求交防伪引用），helpful/irrelevant 自动映射、harmful 仅显式 API（POST /retrieval/feedback）
+flowchart TD
+    Q["search_memory(query)"] --> LOG["log_retrieval<br/>(记忆 ID 列表)"]
+    LOG --> AGENT["Agent 响应"]
+    AGENT --> REF["mark_referenced<br/>(被引用的记忆)"]
+    REF --> FB["record_feedback<br/>('helpful'/'irrelevant'/'harmful')"]
+    FB --> METRICS["get_effectiveness_metrics()"]
+    METRICS --> ADJ["调整 retention_score 权重"]
+
+    classDef query fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef process fill:#F59E0B,stroke:#92400E,color:#000
+    classDef result fill:#10B981,stroke:#065F46,color:#FFF
+
+    class Q query
+    class LOG,AGENT,REF,FB process
+    class METRICS,ADJ result

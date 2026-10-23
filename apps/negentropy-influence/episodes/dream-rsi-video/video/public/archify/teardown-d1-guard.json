@@ -1,0 +1,84 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 9.78,
+ "total_wall_sec": 100.31,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "intact",
+   "label": "保险在：现任兜底",
+   "index": 0,
+   "file": "teardown-d1-guard--intact.mp4",
+   "end_still": "teardown-d1-guard--intact-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "intact"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 12.0
+  },
+  {
+   "id": "removed",
+   "label": "拆掉：矮子拔将军",
+   "index": 1,
+   "file": "teardown-d1-guard--removed.mp4",
+   "end_still": "teardown-d1-guard--removed-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.34,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.211
+   ],
+   "beat_nodes": [
+    "removed",
+    "worse-wins",
+    "degrade"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 33.0
+  },
+  {
+   "id": "insurance",
+   "label": "教训",
+   "index": 2,
+   "file": "teardown-d1-guard--insurance.mp4",
+   "end_still": "teardown-d1-guard--insurance-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "lesson"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 17.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--teardown-d1-guard.html",
+ "slug": "teardown-d1-guard",
+ "type": "lifecycle"
+}

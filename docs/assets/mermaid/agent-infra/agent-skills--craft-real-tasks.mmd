@@ -1,0 +1,17 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P1（p1-08c..08g）
+%% slug: agent-skills--craft-real-tasks
+%% type: workflow
+%% derived: 2026-09-27 agent-skills-video 分镜 1-D / 1-E
+flowchart LR
+    subgraph lane-work["真实任务现场"]
+        T1["真实任务<br/>让 AI 真干一单活<br/>别凭空生成"] --> T2["人纠偏<br/>纠错逐条记下"]
+        T3{"双跑迭代<br/>写完就跑 · 跑了再改<br/>第一版必然不准"}
+    end
+    subgraph lane-book["SKILL.md 手册"]
+        B1["gotchas 入册<br/>「不用库X会踩坑」<br/>含金量最高"]
+        B2["精简成册<br/>模型已会的 一个字不写<br/>取舍心法"]
+    end
+    T2 -->|纠偏上册| B1
+    B1 -->|写完就跑| T3
+    T3 -->|跑了再改| B2
+    B2 -.->|再跑一轮| T3

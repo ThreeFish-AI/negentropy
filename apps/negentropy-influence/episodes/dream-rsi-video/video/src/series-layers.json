@@ -1,0 +1,31 @@
+{
+ "seriesId": "self-evolution",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "经验",
+   "title": "上线之后，AI 才开始上学",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "自我进化",
+   "title": "AI 如何自己变强？",
+   "published": true
+  },
+  {
+   "index": 3,
+   "layer": "代码田野",
+   "title": "会写代码的 AI，开始给自己写代码",
+   "published": true
+  },
+  {
+   "index": 4,
+   "layer": "元探索",
+   "title": "翻旧账不花钱：AI 在梦里改章程",
+   "published": false
+  }
+ ],
+ "activeIndex": 4,
+ "next": null
+}

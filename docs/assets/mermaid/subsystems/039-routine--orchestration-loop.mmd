@@ -1,0 +1,50 @@
+%% source: docs/concepts/subsystems/039-the-routine-system.md §6.2 职责分工（块#5，L269-L311）
+%% slug: subsystems/039-routine--orchestration-loop
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #5
+%% fix: 工作分支名以代码为准——workspace.py::_stable_work_branch 铸确定性名 routine/<sanitize(key)>-<id8>（routine.id 前 8 位 hex，跨重启不变）；源图 routine/<key>-<ts> 时间戳名仅存量兼容（_stable_work_branch docstring「含存量时间戳分支名」）
+%% fix: FINALIZE prompt 实际命令为 git push -u origin <work_branch> + gh pr create --base <归一基线>（normalize_base_branch 剥离 origin/ 前缀）；源图命令方向正确、未体现基线归一
+%% fix: PR_URL 捕获发生在引擎评估路径（orchestrator 评估段 phase_mod.extract_pr_url(latest.summary)，sentinel PR_URL= 优先、裸 github PR 链兜底），非 CC 自报节点
+%% fix: 重绘将「PR --> REAP」校正为「捕获 succeeded --> 终态回收」——_reap_workspaces 按终态 status（succeeded/failed/cancelled）批量扫描回收，触发源是引擎终态判定（orchestrator L441-481）而非 PR 产物本身；PR 为交付叶子节点
+%% fix: 重绘把 PP/BB 归并为单节点「任务定义」（start 守卫本就将 cwd+baseline_branch 作为同一前置校验组），④ 交付并入 ③ CC 相邻列（gh pr create 由 CC FINALIZE 执行）
+flowchart TD
+    subgraph DEF["① 任务定义（用户）"]
+        PP["Project Path<br/>cwd = git 仓库根"]
+        BB["Baseline Branch<br/>如 origin/feature/1.x.x"]
+    end
+
+    subgraph ENG["② 引擎：确定性编排（机制）"]
+        EW["ensure_worktree<br/>git worktree add -b routine/&lt;key&gt;-&lt;ts&gt; &lt;基线&gt;"]
+        EV["evaluate + decide<br/>LLM-as-Judge + 命令门控"]
+        CAP["捕获 PR_URL + 校验/重试"]
+        REAP["终态回收 worktree<br/>worktree_cleanup 策略"]
+    end
+
+    subgraph EXE["③ Claude Code：在隔离 worktree 内执行（策略）"]
+        IMPL["IMPLEMENT：改代码 + 提交"]
+        FIN["FINALIZE：ruff/pytest → push 工作分支<br/>gh pr create --base 基线 --head 工作分支"]
+    end
+
+    subgraph OUT["④ 交付"]
+        PR["PR → 基线分支<br/>等待人工 Merge（绝不自动合并）"]
+    end
+
+    PP --> EW
+    BB --> EW
+    EW -->|"config.cwd = worktree"| IMPL
+    IMPL --> EV
+    EV -->|"未达标：注入反思续迭代"| IMPL
+    EV -->|"达标 → 进入 FINALIZE 相位"| FIN
+    FIN --> CAP
+    CAP -->|"捕获 PR_URL → succeeded"| PR
+    CAP -->|"未捕获：留 FINALIZE 下一 tick 重试"| FIN
+    PR --> REAP
+
+    classDef def fill:#1e3a5f,stroke:#4a90d9,color:#e8f0fe;
+    classDef eng fill:#3d2b56,stroke:#a07cc5,color:#f3e8ff;
+    classDef exe fill:#1f4d3a,stroke:#4caf80,color:#e6fff0;
+    classDef out fill:#5c3a1e,stroke:#d99e4a,color:#fff4e6;
+    class PP,BB def;
+    class EW,EV,CAP,REAP eng;
+    class IMPL,FIN exe;
+    class PR out;

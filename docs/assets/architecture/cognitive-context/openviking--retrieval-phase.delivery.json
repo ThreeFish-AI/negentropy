@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "cf2797a0-309e-4a89-8731-e80fdf3685f8",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--retrieval-phase-20261022-003214/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html",
+  "specification": {
+    "sha256": "2c2f1468042e4d6200dbf79d7bd3ac9117190e47f3fcb9f7028f9319be37b7c4",
+    "bytes": 7720
+  },
+  "artifact": {
+    "sha256": "74e96c3327a3bc9ca15360721f4f0a3b857e3d952d743b666309f64b0d522ba9",
+    "bytes": 768866
+  }
+}

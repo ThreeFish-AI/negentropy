@@ -4,12 +4,12 @@
  *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
  *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
  *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
- *  （复制适配、不做跨集 import——复用边界见 pipeline/README.md §四）。
+ *  （复制适配、不做跨集 import——复用边界见 references/PIPELINE.md §四）。
  *
  *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
  *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
  *  需要时从 claude-code-explained-video 的 motifs.tsx 复制对应段落后裁剪、
- *  追加到本文件；母题目录与适用场景见 pipeline/skills/06 的母题表。
+ *  追加到本文件；母题目录与适用场景见 references/08 的母题表。
  */
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -37,7 +37,7 @@ export const Panel: React.FC<{
   </div>
 );
 
-/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，skills/06 红线二） */
+/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，references/08 红线二） */
 export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = ({
   children,
   delay = 0,
@@ -66,8 +66,11 @@ export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = (
   );
 };
 
-/** 幕标题条：左上角章号 + 标语（角标性质，不进口播）。章号默认 text，
- *  各集常换成本集概念色（ep1 即是 core）——这是 chrome 层少数的「随集演进」点 */
+/** 幕标题条：章号 + 标语（角标性质，不进口播）。章号默认 text，
+ *  各集常换成本集概念色（ep1 即是 core）——这是 chrome 层少数的「随集演进」点。
+ *  本集定位：左上、常驻系列条（y64..98）之下一行（top:112）——右上角让位给
+ *  LodgeMap 缩略坐标装置（本集常驻件）；tagline 控制在 8 字内，右缘 <300，
+ *  与 archify 全屏画框（左缘 311、顶 150）零碰撞。 */
 export const SceneTag: React.FC<{
   chapter: string;
   tagline: string;
@@ -76,7 +79,7 @@ export const SceneTag: React.FC<{
   const frame = useCurrentFrame();
   const o = interpolate(frame, [6, 24], [0, 1], {extrapolateRight: 'clamp'});
   return (
-    <div style={{position: 'absolute', left: 72, top: 64, opacity: o}}>
+    <div style={{position: 'absolute', left: 72, top: 112, opacity: o}}>
       <div
         style={{
           fontFamily: theme.mono,
@@ -242,20 +245,192 @@ export const NumberedCard: React.FC<{
   );
 };
 
-// ─────────────────────────────────────────────────────────── 本集创作母题
-// 六母题（script/planning.md §三）：RingHerd / TaskBoard / Mailboxes /
-// HandshakeRail / SeparateDesks / FullTurn。环形母题自系列首集
-// claude-code-explained-video 的 motifs.tsx 复制裁剪——复用边界：不做跨集
-// import（pipeline/README §四），本集副本自由演进。
-//
-// ★ LoopRing 双色不变量：strokeWidth 恒为 RING_STROKE（6 绝对像素，不随
-//   size 缩放）；领队环恒 core、队友环恒 peer——**N 个队友绝不 N 色**，
-//   靠铭牌与位置区分（反枚举最难考验）。节点文案恒
-//   问模型 / 看回答 / 执行工具 / 填回结果；size < 260 时标签自动关闭
-//   （0°/180° 两侧标签会在小尺寸下互相压字——系列首集实测教训）。
+// ─────────────────────────────────────────────────────────── 本集母题
 
+/** 走廊环线宽（绝对像素，全片恒定，勿随 size 缩放——〔M-001〕） */
 export const RING_STROKE = 6;
 
+/** 楼体母题面色（P0/P6 楼体共用——跨幕同色须共享常量防漂移；
+ *  母题装饰底色不占语义槽，storyboard 视觉契约「母题装饰底」行登记） */
+export const LODGE_INK = '#10151d';
+
+/** 环形走廊母题（〔M-001〕恒定视觉锚）：core 橙描边 + 绝对线宽 6px 全片锁定，
+ *  只换 size / 描画进度 / 辉光强度——「走廊始终不变」靠它被看见而非被听说。
+ *  自 ep1 LoopRing 的描边纪律裁剪：不带节点、不带出口线；描画走 pathLength
+ *  归一化（红线三：不与像素 dasharray 混用）；辉光是低透明宽描边的静态叠加
+ *  （effects 不吃弹簧），强度由调用方经 glow 注入（如 useBreathe 输出）。 */
+export const CorridorRing: React.FC<{
+  size?: number;
+  /** 0..1 描线进度（缺省 1 = 已成环） */
+  draw?: number;
+  /** 0..1 辉光强度（外圈低透明宽描边） */
+  glow?: number;
+  /** 整体透明度（缩略档压暗用） */
+  opacity?: number;
+}> = ({size = 300, draw = 1, glow = 0, opacity = 1}) => {
+  const pad = RING_STROKE / 2 + 8; // 描边半宽 + 呼吸辉光余量
+  const r = size / 2 - pad;
+  const cx = size / 2;
+  const d = Math.max(0, Math.min(1, draw));
+  return (
+    <svg width={size} height={size} style={{overflow: 'visible', opacity}}>
+      {/* 呼吸辉光：主环下的低透明宽描边（颜色同主环——恒色纪律） */}
+      {glow > 0 ? (
+        <circle
+          cx={cx}
+          cy={cx}
+          r={r}
+          fill="none"
+          stroke={theme.concept}
+          strokeWidth={RING_STROKE * 2.6}
+          strokeLinecap="round"
+          opacity={0.16 * glow}
+        />
+      ) : null}
+      <circle
+        cx={cx}
+        cy={cx}
+        r={r}
+        fill="none"
+        stroke={theme.concept}
+        strokeWidth={RING_STROKE}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - d}
+        transform={`rotate(-90 ${cx} ${cx})`}
+      />
+    </svg>
+  );
+};
+
+/** 七件设施缩略坐标（楼体剖面常驻件）：上层房带（mechDeep 深赭）＋中层走廊环
+ *  （core 橙缩略，描边恒 6px——〔M-001〕的缩小身位）＋下层五设施格。
+ *  active 高亮当前幕设施、压暗其余；corridorHidden 把走廊位留成「?」（0-C 预告态：
+ *  第七件未揭晓）。尺寸 ≤240×150，调用方放右上角（y≥56，不入字幕带）。 */
+export type LodgeFacility = 'wall' | 'slot' | 'ledger' | 'clock' | 'socket' | 'rooms' | 'corridor';
+
+const LODGE_CELLS: {key: LodgeFacility; label: string}[] = [
+  {key: 'wall', label: '墙'},
+  {key: 'slot', label: '口'},
+  {key: 'ledger', label: '簿'},
+  {key: 'clock', label: '钟'},
+  {key: 'socket', label: '座'},
+];
+
+export const LodgeMap: React.FC<{
+  active: LodgeFacility | null;
+  /** 第七位留「?」：走廊环压暗 + 问号（0-C 章毕预告态） */
+  corridorHidden?: boolean;
+  opacity?: number;
+}> = ({active, corridorHidden = false, opacity = 1}) => {
+  const W = 220;
+  const H = 140;
+  const ringOn = active === 'corridor';
+  return (
+    <svg width={W} height={H} style={{opacity, overflow: 'visible'}}>
+      {/* 上层房带（私人层——深赭仅装饰线） */}
+      <rect
+        x={10}
+        y={8}
+        width={200}
+        height={34}
+        rx={5}
+        fill="none"
+        stroke={active === 'rooms' ? theme.mechDeep : theme.panelBorder}
+        strokeWidth={active === 'rooms' ? 2.5 : 1.5}
+        opacity={active === null || active === 'rooms' ? 1 : 0.45}
+      />
+      {[0, 1, 2].map((i) => (
+        <line
+          key={i}
+          x1={60 + i * 50}
+          y1={12}
+          x2={60 + i * 50}
+          y2={38}
+          stroke={theme.panelBorder}
+          strokeWidth={1}
+          opacity={active === 'rooms' ? 0.9 : 0.4}
+        />
+      ))}
+      <text
+        x={16}
+        y={29}
+        fontFamily={theme.sans}
+        fontSize={12}
+        fill={active === 'rooms' ? theme.text : theme.dim}
+        opacity={active === 'rooms' ? 1 : 0.55}
+      >
+        {'房'}
+      </text>
+      {/* 中层走廊环（core 橙缩略——描边恒 6px〔M-001〕；预告态压暗留「?」） */}
+      {corridorHidden ? (
+        <>
+          <circle cx={110} cy={57} r={11} fill="none" stroke={theme.panelBorder} strokeWidth={RING_STROKE} opacity={0.5} />
+          <text
+            x={110}
+            y={63}
+            textAnchor="middle"
+            fontFamily={theme.mono}
+            fontSize={15}
+            fill={theme.dim}
+          >
+            {'?'}
+          </text>
+        </>
+      ) : (
+        <g opacity={active === null || ringOn ? 1 : 0.45}>
+          <circle
+            cx={110}
+            cy={57}
+            r={11}
+            fill="none"
+            stroke={theme.concept}
+            strokeWidth={RING_STROKE}
+          />
+        </g>
+      )}
+      {/* 下层五设施格（公共层——赭金激活才染色，反枚举） */}
+      {LODGE_CELLS.map((c, i) => {
+        const on = active === c.key;
+        const x = 12 + i * 40;
+        return (
+          <g key={c.key} opacity={active === null || on ? 1 : 0.4}>
+            <rect
+              x={x}
+              y={80}
+              width={34}
+              height={46}
+              rx={4}
+              fill={on ? `${theme.accent}1F` : 'none'}
+              stroke={on ? theme.accent : theme.panelBorder}
+              strokeWidth={on ? 2.5 : 1.5}
+            />
+            <text
+              x={x + 17}
+              y={108}
+              textAnchor="middle"
+              fontFamily={theme.sans}
+              fontSize={15}
+              fontWeight={on ? 700 : 400}
+              fill={on ? theme.accent : theme.dim}
+            >
+              {c.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+export {ease};
+
+// ─────────────────────────────────────────────────────── 系列片头用 LoopRing
+// 自系列种子移植（主干 #1190，origin/feature/1.x.x 同文件「母题 2」段原样）：
+// series-intro.tsx（五集孪生副本，本轮入库未挂载）import 本母题，tsc 全量编译
+// 需要它在场；本集正片使用 CorridorRing（楼喻裁剪版），两者并存互不干扰。
+// 片头挂载与逐集裁剪留待下轮重制（vibe-video.toml drift 条同注）。
 export type RingNode = {label: string; angle: number};
 
 /** 环上四个节点的固定角度（12 点起顺时针）——各幕一致，位置即语义 */
@@ -266,58 +441,50 @@ export const RING_NODES: RingNode[] = [
   {label: '填回结果', angle: 180},
 ];
 
-export const polar = (cx: number, cy: number, r: number, deg: number) => {
+const polar = (cx: number, cy: number, r: number, deg: number) => {
   const rad = (deg * Math.PI) / 180;
   return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
 };
 
-/** 帧驱动的 0→1 段进度（起 start、长 dur 帧，两端 clamp；dur 下限 1 防退化区间） */
-export const phase = (frame: number, start: number, dur: number): number =>
-  interpolate(frame - start, [0, Math.max(1, dur)], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-
-/** 二次贝塞尔取点（消息飞行弧线 / 解锁波光点共用的轨迹数学） */
-export const qBezier = (
-  p0: {x: number; y: number},
-  c: {x: number; y: number},
-  p1: {x: number; y: number},
-  t: number,
-) => ({
-  x: (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * c.x + t * t * p1.x,
-  y: (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * c.y + t * t * p1.y,
-});
-
-/** 全片恒定的环形循环（本集双色：领队 core / 队友 peer，线宽与节点恒定） */
+/**
+ * 全片恒定的环形循环。
+ * - `draw` 0→1 描线进度；`dotProgress` 光点沿环位置（0–1，undefined 则不显示）
+ * - `activeNode` 高亮某节点（石青脉冲）；`exitPull` 光点滑出到「停机」出口的比例
+ * - `nodeLabels` 覆写节点文案（P5 执行节点翻牌用）
+ */
 export const LoopRing: React.FC<{
   size?: number;
   draw?: number;
   dotProgress?: number;
   activeNode?: number;
+  exitPull?: number;
   dimNodes?: boolean;
-  /** 领队 core（默认）/ 队友 peer——双色不变量仅此一处开关 */
-  tone?: 'core' | 'peer';
+  nodeLabels?: string[];
+  showExit?: boolean;
+  /** 节点文案。size < 260 时必须关掉——0°/180° 两侧的标签会在小尺寸下互相压字 */
   showLabels?: boolean;
 }> = ({
   size = 460,
   draw = 1,
   dotProgress,
   activeNode,
+  exitPull = 0,
   dimNodes = false,
-  tone = 'core',
+  nodeLabels,
+  showExit = true,
   showLabels,
 }) => {
   const labelsOn = showLabels ?? size >= 260;
   const frame = useCurrentFrame();
-  const color = tone === 'peer' ? theme.peer : theme.core;
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 46;
   const pulse = 0.55 + 0.45 * Math.sin(frame / 5);
 
-  const dot =
-    dotProgress === undefined ? null : polar(cx, cy, r, -90 + dotProgress * 360);
+  // 光点位置：沿环 + 可选地向右侧「停机」出口外拉
+  const dot = dotProgress === undefined ? null : polar(cx, cy, r, -90 + dotProgress * 360);
+  const exitX = dot ? dot.x + exitPull * (size - cx + 90) : 0;
+  const exitY = dot ? dot.y + exitPull * -18 : 0;
 
   return (
     <svg width={size} height={size} style={{overflow: 'visible'}}>
@@ -327,7 +494,7 @@ export const LoopRing: React.FC<{
         cy={cy}
         r={r}
         fill="none"
-        stroke={color}
+        stroke={theme.core}
         strokeWidth={RING_STROKE}
         strokeLinecap="round"
         pathLength={1}
@@ -335,6 +502,18 @@ export const LoopRing: React.FC<{
         strokeDashoffset={1 - Math.max(0, Math.min(1, draw))}
         transform={`rotate(-90 ${cx} ${cy})`}
       />
+      {showExit ? (
+        <line
+          x1={cx + r}
+          y1={cy}
+          x2={cx + r + 78}
+          y2={cy - 14}
+          stroke={theme.core}
+          strokeWidth={RING_STROKE - 2}
+          strokeDasharray="8 8"
+          opacity={0.5 * draw}
+        />
+      ) : null}
       {RING_NODES.map((n, i) => {
         const p = polar(cx, cy, r, n.angle);
         const on = activeNode === i;
@@ -346,7 +525,7 @@ export const LoopRing: React.FC<{
               cy={p.y}
               r={on ? 16 + 5 * pulse : 13}
               fill={theme.bg}
-              stroke={on ? theme.mech : color}
+              stroke={on ? theme.mech : theme.core}
               strokeWidth={4}
               opacity={dimNodes && !on ? 0.4 : 1}
             />
@@ -361,83 +540,28 @@ export const LoopRing: React.FC<{
                 fontWeight={600}
                 fill={on ? theme.mech : dimNodes ? theme.dim : theme.text}
               >
-                {n.label}
+                {nodeLabels?.[i] ?? n.label}
               </text>
             ) : null}
           </g>
         );
       })}
-      {dot ? <circle cx={dot.x} cy={dot.y} r={11} fill={color} /> : null}
+      {dot ? (
+        <circle
+          cx={exitPull > 0 ? exitX : dot.x}
+          cy={exitPull > 0 ? exitY : dot.y}
+          r={11}
+          fill={theme.core}
+          opacity={exitPull > 0.9 ? 0.5 : 1}
+        />
+      ) : null}
     </svg>
   );
 };
 
-/** 环的匀速巡游进度（周期 secPerLap 秒），供各幕共用系列首集同一节律 */
+/** 环的匀速巡游进度（周期 secPerLap 秒），供各幕共用同一节律 */
 export const useRingDot = (secPerLap = 2.5, offset = 0) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   return ((frame - offset) / (fps * secPerLap)) % 1;
 };
-
-/** 铭牌（铭牌/标签牌）：N 个队友绝不 N 色的区分装置——peer 色边、mono 字 */
-export const NamePlate: React.FC<{
-  name: string;
-  sub?: string;
-  tone?: 'core' | 'peer' | 'mech';
-  style?: React.CSSProperties;
-}> = ({name, sub, tone = 'peer', style}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const drop = spring({frame, fps, config: {damping: 200}});
-  const color = tone === 'core' ? theme.core : tone === 'mech' ? theme.mech : theme.peer;
-  return (
-    <div
-      style={{
-        display: 'inline-flex',
-        alignItems: 'baseline',
-        gap: 8,
-        padding: '5px 14px',
-        background: theme.panel,
-        border: `2px solid ${color}`,
-        borderRadius: 8,
-        fontFamily: theme.mono,
-        fontSize: 22,
-        color,
-        opacity: drop,
-        transform: `translateY(${(1 - drop) * -16}px)`,
-        whiteSpace: 'nowrap',
-        ...style,
-      }}
-    >
-      {name}
-      {sub ? (
-        <span style={{fontSize: 17, color: theme.dim, fontFamily: theme.sans}}>{sub}</span>
-      ) : null}
-    </div>
-  );
-};
-
-/** 队友：peer 环 + 下方铭牌（RingHerd 的成员单元；全部同色同宽同节点） */
-export const Teammate: React.FC<{name: string; size?: number; dot?: boolean; dim?: boolean}> = ({
-  name,
-  size = 220,
-  dot = true,
-  dim = false,
-}) => {
-  const dotP = useRingDot(2.5);
-  return (
-    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10}}>
-      <LoopRing
-        size={size}
-        draw={1}
-        dotProgress={dot ? dotP : undefined}
-        tone="peer"
-        dimNodes={dim}
-        showLabels={false}
-      />
-      <NamePlate name={name} />
-    </div>
-  );
-};
-
-export {ease};

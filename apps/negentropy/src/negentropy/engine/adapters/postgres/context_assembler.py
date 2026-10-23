@@ -11,7 +11,8 @@ Token 预算分配策略（借鉴 Claude Code POST_COMPACT_TOKEN_BUDGET）：
 
 参考文献:
 [1] Claude Code compact.ts — POST_COMPACT_TOKEN_BUDGET 分配策略
-[2] shareAI-lab learn-claude-code s06 — 三层压缩管线
+[2] shareAI-lab learn-claude-code 根级 s08_context_compact — 四步压缩管线
+    （旧 12 课轨 agents/s06 三层版的现行形态；精读见 agent-harness/173）
 [4] Edge et al., 2024 — From local to global: A graph RAG approach to query-focused summarization
 [5] Guo et al., 2024 — LightRAG: Simple and fast retrieval-augmented generation
 """

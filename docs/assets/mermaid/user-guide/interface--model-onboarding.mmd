@@ -1,0 +1,25 @@
+%% source: docs/concepts/user-guide/interface.md#L156
+%% slug: user-guide/interface--model-onboarding
+%% type: workflow
+%% derived: docs/assets/architecture/user-guide/interface--model-onboarding.html
+%% fix: 凭证与 Ping 上提为供应商级（vendor-config，全模型共享），非单模型创建链路上的两步
+%% fix: Ping 失败回退指向凭证输入而非模型表单；Ping 非保存前置门
+%% fix: 「Temperature」代码中零命中，拆为 Dimensions（embedding 必填）与 Extra Config JSON
+%% fix: 补 admin 守卫前置与 Test Embedding 旁路
+flowchart TD
+    Guard["🔐 admin 守卫<br/>非 admin 重定向"] --> Vendor["选择供应商<br/>OpenAI / Anthropic / Gemini"]
+    Vendor --> Cred["供应商凭证<br/>API Key + Base URL"]
+    Cred --> Ping["📡 Test Connectivity<br/>Ping / Test Embedding"]
+    Ping -->|"失败"| Cred
+    Ping -->|"成功 (显示延迟)"| SaveVendor["💾 保存供应商配置"]
+    SaveVendor --> Add["➕ Add Model<br/>登记模型"]
+    Add --> Type["Model Type<br/>LLM / Embedding / Rerank"]
+    Type --> Form["Display Name + Model Name<br/>Dimensions / Extra Config JSON"]
+    Form --> Flags["⭐ Set as default<br/>Enabled"]
+    Flags --> Save["💾 保存模型配置"]
+
+    classDef proc fill:#FEF3C7,stroke:#92400E,color:#000
+    classDef ok fill:#D1FAE5,stroke:#065F46,color:#000
+
+    class Guard,Vendor,Cred,Add,Type,Form,Flags proc
+    class Ping,SaveVendor,Save ok

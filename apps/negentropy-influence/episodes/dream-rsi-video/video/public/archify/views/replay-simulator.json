@@ -1,0 +1,7 @@
+[
+ {"id":"visible","label":"只看已见的部分","focus":["obs","elig"],"note":"策略只能看已揭示子树，未揭示分数不可见。"},
+ {"id":"freedom","label":"批次即全部自由度","focus":["elig","batch"],"note":"从根与已见叶子中选一批，同时定方向与并行数。"},
+ {"id":"root-rule","label":"选根：按建档序开枝","focus":["batch","rootpick"],"note":"选根只揭示最早创建的未揭示根子节点——开哪条新分支不可选。"},
+ {"id":"chain-rule","label":"选叶：唯一记录后继","focus":["batch","chain"],"note":"选非根节点只翻开它唯一记录过的下一步。"},
+ {"id":"score-out","label":"长大、终止、计分","focus":["newview","term","v"],"note":"已见子树长大，三条件终止后按 V 三分量计分。"}
+]

@@ -1,0 +1,38 @@
+[
+ {
+  "id": "lifespan-split",
+  "label": "两层寿命分岔",
+  "focus": ["label-track", "manual-track"],
+  "note": "两层还牵出一个后果：标签与手册的寿命不同，去向分岔。"
+ },
+ {
+  "id": "manual-in-history",
+  "label": "手册随历史走",
+  "focus": ["tool-result", "history-flow"],
+  "note": "手册是作为一次工具结果进对话的，跟着历史一起往后走。"
+ },
+ {
+  "id": "compact-sweeps",
+  "label": "清台时逃不掉",
+  "focus": ["compact-wave", "manual"],
+  "note": "台面吃紧、要清的时候，手册逃不掉——它在被清之列。"
+ },
+ {
+  "id": "label-stays",
+  "label": "标签每轮都在",
+  "focus": ["labels-strip", "system-prompt"],
+  "note": "标签印在垫纸上，每轮开工都在。"
+ },
+ {
+  "id": "re-paste-budget",
+  "label": "重贴留头有封顶",
+  "focus": ["re-paste", "cap-mark"],
+  "note": "官方配套的数：清完重贴用过的技能，每本留开头一段、合计封顶。"
+ },
+ {
+  "id": "pair-not-either",
+  "label": "配套不是二选一",
+  "focus": ["load-on-demand", "cleanup", "pair-bond"],
+  "note": "按需加载与及时清理得配着用，不是二选一。"
+ }
+]

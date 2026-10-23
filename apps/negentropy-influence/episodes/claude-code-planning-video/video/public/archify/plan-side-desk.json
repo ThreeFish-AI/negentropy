@@ -1,0 +1,136 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 19.59,
+ "total_wall_sec": 323.14,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "three-borders",
+   "label": "三条边界划清",
+   "index": 0,
+   "file": "plan-side-desk--three-borders.mp4",
+   "end_still": "plan-side-desk--three-borders-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206
+   ],
+   "beat_nodes": [
+    "side-desk",
+    "main-desk",
+    "border-frame"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 34.0
+  },
+  {
+   "id": "border-world",
+   "label": "隔对话不隔世界",
+   "index": 1,
+   "file": "plan-side-desk--border-world.mp4",
+   "end_still": "plan-side-desk--border-world-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.206
+   ],
+   "beat_nodes": [
+    "shared-workdir",
+    "file-lands",
+    "cmd-lands"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 34.0
+  },
+  {
+   "id": "border-gate",
+   "label": "隔台面不隔门禁",
+   "index": 2,
+   "file": "plan-side-desk--border-gate.mp4",
+   "end_still": "plan-side-desk--border-gate-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.32,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.207
+   ],
+   "beat_nodes": [
+    "gate",
+    "tool-call",
+    "deny-reason"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "no-sub-desk",
+   "label": "副台无副台工具",
+   "index": 3,
+   "file": "plan-side-desk--no-sub-desk.mp4",
+   "end_still": "plan-side-desk--no-sub-desk-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.36,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.205
+   ],
+   "beat_nodes": [
+    "side-desk",
+    "tool-belt",
+    "no-task-slot"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "recursion-capability",
+   "label": "能力里防递归",
+   "index": 4,
+   "file": "plan-side-desk--recursion-capability.mp4",
+   "end_still": "plan-side-desk--recursion-capability-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "tool-belt",
+    "capability-note"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--plan-side-desk.html",
+ "slug": "plan-side-desk",
+ "type": "architecture"
+}

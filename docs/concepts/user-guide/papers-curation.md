@@ -20,30 +20,9 @@ PDF 解析、chunk、embedding、KB 写入均**复用现有 `KnowledgeService.in
 
 ## 主流程（MVP）
 
-```mermaid
-sequenceDiagram
-  participant U as 用户
-  participant Home as Home 对话
-  participant P as PerceptionFaculty
-  participant I as InternalizationFaculty
-  participant KS as KnowledgeService
-  participant KB as 知识库（agent-papers Corpus）
+![论文自动采集主流程时序图：用户在 Home 对话发起检索，感知系部经 search_papers 返回论文列表，确认后内化系部逐篇调用 ingest_paper 并触发审批门，通过后由知识服务解析、切分、向量化写入 agent-papers 知识库并回执入库结果。](../../assets/architecture/user-guide/papers-curation--sequence-dark.png)
 
-  U->>Home: "找 5 篇 LLM Agent Memory 最新论文"
-  Home->>P: search_papers(query, top_k=5, since_days=30)
-  Note over P: 推送 tool_progress（5%→100%，C3 进度条）
-  P->>U: 返回 papers list（title/abstract/pdf_url/...）
-  U->>Home: "把这 5 篇都入库"
-  loop 每篇论文
-    Home->>I: ingest_paper(arxiv_id, pdf_url, title)
-    Note over I: 推送 tool_progress
-    I->>KS: ingest_url(corpus=agent-papers, url=pdf_url, metadata)
-    KS->>KB: PDF 解析 + chunk + embed + 写入
-    KS-->>I: 返回 record_count
-    I-->>Home: { status, record_count, knowledge_ids }
-  end
-  Home-->>U: 入库完成提示卡片
-```
+> 图源（可 diff 文本）：[`papers-curation--sequence.mmd`](../../assets/mermaid/user-guide/papers-curation--sequence.mmd) · 交互版（下载到本地打开）：[`papers-curation--sequence.html`](../../assets/architecture/user-guide/papers-curation--sequence.html)
 
 ## 5 分钟上手
 

@@ -1,0 +1,46 @@
+[
+ {
+  "id": "main",
+  "label": "同步落盘",
+  "focus": [
+   "req",
+   "parse_tb",
+   "agfs"
+  ],
+  "note": "解析与落盘：无 LLM、立即可读。"
+ },
+ {
+  "id": "queue",
+  "label": "语义队列",
+  "focus": [
+   "semq"
+  ],
+  "note": "异步边界：慢工细活从这里开始。"
+ },
+ {
+  "id": "summarize",
+  "label": "编目",
+  "focus": [
+   "fsum",
+   "dirl0"
+  ],
+  "note": "文件简介→导览→裁出标签。"
+ },
+ {
+  "id": "index",
+  "label": "向量化",
+  "focus": [
+   "embq"
+  ],
+  "note": "嵌入完成才可检索。"
+ },
+ {
+  "id": "bubble",
+  "label": "冒泡",
+  "focus": [
+   "bubble",
+   "noop"
+  ],
+  "note": "标签变了才上报父级。"
+ }
+]

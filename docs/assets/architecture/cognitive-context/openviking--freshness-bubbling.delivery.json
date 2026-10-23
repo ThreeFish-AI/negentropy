@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2ce5e3c8-7e3a-4cbe-899c-2cd55d87ff1c",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--freshness-bubbling/openviking--freshness-bubbling.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.html",
+  "specification": {
+    "sha256": "847b899fbf71b0eb824ba14165f44df3ecd5c9e10ad9db59c35ece71c60d8c2c",
+    "bytes": 2587
+  },
+  "artifact": {
+    "sha256": "3cec7143cdc06dc06ac79e8b0fb2b8fdcb5c5e552528876be51af65167b574cb",
+    "bytes": 754006
+  }
+}

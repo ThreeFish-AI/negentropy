@@ -7,7 +7,6 @@ Wiki 发布 — 数据访问层 (DAO)
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC
 from typing import Any
 from uuid import UUID
@@ -17,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from negentropy.logging import get_logger
 from negentropy.models.perception import (
     DocSource,
     KnowledgeDocument,
@@ -27,13 +27,13 @@ from negentropy.models.perception import (
     WikiPublicationSnapshot,
 )
 
-logger = logging.getLogger(__name__.rsplit(".", 1)[0])
+logger = get_logger(__name__)
 
 
 class WikiDao:
     """Wiki 发布数据访问对象
 
-    async 懒加载契约（详见 ISSUE-010 三阶）：所有返回 ``WikiPublication`` ORM
+    async 懒加载契约（详见 I-010 三阶）：所有返回 ``WikiPublication`` ORM
     对象的查询必须挂 ``selectinload(WikiPublication.entries)``，否则 handler /
     序列化路径（如 ``len(pub.entries)``）首次属性访问会触发
     ``sqlalchemy.exc.MissingGreenlet``。新增方法或新增 handler 若需访问
@@ -93,7 +93,7 @@ class WikiDao:
         """按 catalog + slug 获取发布记录（eager-load entries 以兼容 async 序列化）
 
         当前虽无调用方，但与 ``get_publication`` / ``list_publications`` 同构，
-        预先满足类级 async 懒加载契约，避免未来 handler 调用时复现 ISSUE-010 三阶。
+        预先满足类级 async 懒加载契约，避免未来 handler 调用时复现 I-010 三阶。
         """
         result = await db.execute(
             select(WikiPublication)

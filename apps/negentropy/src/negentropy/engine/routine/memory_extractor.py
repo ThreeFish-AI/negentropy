@@ -456,7 +456,7 @@ class IterationMemoryExtractor:
     @staticmethod
     def _parse_response(content: str) -> list[ExtractedMemory]:
         """解析 LLM JSON 响应为 ExtractedMemory 列表。"""
-        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（ISSUE-127）。
+        # 容错解析：剥离强模型（如 claude-sonnet-4-6）的 ```json 围栏后再 loads（I-127）。
         data = loads_lenient(content)
         if not isinstance(data, dict):
             logger.warning("routine_memory_response_not_json", content_preview=(content or "")[:200])

@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 
 from negentropy.engine.routine.trajectory import score_trajectory
+from negentropy.timeutil import utcnow
 
 
 class _RoutineLike(Protocol):
@@ -69,16 +70,12 @@ class Decision:
         return self.action == "terminate"
 
 
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
-
-
 def pre_dispatch_check(routine: _RoutineLike, *, now: datetime | None = None) -> Decision:
     """派发新迭代前的预算守卫。
 
     在创建下一个迭代之前调用：若任一硬上限已触达，返回 terminate 阻止继续派发。
     """
-    now = now or _utcnow()
+    now = now or utcnow()
 
     if routine.max_iterations is not None and routine.iteration_count >= routine.max_iterations:
         return Decision("terminate", REASON_MAX_ITERATIONS)
@@ -133,7 +130,7 @@ def decide(
         oscillation_min_amplitude: 量化振荡判定的最小振幅阈值（opt-in）。默认 0 = 关闭，仅保留原
             verdict 交替判定（``progressing↔regressed`` 反转）。>0 时追加一条**与 verdict 无关**的量化
             分支：近 6 轮净增长≤0、振幅≥阈值、方向反转≥3 次即判振荡——修复原判定因 ``stalled`` 被过滤
-            致漏检的 thrash。⚠️ 与 ``no_progress_score_tolerance`` 存在张力：ISSUE-128 真实轨迹
+            致漏检的 thrash。⚠️ 与 ``no_progress_score_tolerance`` 存在张力：I-128 真实轨迹
             （72→84→62→72→42→72）会被任何合理量化阈值命中，而它正是容差带刚救回的任务——故**默认关闭、
             巡检不启用**，定位为「Judge 锚定降振荡后仍剧烈 thrash 的兜底护栏」，待锚定收窄方差后再
             per-routine 启用。经 ``config.oscillation_min_amplitude`` 注入。纯函数边界：不读 settings。
@@ -142,11 +139,11 @@ def decide(
         Decision。优先级：成功 > 不可恢复 > 预算/截止 > 停滞 > 振荡 > 继续。
         成功由「score 达阈值」OR「accept_verdict_pass 且 verdict=pass」触发（均需门控通过）。
     """
-    now = now or _utcnow()
+    now = now or utcnow()
 
     # 1) 成功：评分达标 OR（accept_verdict_pass 时）Judge 显式判 pass；均需门控通过（或无门控）。
     # pass 是 Judge 的权威完成裁决（"达到验收标准，可终止"）。门控检查置外层（gate∉{None,0} 时整块
-    # 跳过），保护 ISSUE-115「门控超时/失败≠门控通过」——对 pass 旁路同样适用，避免误判成功。
+    # 跳过），保护 I-115「门控超时/失败≠门控通过」——对 pass 旁路同样适用，避免误判成功。
     if latest.gate_exit_code in (None, 0):
         score_met = latest.score is not None and latest.score >= routine.success_score_threshold
         if score_met or (accept_verdict_pass and latest.verdict == "pass"):

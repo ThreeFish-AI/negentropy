@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f3dafde5-2acf-4c70-b0e4-7481109047d1",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/.archify/lifecycle-four-version-ledger-1836/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/claude-code--four-version-ledger.html",
+  "specification": {
+    "sha256": "b7646dace282c7b33596c2f2eeac78b1efbb1ed10656652b1a2b63877b211260",
+    "bytes": 5588
+  },
+  "artifact": {
+    "sha256": "ba2c6c7c8b3cc1f4a873508b9150ef57657940dfcbee49136fb9af312727c520",
+    "bytes": 841746
+  }
+}

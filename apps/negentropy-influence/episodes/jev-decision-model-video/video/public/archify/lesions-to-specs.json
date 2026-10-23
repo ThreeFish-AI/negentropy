@@ -1,0 +1,127 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 19.92,
+ "total_wall_sec": 64.53,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "ls-lesions",
+   "label": "四个病灶",
+   "index": 0,
+   "file": "lesions-to-specs--ls-lesions.mp4",
+   "end_still": "lesions-to-specs--ls-lesions-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.104,
+    2.208,
+    3.31
+   ],
+   "beat_nodes": [
+    "l1",
+    "l2",
+    "l3",
+    "l4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ls-specs",
+   "label": "四条硬要求",
+   "index": 1,
+   "file": "lesions-to-specs--ls-specs.mp4",
+   "end_still": "lesions-to-specs--ls-specs-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.42,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.206,
+    3.31
+   ],
+   "beat_nodes": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ls-rows12",
+   "label": "格与校准",
+   "index": 2,
+   "file": "lesions-to-specs--ls-rows12.mp4",
+   "end_still": "lesions-to-specs--ls-rows12-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 6.64,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.209,
+    3.312,
+    4.413,
+    5.517
+   ],
+   "beat_nodes": [
+    "l1",
+    "r1",
+    "m1",
+    "l2",
+    "r2",
+    "m2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "ls-mech",
+   "label": "四个机制",
+   "index": 3,
+   "file": "lesions-to-specs--ls-mech.mp4",
+   "end_still": "lesions-to-specs--ls-mech-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.44,
+   "beat_offsets_sec": [
+    0.0,
+    1.105,
+    2.208,
+    3.311
+   ],
+   "beat_nodes": [
+    "m1",
+    "m2",
+    "m3",
+    "m4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sao-paulo-v3/docs/assets/architecture/agent-infra/jev--lesions-to-specs.html",
+ "slug": "lesions-to-specs",
+ "type": "architecture"
+}

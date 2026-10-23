@@ -1,0 +1,52 @@
+[
+ {
+  "id": "dh-frozen",
+  "label": "左港冻结",
+  "focus": [
+   "n1",
+   "n2",
+   "n3",
+   "n4"
+  ],
+  "note": "HEAD 零提交第 49 天 · 48 PR 躺平"
+ },
+ {
+  "id": "dh-81",
+  "label": "右港航线",
+  "focus": [
+   "m1",
+   "m2"
+  ],
+  "note": "同期周更 · SEP-2640 否决到 Final"
+ },
+ {
+  "id": "dh-veto",
+  "label": "四理由否决",
+  "focus": [
+   "m2",
+   "m3"
+  ],
+  "note": "6-24 否：解压面·私有格式·混淆·脚本"
+ },
+ {
+  "id": "dh-final",
+  "label": "砍小定稿",
+  "focus": [
+   "m2",
+   "m3",
+   "m4"
+  ],
+  "note": "砍小先落地 · 八项重写 · 9-13 Final"
+ },
+ {
+  "id": "dh-bridge",
+  "label": "唯一的桥",
+  "focus": [
+   "bridge",
+   "n2",
+   "m1",
+   "customs"
+  ],
+  "note": "双仓维护者 · #546 八行 24 天零评论"
+ }
+]

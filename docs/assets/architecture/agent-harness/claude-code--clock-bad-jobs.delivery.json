@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "58fd3b25-0971-434a-9749-a7b676318679",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-clock-bad-jobs/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--clock-bad-jobs.html",
+  "specification": {
+    "sha256": "289a6182dd5357dfc01eeec830d71d87eb93d14bf15bff0f882c10f5e83caa19",
+    "bytes": 4712
+  },
+  "artifact": {
+    "sha256": "764889f39f2b4c90b9696645726c5e6ba9e081dcb98cb29a58e112b0cfaabc5c",
+    "bytes": 842958
+  }
+}

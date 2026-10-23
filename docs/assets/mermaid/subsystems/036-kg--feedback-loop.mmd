@@ -1,0 +1,41 @@
+%%source: docs/concepts/subsystems/036-the-knowledge-graph.md#block8
+%%slug: subsystems/036-kg--feedback-loop
+%%type: dataflow
+%%derived: docs/assets/architecture/subsystems/036-kg--feedback-loop.html
+%% fix: 「检索日志(Langfuse)」在代码中是双路——Langfuse 走 OTLP span（config/observability.py::langfuse_otlp_endpoint + instrumentation.py，需密钥否则 warn-and-continue），本地反馈落 negentropy.knowledge_feedback 表（models/perception.py:720，由 knowledge/retrieval/unified_search.py:485/495 写入）；archify 图拆为两个采集源。
+%% fix: 「评测查询集」的落地形态是 EvalSuite / EvalCase（models/eval_suite.py）+ SuiteRunner（engine/eval/runner.py），带 visible / holdout 切片；archify 图标注该口径。
+%% fix: 「向量 RAG vs Graph RAG」双臂自动对拍尚未落地——TARGET_KIND_KNOWLEDGE_RETRIEVAL 常量已声明，但 engine/eval/runner.py 的 executor 只覆盖 skill/agent/prompt/builtin_tool/kg，KgExecutor 自述「v1 非真实 KG 抽取」；archify 图以 dashed 标注规划态。
+%% fix: 「质量告警」当前是占位——knowledge/routes/pipelines.py:67 硬编码 alerts = []，PipelinesResponse.alerts 恒空；archify 图以 dashed + sublabel 标注占位。
+%%{init: {"themeVariables": {"primaryColor": "#0b3d91", "primaryTextColor": "#ffffff"}}}%%
+flowchart LR
+    subgraph Ingest["数据采集"]
+        Log["检索日志<br/>(Langfuse)"]
+        Query["评测查询集"]
+    end
+
+    subgraph Evaluate["评估"]
+        VectorRAG["向量 RAG<br/>(对照组)"]
+        GraphRAG["Graph RAG<br/>(实验组)"]
+        Judge["LLM-as-Judge<br/>评分"]
+    end
+
+    subgraph Report["报告"]
+        Metrics["指标仪表盘"]
+        Trend["趋势分析"]
+        Alert["质量告警"]
+    end
+
+    Log --> Evaluate
+    Query --> VectorRAG
+    Query --> GraphRAG
+    VectorRAG --> Judge
+    GraphRAG --> Judge
+    Judge --> Metrics --> Trend --> Alert
+
+    classDef ingest fill:#0b3d91,stroke:#0b3d91,color:#ffffff
+    classDef eval fill:#0f5132,stroke:#0f5132,color:#ffffff
+    classDef report fill:#842029,stroke:#842029,color:#ffffff
+
+    class Log,Query ingest
+    class VectorRAG,GraphRAG,Judge eval
+    class Metrics,Trend,Alert report

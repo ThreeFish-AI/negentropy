@@ -86,7 +86,7 @@ export function buildStateDeltaFromForwardedProps(
   }
   // 审批策略（ApprovalPolicySelector）—— 后端工具读 ``tool_context.state.approval_policy``
   // 决定是否触发审批门。仅合法 ``{mode: "always"|"per_tool"|"never"}`` 透传；非法值不写入
-  // （fail-soft，工具侧回退默认 per_tool）。修复 ISSUE-156：此前该字段被静默丢弃，
+  // （fail-soft，工具侧回退默认 per_tool）。修复 I-156：此前该字段被静默丢弃，
   // 导致前端选择器无效、用户即使选「never」仍被审批门拦截。
   if ("approval_policy" in forwardedProps) {
     const raw = forwardedProps.approval_policy;

@@ -124,8 +124,6 @@ class RelevanceSettings(BaseSettings):
     enabled: bool = Field(default=False, description="是否启用 Rocchio 相关性反馈闭环（默认关闭）")
     rocchio_beta: float = Field(default=0.75, ge=0.0, le=2.0, description="正反馈系数 β")
     rocchio_gamma: float = Field(default=0.15, ge=0.0, le=2.0, description="负反馈系数 γ")
-    prf_top_k: int = Field(default=3, ge=1, le=10, description="PRF 查询扩展取 top-K 结果")
-    prf_alpha: float = Field(default=0.7, ge=0.0, le=1.0, description="PRF 融合系数（越高越偏向原始查询）")
     feedback_min_count: int = Field(default=3, ge=1, description="最低反馈条数门槛")
     reweight_interval_seconds: int = Field(default=3600, ge=60, description="周期性反馈聚合间隔（秒）")
 

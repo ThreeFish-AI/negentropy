@@ -1,0 +1,23 @@
+[
+ {
+  "id": "single-point-bind",
+  "label": "单点×重算绑定",
+  "focus": [
+   "salesLead",
+   "finAnalyst",
+   "agentIntern",
+   "manual"
+  ],
+  "note": "规章手册把口径单点定义与查询期重算绑在了一起。"
+ },
+ {
+  "id": "whoever-asks",
+  "label": "谁来问都唯一",
+  "focus": [
+   "manual",
+   "recompute",
+   "singleAnswer"
+  ],
+  "note": "无论谁来问，翻到这一页，算出的就是唯一的正确答案。"
+ }
+]

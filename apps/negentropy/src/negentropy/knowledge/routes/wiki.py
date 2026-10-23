@@ -453,7 +453,7 @@ async def get_wiki_nav_tree(pub_id: UUID) -> WikiNavTreeResponse:
     """获取 Wiki 导航树结构
 
     供 SSG 构建时生成侧边栏导航。后端基于 ``entry_path``（Materialized Path）合成
-    嵌套树并以 ``{items: [...]}`` 信封返回（详见 ISSUE-017 四阶契约对齐）。
+    嵌套树并以 ``{items: [...]}`` 信封返回（详见 I-017 四阶契约对齐）。
     """
     wiki_svc = _get_wiki_service()
 

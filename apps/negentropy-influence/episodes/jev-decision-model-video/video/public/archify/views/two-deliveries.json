@@ -1,0 +1,42 @@
+[
+ {
+  "id": "td-old",
+  "label": "旧路·要人听写",
+  "focus": [
+   "state-in",
+   "llm-gen",
+   "parse-validate",
+   "switch-fall"
+  ],
+  "note": "自由文本：生成之后，解析校验兜底全住在代码里。"
+ },
+ {
+  "id": "td-new",
+  "label": "新路·只填格",
+  "focus": [
+   "state-in",
+   "judge-fill",
+   "answers",
+   "gate-branch"
+  ],
+  "note": "预报单：预印格进、概率表出，代码直接消费。"
+ },
+ {
+  "id": "td-shape",
+  "label": "形状保证",
+  "focus": [
+   "judge-fill",
+   "answers"
+  ],
+  "note": "越界 0/6 对 6/6：买到的是不越界，不是填对。"
+ },
+ {
+  "id": "td-consume",
+  "label": "代码消费",
+  "focus": [
+   "answers",
+   "gate-branch"
+  ],
+  "note": "概率与读数变成代码可分支的量。"
+ }
+]

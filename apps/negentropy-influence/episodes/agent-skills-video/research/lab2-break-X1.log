@@ -1,0 +1,2 @@
+[X1] 拆除 project>user 优先级（纯按扫描序解析）
+-> 客户端A(字典序) 与 客户端B(目录长度序) 同名不同版的技能 2 项：{'release-notes': ('project', 'user'), 'same-scope-dupe': ('project', 'project2')} —— 同一任务两家加载不同版本，行为跨客户端不可复现（identity 由扫描顺序决定）

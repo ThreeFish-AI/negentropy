@@ -1,0 +1,24 @@
+[
+ {
+  "id": "ts2-official",
+  "label": "官方示例仓",
+  "focus": [
+   "std",
+   "off-repo",
+   "off-push",
+   "off-art"
+  ],
+  "note": "19 技能三零 · 静默直推 main"
+ },
+ {
+  "id": "ts2-supabase",
+  "label": "逐版发布",
+  "focus": [
+   "std",
+   "sup-repo",
+   "sup-rel",
+   "sup-art"
+  ],
+  "note": "Release Please · 逐版附舱单与压缩包"
+ }
+]

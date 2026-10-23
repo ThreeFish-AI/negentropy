@@ -1,0 +1,527 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Context Layer 可进化参数面与统一状态机",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/context-layer--evolution-levers.html",
+    "repository": {
+      "url": "https://github.com/ThreeFish-AI/negentropy",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "57987b28b34f29548f39155f3902e688a6aa5a34"
+    },
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "components": [
+    {
+      "id": "retrieval",
+      "type": "backend",
+      "label": "retrieval_config",
+      "sublabel": "记忆检索权重 · RRF k · PPR",
+      "pos": [
+        70,
+        116
+      ],
+      "size": [
+        200,
+        48
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "line": 327,
+          "label": "§8.5 记忆检索权重与统一 RRF"
+        }
+      ]
+    },
+    {
+      "id": "kstrategy",
+      "type": "backend",
+      "label": "knowledge_strategy",
+      "sublabel": "KB/KG 分块 · 重排 · 抽取",
+      "pos": [
+        70,
+        176
+      ],
+      "size": [
+        200,
+        48
+      ]
+    },
+    {
+      "id": "skilltpl",
+      "type": "backend",
+      "label": "skill_template",
+      "sublabel": "L2 技能模板变异",
+      "pos": [
+        70,
+        236
+      ],
+      "size": [
+        200,
+        48
+      ]
+    },
+    {
+      "id": "toolcfg",
+      "type": "backend",
+      "label": "builtin_tool_config",
+      "sublabel": "工具 config JSONB 参数",
+      "pos": [
+        70,
+        296
+      ],
+      "size": [
+        200,
+        48
+      ]
+    },
+    {
+      "id": "mempipe",
+      "type": "backend",
+      "label": "memory_pipeline_prompt",
+      "sublabel": "抽取 · 反思 · 摘要 prompt",
+      "pos": [
+        70,
+        356
+      ],
+      "size": [
+        200,
+        48
+      ]
+    },
+    {
+      "id": "agentpr",
+      "type": "backend",
+      "label": "agent_prompt",
+      "sublabel": "身份 / 角色 prompt",
+      "pos": [
+        70,
+        416
+      ],
+      "size": [
+        200,
+        48
+      ]
+    },
+    {
+      "id": "ctxstrat",
+      "type": "external",
+      "label": "context_strategy",
+      "sublabel": "预算比 · 接地数 · 信任权重",
+      "tag": "提案 · 代码未落地",
+      "pos": [
+        70,
+        476
+      ],
+      "size": [
+        200,
+        48
+      ],
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/013-context-layer-blueprint.md",
+          "label": "提案（@57987b28b 全仓零命中）"
+        }
+      ]
+    },
+    {
+      "id": "draft",
+      "type": "database",
+      "label": "draft",
+      "tag": "FOR UPDATE SKIP LOCKED",
+      "pos": [
+        820,
+        140
+      ],
+      "size": [
+        160,
+        48
+      ],
+      "sources": [
+        {
+          "path": "apps/negentropy/src/negentropy/models/evolution.py",
+          "line": 83,
+          "label": "STATUS_REJECTED 等状态值"
+        }
+      ]
+    },
+    {
+      "id": "shadow",
+      "type": "database",
+      "label": "shadow_eval",
+      "sublabel": "影子评估",
+      "pos": [
+        820,
+        228
+      ],
+      "size": [
+        160,
+        48
+      ]
+    },
+    {
+      "id": "pending",
+      "type": "database",
+      "label": "pending_approval",
+      "sublabel": "人审门",
+      "pos": [
+        560,
+        316
+      ],
+      "size": [
+        170,
+        48
+      ]
+    },
+    {
+      "id": "canary",
+      "type": "database",
+      "label": "canary",
+      "tag": "runtime_canary 仅 skill 面",
+      "pos": [
+        820,
+        316
+      ],
+      "size": [
+        160,
+        48
+      ]
+    },
+    {
+      "id": "rejected",
+      "type": "database",
+      "label": "rejected",
+      "tag": "终态 · 劣化即拒绝",
+      "pos": [
+        1080,
+        316
+      ],
+      "size": [
+        150,
+        48
+      ]
+    },
+    {
+      "id": "promoted",
+      "type": "database",
+      "label": "promoted",
+      "tag": "终态 · 生效",
+      "pos": [
+        560,
+        404
+      ],
+      "size": [
+        170,
+        48
+      ]
+    },
+    {
+      "id": "rollback",
+      "type": "database",
+      "label": "rolled_back",
+      "tag": "终态 · 劣化回滚",
+      "pos": [
+        1080,
+        404
+      ],
+      "size": [
+        150,
+        48
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "可进化参数面 · 6 既有 + 1 提案",
+      "wraps": [
+        "retrieval",
+        "kstrategy",
+        "skilltpl",
+        "toolcfg",
+        "mempipe",
+        "agentpr",
+        "ctxstrat"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "统一状态机 · evolution_proposals.status",
+      "wraps": [
+        "draft",
+        "shadow",
+        "pending",
+        "canary",
+        "rejected",
+        "promoted",
+        "rollback"
+      ],
+      "pad": 32
+    }
+  ],
+  "connections": [
+    {
+      "id": "fan-1",
+      "from": "retrieval",
+      "to": "draft",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          545,
+          140.0
+        ],
+        [
+          545,
+          164
+        ]
+      ]
+    },
+    {
+      "id": "fan-2",
+      "from": "kstrategy",
+      "to": "draft",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          545,
+          200.0
+        ],
+        [
+          545,
+          164
+        ]
+      ]
+    },
+    {
+      "id": "fan-3",
+      "from": "skilltpl",
+      "to": "draft",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          545,
+          260.0
+        ],
+        [
+          545,
+          164
+        ]
+      ]
+    },
+    {
+      "id": "fan-4",
+      "from": "toolcfg",
+      "to": "draft",
+      "label": "每 target_ref ≤1 非终态提案",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          545,
+          320.0
+        ],
+        [
+          545,
+          164
+        ]
+      ],
+      "labelAt": [
+        540,
+        100
+      ]
+    },
+    {
+      "id": "fan-5",
+      "from": "mempipe",
+      "to": "draft",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          545,
+          380.0
+        ],
+        [
+          545,
+          164
+        ]
+      ]
+    },
+    {
+      "id": "fan-6",
+      "from": "agentpr",
+      "to": "draft",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          545,
+          440.0
+        ],
+        [
+          545,
+          164
+        ]
+      ]
+    },
+    {
+      "id": "fan-7",
+      "from": "ctxstrat",
+      "to": "draft",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          545,
+          500.0
+        ],
+        [
+          545,
+          164
+        ]
+      ]
+    },
+    {
+      "id": "sm-1",
+      "from": "draft",
+      "to": "shadow",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "sm-2",
+      "from": "shadow",
+      "to": "canary",
+      "label": "达标",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        915,
+        296
+      ]
+    },
+    {
+      "id": "sm-3",
+      "from": "shadow",
+      "to": "pending",
+      "label": "达标 · 待审",
+      "fromSide": "left",
+      "toSide": "top",
+      "via": [
+        [
+          645,
+          252
+        ]
+      ],
+      "labelAt": [
+        730,
+        232
+      ]
+    },
+    {
+      "id": "sm-4",
+      "from": "shadow",
+      "to": "rejected",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          1155,
+          252
+        ]
+      ]
+    },
+    {
+      "id": "sm-5",
+      "from": "canary",
+      "to": "promoted",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          900,
+          470
+        ],
+        [
+          645,
+          470
+        ]
+      ]
+    },
+    {
+      "id": "sm-6",
+      "from": "canary",
+      "to": "rollback",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          1040,
+          340
+        ],
+        [
+          1040,
+          428
+        ]
+      ]
+    },
+    {
+      "id": "sm-7",
+      "from": "pending",
+      "to": "promoted",
+      "label": "批准",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        668,
+        384
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "既有 6 面 · target_kind 白名单",
+      "items": [
+        "• retrieval_config · 检索权重（RRF k / PPR）｜knowledge_strategy · KB/KG 策略",
+        "• skill_template · 技能模板｜builtin_tool_config · 工具参数",
+        "• memory_pipeline_prompt · 巩固质量｜agent_prompt · 身份/角色"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "第 7 面 · context_strategy（提案）",
+      "items": [
+        "• 预算比 / 接地数 / 信任权重 —— apps 全仓 grep 零命中 @57987b28b，代码未落地"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "单在途护栏 · 精确到 target_ref",
+      "items": [
+        "• uq_evolution_proposals_one_inflight 部分唯一索引按 target_ref",
+        "• 同 kind 不同 ref 可并行各 1 ——「每面一条」为宽泛说法",
+        "• 并发抢占用 FOR UPDATE SKIP LOCKED"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "状态机口径 · 7 态",
+      "items": [
+        "• 统一挂在 evolution_proposals.status（models/evolution.py）",
+        "• rejected 为终态：shadow_eval 劣化即拒绝（STATUS_REJECTED）",
+        "• runtime_canary 仅 skill 面：base.py advance_runtime_canary 默认 no-op"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §7
+%% slug: dream-rsi--teardown-d4-peek
+%% type: dataflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--teardown-d4-peek.html
+flowchart LR
+    subgraph LEGAL["合规重放：按 parent–child 逐页翻"]
+        direction TB
+        L1["浅尝策略 π-stop_early<br/>按序揭示记录"] --> L2["V = 0.7600<br/>（真实成本下的分）"]
+    end
+    subgraph CHEAT["D4 · 越权：跳读最优记录后代"]
+        direction TB
+        C1["违反 parent–child 序<br/>直接伸手抽最优页"] --> C2["V 虚涨到 0.8600<br/>反超真最优 0.8520"]
+    end
+    L2 --> VERDICT{"排名反转！<br/>0.8600 &gt; 0.8520"}
+    C2 --> VERDICT
+    VERDICT --> LESSON["重放的价值恰在 grounded：<br/>评估必须对「策略真实会花的探测成本」负责<br/>（初版纸面预期 0.788 未复现反转——断言必须以真跑输出为准）"]
+    style LEGAL fill:#0F3244,stroke:#7DD3FC,color:#fff
+    style CHEAT fill:#3a1414,stroke:#FF5C5C,color:#fff

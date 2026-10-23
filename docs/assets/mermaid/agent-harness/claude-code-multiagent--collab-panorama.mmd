@@ -1,0 +1,22 @@
+%% source: docs/research/agent-harness/175-claude-code-multi-agent-platform.md §2
+%% slug: claude-code-multiagent--collab-panorama
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-code-multiagent--collab-panorama.html
+flowchart TD
+    U[用户输入] --> H[输入前后钩子]
+    H --> W[通知注入：定时任务与后台完成]
+    W --> C[压缩管线]
+    C --> S[组装系统提示：记忆·技能·外接状态]
+    S --> L[模型调用：失败恢复在外侧]
+    L --> Q{有工具调用块？}
+    Q -- 无 --> X[停止钩子后返回]
+    Q -- 有 --> P[权限与前置钩子拦截]
+    P --> D[工具分发]
+    D --> T1[内置工具]
+    D --> T2[外接工具 mcp__ 前缀]
+    D --> T3[后台慢任务占位]
+    T1 --> R[结果与通知回填消息]
+    T2 --> R
+    T3 -.完成通知.-> W
+    R --> W
+    F[(共享文件：任务板·信箱·工作树)] -.认领·收发·切目录.-> T1

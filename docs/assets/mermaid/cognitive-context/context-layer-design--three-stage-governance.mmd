@@ -1,0 +1,39 @@
+%%source: origin/master:docs/concepts/design/context-layer.md §1.1 行业对标（旧版；feature/1.x.x 已由 013 蓝图取代，对齐 011 §3 与 013 §9.1 口径）
+%%slug: cognitive-context/context-layer-design--three-stage-governance
+%%type: dataflow
+%%derived: archify dataflow v1, corrected from source mermaid
+%% fix: ① 三个 subgraph 内的 C1→C2→C3 / E1→E2→E3 / A1→A2→A3 串行链改并列（三项互不依赖；011 §3 同款诊断已在案）；
+%% ② subgraph 间边 COLLECT-->ENRICH-->ACTIVATE 落为两个交接节点（Horizon Catalog / AI-ready 上下文），五列漏斗（dataflow 的 stage 框不能作边端点，workflow col 封顶 0..5）；
+%% ③ 九个能力 label 逐字保留，成熟度与锚点（M1 / M5 / §3.1–§3.3）只入 sublabel / tag；classDef 字面色值丢弃，改用 archify 语义 type；
+%% ④ 去掉 subgraph 标题的 ①②③ 序号（archify 渲染器自带 01–05 列序号）；
+%% ⑤ 与 horizon-context--three-stage-governance 同口径同拓扑，仅作为旧文档 §1.1 的独立重制资产保留，不嵌入现役文档；仍待校准三处同 011：自动文档/质量信号零出处、列级血缘属 M5、OSI 属出口面。
+graph LR
+    subgraph COLLECT["Collect 汇聚"]
+        connectors["跨系统元数据连接器"]
+        lineage["OpenLineage 血缘"]
+        osi["OSI 开放语义互换"]
+    end
+    catalog["Horizon Catalog<br/>四层上下文信号"]
+    subgraph ENRICH["Enrich 富化"]
+        semanticview["语义视图 Semantic Views"]
+        autodoc["自动文档生成"]
+        columnlineage["列级血缘 / 质量信号"]
+    end
+    governed["AI-ready 上下文<br/>受治理地供给"]
+    subgraph ACTIVATE["Activate 激活"]
+        search["Universal Search 混合排序"]
+        mcp["MCP 对外暴露"]
+        coco["CoCo 自动发现与查询"]
+    end
+    connectors -->|"元数据"| catalog
+    lineage -->|"血缘边"| catalog
+    osi -.->|"语义规范"| catalog
+    catalog -->|"入库"| semanticview
+    catalog -.->|"起草源"| autodoc
+    catalog -->|"沉淀源"| columnlineage
+    semanticview -->|"定义"| governed
+    autodoc -.->|"文档"| governed
+    columnlineage -->|"对账"| governed
+    governed -->|"检索"| search
+    governed -.->|"出口"| mcp
+    governed -->|"发现"| coco

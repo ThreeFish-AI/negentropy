@@ -1,0 +1,10 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P3（事实源 research/source-notes.md P3；原型 agent_skills_lab.py --selftest / --break B1）
+%% slug: agent-skills--cost-structure
+%% type: dataflow
+%% derived: docs/assets/architecture/agent-infra/agent-skills--cost-structure.html
+flowchart LR
+    LIB["玩具技能库<br/>19 个技能 · 4 个任务<br/>开销 = 字数 ÷ 4 粗略折算"] --> PROG["按需装配<br/>目录 1113 + 正文 203 + 附录 1005<br/>= 2321"]
+    LIB --> EAGER["全部预先塞进去<br/>= 39222（16.9 倍）"]
+    PROG --> WALL["固定墙面：书脊目录<br/>每个会话都付 · 随装机数变宽"]
+    PROG --> PAY["按次付费：整本 + 附录<br/>只在抽取时计数"]
+    EAGER --> WARN["倍数只说明方向<br/>不能套到真实产品"]

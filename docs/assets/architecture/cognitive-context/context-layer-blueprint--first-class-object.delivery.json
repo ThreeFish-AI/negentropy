@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0c5cdd1c-9496-4da7-9ada-32f3ff62e7ca",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer-blueprint--first-class-object/context-layer-blueprint--first-class-object.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
+  "specification": {
+    "sha256": "335dad5928f6335ed3ec21a0ec80898de3a523743e0c47010f0cfd212dfa6f89",
+    "bytes": 6195
+  },
+  "artifact": {
+    "sha256": "3715e7094c1edb43accffa825cd99d2aa9320654d85b1b4dcf352f3f2d305772",
+    "bytes": 760942
+  }
+}

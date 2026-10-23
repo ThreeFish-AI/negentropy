@@ -1,0 +1,12 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §1
+%% slug: dream-rsi--history-as-simulator
+%% type: dataflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--history-as-simulator.html
+flowchart LR
+    HIST["发现历史 ℋt<br/>（已付出的真实算力）"] --> SIM["重放模拟器<br/>免费 · 确定 · 可反复"]
+    SIM --> P1["规格① 探索显式化、可编程<br/>§3 决策接口 + 策略代码"]
+    SIM --> P2["规格② 历史复用为模拟器<br/>§3 确定性转移"]
+    SIM --> P3["规格③ 离线改进带下界保证<br/>§3 argmax 含当前策略"]
+    SIM --> P4["规格④ 递归闭环<br/>§3 外层迭代 t"]
+    P1 & P2 & P3 & P4 --> LOOP["在线收集新历史 →<br/>沙盘更大 → 章程更好 → 循环往复"]
+    style SIM fill:#0F3244,stroke:#7DD3FC,color:#fff

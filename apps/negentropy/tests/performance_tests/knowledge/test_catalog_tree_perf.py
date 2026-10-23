@@ -129,14 +129,14 @@ class TestCatalogTreePerformance:
 
         # 预热
         async with session_factory() as session:
-            await CatalogDao.get_subtree(session, node_id=root_id)
+            await CatalogDao.get_subtree(session, entry_id=root_id)
 
         # 实际计时（5 次取平均）
         durations_ms = []
         for _ in range(5):
             t0 = time.perf_counter()
             async with session_factory() as session:
-                subtree = await CatalogDao.get_subtree(session, node_id=root_id)
+                subtree = await CatalogDao.get_subtree(session, entry_id=root_id)
             elapsed_ms = (time.perf_counter() - t0) * 1000
             durations_ms.append(elapsed_ms)
 

@@ -40,7 +40,7 @@ Anderson 等的 ACT-R<sup>[[9]](#ref9)</sup>提供了 `importance_score` 五因�
 $$
 B_i = \ln\!\left(\sum_{j=1}^{n}{t_j^{-d}}\right)
 $$
-其中 \(t_j\) 是历次访问距今的时间，\(d\) 是衰减常数。我们的实现见 [`engine/governance/memory.py`](../../../../apps/negentropy/src/negentropy/engine/governance/memory.py) `calculate_importance_score`，扩展了类型权重 + 时效性加成。
+其中 \(t_j\) 是历次访问距今的时间，\(d\) 是衰减常数。我们的实现见 [`engine/governance/memory.py`](../../../apps/negentropy/src/negentropy/engine/governance/memory.py) `calculate_importance_score`，扩展了类型权重 + 时效性加成。
 
 ### 1.4 AGM 信念修正：冲突消解的形式基础
 
@@ -176,7 +176,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 **默认状态翻转**（`config.default.yaml`）：F1 HippoRAG / F2 Reflexion / F4 Presidio / Rocchio 读侧 + Memify 6-step 全部 `enabled: true`；各自保留运行时安全闸（HippoRAG `min_kg_associations` 数据闸、Reflexion `max_inflight_tasks` 并发上限、Presidio `allow_engine_fallback` 缺模型降级），既开箱即用又自保护。
 
-**接线缺陷修复**（详见 [`issue.md`](../../.agents/issue.md) ISSUE-098~101）：
+**接线缺陷修复**（详见 [`issue.md`](../../.agents/issue.md) I-098~101）：
 
 | 缺陷 | 根因 | 修复 |
 | --- | --- | --- |
@@ -262,7 +262,7 @@ Alchourrón-Gärdenfors-Makinson 框架<sup>[[10]](#ref10)</sup>定义了 contra
 
 ## 6. 附录：Phase 4 评测基线快照
 
-> 首次 BM25 baseline（2026-05-02 跑出）见 `.temp/eval/baseline_*.md`。CI 触发参考 [`memory-eval` workflow](../../.github/workflows/memory-eval.yml)。
+> 首次 BM25 baseline（2026-05-02 跑出）见 `.temp/eval/baseline_*.md`。CI 触发参考 [`memory-eval` workflow](../../../.github/workflows/memory-eval.yml)。
 
 | Dataset          | N   | MRR@10 | NDCG@10 | Hit@10 | F1    |
 | ---------------- | --- | ------ | ------- | ------ | ----- |

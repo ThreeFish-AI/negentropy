@@ -1,0 +1,46 @@
+[
+ {
+  "id": "ol-draft",
+  "label": "起草",
+  "focus": [
+   "draft"
+  ],
+  "note": "作者创建/自动生成"
+ },
+ {
+  "id": "ol-gov",
+  "label": "受治理",
+  "focus": [
+   "governed"
+  ],
+  "note": "过校验门+评审"
+ },
+ {
+  "id": "ol-conflict",
+  "label": "冲突",
+  "focus": [
+   "conflict"
+  ],
+  "note": "同名异义待裁决"
+ },
+ {
+  "id": "ol-super",
+  "label": "被取代",
+  "focus": [
+   "superseded"
+  ],
+  "note": "新版上位·freshness 衰减"
+ },
+ {
+  "id": "ol-full",
+  "label": "生命周期全流",
+  "focus": [
+   "draft",
+   "governed",
+   "superseded",
+   "conflict",
+   "rejected"
+  ],
+  "note": "对象一生"
+ }
+]

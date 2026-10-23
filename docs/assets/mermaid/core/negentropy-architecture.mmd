@@ -1,0 +1,44 @@
+%% source: docs/concepts/framework.md §2.1 三层架构视图（原 L98-137）
+%% slug: core/negentropy-architecture
+%% type: architecture
+%% derived: docs/assets/architecture/core/architecture-diagram.html + negentropy-architecture-{dark,light}.png|.svg|-story.mp4|-story.gif
+graph TB
+    subgraph Presentation["展示层 (Presentation)"]
+        UI["negentropy-ui<br><i>Next.js 16 · React 19</i>"]
+        Wiki["negentropy-wiki<br><i>Next.js · 纯静态导出</i>"]
+    end
+
+    subgraph Engine["引擎层 (Engine)"]
+        Root["NegentropyEngine<br>(根智能体)"]
+        Faculties["五大系部<br>Perception · Internalization<br>Contemplation · Action · Influence"]
+        Pipelines["标准流水线<br>Knowledge · Problem · Value"]
+        API["REST API<br>FastAPI · ADK Web"]
+    end
+
+    subgraph Infrastructure["基础设施层 (Infrastructure)"]
+        Perceives["negentropy-perceives<br>MCP Server · :2992"]
+        DB["PostgreSQL 17<br>pgvector"]
+        LLM["LLM 提供商<br>LiteLLM 路由"]
+        OTel["可观测性<br>OpenTelemetry · Langfuse"]
+        Sandbox["沙箱执行<br>MicroSandbox"]
+    end
+
+    UI -->|AG-UI Protocol| API
+    API -.->|静态内容 · 构建期烘焙| Wiki
+    API --> Root
+    Root -->|transfer_to_agent| Faculties
+    Root -->|transfer_to_agent| Pipelines
+    Pipelines -->|SequentialAgent| Faculties
+    Faculties -->|Tools| DB
+    Faculties -->|MCP| Perceives
+    Faculties -->|Tools| Sandbox
+    API -.-> OTel
+    Root --> LLM
+
+    classDef presentation fill:#60A5FA,stroke:#1E3A8A,color:#000
+    classDef engine fill:#F59E0B,stroke:#92400E,color:#000
+    classDef infra fill:#10B981,stroke:#065F46,color:#000
+
+    class UI,Wiki presentation
+    class Root,Faculties,Pipelines,API engine
+    class Perceives,DB,LLM,OTel,Sandbox infra

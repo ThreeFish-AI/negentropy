@@ -1,0 +1,32 @@
+[
+ {
+  "id": "switch-line",
+  "label": "执行行换成查表",
+  "focus": ["loop-core", "execute-line", "registry"],
+  "note": "循环里执行那一行换成查一本转接号码簿——内核零改动，改法克制。"
+ },
+ {
+  "id": "name-handler",
+  "label": "左名右函数",
+  "focus": ["registry", "tool-name", "handler-fn"],
+  "note": "号码簿左列工具名、右列干活函数，一一对应。"
+ },
+ {
+  "id": "four-new-tools",
+  "label": "一次注册四工具",
+  "focus": ["tool-read", "tool-write", "tool-edit", "tool-glob", "registry"],
+  "note": "读文件/写文件/改文件/找文件四个新工具一次上带。"
+ },
+ {
+  "id": "ledger-grows",
+  "label": "簿厚了带没动",
+  "focus": ["registry", "loop-core"],
+  "note": "说明书厚了、号码簿长了几行，循环一行没再动。"
+ },
+ {
+  "id": "belt-still",
+  "label": "改簿不改带",
+  "focus": ["loop-core", "registry"],
+  "note": "加一个工具，改的是号码簿，不是传送带——能力长在表里（记忆点终态）。"
+ }
+]

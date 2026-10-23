@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4e1711c9-2701-45e6-846b-01785a0ace90",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-task-board/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--task-board.html",
+  "specification": {
+    "sha256": "f5f6412a2623cfcd5f0d7318cb9445eafee28b639fb08772784595d615d52112",
+    "bytes": 6936
+  },
+  "artifact": {
+    "sha256": "599e0da363d7fbf5fd0c53feb0a675d27a02b95ca316bcb79a09f415fbb18677",
+    "bytes": 850925
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3fa6d8f6-e2d0-44f7-98b3-c9459bf26056",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--injection-points/context-layer--injection-points.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--injection-points.html",
+  "specification": {
+    "sha256": "aa5979e31737d9d74627d836a5308bf23299c2c3b2415bd2b3759f0205dc9436",
+    "bytes": 6886
+  },
+  "artifact": {
+    "sha256": "1b1a2f1d400848dd103dc91dde8530b7e38390b563436d7ce3f06568ec3e29c5",
+    "bytes": 765903
+  }
+}

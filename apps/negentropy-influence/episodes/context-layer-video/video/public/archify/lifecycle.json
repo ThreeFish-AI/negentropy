@@ -1,0 +1,166 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.52,
+ "story_sec": 29.46,
+ "total_wall_sec": 140.24,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "lc2-open",
+   "label": "六段两环总览",
+   "index": 0,
+   "file": "lifecycle--lc2-open.mp4",
+   "end_still": "lifecycle--lc2-open-end.png",
+   "beats": 6,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 6.67,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l1",
+    "l2",
+    "l3",
+    "l4",
+    "l5",
+    "l6"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc2-l1",
+   "label": "L1 采集登记",
+   "index": 1,
+   "file": "lifecycle--lc2-l1.mp4",
+   "end_still": "lifecycle--lc2-l1-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.52,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l1"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc2-l2",
+   "label": "L2 校验与裁决",
+   "index": 2,
+   "file": "lifecycle--lc2-l2.mp4",
+   "end_still": "lifecycle--lc2-l2-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.52,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l2"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc2-l3",
+   "label": "L3 装配执法",
+   "index": 3,
+   "file": "lifecycle--lc2-l3.mp4",
+   "end_still": "lifecycle--lc2-l3-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.52,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l3"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc2-l4",
+   "label": "L4 应答锚定",
+   "index": 4,
+   "file": "lifecycle--lc2-l4.mp4",
+   "end_still": "lifecycle--lc2-l4-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.48,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc2-l5",
+   "label": "L5 沉淀与回写",
+   "index": 5,
+   "file": "lifecycle--lc2-l5.mp4",
+   "end_still": "lifecycle--lc2-l5-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.52,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc2-l6",
+   "label": "L6 衰减退役",
+   "index": 6,
+   "file": "lifecycle--lc2-l6.mp4",
+   "end_still": "lifecycle--lc2-l6-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.52,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l6"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "lc2-loops",
+   "label": "验证与进化环",
+   "index": 7,
+   "file": "lifecycle--lc2-loops.mp4",
+   "end_still": "lifecycle--lc2-loops-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.56,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "l2",
+    "l4",
+    "l5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer-video/video/public/archify/html/lifecycle.html",
+ "slug": "lifecycle",
+ "type": "dataflow"
+}

@@ -1,0 +1,26 @@
+%% source: docs/concepts/subsystems/025-the-memory-system.md §2.3 记忆动态学：形成-演化-检索（原 L179-L202，块#1）
+%% slug: subsystems/025-memory--lifecycle
+%% type: lifecycle
+%% derived: docs/assets/architecture/subsystems/025-memory--lifecycle.html (+ -dark/-light PNG)
+stateDiagram-v2
+    [*] --> Formation: 会话交互
+    Formation --> Active: add_session_to_memory
+    Active --> Decaying: 时间流逝
+    Decaying --> Active: 检索访问<br/>(access_count++)
+    Decaying --> Consolidated: consolidation_job
+    Consolidated --> Active: 巩固后重新激活
+    Decaying --> Forgotten: retention < threshold
+    Active --> Anonymized: GDPR 审计
+    Decaying --> Anonymized: GDPR 审计
+    Forgotten --> [*]: cleanup_low_value_memories
+    Anonymized --> [*]: content=[ANONYMIZED]
+
+    note right of Active
+        retention_score ≈ 1.0
+        频繁被检索召回
+    end note
+
+    note right of Decaying
+        retention_score 指数衰减
+        Ebbinghaus 遗忘曲线
+    end note

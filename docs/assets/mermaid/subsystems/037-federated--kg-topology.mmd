@@ -1,0 +1,30 @@
+%%source: docs/concepts/subsystems/037-federated-kg.md#block0
+%%slug: subsystems/037-federated--kg-topology
+%%type: architecture
+%%derived: archify
+%% fix: RA[KgRelation] 原作 Corpus-A 内孤立节点——KgRelation 实为 corpus 内 source_id→target_id 关系（models/perception.py:569），改画为 Anthropic→Claude 边
+%% fix: C1===>C2 桥接边补注「可选物化 · Phase 1 未写入」——kg_cross_corpus_bridge 仅 migration 0034 建表无运行时读写；运行时跨 Corpus 2-hop 实走 kg_entity_alias self-join（hybrid_planner.py:_graph_expand）
+graph LR
+  subgraph "Corpus-A"
+    EA1[KgEntity: Anthropic]
+    EA2[KgEntity: Claude]
+    RA[KgRelation]
+  end
+  subgraph "Corpus-B"
+    EB1[KgEntity: Anthropic]
+    EB2[KgEntity: Computer Use]
+  end
+  subgraph "全局规范层 (app_scope='negentropy')"
+    C1[KgEntityCanonical: anthropic / ORG]
+    C2[KgEntityCanonical: claude / PRODUCT]
+  end
+
+  EA1 -.alias.-> C1
+  EB1 -.alias.-> C1
+  EA2 -.alias.-> C2
+  EB2 -.alias.-> C2
+
+  C1 ===bridge===> C2
+
+  style C1 fill:#1f6feb,stroke:#000,color:#fff
+  style C2 fill:#1f6feb,stroke:#000,color:#fff

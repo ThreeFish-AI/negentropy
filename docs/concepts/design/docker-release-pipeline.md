@@ -8,53 +8,9 @@ title: "Docker Release Pipeline · 镜像构建与 Docker Hub 发布"
 
 ## 流水线总览
 
-```mermaid
-flowchart TB
-    subgraph Triggers["触发入口（策略层）"]
-        direction LR
-        TAG["tag: negentropy-v*<br/>或 workflow_dispatch"]:::trigger
-        PR["PR 触碰 docker/** /<br/>docker-compose.yml / .dockerignore"]:::trigger
-        CRON["每周一 cron<br/>（基底镜像漂移巡检）"]:::trigger
-    end
+![Docker 镜像发布流水线：tag 触发与 PR/周巡检双入口经策略层门禁（release-meta、backend/ui/wiki 三链 QA、compose 校验）汇入机制层 reusable workflow，4 镜像 × amd64/arm64 双架构原生构建按 digest 推送，merge 合并 manifest 打标后发布至 Docker Hub threefishai 命名空间。](../../assets/architecture/design/docker-release--pipeline-dark.png)
 
-    subgraph Release["negentropy-release.yml"]
-        META["release-meta<br/>version / push / stable"]:::meta
-        QA1["backend-qa<br/>（unit + integration）"]:::qa
-        QA2["ui-qa<br/>（lint + test + build + e2e）"]:::qa
-        PKG["package-release<br/>（wheel + UI tgz + GitHub Release）"]:::qa
-    end
-
-    subgraph Validate["negentropy-docker-validate.yml"]
-        LINT["compose-config<br/>docker compose config -q"]:::qa
-    end
-
-    subgraph Reusable["reusable-negentropy-docker.yml（机制层）"]
-        PREP["prepare<br/>平台矩阵 + tag 列表计算"]:::build
-        subgraph BuildMatrix["build（4 镜像 × 2 架构，fail-fast: false）"]
-            direction LR
-            AMD["linux/amd64<br/>ubuntu-latest"]:::build
-            ARM["linux/arm64<br/>ubuntu-24.04-arm（原生）"]:::build
-        end
-        MERGE["merge（仅 push=true，environment: release）<br/>imagetools create 合并 manifest + 打标"]:::publish
-    end
-
-    HUB[("Docker Hub<br/>threefishai/negentropy-*")]:::publish
-
-    TAG --> META & QA1 & QA2
-    QA1 & QA2 --> PKG
-    META & QA1 & QA2 -->|"push=publish_release<br/>stable=非 prerelease"| PREP
-    PR & CRON --> LINT
-    PR & CRON -->|"push=false"| PREP
-    PREP --> AMD & ARM
-    AMD & ARM -->|"push-by-digest"| MERGE
-    MERGE --> HUB
-
-    classDef trigger fill:#1e3a5f,stroke:#4da3ff,stroke-width:2px,color:#e8f1fb
-    classDef meta fill:#4a3a10,stroke:#ffc53d,stroke-width:2px,color:#fff7e0
-    classDef qa fill:#16432a,stroke:#3ddc84,stroke-width:2px,color:#e6fbef
-    classDef build fill:#3a2a5f,stroke:#b794f6,stroke-width:2px,color:#f3ecff
-    classDef publish fill:#5f1e2e,stroke:#ff6b88,stroke-width:2px,color:#ffe8ee
-```
+> 图源（可 diff 文本）：[`docker-release--pipeline.mmd`](../../assets/mermaid/design/docker-release--pipeline.mmd) · 交互版（下载到本地打开）：[`docker-release--pipeline.html`](../../assets/architecture/design/docker-release--pipeline.html)
 
 ## 镜像与标签策略
 
@@ -73,7 +29,7 @@ flowchart TB
 | prerelease（`negentropy-v1.2.0-rc.1` 或 dispatch `channel=candidate`） | `1.2.0-rc.1` | 仅 `1.2.0-rc.1`（不触碰 `latest`） |
 | dispatch `publish_release=false` | — | 全链路干跑：构建但零推送 |
 
-镜像命名的单一事实源是 [docker-compose.yml](../../../docker-compose.yml) 中各服务的 `image:` 字段（`${NEGENTROPY_IMAGE_TAG:-latest}` 可覆写）。
+镜像命名的单一事实源是 [docker-compose.yml](../../../docker/docker-compose.yml) 中各服务的 `image:` 字段（`${NEGENTROPY_IMAGE_TAG:-latest}` 可覆写）。
 
 ## 多架构构建机制
 
@@ -99,11 +55,11 @@ flowchart TB
 
 ```bash
 # 拉取发布版镜像并启动（跳过本地构建）
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose pull
-NEGENTROPY_IMAGE_TAG=1.2.0 docker compose up -d --no-build
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml pull
+NEGENTROPY_IMAGE_TAG=1.2.0 docker compose -f docker/docker-compose.yml up -d --no-build
 
 # 本地开发照旧：镜像本地缺失时 compose 默认仍走本地 build
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 ## 发布操作手册
@@ -119,7 +75,7 @@ docker compose up -d
 - [reusable-negentropy-docker.yml](../../../.github/workflows/reusable-negentropy-docker.yml) — 机制层：构建 + digest 合并
 - [negentropy-release.yml](../../../.github/workflows/negentropy-release.yml) — 策略层：tag 发布（`release-meta` + `docker-release`）
 - [negentropy-docker-validate.yml](../../../.github/workflows/negentropy-docker-validate.yml) — 策略层：PR 校验 + 周巡检
-- [docker-compose.yml](../../../docker-compose.yml) — 镜像命名单一事实源 + 本地编排
+- [docker-compose.yml](../../../docker/docker-compose.yml) — 镜像命名单一事实源 + 本地编排
 
 ## 运维操作指引
 

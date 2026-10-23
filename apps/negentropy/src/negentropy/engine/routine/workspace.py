@@ -20,7 +20,8 @@
 
 参考文献：
 [1] Git Docs, *git-worktree(1)*. 同仓库多工作树隔离机制。
-[2] .github/workflows/cognizes-ruff.yml — 分支命名 / `gh pr create` 约定。
+[2] 分支命名与 ``gh pr create`` 回基线约定沿自 CI auto-fix 流水线的
+    ``fix/<job>-<slug>`` 前缀惯例（原始先例 cognizes-ruff 流水线已随 cognizes 项目退役）。
 """
 
 from __future__ import annotations
@@ -521,11 +522,11 @@ async def _purge_sibling_worktrees(project_path: str, branch: str, keep_path: st
 async def checkpoint_commit(worktree_path: str, settings: RoutineSettings, *, seq: int | None = None) -> bool:
     """在隔离 worktree 内确定性提交一次迭代检查点（best-effort，返回是否产生提交）。
 
-    引擎侧的「确定性 auto-commit」——不依赖 CC 遵循 prompt 中的检查点指令（同 ISSUE-116 的思路：
+    引擎侧的「确定性 auto-commit」——不依赖 CC 遵循 prompt 中的检查点指令（同 I-116 的思路：
     硬性保障由引擎机制兜底，prompt 仅作软引导）。仅在 worktree 内操作，绝不 push、绝不触碰基线/主分支。
     无变更（``git status --porcelain`` 为空）→ 跳过提交返回 False。所有步骤异常仅日志，绝不冒泡阻断写回。
 
-    设计要点（ISSUE-114 加固）：
+    设计要点（I-114 加固）：
     - ``git add -A`` 暂存全部改动（含未跟踪）；
     - 仅当有改动时 ``git commit``，避免空提交噪声；
     - commit message 含 seq 便于回溯；``--no-verify`` 跳过 worktree 内可能存在的 pre-commit 钩子

@@ -1,0 +1,16 @@
+%% source: docs/reference/perceives/agents/pdf-engine-selection.md §layout_analysis 子规则 (块#2, L51-L60)
+%% slug: perceives/pdf-engine--fast-path
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #2
+%% fix: reason 实串带 profile: 前缀——快路径 profile:simple_layout_{N}p / 回退 profile:default（engine_selector.py:383,389），orchestrator.py:293 写入 StageResult.metadata.selector_decision
+%% fix: page_count 守卫实为 `chars.page_count and page_count < 5`（:375-376）——0/None 视为未知保守回退，非仅 "< 5?"
+%% fix: 快路径命中后仍有 `if fast_path` 守卫（:379）——engine gate 后候选链无 pymupdf 时放弃快路径回退 YAML 全链（源图未画该分支，重绘补为第 4 守卫）
+%% fix: 「保持 YAML 顺序」实链为 docling r1 → opendataloader r2 → mineru r3 → marker r4 → pymupdf r5（config.default.yaml:209-232）
+flowchart TD
+    A([layout_analysis]) --> B{has_complex_layout<br/>= False?}
+    B -- 否 --> Z[保持 YAML 顺序]
+    B -- 是 --> C{is_scanned = False?}
+    C -- 否 --> Z
+    C -- 是 --> D{page_count < 5?}
+    D -- 否 --> Z
+    D -- 是 --> E["快路径: 仅 pymupdf<br/>reason=simple_layout_{N}p"]

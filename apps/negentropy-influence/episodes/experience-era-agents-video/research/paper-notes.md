@@ -807,7 +807,7 @@
 - 【金句】"Once memory enters the self-improvement loop, it becomes both a capability primitive and a control primitive." → 记忆一旦进入自我改进循环，就同时是能力原语和控制原语。
 - 【比喻金句】MemoryGraft："a compromised memory can persist as an operational precedent rather than disappear with the triggering prompt" → 被投毒的记忆会作为“操作先例”存活，不会随触发它的那条 prompt 消失。
 - 【数字】From Prompt Injections to Protocol Exploits："more than thirty attack techniques"，分析单元“from prompt to execution chain”（从 prompt 到执行链）。
-- 【金句·组合失效】"They emerge when individually reasonable components are composed into an unintended execution path." → 许多失败并非始于模型发出明显危险的指令，而是各自合理的组件被组合成非预期执行路径。画面：每个零件都检验合格，拼起来却是一台失控机器。
+- 【金句·组合问题】"They emerge when individually reasonable components are composed into an unintended execution path." → 许多失败并非始于模型发出明显危险的指令，而是各自合理的组件被组合成非预期执行路径。画面：每个零件都检验合格，拼起来却是一台失控机器。
 - 【术语金句】LITMUS 的 "execution hallucination"：智能体嘴上拒绝、手上已执行——口头拒绝有害请求的同时危险操作已在 OS 层完成。画面：嘴说“不行”，手指已经按下回车。
 - 【金句·边界句】"A self-improving agent cannot be certified by checking text alone if it can also mutate files, call services, propagate workflows, or act on visual state." → 若智能体还能改文件、调服务、传播工作流、依据视觉状态行动，仅靠查文本无法认证它。
 - 【金句·种群级】Agent Smith："turning compromise into a population-level dynamic" → 一张对抗图像让攻陷成为种群级动态。画面：一个病人传染整个网络。

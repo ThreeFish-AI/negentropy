@@ -1,0 +1,16 @@
+%% source: docs/.agents/pdf-fidelity-patrol-status.md §5 「重置为未拟合」API（块#2，L117-L125）
+%% slug: agents/patrol--escalation-flow
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #2
+%% fix: 清 Memory 实为三标签——clear_doc_legacy_memories 循环 (TAG_STATUS, TAG_UNFIXABLE, TAG_DEFECT)（engine/routine/patrol_memory.py L307-319），TAG_DEFECT 历史缺陷证据一并清除；源图与 docstring 均仅列两个；TAG_PATTERN/TAG_BASELINE 跨 doc 知识保留不动
+%% fix: UI 重置按钮门为 patrol_status ∈ {done, unfixable, source_unavailable} 三态 + isPdfDocument（negentropy-ui documents/page.tsx L805-809，文档 §6「仅 done/unfixable」滞后）；经 useConfirmDialog 确认；409 时 toast「该文档正在巡检，请先取消在跑巡检再重置」
+%% fix: 取消终态 Routine 同时置 termination_reason='patrol_reset'（镜像 _collapse_superseded_patrols 取消范式，源图未列）；守卫→取消→清列→清 Memory 四步同会话同事务、清 Memory 后才一次 commit（storage/service.py reset_patrol_status）
+flowchart LR
+    U[用户点<br/>重置为未拟合] --> Q{该 doc 有<br/>running/paused<br/>巡检 Routine?}
+    Q -- 是 --> R[409 PATROL_IN_PROGRESS<br/>提示先取消在跑巡检]
+    Q -- 否 --> C[取消 succeeded/failed<br/>终态 Routine<br/>outcome_propagated=true]
+    C --> D[清 patrol_status/score/<br/>routine_id 列]
+    D --> M[清 Memory<br/>TAG_STATUS + TAG_UNFIXABLE]
+    M --> OK[200 · 列回未巡检<br/>Scheduler 下轮重选]
+    style R fill:#fecaca,stroke:#b91c11,color:#7f1d1d
+    style OK fill:#bbf7d0,stroke:#15803d,color:#14532d

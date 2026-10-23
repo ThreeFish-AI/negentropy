@@ -37,7 +37,7 @@ export function ReasoningStep({
   title: string;
   phase: "started" | "finished";
   stepId: string;
-  /** ISSUE-070：推理过程文本，由 ne.a2ui.thought / ne.a2ui.reasoning 注入。 */
+  /** I-070：推理过程文本，由 ne.a2ui.thought / ne.a2ui.reasoning 注入。 */
   content?: string;
   result?: unknown;
 }) {

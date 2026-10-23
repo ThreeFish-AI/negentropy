@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-clock-bad-jobs/candidate.json",
+    "sha256": "289a6182dd5357dfc01eeec830d71d87eb93d14bf15bff0f882c10f5e83caa19",
+    "bytes": 4712
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--clock-bad-jobs.html",
+    "sha256": "764889f39f2b4c90b9696645726c5e6ba9e081dcb98cb29a58e112b0cfaabc5c",
+    "bytes": 842958
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--clock-bad-jobs.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--clock-bad-jobs.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--clock-bad-jobs.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3877,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-reject",
+            "from": "validate",
+            "to": "reject",
+            "label": "不合法",
+            "collectionIndex": 1,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "t-fire-loop",
+            "from": "wall-clock",
+            "to": "recurring",
+            "label": "到点 · 周期性",
+            "collectionIndex": 5,
+            "artifactIndex": 7
+          },
+          "bends": 4,
+          "stretch": 1.308
+        },
+        {
+          "relationship": {
+            "id": "t-requeue",
+            "from": "recurring",
+            "to": "wall-clock",
+            "label": "待下次",
+            "collectionIndex": 6,
+            "artifactIndex": 8
+          },
+          "bends": 4,
+          "stretch": 1.308
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "validate → reject needs 3 bends: move node validate or reject so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "wall-clock → recurring needs 4 bends: move node wall-clock or recurring so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "recurring → wall-clock needs 4 bends: move node recurring or wall-clock so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

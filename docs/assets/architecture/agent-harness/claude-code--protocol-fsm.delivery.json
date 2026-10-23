@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "eec57255-b48f-4ce5-a412-973154fdcf56",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-protocol-fsm/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--protocol-fsm.html",
+  "specification": {
+    "sha256": "be86fe95dfb580df347370143fd82c841d30f5bbf1d5d026a8266ad6759d13e5",
+    "bytes": 8252
+  },
+  "artifact": {
+    "sha256": "160d4f679b10d5c96abd2fc1f4e824df11f544948c8b6bc8dfa2cddcaecfea3e",
+    "bytes": 847038
+  }
+}

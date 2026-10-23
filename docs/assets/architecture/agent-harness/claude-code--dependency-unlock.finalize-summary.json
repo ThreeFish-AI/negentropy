@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-dependency-unlock/candidate.json",
+    "sha256": "f85cf2991709926959125ffbfe56c310a3399249e9a1dbe3fc8b5b9dc35de1c0",
+    "bytes": 9386
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--dependency-unlock.html",
+    "sha256": "4a2652c23d197f3ada26f5209221e9de1bb722e6b7fbc195ff5ed31ebadd3ec9",
+    "bytes": 851297
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--dependency-unlock.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--dependency-unlock.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--dependency-unlock.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2650
+}

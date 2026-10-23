@@ -1,0 +1,35 @@
+%% source: docs/research/agent-harness/180-ai-native-handbook.md §1
+%% slug: ai-native--handbook-panorama
+%% type: dataflow
+%% derived: docs/assets/architecture/agent-harness/ai-native--handbook-panorama.html
+flowchart LR
+    CASES["三个案例的共同观察<br/>编码 1 小时 · 上线约 3 周<br/>（AIDC 数字投手 / 千问用增 Agent / 万有无界）"]
+    subgraph CH["五大挑战"]
+        C1["环境与验证驱动"]
+        C2["平台能力升级"]
+        C3["度量：是否真提效"]
+        C4["数字员工自主性"]
+        C5["组织配套"]
+    end
+    subgraph INFRA["四层企业级基础设施"]
+        I1["运行环境<br/>Sandbox · Coding 环境"]
+        I2["Agent Harness<br/>运行机制 · 知识库 · MCP/Skill/CLI"]
+        I3["可观测<br/>System + Trajectory"]
+        I4["可信与安全<br/>Identity & Policy · Guardrail"]
+    end
+    GOAL["从能写代码到可靠交付"]
+    CASES -- "暴露" --> C1
+    CASES -- "暴露" --> C2
+    CASES -- "暴露" --> C3
+    CASES -- "暴露" --> C4
+    CASES -- "暴露" --> C5
+    C1 -- "环境" --> I1
+    C1 -- "验证" --> I2
+    C2 -- "工具体系" --> I2
+    C3 -- "度量" --> I3
+    C4 -- "授权" --> I4
+    C5 -. "组织侧·非基础设施" .-> GOAL
+    I1 -- "隔离" --> GOAL
+    I2 -- "能力" --> GOAL
+    I3 -- "追溯" --> GOAL
+    I4 -- "边界" --> GOAL

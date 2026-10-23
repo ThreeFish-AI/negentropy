@@ -1,0 +1,80 @@
+[
+ {
+  "id": "ae-k1",
+  "label": "预算分配",
+  "focus": [
+   "k1"
+  ],
+  "note": "机位时间+工卡夹"
+ },
+ {
+  "id": "ae-k2",
+  "label": "渐进披露",
+  "focus": [
+   "k2"
+  ],
+  "note": "目录常驻正文按需"
+ },
+ {
+  "id": "ae-k3",
+  "label": "JIT 边界",
+  "focus": [
+   "k3"
+  ],
+  "note": "预取 vs 按需"
+ },
+ {
+  "id": "ae-k4",
+  "label": "缓存排序",
+  "focus": [
+   "k4"
+  ],
+  "note": "会变的排后面"
+ },
+ {
+  "id": "ae-k5",
+  "label": "压缩分级",
+  "focus": [
+   "k5"
+  ],
+  "note": "交接班纪要"
+ },
+ {
+  "id": "ae-ch",
+  "label": "双通道",
+  "focus": [
+   "ch1",
+   "ch2"
+  ],
+  "note": "接地摘要+深度检索"
+ },
+ {
+  "id": "ae-guard",
+  "label": "出口守卫",
+  "focus": [
+   "fuse",
+   "guard"
+  ],
+  "note": "统一融合→守卫"
+ },
+ {
+  "id": "ae-llm",
+  "label": "入窗",
+  "focus": [
+   "llm"
+  ],
+  "note": "最小高信号集"
+ },
+ {
+  "id": "ae-knobs",
+  "label": "五旋钮全景",
+  "focus": [
+   "k1",
+   "k2",
+   "k3",
+   "k4",
+   "k5"
+  ],
+  "note": "装配经济学命名"
+ }
+]

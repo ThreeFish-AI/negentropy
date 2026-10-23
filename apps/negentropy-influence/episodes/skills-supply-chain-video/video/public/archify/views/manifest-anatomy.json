@@ -1,0 +1,48 @@
+[
+ {
+  "id": "ma-old",
+  "label": "旧姿势",
+  "focus": [
+   "client",
+   "old"
+  ],
+  "note": "逐仓搜索、clone、复制文件夹"
+ },
+ {
+  "id": "ma-index",
+  "label": "总舱单",
+  "focus": [
+   "client",
+   "index"
+  ],
+  "note": "#254：域名固定路径放 index.json"
+ },
+ {
+  "id": "ma-fields",
+  "label": "五字段",
+  "focus": [
+   "index",
+   "fields"
+  ],
+  "note": "每条记录 5 个必填字段"
+ },
+ {
+  "id": "ma-seal",
+  "label": "铅封",
+  "focus": [
+   "fields",
+   "seal"
+  ],
+  "note": "SHA-256 对原始字节，失配拒用"
+ },
+ {
+  "id": "ma-boxes",
+  "label": "两种箱型",
+  "focus": [
+   "resolve",
+   "skillmd",
+   "archive"
+  ],
+  "note": "信封·集装箱；url 相对解析，换托管无感"
+ }
+]

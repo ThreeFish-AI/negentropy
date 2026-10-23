@@ -1,0 +1,16 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §6
+%% slug: dream-rsi--evidence-162x-caliber
+%% type: dataflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--evidence-162x-caliber.html
+flowchart LR
+    DRSI["本文（Lasso · Gemini-3.1-Pro）<br/>317 次 agent 调用"] --> BAR
+    CTRL["受控基线 Recursive Fixed Exploration<br/>（同 agent · 同评估器 · 同预算，只差章程固定）<br/>550 次调用"] --> BAR
+    STES["SimpleTES<br/>51,200 次 generations"] --> BAR
+    subgraph BAR["对撞"]
+        direction TB
+        RATIO["317 vs 51,200 ≈ 162× 调用节省<br/>同质量：六留出集平均运行时 2931.0 ms<br/>vs 3587.1（受控）vs 3804.8（SimpleTES）"]
+    end
+    RATIO --> WARN["⚠ 口径警示（必看）：<br/>317/51,200 两边是 agent calls vs generations<br/>论文未做定义级对齐——倍数不可直接换算"]
+    RATIO --> SPLIT["数据集分解：大矩阵大胜<br/>（Gisette 2841 / RCV1 14616）<br/>四个小生物数据集全败于 SimpleTES<br/>（DNA 49.9 / Leukemia 30.2 / Colon 16.4 / Duke 32.5）"]
+    style RATIO fill:#0F3244,stroke:#7DD3FC,color:#fff
+    style WARN fill:#3a1414,stroke:#FF5C5C,color:#fff

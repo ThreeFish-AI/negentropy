@@ -1,0 +1,38 @@
+[
+ {
+  "id": "stage-objects",
+  "label": "阶段一 · 对象化",
+  "focus": [
+   "ms1",
+   "ms2"
+  ],
+  "note": "检索先行暴露痛点，含义铸成受治理对象（9.25 版查询 GA）。"
+ },
+ {
+  "id": "stage-governed-enrich",
+  "label": "阶段二 · 通道与富化",
+  "focus": [
+   "ms3",
+   "ms4",
+   "ms5",
+   "ms6",
+   "ms7a",
+   "ms7b",
+   "ms8",
+   "ms9",
+   "ms10",
+   "ms11"
+  ],
+  "note": "OSI + MCP 打开通道，治理内嵌与富化双轨并进，Summit 定名收官。"
+ },
+ {
+  "id": "stage-ecosystem",
+  "label": "阶段三 · 生态开放",
+  "focus": [
+   "ms12",
+   "ms13",
+   "ms14"
+  ],
+  "note": "Sense + Ossie 开放沉淀，全域血缘 GA，生态持续加码。"
+ }
+]

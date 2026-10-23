@@ -1,0 +1,22 @@
+%%source: docs/concepts/subsystems/037-federated-kg.md#block1
+%%slug: subsystems/037-federated--cross-corpus-search
+%%type: workflow
+%%derived: true
+%% fix: Stage 3 触发集合补 global_summary（hybrid_planner.py:271 门控集合含 global_summary，源图边标漏列）
+%% fix: 图扩展触发还需 effective Corpus >= 2，单 Corpus 不扩展（hybrid_planner.py:270-272）
+%% fix: Stage 3 数据输入改画为 Stage 2 种子候选分支（源图 S1-.->S3 仅是门控信号，_graph_expand 实际吃 seed_candidates）
+%% fix: "BFS max-depth=2" 为配置上界（PlannerConfig.graph_max_depth=2），实现为 canonical→alias 单跳扩展
+graph TD
+  Q[用户 @ N 个 Corpus（单一 corpus mention）]
+  Q --> S1[Stage 1: Intent Classification]
+  S1 --> |fact / explore / multi_hop / relation / global_summary| S2[Stage 2: Seed Retrieval]
+  S2 --> |asyncio.gather 多 Corpus 并行 hybrid search| POOL[Candidates Pool]
+  S1 -.relation/multi_hop/explore.-> S3[Stage 3: Graph Expansion]
+  S3 --> |canonical → 其他 Corpus 邻居 BFS max-depth=2| POOL
+  POOL --> S4[Stage 4: Fusion + Rerank]
+  S4 --> |RRF k=60 → LocalReranker bge-reranker-v2-m3| OUT[Top-K + bridges]
+
+  style S1 fill:#4ade80,stroke:#000
+  style S2 fill:#60a5fa,stroke:#000
+  style S3 fill:#f97316,stroke:#000
+  style S4 fill:#a855f7,stroke:#000,color:#fff

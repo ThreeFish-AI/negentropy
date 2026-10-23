@@ -103,6 +103,8 @@ sequenceDiagram
 > | **并行召回**     | 内部向量与关键词并行调度 | PostgreSQL `UNION ALL` + 应用层 `asyncio.gather()`，性能可监控                             |
 > | **RRF 融合**     | Ranking API 黑盒算法     | [`rrf_fusion.py`](../../apps/cognizes/src/cognizes/engine/perception/rrf_fusion.py) 开源实现，参数 `k` 可调优  |
 > | **L1 Reranking** | LLM 驱动的托管重排服务   | [`reranker.py`](../../apps/cognizes/src/cognizes/engine/perception/reranker.py) 本地 Cross-Encoder，模型可替换 |
+>
+> 注：表中 `rrf_fusion.py` / `reranker.py` 链接指向已退役删除的 apps/cognizes（2026-09），代码可从 git 历史找回。
 
 ## 2. 关键处理阶段
 

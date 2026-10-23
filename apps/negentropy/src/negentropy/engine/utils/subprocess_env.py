@@ -15,7 +15,7 @@
     故对 worktree 子进程（Claude Code 执行 + gate 命令）统一净化这些变量，使「物理隔离」从
     文件系统 cwd 延伸到 Python 运行环境，任务子进程据其 cwd 自行解析正确的项目环境。
 
-实证（ISSUE-120）：忠实复刻 routine 的 IMPLEMENT 门控 ``uv run pytest -q`` 输出首行即为
+实证（I-120）：忠实复刻 routine 的 IMPLEMENT 门控 ``uv run pytest -q`` 输出首行即为
 ``warning: VIRTUAL_ENV=.../negentropy/apps/negentropy/.venv does not match the project
 environment path `.venv` and will be ignored``——引擎 venv 泄漏的直接证据。
 """

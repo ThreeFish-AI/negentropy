@@ -1,0 +1,86 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 10.93,
+ "total_wall_sec": 108.3,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "one-tree",
+   "label": "同一棵树，谁来做梦",
+   "index": 0,
+   "file": "four-charters--one-tree.mp4",
+   "end_still": "four-charters--one-tree-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "tree"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 14.0
+  },
+  {
+   "id": "scores",
+   "label": "四种章程四份成绩单",
+   "index": 1,
+   "file": "four-charters--scores.mp4",
+   "end_still": "four-charters--scores-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 4.43,
+   "beat_offsets_sec": [
+    0.0,
+    1.106,
+    2.21,
+    3.315
+   ],
+   "beat_nodes": [
+    "p-parallel",
+    "p-adaptive",
+    "p-early",
+    "p-serial"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 17.0
+  },
+  {
+   "id": "takeaway",
+   "label": "一次真实换无数次免费",
+   "index": 2,
+   "file": "four-charters--takeaway.mp4",
+   "end_still": "four-charters--takeaway-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0
+   ],
+   "beat_nodes": [
+    "takeaway"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 16.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/quito-v2/docs/assets/architecture/self-evolution/dream-rsi--four-charters.html",
+ "slug": "four-charters",
+ "type": "dataflow"
+}

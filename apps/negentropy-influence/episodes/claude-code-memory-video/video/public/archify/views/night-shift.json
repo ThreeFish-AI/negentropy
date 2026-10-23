@@ -1,0 +1,7 @@
+[
+ {"id": "threshold-in", "label": "攒够进场", "focus": ["threshold-gate"], "note": "登记簿越记越厚，文件数达阈值，夜班整理工进场。"},
+ {"id": "rough-rewrite", "label": "删光重写", "focus": ["catalog-truncate", "delete-all", "rewrite-list"], "note": "教学版手法相当生猛：目录截断送出去看，删光全部文件，按新列表重写。"},
+ {"id": "reverse-gate", "label": "反向的门", "focus": ["reverse-gate", "catalog-truncate", "delete-all"], "note": "送看的目录只截了一段，删却删的是全部——看少删多。"},
+ {"id": "outside-deleted", "label": "窗外照样删", "focus": ["reverse-gate", "delete-all"], "note": "窗外的记忆不进视野，照样被删。"},
+ {"id": "stuck-paradox", "label": "越厚越整理不动", "focus": ["reverse-gate", "threshold-gate"], "note": "越需要整理，反而越整理不动——反向门把最需要的挡在门外（终态）。"}
+]

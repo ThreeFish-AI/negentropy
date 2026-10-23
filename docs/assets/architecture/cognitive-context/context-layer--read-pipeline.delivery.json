@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "dcc67e3a-26cb-4286-a280-563642530014",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--read-pipeline/context-layer--read-pipeline.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--read-pipeline.html",
+  "specification": {
+    "sha256": "fd6ddaccb8a05e046b7198a7df6d03a3f838e3028e9b01b42ea4c68d032754cd",
+    "bytes": 8595
+  },
+  "artifact": {
+    "sha256": "3aa80290907e6364213c5158cac2106d7a5869c7149223183746b6e6072cd78b",
+    "bytes": 769337
+  }
+}

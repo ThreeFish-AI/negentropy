@@ -1,0 +1,42 @@
+[
+ {
+  "id": "ff-rows",
+  "label": "三类行",
+  "focus": [
+   "row-choice",
+   "row-score",
+   "row-noul"
+  ],
+  "note": "单选行、等级行、是否行——各带回什么。"
+ },
+ {
+  "id": "ff-choice",
+  "label": "单选行",
+  "focus": [
+   "caller",
+   "validator",
+   "row-choice"
+  ],
+  "note": "≤255 格是契约：第 256 格会被 400 打回。"
+ },
+ {
+  "id": "ff-closure",
+  "label": "闭合保证",
+  "focus": [
+   "row-choice",
+   "row-score",
+   "row-noul",
+   "consumer"
+  ],
+  "note": "从不给外部值——但只保证形状。"
+ },
+ {
+  "id": "ff-trap",
+  "label": "填错的格",
+  "focus": [
+   "row-choice",
+   "consumer"
+  ],
+  "note": "窗外大雨、单上填晴：0.981 也能自动执行。"
+ }
+]

@@ -1,0 +1,22 @@
+%% source: docs/reference/perceives/framework.md §处理引擎层 › 请求处理流程 (块#8, L397-L411)
+%% slug: perceives/framework--lifecycle-sequence
+%% type: sequence
+%% derived: byte-exact extraction of mermaid block #8
+%% fix: 「指标记录 (_observability)」已退役——tools/_observability.py 不存在于仓库（源文 L24/L56 同款幽灵引用），计时现经 contextvars(timing_var) 记入 TaskTiming.stage_records(core/task_context.py) 并由 TaskContextMiddleware 于 finally 段输出任务完成摘要，重绘将计时消息改指工具层
+%% fix: 两条自环禁绘（archify sequence 无自环）——「参数校验 (schemas)」= FastMCP 按 Pydantic Field 工具签名校验入参（另有 ops 层 validate_page_range 显式校验），「执行处理」= pipeline Stage/引擎降级链执行，均转为对应消息注记
+%% fix: 频率限速补真实参数——全局 RateLimiter 2 rps(infra/resilience.py)，await rate_limiter.wait() 仅在 ops/pdf.py:137 与 ops/markdown.py:107 调用，「部分工具」实为 PDF/Markdown 两条路径
+%% fix: 引擎调用补 run_operation 统一守卫(core/execution.py)——pipeline 上下文绑定 + 超时解析(timeout→task_timeout_seconds 默认 900s) + cancel scope + 三类异常转 OperationError
+%% fix: 类型化响应补全——返回 PDFResponse/BatchPDFResponse(models.py) 且 register_pdf_response_images 注册图片资源，中间件 finally 输出 elapsed+stages 摘要
+sequenceDiagram
+    participant C as MCP Client
+    participant T as MCP Tool
+    participant E as Processing Engine
+    participant I as Infrastructure
+
+    C->>T: Tool Request
+    T->>T: 参数校验 (schemas)
+    T->>I: 频率限速 (部分工具)
+    T->>E: 引擎调用
+    E->>E: 执行处理
+    E-->>I: 指标记录 (_observability)
+    T->>C: 类型化响应 (Pydantic)

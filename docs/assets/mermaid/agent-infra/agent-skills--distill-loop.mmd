@@ -1,0 +1,16 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P1（事实源 research/source-notes.md P1；上游 best-practices.mdx @69ef37e9）
+%% slug: agent-skills--distill-loop
+%% type: lifecycle
+%% derived: docs/assets/architecture/agent-infra/agent-skills--distill-loop.html
+stateDiagram-v2
+    [*] --> 空泛陷阱: 只让模型凭通用知识写
+    空泛陷阱 --> 真实任务: 改为从真实专长出发
+    真实任务 --> 四格便签: 员工办工单 · 老师傅纠正 · 记录员记录
+    四格便签: 步骤 / 纠正 / 输入输出格式 / 背景
+    资料合成 --> 初稿: 事故复盘 · 操作手册 · 评审意见 · 补丁
+    四格便签 --> 初稿
+    初稿 --> 编辑台: 逐行问「没有这条会做错吗」
+    编辑台 --> 坑点清单: 违背常识的事实写进正文
+    坑点清单 --> 真实执行: 拿真实任务跑
+    真实执行 --> 初稿: 全部结果回灌 · 每纠正一次添一条
+    真实执行 --> [*]: 定稿

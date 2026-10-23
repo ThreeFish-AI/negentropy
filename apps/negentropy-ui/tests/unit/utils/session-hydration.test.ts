@@ -852,7 +852,7 @@ describe("session-hydration", () => {
     expect(runStartedEvents[0]).toBe(realtimeRunStarted);
   });
 
-  // ISSUE-040 H4: eventKey 浮点抖动保护应推广到所有事件类型（不再仅 TEXT_MESSAGE_CONTENT）
+  // I-040 H4: eventKey 浮点抖动保护应推广到所有事件类型（不再仅 TEXT_MESSAGE_CONTENT）
   it("eventKey 在 STEP_FINISHED 浮点抖动下仍稳定", () => {
     const stepFinishedA = createTestEvent({
       type: EventType.STEP_FINISHED,
@@ -893,7 +893,7 @@ describe("session-hydration", () => {
     expect(merged).toHaveLength(1);
   });
 
-  // ISSUE-040 Q3 残留乱序：sort tiebreaker 必须保留 lifecycle 推入顺序，
+  // I-040 Q3 残留乱序：sort tiebreaker 必须保留 lifecycle 推入顺序，
   // 不能在 timestamp 相等时按 eventKey 字典序回退（CONTENT < END < START）。
   it("hydrateSessionDetail 保留同 timestamp 下 normalizer 推入的 lifecycle 顺序", () => {
     // 后端 ADK web events 历史回放经常一秒落库多条 (functionCall / functionResponse / 同期文本)，
@@ -949,7 +949,7 @@ describe("session-hydration", () => {
     }
   });
 
-  describe("ISSUE-041: realtime + hydration 跨 runId 双气泡端到端", () => {
+  describe("I-041: realtime + hydration 跨 runId 双气泡端到端", () => {
     // 端到端场景：模拟用户单次 Send「Ping, give me a pong.」后
     // realtime 流（runId=uuid-actual）+ post-run hydration（runId=sessionId fallback）
     // 同时进入投影。期望最终 mergeEventsWithRealtimePriority 输出 + buildConversationTree

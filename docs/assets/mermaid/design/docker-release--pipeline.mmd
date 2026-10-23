@@ -1,0 +1,53 @@
+%%source: docs/concepts/design/docker-release-pipeline.md#block0 (L11-L57, §流水线总览)
+%%slug: design/docker-release--pipeline
+%%type: workflow
+%%derived: archify workflow v2, byte-extract of source mermaid
+%% fix: D-7 镜像矩阵核验——文档表格将 wiki 镜像写为 docker/frontend/Dockerfile + TARGET_SERVICE=negentropy-wiki；实际 workflow matrix 为 docker/wiki/Dockerfile 且 build_args 为空（.github/workflows/reusable-negentropy-docker.yml:115-117；docker/frontend/Dockerfile:6 迁移注释佐证）。其余三条与代码一致：backend←docker/backend、perceives←docker/perceives（均无 build_args）、ui←docker/frontend + TARGET_SERVICE=negentropy-ui
+%% fix: 原图 Release 子图遗漏 wiki-qa job——negentropy-release.yml:93-98 实际含 backend-qa / ui-qa / wiki-qa 三条 QA；package-release needs [backend-qa, ui-qa, wiki-qa]；docker-release needs [release-meta, backend-qa, ui-qa]（不含 wiki-qa）。本图补入 wiki-qa 并按实际 needs 修正边
+%% fix: PR 触发路径除 docker/** 与 .dockerignore 外还含两个 docker workflow 自身（negentropy-docker-validate.yml:14-19），标签已按实际 paths 修正
+flowchart TB
+    subgraph Triggers["触发入口（策略层）"]
+        direction LR
+        TAG["tag: negentropy-v*<br/>或 workflow_dispatch"]:::trigger
+        PR["PR 触碰 docker/** / .dockerignore<br/>/ docker workflow 自身"]:::trigger
+        CRON["每周一 cron<br/>（基底镜像漂移巡检）"]:::trigger
+    end
+
+    subgraph Release["negentropy-release.yml"]
+        META["release-meta<br/>version / push / stable"]:::meta
+        QA1["backend-qa<br/>（unit + integration）"]:::qa
+        QA2["ui-qa<br/>（lint + test + build + e2e）"]:::qa
+        QA3["wiki-qa<br/>（lint + unit + 静态导出冒烟）"]:::qa
+        PKG["package-release<br/>（wheel + UI tgz + GitHub Release）"]:::qa
+    end
+
+    subgraph Validate["negentropy-docker-validate.yml"]
+        LINT["compose-config<br/>docker compose config -q"]:::qa
+    end
+
+    subgraph Reusable["reusable-negentropy-docker.yml（机制层）"]
+        PREP["prepare<br/>平台矩阵 + tag 列表计算"]:::build
+        subgraph BuildMatrix["build（backend · perceives · ui · wiki × 2 架构，fail-fast: false）"]
+            direction LR
+            AMD["linux/amd64<br/>ubuntu-latest"]:::build
+            ARM["linux/arm64<br/>ubuntu-24.04-arm（原生）"]:::build
+        end
+        MERGE["merge（仅 push=true，environment: release）<br/>imagetools create 合并 manifest + 打标"]:::publish
+    end
+
+    HUB[("Docker Hub<br/>threefishai/negentropy-*")]:::publish
+
+    TAG --> META & QA1 & QA2 & QA3
+    QA1 & QA2 & QA3 --> PKG
+    META & QA1 & QA2 -->|"push=publish_release<br/>stable=非 prerelease"| PREP
+    PR & CRON --> LINT
+    PR & CRON -->|"push=false"| PREP
+    PREP --> AMD & ARM
+    AMD & ARM -->|"push-by-digest"| MERGE
+    MERGE --> HUB
+
+    classDef trigger fill:#1e3a5f,stroke:#4da3ff,stroke-width:2px,color:#e8f1fb
+    classDef meta fill:#4a3a10,stroke:#ffc53d,stroke-width:2px,color:#fff7e0
+    classDef qa fill:#16432a,stroke:#3ddc84,stroke-width:2px,color:#e6fbef
+    classDef build fill:#3a2a5f,stroke:#b794f6,stroke-width:2px,color:#f3ecff
+    classDef publish fill:#5f1e2e,stroke:#ff6b88,stroke-width:2px,color:#ffe8ee

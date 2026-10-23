@@ -69,7 +69,7 @@ describe("buildStateDeltaFromForwardedProps", () => {
     });
   });
 
-  it("approval_policy 合法 mode → 透传（修复 ISSUE-156：此前被静默丢弃）", () => {
+  it("approval_policy 合法 mode → 透传（修复 I-156：此前被静默丢弃）", () => {
     for (const mode of ["always", "per_tool", "never"] as const) {
       const out = buildStateDeltaFromForwardedProps({ approval_policy: { mode } });
       expect(out).toEqual({ approval_policy: { mode } });

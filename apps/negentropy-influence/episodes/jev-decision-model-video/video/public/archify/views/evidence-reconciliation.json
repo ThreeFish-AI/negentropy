@@ -1,0 +1,40 @@
+[
+ {
+  "id": "er-parties",
+  "label": "四方证据",
+  "focus": [
+   "self-report",
+   "field-audit",
+   "defect-list",
+   "homegrown"
+  ],
+  "note": "本台自评、外部抽检、毛病清单、自培判读员。"
+ },
+ {
+  "id": "er-desk",
+  "label": "对账台",
+  "focus": [
+   "desk"
+  ],
+  "note": "每个数字先问谁量的——三级口吻在此并表。"
+ },
+ {
+  "id": "er-verdicts",
+  "label": "三句裁决",
+  "focus": [
+   "claim-speed",
+   "claim-hallu",
+   "claim-calib"
+  ],
+  "note": "快、幻觉、校准——三句招牌话各兑几分。"
+ },
+ {
+  "id": "er-open",
+  "label": "开放三问",
+  "focus": [
+   "homegrown",
+   "claim-calib"
+  ],
+  "note": "排序差距 0.70 对 0.45–0.57——留给下集的问题。"
+ }
+]

@@ -1,0 +1,14 @@
+%% source: docs/reference/perceives/agents/apple-silicon-tuning.md block#1 (L84-L91 §4 MinerU mlx-engine 优先)
+%% slug: perceives/apple-silicon--vlm-auto-engine
+%% type: workflow
+%% derived: flowchart TD mineru_mps_backend 三级判定 → vlm-auto-engine / pipeline 出口
+%% fix: 判定序按代码校正：is_apple_silicon? 先于 pref=auto?（pref 仅在 Apple Silicon/device=mps 路径内被消费；非 Apple Silicon 下显式 pref 不被采用 → pipeline，mineru.py:218-250）
+%% fix: 范围保持：用户显式 backend（最高优先）与 device 偏好路径不入图，由图下方调优旋钮表承载（mineru.py:189-215）
+flowchart TD
+    A[mineru_mps_backend] --> C{is_apple_silicon?}
+    C -- 否 --> P[pipeline]
+    C -- 是 --> B{= auto?}
+    B -- 否 --> Z[直接采用 pref]
+    B -- 是 --> D{mlx_vlm + macOS 13.5+?}
+    D -- 是 --> V["vlm-auto-engine<br/>(MinerU 内部命中 mlx-engine,<br/>较 transformers 加速 100-200%)"]
+    D -- 否 --> P

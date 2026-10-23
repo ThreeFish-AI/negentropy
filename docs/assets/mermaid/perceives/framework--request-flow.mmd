@@ -1,0 +1,19 @@
+%% source: docs/reference/perceives/framework.md §基础设施层 › 缓存流程 (块#9, L426-L437)
+%% slug: perceives/framework--request-flow
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #9
+%% fix: "Memory Cache" 实为引擎 worker 子进程内 _ConvertCache（infra/_engine_worker_entry.py），仅覆盖 docling/mineru/opendataloader 的 convert（Marker 刻意排除）；源图为泛化抽象，重绘落真实作用域
+%% fix: TTL=300s（_CACHE_TTL_SECONDS）+ LRU=4，均为 get()/put() 懒判定；config.py cache_ttl_hours=24 在 src 无消费方，勿与运行时 TTL 混谈
+%% fix: 写缓存有 None 门——result=None（引擎不可用/转换失败）不 put 以便下次重试，源图"写入缓存"无条件回填；缓存键含 PDF 指纹（size+mtime_ns+blake2b 头64KB），覆盖写即自动失效
+graph TD
+    A["Request"] --> B{"Memory Cache<br/>TTL 检查"}
+    B -->|"Hit 且未过期"| C["Return Cached"]
+    B -->|"Miss 或已过期"| D["Process Request"]
+    D --> E["写入缓存"]
+    E --> C
+
+    style A fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style B fill:#7c2d12,stroke:#ea580c,color:#ffffff
+    style C fill:#166534,stroke:#22c55e,color:#ffffff
+    style D fill:#134e4a,stroke:#14b8a6,color:#ffffff
+    style E fill:#581c87,stroke:#9333ea,color:#ffffff

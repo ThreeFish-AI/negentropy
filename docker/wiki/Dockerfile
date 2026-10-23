@@ -22,7 +22,7 @@ WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 
 # pnpm 版本单一事实源＝根 package.json#packageManager（与 docker/frontend/Dockerfile 同构）。
-# 勿改回 `corepack prepare pnpm@latest`：npm 的 latest 与 packageManager 会各自漂移（ISSUE-175）。
+# 勿改回 `corepack prepare pnpm@latest`：npm 的 latest 与 packageManager 会各自漂移（I-175）。
 RUN corepack install
 
 # 复制 workspace 内相关 package.json（与 frontend Dockerfile 同集合，确保 frozen-lockfile 解析稳定）

@@ -1,0 +1,24 @@
+%% source: docs/concepts/framework.md §3.2 五大系部 L148
+%% slug: core/framework--faculties-orchestration
+%% type: architecture
+%% derived: docs/assets/architecture/core/framework--faculties-orchestration.html (+ -dark/-light PNG)
+graph LR
+    Root["🔮 NegentropyEngine<br>(本我)"]
+
+    P["👁️ PerceptionFaculty<br>(慧眼)"]
+    I["💎 InternalizationFaculty<br>(本心)"]
+    C["🧠 ContemplationFaculty<br>(元神)"]
+    A["✋ ActionFaculty<br>(妙手)"]
+    Inf["🗣️ InfluenceFaculty<br>(喉舌)"]
+
+    Root -->|"transfer_to_agent"| P
+    Root -->|"transfer_to_agent"| I
+    Root -->|"transfer_to_agent"| C
+    Root -->|"transfer_to_agent"| A
+    Root -->|"transfer_to_agent"| Inf
+
+    classDef root fill:#8B5CF6,stroke:#4C1D95,color:#FFF
+    classDef faculty fill:#F59E0B,stroke:#92400E,color:#000
+
+    class Root root
+    class P,I,C,A,Inf faculty

@@ -1,0 +1,22 @@
+%% source: docs/concepts/framework.md 4.1 (L223)
+%% slug: core/framework--standard-pipelines
+%% type: workflow
+%% derived: docs/assets/architecture/core/framework--standard-pipelines.html (+ -dark/-light PNG)
+graph LR
+    subgraph KA["知识获取流水线 (Knowledge Acquisition)"]
+        KA_P["👁️ 感知"] --> KA_I["💎 内化"]
+    end
+
+    subgraph PS["问题解决流水线 (Problem Solving)"]
+        PS_P["👁️ 感知"] --> PS_C["🧠 坐照"] --> PS_A["✋ 知行"] --> PS_I["💎 内化"]
+    end
+
+    subgraph VD["价值交付流水线 (Value Delivery)"]
+        VD_P["👁️ 感知"] --> VD_C["🧠 坐照"] --> VD_Inf["🗣️ 影响"]
+    end
+
+    classDef pipeline fill:#1E293B,stroke:#475569,color:#E2E8F0
+    classDef step fill:#F59E0B,stroke:#92400E,color:#000
+
+    class KA,PS,VD pipeline
+    class KA_P,KA_I,PS_P,PS_C,PS_A,PS_I,VD_P,VD_C,VD_Inf step

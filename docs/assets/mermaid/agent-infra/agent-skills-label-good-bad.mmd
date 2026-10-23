@@ -1,0 +1,12 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P3（p3-03..p3-06）
+%% slug: agent-skills-label-good-bad
+%% type: architecture
+%% derived: 2026-09-27 agent-skills-video 分镜
+flowchart TD
+    USER["用户请求<br/>「这表看着乱」"] -->|"一句话"| ROUTER["调度员<br/>只扫货签一眼"]
+    ROUTER -->|"看得懂·提箱"| GOOD["好签<br/>清洗 CSV · 做什么+何时用"]
+    ROUTER -.->|"读不出意图"| BAD["差签<br/>「帮忙处理文档」"]
+    GOOD -->|"触发执行"| HIT["没说关键词也命中<br/>意图对上就提箱"]
+    BAD -.->|"无声跳过"| SILENT["静默退化<br/>合规无害 · 永不触发<br/>无任何报错"]
+    BAD -->|"怎么救"| REWRITE["改签复活<br/>补「做什么+何时用」"]
+    REWRITE -->|"改签归队"| GOOD

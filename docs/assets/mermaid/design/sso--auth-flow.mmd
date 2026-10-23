@@ -1,0 +1,36 @@
+%%source: docs/concepts/design/sso.md#block0 (L21-L54, §2 架构总览)
+%%slug: design/sso--auth-flow
+%%type: sequence
+%%derived: archify sequence, byte-extract of source mermaid; redrawn as sequence per code (auth/api.py + auth/service.py + auth/middleware.py, negentropy-ui app/api/auth/*)
+flowchart TD
+  subgraph FE["Frontend / negentropy-ui"]
+    A["Browser"] --> B["/api/auth/login"]
+    A --> C["/api/auth/me"]
+    A --> D["/api/agui/*"]
+  end
+
+  subgraph BE["Backend / negentropy (ADK FastAPI)"]
+    E["/auth/google/login"] --> F["Google OAuth Consent"]
+    F --> G["/auth/google/callback"]
+    G --> H["Set Cookie + user_states"]
+    H --> I["/auth/me"]
+    J["AuthMiddleware"] --> K["/run_sse + /apps/*/sessions"]
+  end
+
+  subgraph DB["PostgreSQL"]
+    L["user_states (profile + roles)"]
+    M["threads/events (sessions)"]
+  end
+
+  B --> E
+  C --> I
+  D --> K
+  H --> L
+  K --> M
+
+  %% styles (high contrast for dark mode)
+  style FE fill:#0b1f2a,stroke:#3b82f6,color:#e6edf3
+  style BE fill:#1f2937,stroke:#10b981,color:#ecfdf5
+  style DB fill:#111827,stroke:#f59e0b,color:#fff7ed
+  style A fill:#0f172a,stroke:#60a5fa,color:#e2e8f0
+  style K fill:#0f172a,stroke:#34d399,color:#ecfdf5

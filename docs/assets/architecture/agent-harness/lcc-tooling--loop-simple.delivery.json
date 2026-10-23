@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2bfdf677-7d7a-49bf-af1e-83cdfb943c2e",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/diagrams/lcc-tooling--loop-simple/lcc-tooling--loop-simple.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/houston-v4/docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+  "specification": {
+    "sha256": "277a31122f41e4a678a25bccc32208018d4c046f8ff6f32e02a3b9252c3c1ec3",
+    "bytes": 2803
+  },
+  "artifact": {
+    "sha256": "bd9af87314c7a3e65549d04be0ce1d251f664655bea6be472d12df3bf5634245",
+    "bytes": 750144
+  }
+}

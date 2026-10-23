@@ -1,4 +1,4 @@
-[English](./README.md) | [简体中文](./docs/zh-CN/README.md)
+[English](./README.md) | [简体中文](../../docs/i18n/zh-CN/README.md)
 
 <h1 align="center">Negentropy Perceives</h1>
 
@@ -82,7 +82,7 @@ Add the following to your `claude_desktop_config.json` in Claude Desktop:
 }
 ```
 
-> Supports three transport modes: STDIO (local dev), HTTP (production-recommended), and SSE (compatibility mode). See the [User Guide](./docs/user-guide.md#mcp-server-配置) for the comprehensive configuration.
+> Supports three transport modes: STDIO (local dev), HTTP (production-recommended), and SSE (compatibility mode). See the [User Guide](../../docs/README.md#mcp-server-配置) for the comprehensive configuration.
 
 ---
 
@@ -141,22 +141,9 @@ Add the following to your `claude_desktop_config.json` in Claude Desktop:
 
 ## Architectural Landscape
 
-```mermaid
-graph TD
-    A["SDK Layer<br/>NegentropyPerceivesClient"] -.->|"HTTP Transport"| T["MCP Tool Layer<br/>6 Tools · @app.tool()"]
-    T --> P["Pipeline Layer<br/>Stage Orchestration · Competition/Fallback"]
-    T --> B["Processing Engine Layer<br/>Scraping · PDF · Markdown"]
-    P --> B
-    B --> C["Infrastructure Layer<br/>RateLimiter · Cache · Metrics · ErrorHandler · Retry"]
-    C --> D["Configuration Layer<br/>pydantic-settings · Env Vars"]
+![Negentropy Perceives five-layer architecture: the NegentropyPerceivesClient SDK reaches six FastMCP tools over HTTP transport; the pipeline layer orchestrates competition/fallback stages over the scraping, PDF and markdown engines, which ride the infrastructure layer (rate limiter, cache, retry) onto pydantic-settings configuration.](../../docs/assets/architecture/apps/perceives-readme--five-layers-dark.png)
 
-    style A fill:#4c1d95,stroke:#a78bfa,color:#ffffff
-    style T fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
-    style P fill:#b45309,stroke:#f59e0b,color:#ffffff
-    style B fill:#166534,stroke:#22c55e,color:#ffffff
-    style C fill:#134e4a,stroke:#14b8a6,color:#ffffff
-    style D fill:#581c87,stroke:#9333ea,color:#ffffff
-```
+> 图源（可 diff 文本）：[`perceives-readme--five-layers.mmd`](../../docs/assets/mermaid/apps/perceives-readme--five-layers.mmd) · 交互版（下载到本地打开）：[`perceives-readme--five-layers.html`](../../docs/assets/architecture/apps/perceives-readme--five-layers.html)
 
 A 5-tier orthogonal architecture: SDK → MCP Tools → Pipeline Orchestration → Processing Engines → Infrastructure, with the Configuration Layer interweaving through everything. Featuring a 10-Stage PDF Pipeline and a 12-Stage WebPage Pipeline that strictly enforce both fallback and competitive execution models.
 
@@ -168,9 +155,9 @@ A 5-tier orthogonal architecture: SDK → MCP Tools → Pipeline Orchestration �
 
 | Document                                   | Content                                                                   | Who is it for             |
 | :----------------------------------------- | :------------------------------------------------------------------------ | :------------------------ |
-| [User Guide](./docs/user-guide.md)         | Deep dive into 6 tools, MCP Server setup, SDK interfaces, advanced tweaks | All Users                 |
-| [Architecture Design](./docs/framework.md) | 5-tier architecture, Pipeline orchestration, engine fallbacks, Smart Mode | Architects / Contributors |
-| [Developer Guide](./docs/development.md)   | Environment setup, test framework, CI/CD, PR guidelines                   | Developers                |
+| [User Guide](../../docs/README.md)         | Deep dive into 6 tools, MCP Server setup, SDK interfaces, advanced tweaks | All Users                 |
+| [Architecture Design](../../docs/concepts/framework.md) | 5-tier architecture, Pipeline orchestration, engine fallbacks, Smart Mode | Architects / Contributors |
+| [Developer Guide](../../docs/concepts/operations/development.md)   | Environment setup, test framework, CI/CD, PR guidelines                   | Developers                |
 | [Changelog](CHANGELOG.md)                  | Release history and change logs                                           | Everyone                  |
 
 </center>
@@ -181,7 +168,7 @@ A 5-tier orthogonal architecture: SDK → MCP Tools → Pipeline Orchestration �
 
 Beyond the World Wide Web and massive unstructured texts lies an abyss of noise. Only through relentless code evolution can we forge ahead steadily. If you hold the inspiration to pull chaos back into order, please do not hesitate to share:
 
-1. Before striking your keyboard, flip through the [Developer Guide](./docs/development.md) along the way.
+1. Before striking your keyboard, flip through the [Developer Guide](../../docs/concepts/operations/development.md) along the way.
 2. Hurl your paradigm-shifting ideas at our [Issues](https://github.com/ThreeFish-AI/negentropy-perceives/issues) or directly submit a [Pull Request](https://github.com/ThreeFish-AI/negentropy-perceives/pulls) armed with game-changing power.
 
 ---

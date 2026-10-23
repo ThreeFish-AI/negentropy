@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "25b7b73a-2d19-4eba-84bd-21625e8093bf",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-worktree-teardown/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--worktree-teardown.html",
+  "specification": {
+    "sha256": "d68fd07fdc910916a2493acff55e89c43f7b3617c23e94971a02cc5029d0e7da",
+    "bytes": 9715
+  },
+  "artifact": {
+    "sha256": "cf4a5cd99152ea259c4462e9744c17445153035e0d8dc5136f8673fc7a67c0cb",
+    "bytes": 846861
+  }
+}

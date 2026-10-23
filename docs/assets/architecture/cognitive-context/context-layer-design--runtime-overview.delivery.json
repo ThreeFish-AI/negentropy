@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0965677a-684e-4142-8671-9fbbd53e4f9c",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/.archify/architecture-runtime-overview-20261020-104853/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/context-layer-design--runtime-overview.html",
+  "specification": {
+    "sha256": "30d9daff1a5d0e6511bb2ea364c682a6c68c67afcc16fd610c730964363a9d03",
+    "bytes": 8631
+  },
+  "artifact": {
+    "sha256": "973ed8937f060ca7ac1d111ce80ceea9a0d6ae4a3ed8cb645dd037f69f91e9ec",
+    "bytes": 760230
+  }
+}

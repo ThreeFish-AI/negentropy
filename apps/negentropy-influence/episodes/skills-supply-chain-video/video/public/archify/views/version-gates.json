@@ -1,0 +1,43 @@
+[
+ {
+  "id": "vg-nofield",
+  "label": "无版本格",
+  "focus": [
+   "spec",
+   "layer",
+   "computed"
+  ],
+  "note": "六字段无 version · 明文推给分发层"
+ },
+ {
+  "id": "vg-pinned",
+  "label": "门一写死",
+  "focus": [
+   "computed",
+   "pinned",
+   "stuck"
+  ],
+  "note": "写死版本号：修复卡在上游"
+ },
+ {
+  "id": "vg-floating",
+  "label": "门二省略",
+  "focus": [
+   "computed",
+   "float",
+   "jump"
+  ],
+  "note": "省略即跟 HEAD：一推全员变"
+ },
+ {
+  "id": "vg-test",
+  "label": "双门实测",
+  "focus": [
+   "stuck",
+   "pintest",
+   "jump",
+   "floattest"
+  ],
+  "note": "E-05：写死仍 1.0.0 · 省略整体跳变"
+ }
+]

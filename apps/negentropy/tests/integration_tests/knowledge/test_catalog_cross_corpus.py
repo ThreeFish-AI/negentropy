@@ -414,7 +414,7 @@ class TestCatalogIsolation:
 
 
 # ===================================================================
-# TestGetCatalogDocuments — ISSUE-010 回归：候选文档列表契约
+# TestGetCatalogDocuments — I-010 回归：候选文档列表契约
 # ===================================================================
 
 
@@ -423,7 +423,7 @@ def patch_handler_sessions(db_engine, monkeypatch):
     """将 routes 子模块与 _shared 中 `from db.session import AsyncSessionLocal`
     造成的名称绑定重定向到测试引擎，使 handler 直调可命中测试 DB。
 
-    conftest.patch_db_globals 仅覆盖 db.session / db.deps 命名空间，
+    conftest.patch_db_globals 仅覆盖 db.session 命名空间，
     无法影响已以 `from X import Y` 形式绑定在其他模块的引用——此 fixture
     形成互补。
     """
@@ -504,7 +504,7 @@ class TestGetCatalogDocuments:
         assert returned_ids == expected_ids, "应仅返回 negentropy app 下的文档"
         assert str(doc_in_other_app) not in returned_ids, "跨 app 的文档必须被过滤掉"
 
-        # 字段完整性（对齐前端 KnowledgeDocument 接口，回归 ISSUE-010）
+        # 字段完整性（对齐前端 KnowledgeDocument 接口，回归 I-010）
         for item in result["items"]:
             assert item.original_filename, "original_filename 必须非空（UI 直接显示）"
             assert item.app_name == "negentropy"
@@ -649,7 +649,7 @@ class TestGetEntryDocuments:
         doc_in_negentropy,
     ):
         """响应外壳为 {documents, total}；单项必须含 original_filename（非空）——
-        回归 ISSUE-010 字段漂移，锁定 DocumentAssignmentSection.tsx 的显示契约。"""
+        回归 I-010 字段漂移，锁定 DocumentAssignmentSection.tsx 的显示契约。"""
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
         from negentropy.knowledge.lifecycle.catalog_dao import CatalogDao

@@ -1,24 +1,27 @@
-/** chrome 层组件种子（seeded 档——scaffold 复制后完全自由，无门，随集演进）。
+/** 本集视觉母题库（每集独有；复用边界见 pipeline/README.md §四——
+ *  Remotion 原语复制适配、不做跨集共享包）。
  *
- *  本文件从《拆开 Claude Code》集（claude-code-explained-video）的 motifs.tsx
- *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
- *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
- *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
- *  （复制适配、不做跨集 import——复用边界见 pipeline/README.md §四）。
+ *  四个母题，对应 script/storyboard.md 反复出现的画面语言：
+ *    Terminal      终端窗口 + 打字机（P0 痛点、P2 命令拼接、P5 回照）
+ *    LoopRing      环形循环 —— 全片恒定视觉锚（P1…P5 共五次出现）
+ *    DispatchTable 字典分发表（P2 工具分发、P4 时机注册表）
+ *    GateRouter    闸门路由（P3 三道闸门）
  *
- *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
- *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
- *  需要时从 claude-code-explained-video 的 motifs.tsx 复制对应段落后裁剪、
- *  追加到本文件；母题目录与适用场景见 pipeline/skills/06 的母题表。
+ *  ★ LoopRing 的不变量：`stroke` 恒为 theme.core、`strokeWidth` 恒为绝对像素
+ *  （不随 size 缩放）。「循环始终不变」这个主题靠它被**看见**而不是被听说，
+ *  故任何调用点都不得覆写这两个值——只允许改 size / 位置 / 节点高亮。
  */
 import React from 'react';
-import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../design/theme';
+
+/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
+export const RING_STROKE = 6;
 
 /** 缓入缓出：用于描线与推进，避免线性运动的机械感 */
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (1 - t) * (1 - t) * 2);
 
-// ─────────────────────────────────────────────────────────── chrome 组件
+// ─────────────────────────────────────────────────────────── 通用容器
 
 export const Panel: React.FC<{
   style?: React.CSSProperties;
@@ -66,25 +69,14 @@ export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = (
   );
 };
 
-/** 幕标题条：左上角章号 + 标语（角标性质，不进口播）。章号默认 text，
- *  各集常换成本集概念色（ep1 即是 core）——这是 chrome 层少数的「随集演进」点 */
-export const SceneTag: React.FC<{
-  chapter: string;
-  tagline: string;
-  accent?: string;
-}> = ({chapter, tagline, accent}) => {
+/** 幕标题条：左上角章号 + 标语（角标性质，不进口播） */
+export const SceneTag: React.FC<{chapter: string; tagline: string}> = ({chapter, tagline}) => {
   const frame = useCurrentFrame();
   const o = interpolate(frame, [6, 24], [0, 1], {extrapolateRight: 'clamp'});
+  // 右上：左上角让位给常驻 HarnessBadge（系列身份栈缩退位，harness-stack.tsx）
   return (
-    <div style={{position: 'absolute', left: 72, top: 64, opacity: o}}>
-      <div
-        style={{
-          fontFamily: theme.mono,
-          fontSize: 26,
-          color: accent ?? theme.text,
-          letterSpacing: 2,
-        }}
-      >
+    <div style={{position: 'absolute', right: 72, top: 64, textAlign: 'right', opacity: o}}>
+      <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.core, letterSpacing: 2}}>
         {chapter}
       </div>
       <div style={{fontFamily: theme.serif, fontSize: 22, color: theme.dim, marginTop: 6}}>
@@ -114,185 +106,24 @@ export const Counter: React.FC<{
   );
 };
 
-/** 代码卡：逐行渲染（每行 framesPerLine 帧），可高亮/压暗指定行。
- *  高亮行与行号辉光统一走 `accent`（默认 text）——各集传本集概念色 */
-export const CodeCard: React.FC<{
-  lines: string[];
-  framesPerLine?: number;
-  highlight?: number[];
-  dimOthers?: boolean;
-  width?: number;
-  showLineNumbers?: boolean;
-  glowLineNumbersAt?: number;
-  accent?: string;
-}> = ({
-  lines,
-  framesPerLine = 3,
-  highlight = [],
-  dimOthers = false,
-  width = 900,
-  showLineNumbers = true,
-  glowLineNumbersAt,
-  accent,
-}) => {
-  const frame = useCurrentFrame();
-  const hot = accent ?? theme.text;
-  const glow =
-    glowLineNumbersAt !== undefined
-      ? interpolate(frame - glowLineNumbersAt, [0, 8, 22], [0, 1, 0], {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
-        })
-      : 0;
-  return (
-    <Panel accent={accent} style={{width, padding: '20px 24px'}}>
-      {lines.map((ln, i) => {
-        const shown = frame >= i * framesPerLine;
-        const isHot = highlight.includes(i);
-        return (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              gap: 16,
-              fontFamily: theme.mono,
-              fontSize: 25,
-              lineHeight: 1.62,
-              opacity: shown ? (dimOthers && !isHot ? 0.4 : 1) : 0,
-              background: isHot ? `${hot}26` : 'transparent',
-              borderLeft: isHot ? `4px solid ${hot}` : '4px solid transparent',
-              paddingLeft: 8,
-              borderRadius: 5,
-            }}
-          >
-            {showLineNumbers ? (
-              <span
-                style={{
-                  width: 34,
-                  textAlign: 'right',
-                  color: glow > 0 ? hot : theme.panelBorder,
-                  textShadow: glow > 0 ? `0 0 ${10 * glow}px ${hot}` : 'none',
-                }}
-              >
-                {i + 1}
-              </span>
-            ) : null}
-            <span style={{color: theme.text, whiteSpace: 'pre'}}>{ln}</span>
-          </div>
-        );
-      })}
-    </Panel>
-  );
-};
-
-/** 反枚举原则的并列项：panel 底 + 编号，激活时才染色。
- *  概念色经 `accent` 注入（默认 text 中性；各集传本集概念色） */
-export const NumberedCard: React.FC<{
-  index: number;
-  label: string;
-  active?: boolean;
-  sub?: string;
-  width?: number;
-  delay?: number;
-  accent?: string;
-}> = ({index, label, active = false, sub, width = 210, delay = 0, accent}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const enter = spring({frame: frame - delay, fps, config: {damping: 200}});
-  const on = accent ?? theme.text;
-  return (
-    <div
-      style={{
-        width,
-        opacity: enter,
-        transform: `translateY(${(1 - enter) * 26}px)`,
-      }}
-    >
-      <Panel
-        accent={active ? on : theme.panelBorder}
-        style={{padding: '16px 18px', minHeight: 104}}
-      >
-        <div
-          style={{
-            fontFamily: theme.mono,
-            fontSize: 22,
-            color: active ? on : theme.dim,
-          }}
-        >
-          {String(index).padStart(2, '0')}
-        </div>
-        <div
-          style={{
-            fontFamily: theme.sans,
-            fontSize: 27,
-            fontWeight: 600,
-            color: theme.text,
-            marginTop: 4,
-          }}
-        >
-          {label}
-        </div>
-        {sub ? (
-          <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 4}}>
-            {sub}
-          </div>
-        ) : null}
-      </Panel>
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────────────────── 本集母题
-// 从《拆开 Claude Code》集（claude-code-explained-video）motifs.tsx 复制裁剪：
-// Terminal / LoopRing 族（系列同款终端 + 恒定视觉锚环）；另新增本集三件——
-// Desk（视野台面：全片主舞台）、Chip（对话流色块行）、Stamp（印章：催更 / SAVE /
-// cache hit / 停 / 职责）。复制适配、不做跨集 import（pipeline/README.md §四）。
-
-/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
-export const RING_STROKE = 6;
-
-// ─────────────────────────────────────────────── 母题：终端（复制自 ep1 后扩展）
+// ─────────────────────────────────────────────────────────── 母题 1：终端
 
 export type TermLine = {text: string; color?: string; delay: number; prompt?: string};
 
-/** 终端窗口 + 逐字打字机。cps = 每秒字数（帧驱动，可复现）。
- *  本集扩展：scrollShift（行区整体上移——首行被工具输出顶出可视区）与
- *  ghostLine / ghostAt（滚出后停在顶端的 dim 残影，P0「被挤走」要被看见）。 */
+/** 终端窗口 + 逐字打字机。cps = 每秒字数（帧驱动，可复现） */
 export const Terminal: React.FC<{
   lines: TermLine[];
   width?: number;
   height?: number;
   cps?: number;
-  /** 打完后光标是否停闪并变灰 */
+  /** 打完后光标是否停闪并变灰（P0「它停在那儿了」的落点） */
   freezeCursorAt?: number;
   title?: string;
-  scrollShift?: number;
-  ghostLine?: string;
-  ghostAt?: number;
-  promptColor?: string;
-}> = ({
-  lines,
-  width = 1180,
-  height = 470,
-  cps = 26,
-  freezeCursorAt,
-  title = 'zsh',
-  scrollShift = 0,
-  ghostLine,
-  ghostAt,
-  promptColor,
-}) => {
+}> = ({lines, width = 1180, height = 470, cps = 26, freezeCursorAt, title = 'zsh'}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const frozen = freezeCursorAt !== undefined && frame >= freezeCursorAt;
   const blink = frozen ? 0.35 : Math.floor((frame / fps) * 2) % 2 === 0 ? 1 : 0.15;
-  const ghostO =
-    ghostAt !== undefined
-      ? interpolate(frame - ghostAt, [0, 12], [0, 0.55], {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
-        })
-      : 0;
   return (
     <Panel style={{width, height, padding: 0, overflow: 'hidden'}}>
       <div
@@ -315,55 +146,28 @@ export const Terminal: React.FC<{
           {title}
         </div>
       </div>
-      <div
-        style={{
-          position: 'relative',
-          padding: '22px 26px',
-          fontFamily: theme.mono,
-          fontSize: 27,
-          lineHeight: 1.65,
-        }}
-      >
-        {/* 残影：滚出可视区的行停在顶端变 dim（0-A 的「被挤走」） */}
-        {ghostO > 0 && ghostLine ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 26,
-              top: 10,
-              color: theme.dim,
-              opacity: ghostO,
-              whiteSpace: 'pre',
-            }}
-          >
-            {ghostLine}
-          </div>
-        ) : null}
-        <div style={{transform: `translateY(${-scrollShift}px)`}}>
-          {lines.map((ln, i) => {
-            const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
-            if (shown <= 0) return null;
-            const isLast = i === lines.length - 1;
-            const done = shown >= ln.text.length;
-            return (
-              <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
-                {ln.prompt ? (
-                  <span style={{color: promptColor ?? theme.dim}}>{ln.prompt} </span>
-                ) : null}
-                {ln.text.slice(0, shown)}
-                {isLast && done ? (
-                  <span style={{opacity: blink, color: frozen ? theme.dim : theme.mech}}>▍</span>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+      <div style={{padding: '22px 26px', fontFamily: theme.mono, fontSize: 27, lineHeight: 1.65}}>
+        {lines.map((ln, i) => {
+          const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
+          if (shown <= 0) return null;
+          const isLast = i === lines.length - 1;
+          const done = shown >= ln.text.length;
+          return (
+            <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
+              {ln.prompt ? <span style={{color: theme.core}}>{ln.prompt} </span> : null}
+              {ln.text.slice(0, shown)}
+              {isLast && done ? (
+                <span style={{opacity: blink, color: frozen ? theme.dim : theme.core}}>▍</span>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </Panel>
   );
 };
 
-// ─────────────────────────────────────────────── 母题：环形循环（复制自 ep1，逐字）
+// ─────────────────────────────────────────────────────────── 母题 2：环形循环
 
 export type RingNode = {label: string; angle: number};
 
@@ -381,10 +185,10 @@ const polar = (cx: number, cy: number, r: number, deg: number) => {
 };
 
 /**
- * 全片恒定的环形循环（系列锚：同色 core 同线宽 6px，绝不覆写）。
+ * 全片恒定的环形循环。
  * - `draw` 0→1 描线进度；`dotProgress` 光点沿环位置（0–1，undefined 则不显示）
  * - `activeNode` 高亮某节点（石青脉冲）；`exitPull` 光点滑出到「停机」出口的比例
- * - `nodeLabels` 覆写节点文案
+ * - `nodeLabels` 覆写节点文案（P5 执行节点翻牌用）
  */
 export const LoopRing: React.FC<{
   size?: number;
@@ -500,167 +304,505 @@ export const useRingDot = (secPerLap = 2.5, offset = 0) => {
   return ((frame - offset) / (fps * secPerLap)) % 1;
 };
 
-// ─────────────────────────────────────────────── 母题：视野台面（本集新增）
+// ─────────────────────────────────────────────────────────── 母题 3：分发表
 
-/**
- * Desk —— 全片主舞台：一张亮面桌子。物件进出都在这张桌面上发生。
- * - `outline` 0→1 线稿化（5-B 桌子退后：描边保留、填充淡出）
- * - `fillOpacity` 半透明填充（0-C 环在桌后，需透出环的弧线）
- */
-export const Desk: React.FC<{
-  width: number;
-  height: number;
-  outline?: number;
-  fillOpacity?: number;
-  accent?: string;
-  style?: React.CSSProperties;
-  children?: React.ReactNode;
-}> = ({width, height, outline = 0, fillOpacity = 1, accent, style, children}) => (
-  <div
-    style={{
-      position: 'relative',
-      width,
-      height,
-      borderRadius: 20,
-      border: `3px solid ${accent ?? theme.panelBorder}`,
-      ...style,
-    }}
-  >
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        borderRadius: 17,
-        background: theme.panel,
-        opacity: (1 - outline * 0.94) * fillOpacity,
-      }}
-    />
-    {/* 亮面高光条 */}
-    <div
-      style={{
-        position: 'absolute',
-        left: 10,
-        right: 10,
-        top: 3,
-        height: 4,
-        borderRadius: 2,
-        background: 'rgba(255,255,255,0.06)',
-        opacity: 1 - outline,
-      }}
-    />
-    {children}
-  </div>
-);
+export type DispatchRow = {key: string; value: string};
 
-// ─────────────────────────────────────────────── 母题：对话流色块行（本集新增）
+/** 字典分发表：左键右值两列，命中行整行推入石青辉光 */
+export const DispatchTable: React.FC<{
+  rows: DispatchRow[];
+  rowDelay?: number;
+  /** 命中行下标（-1 不命中） */
+  hit?: number;
+  /** 末尾预留空槽（P2「多出一行空槽」） */
+  emptySlot?: boolean;
+  slotFilled?: boolean;
+  width?: number;
+  keyHeader?: string;
+  valueHeader?: string;
+}> = ({
+  rows,
+  rowDelay = 4,
+  hit = -1,
+  emptySlot = false,
+  slotFilled = false,
+  width = 720,
+  keyHeader = '工具名',
+  valueHeader = '处理函数',
+}) => {
+  const frame = useCurrentFrame();
+  return (
+    <Panel style={{width, padding: '18px 22px'}}>
+      <div
+        style={{
+          display: 'flex',
+          fontFamily: theme.sans,
+          fontSize: 22,
+          color: theme.dim,
+          paddingBottom: 12,
+          borderBottom: `2px solid ${theme.panelBorder}`,
+        }}
+      >
+        <div style={{flex: 1}}>{keyHeader}</div>
+        <div style={{flex: 1}}>{valueHeader}</div>
+      </div>
+      {rows.map((r, i) => {
+        const on = frame >= i * rowDelay;
+        const isHit = hit === i;
+        return (
+          <div
+            key={r.key}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              height: 54,
+              opacity: on ? 1 : 0,
+              background: isHit ? theme.mechDeep : 'transparent',
+              boxShadow: isHit ? `inset 0 0 0 2px ${theme.mech}` : 'none',
+              borderRadius: 8,
+              paddingLeft: 8,
+              fontFamily: theme.mono,
+              fontSize: 27,
+            }}
+          >
+            <div style={{flex: 1, color: isHit ? theme.mech : theme.text}}>{r.key}</div>
+            <div style={{flex: 1, color: isHit ? theme.mech : theme.dim}}>{r.value}</div>
+          </div>
+        );
+      })}
+      {emptySlot ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: 54,
+            marginTop: 4,
+            border: `2px dashed ${slotFilled ? theme.mech : theme.panelBorder}`,
+            borderRadius: 8,
+            paddingLeft: 8,
+            fontFamily: theme.mono,
+            fontSize: 27,
+            color: theme.mech,
+            opacity: slotFilled ? 1 : 0.6,
+          }}
+        >
+          <div style={{flex: 1}}>{slotFilled ? 'new_tool' : ''}</div>
+          <div style={{flex: 1}}>{slotFilled ? 'run_new' : ''}</div>
+        </div>
+      ) : null}
+    </Panel>
+  );
+};
 
-/**
- * Chip —— 对话内容的色块行：全部对话平铺在桌上的最小单位。
- * 色彩契约：用户句 dim / 模型句 text / 工具输出 mech / 任务单·视野内容 view。
- * （任务单 storyboard 原文写 core 描边；本集 core 收敛为环/循环锚专用，
- * 「进它视野的东西」一律 view——与 planning.md §三的深层轴一致。）
- */
-export const Chip: React.FC<{
-  kind: 'user' | 'model' | 'tool' | 'task' | 'summary';
-  label: string;
-  width: number;
+// ─────────────────────────────────────────────────────────── 母题 4：闸门路由
+
+/** 三道竖闸 + 请求光点。gates: 每道闸的落下进度 0–1；verdict 决定光点走向 */
+export const GateRouter: React.FC<{
+  gates: number[];
+  /** 请求推进进度 0–1（沿水平轴） */
+  travel: number;
+  /** 被第几道闸拦下（-1 = 全过） */
+  blockedBy?: number;
+  labels?: string[];
+  width?: number;
   height?: number;
-  style?: React.CSSProperties;
-}> = ({kind, label, width, height = 30, style}) => {
-  const conf = {
-    user: {bg: theme.panel, bd: theme.panelBorder, fg: theme.dim},
-    model: {bg: theme.panel, bd: theme.panelBorder, fg: theme.text},
-    tool: {bg: theme.mechDeep, bd: `${theme.mech}66`, fg: theme.mech},
-    task: {bg: theme.panel, bd: theme.view, fg: theme.view},
-    summary: {bg: theme.viewDeep, bd: theme.view, fg: theme.view},
-  }[kind];
+}> = ({gates, travel, blockedBy = -1, labels = ['拒绝表', '规则匹配', '问你'], width = 1120, height = 330}) => {
+  const gateX = [0.3, 0.52, 0.74].map((f) => f * width);
+  const stopX = blockedBy >= 0 ? gateX[blockedBy] - 26 : width - 40;
+  const x = 60 + Math.min(travel, 1) * (stopX - 60);
+  const bounced = blockedBy >= 0 && travel >= 1;
+  const y = height / 2;
+  const colorOf = (i: number) => (i === 0 ? theme.deny : theme.mech);
+  return (
+    <svg width={width} height={height} style={{overflow: 'visible'}}>
+      <line x1={40} y1={y} x2={width - 20} y2={y} stroke={theme.panelBorder} strokeWidth={4} />
+      {gateX.map((gx, i) => {
+        const p = Math.max(0, Math.min(1, gates[i] ?? 0));
+        const h = 118 * ease(p);
+        return (
+          <g key={i} opacity={p > 0 ? 1 : 0}>
+            <rect
+              x={gx - 9}
+              y={y - h}
+              width={18}
+              height={h}
+              rx={5}
+              fill={i === 2 ? 'none' : colorOf(i)}
+              stroke={colorOf(i)}
+              strokeWidth={3}
+              strokeDasharray={i === 2 ? '9 7' : undefined}
+            />
+            <text
+              x={gx}
+              y={y - h - 18}
+              textAnchor="middle"
+              fontFamily={theme.sans}
+              fontSize={23}
+              fontWeight={600}
+              fill={colorOf(i)}
+            >
+              {labels[i]}
+            </text>
+            <text
+              x={gx}
+              y={y + 44}
+              textAnchor="middle"
+              fontFamily={theme.mono}
+              fontSize={20}
+              fill={theme.dim}
+            >
+              {i + 1}
+            </text>
+          </g>
+        );
+      })}
+      <circle
+        cx={bounced ? x - 34 : x}
+        cy={y}
+        r={13}
+        fill={blockedBy === 0 ? theme.deny : theme.core}
+        opacity={bounced && blockedBy === 0 ? 0.35 : 1}
+      />
+      {blockedBy < 0 && travel >= 1 ? (
+        <text
+          x={width - 20}
+          y={y - 26}
+          textAnchor="end"
+          fontFamily={theme.sans}
+          fontSize={24}
+          fontWeight={700}
+          fill={theme.core}
+        >
+          放行
+        </text>
+      ) : null}
+    </svg>
+  );
+};
+
+// ─────────────────────────────────────────────────────────── 代码卡
+
+/** 代码卡：逐行渲染（每行 framesPerLine 帧），可高亮/压暗指定行 */
+export const CodeCard: React.FC<{
+  lines: string[];
+  framesPerLine?: number;
+  highlight?: number[];
+  dimOthers?: boolean;
+  width?: number;
+  showLineNumbers?: boolean;
+  glowLineNumbersAt?: number;
+  accent?: string;
+}> = ({
+  lines,
+  framesPerLine = 3,
+  highlight = [],
+  dimOthers = false,
+  width = 900,
+  showLineNumbers = true,
+  glowLineNumbersAt,
+  accent,
+}) => {
+  const frame = useCurrentFrame();
+  const glow =
+    glowLineNumbersAt !== undefined
+      ? interpolate(frame - glowLineNumbersAt, [0, 8, 22], [0, 1, 0], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        })
+      : 0;
+  return (
+    <Panel accent={accent} style={{width, padding: '20px 24px'}}>
+      {lines.map((ln, i) => {
+        const shown = frame >= i * framesPerLine;
+        const hot = highlight.includes(i);
+        return (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              gap: 16,
+              fontFamily: theme.mono,
+              fontSize: 25,
+              lineHeight: 1.62,
+              opacity: shown ? (dimOthers && !hot ? 0.4 : 1) : 0,
+              background: hot ? theme.coreDeep : 'transparent',
+              borderLeft: hot ? `4px solid ${theme.mech}` : '4px solid transparent',
+              paddingLeft: 8,
+              borderRadius: 5,
+            }}
+          >
+            {showLineNumbers ? (
+              <span
+                style={{
+                  width: 34,
+                  textAlign: 'right',
+                  color: glow > 0 ? theme.core : theme.panelBorder,
+                  textShadow: glow > 0 ? `0 0 ${10 * glow}px ${theme.core}` : 'none',
+                }}
+              >
+                {i + 1}
+              </span>
+            ) : null}
+            <span style={{color: theme.text, whiteSpace: 'pre'}}>{ln}</span>
+          </div>
+        );
+      })}
+    </Panel>
+  );
+};
+
+/** 反枚举原则的并列项：panel 底 + 编号，激活时才染色 */
+export const NumberedCard: React.FC<{
+  index: number;
+  label: string;
+  active?: boolean;
+  sub?: string;
+  width?: number;
+  delay?: number;
+}> = ({index, label, active = false, sub, width = 210, delay = 0}) => {
+  const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const enter = spring({frame: frame - delay, fps, config: {damping: 200}});
   return (
     <div
       style={{
         width,
-        height,
-        borderRadius: 7,
-        background: conf.bg,
-        border: `2px solid ${conf.bd}`,
-        display: 'flex',
-        alignItems: 'center',
-        paddingLeft: 12,
-        paddingRight: 8,
-        boxSizing: 'border-box',
-        fontFamily: theme.mono,
-        fontSize: 19,
-        color: conf.fg,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        ...style,
+        opacity: enter,
+        transform: `translateY(${(1 - enter) * 26}px)`,
       }}
     >
-      {label}
+      <Panel
+        accent={active ? theme.mech : theme.panelBorder}
+        style={{padding: '16px 18px', minHeight: 104}}
+      >
+        <div
+          style={{
+            fontFamily: theme.mono,
+            fontSize: 22,
+            color: active ? theme.mech : theme.dim,
+          }}
+        >
+          {String(index).padStart(2, '0')}
+        </div>
+        <div
+          style={{
+            fontFamily: theme.sans,
+            fontSize: 27,
+            fontWeight: 600,
+            color: theme.text,
+            marginTop: 4,
+          }}
+        >
+          {label}
+        </div>
+        {sub ? (
+          <div style={{fontFamily: theme.mono, fontSize: 19, color: theme.dim, marginTop: 4}}>
+            {sub}
+          </div>
+        ) : null}
+      </Panel>
     </div>
   );
 };
 
-// ─────────────────────────────────────────────── 母题：印章（本集新增）
+// ─────────────────────────────────────────────── 本集新增母题（storyboard 公共组件清单）──
+// DeskPlane 台面（上下文窗口）／ClashCard 三连反转对撞卡（D1/D2/D3）／ReceiptPaper 回执纸。
+// 「本集空间契约」的实现载体：台面恒居画面中央〔M-001 换主角——执行层的锚是循环，本层的
+// 锚是台面〕，五装置自右缘/上缘依次挂入（mech 紫）。「安排台面」的动效只作用于台面内容物。
 
-/**
- * Stamp —— 印章：spring 落下（过冲）+ 涟漪扩散 + 轻微旋转。
- * 用途：催更提醒（1-D）/ SAVE（2-E）/ cache hit（3-E）/ 停（4-E）/ 职责（5-A）。
- * 调用方以 style 定位（须在 position:relative 容器内）。
- */
-export const Stamp: React.FC<{
-  text: string;
-  color: string;
-  at: number;
-  size?: number;
-  rotate?: number;
-  fontSize?: number;
-  style?: React.CSSProperties;
-}> = ({text, color, at, size = 120, rotate = -12, fontSize, style}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  if (frame < at) return null;
-  const drop = spring({frame: frame - at, fps, config: {damping: 12}});
-  const rippleT = interpolate(frame - at, [0, 20], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const rippleO = frame - at < 20 ? 1 - rippleT : 0;
-  const fs = fontSize ?? size * (text.length > 3 ? 0.22 : 0.3);
+/** 台面描边线宽（绝对像素，全片恒定，勿随尺寸缩放） */
+export const DESK_STROKE = 6;
+
+/** 台面锚位几何（SSOT）：coreDeep 描边大矩形，恒居画面中央，P0 立锚后全片永不换位。
+ *  台面内容物与装置挂点一律从这组常量推坐标，勿散抄数字。 */
+export const DESK = {left: 480, top: 270, w: 960, h: 540} as const;
+
+/** 台面（上下文窗口）＝本集恒定主视觉〔M-001〕。
+ *  台面框体恒静——装置动效只作用于台面内容物（增/删/换），不触碰框体自身；任何调用点
+ *  不得覆写描边色/线宽/锚位。draw 仅供 P0 立锚描线生长；opacity 供整层让位/压暗
+ *  （由调用方注入——本母题零 hook、零自身动画）。内面填色是 coreDeep 的 7% 确定性
+ *  派生（字面量，可 grep），读作「台面自己的底」而非新概念色。 */
+export const DeskPlane: React.FC<{draw?: number; opacity?: number}> = ({draw = 1, opacity = 1}) => {
+  const d = draw < 0 ? 0 : draw > 1 ? 1 : draw;
+  const s = DESK_STROKE / 2;
   return (
-    <div style={{position: 'relative', width: size, height: size, ...style}}>
-      {rippleO > 0 ? (
-        <div
-          style={{
-            position: 'absolute',
-            inset: -6 - 20 * rippleT,
-            border: `3px solid ${color}`,
-            borderRadius: 999,
-            opacity: rippleO * 0.7,
-          }}
-        />
-      ) : null}
+    <svg
+      width={DESK.w + DESK_STROKE}
+      height={DESK.h + DESK_STROKE}
+      style={{
+        position: 'absolute',
+        left: DESK.left - s,
+        top: DESK.top - s,
+        opacity,
+        overflow: 'visible',
+      }}
+    >
+      <rect
+        x={s}
+        y={s}
+        width={DESK.w}
+        height={DESK.h}
+        rx={18}
+        fill="#B45A3C12"
+        stroke={theme.coreDeep}
+        strokeWidth={DESK_STROKE}
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - d}
+      />
+    </svg>
+  );
+};
+
+/** 对撞卡几何（D1/D2/D3 共用）：左右双卡 + 中央对撞轴 + 底部口径/收束条带。 */
+export const CLASH = {
+  left: {x: 150, y: 300, w: 640, h: 380},
+  right: {x: 1130, y: 300, w: 640, h: 380},
+  axisY: 470,
+  stripY: 766,
+} as const;
+
+/** 三连反转对撞卡（D1/D2/D3 共用形态）。
+ *  左＝拆源码侧 mono 引语卡、右＝官方文档页样——内容由场景经 slot 传入（引语的
+ *  useReveal 逐字属于场景时序，母题不吃 hook）。两支箭头自两侧推进相撞，裁决后
+ *  **右倾**：官方轨胜出的终态与标签语义同向（右卡微升轻放大、左卡下沉压暗 45%、
+ *  全排绕中点顺时针倾 2.4°，左箭被顶退、右箭进占中点）。enter/tilt 全由调用方注入。 */
+export const ClashCard: React.FC<{
+  /** 入场进度：[0] 左卡 [1] 右卡 [2] 箭头推进。 */
+  enter: readonly number[];
+  /** 裁决 0..1（弹簧输出；1 = 右倾终态）。 */
+  tilt: number;
+  left: React.ReactNode;
+  right: React.ReactNode;
+  /** 底部口径递进条 / 收束条（可缺省）。 */
+  strip?: React.ReactNode;
+}> = ({enter, tilt, left, right, strip}) => {
+  const t = tilt < 0 ? 0 : tilt > 1 ? 1 : tilt;
+  const eL = enter[0] ?? 0;
+  const eR = enter[1] ?? 0;
+  const eA = enter[2] ?? 0;
+  // 对撞火花：裁决弹簧行进途中一闪（sin 窗，终态归零——一次性特效不作停驻态）
+  const spark = Math.sin(Math.PI * t);
+  // 箭头停点：无裁决时两箭头在中点两侧相抵；裁决后左箭被顶退、右箭进占中点
+  const tipL = 700 + 130 * eA - 96 * t;
+  const tipR = 1220 - 130 * eA - 66 * t;
+  const arrow = (tip: number, dir: 1 | -1, color: string, o: number) => (
+    <g opacity={o}>
+      <line
+        x1={tip - dir * 170}
+        y1={120}
+        x2={tip - dir * 16}
+        y2={120}
+        stroke={color}
+        strokeWidth={8}
+        strokeLinecap="round"
+      />
+      <path
+        d={`M${tip - dir * 28} 102 L${tip} 120 L${tip - dir * 28} 138`}
+        fill="none"
+        stroke={color}
+        strokeWidth={8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
+  );
+  return (
+    <AbsoluteFill>
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          borderRadius: 999,
-          border: `4px solid ${color}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: theme.serif,
-          fontWeight: 700,
-          fontSize: fs,
-          color,
-          background: `${color}14`,
-          opacity: 0.5 + 0.5 * drop,
-          transform: `rotate(${rotate * drop}deg) scale(${1.9 - 0.9 * drop})`,
+          left: 0,
+          top: 0,
+          width: 1920,
+          height: 1080,
+          transform: `rotate(${2.4 * t}deg)`,
+          transformOrigin: '960px 700px',
         }}
       >
-        {text}
+        {/* 对撞轴（先画＝箭尾自然从卡片后缘探出） */}
+        <svg width={1920} height={240} style={{position: 'absolute', left: 0, top: CLASH.axisY - 120}}>
+          {arrow(tipL, 1, theme.dim, 0.9 * eA * (1 - 0.5 * t))}
+          {arrow(tipR, -1, theme.text, 0.9 * eA)}
+          {t > 0
+            ? Array.from({length: 6}, (_, i) => {
+                const a = (i / 6) * Math.PI * 2;
+                return (
+                  <line
+                    key={i}
+                    x1={960 + Math.cos(a) * 26}
+                    y1={120 + Math.sin(a) * 26}
+                    x2={960 + Math.cos(a) * (44 + 26 * spark)}
+                    y2={120 + Math.sin(a) * (44 + 26 * spark)}
+                    stroke={theme.text}
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                    opacity={spark}
+                  />
+                );
+              })
+            : null}
+        </svg>
+        {/* 左：拆源码侧（败方终态＝下沉 + 压暗） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: CLASH.left.x,
+            top: CLASH.left.y + 10 * t,
+            width: CLASH.left.w,
+            opacity: eL * (1 - 0.45 * t),
+            transform: `translateY(${(1 - eL) * 24}px)`,
+          }}
+        >
+          {left}
+        </div>
+        {/* 右：官方文档页（胜方终态＝微升 + 轻放大） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: CLASH.right.x,
+            top: CLASH.right.y - 8 * t,
+            width: CLASH.right.w,
+            opacity: eR,
+            transform: `translateY(${(1 - eR) * 24}px) scale(${1 + 0.03 * t})`,
+          }}
+        >
+          {right}
+        </div>
       </div>
-    </div>
+      {strip ? (
+        <div style={{position: 'absolute', left: 0, top: CLASH.stripY, width: 1920}}>{strip}</div>
+      ) : null}
+    </AbsoluteFill>
   );
 };
+
+/** 回执纸（P2 回执仪式 / 双边界卡复用）：mech 描边纸片＋折角＋两行摘要字与一行结论字。
+ *  「只带回结论、过程作废」的读法全在纸面：摘要行 dim、结论行 mech；位移/落位弹簧
+ *  由调用方注入（transform 在外层），纸面恒不自带动画。 */
+export const ReceiptPaper: React.FC<{w?: number; h?: number; opacity?: number}> = ({
+  w = 190,
+  h = 128,
+  opacity = 1,
+}) => (
+  <svg width={w} height={h} style={{display: 'block', overflow: 'visible', opacity}}>
+    <path
+      d={`M2 12 Q2 2 12 2 H${w - 30} L${w - 2} 30 V${h - 12} Q${w - 2} ${h - 2} ${w - 12} ${h - 2} H12 Q2 ${h - 2} 2 ${h - 12} Z`}
+      fill={theme.panel}
+      stroke={theme.mech}
+      strokeWidth={3}
+    />
+    <path
+      d={`M${w - 30} 2 L${w - 30} 30 L${w - 2} 30`}
+      fill="none"
+      stroke={theme.mech}
+      strokeWidth={2.5}
+      opacity={0.65}
+    />
+    <line x1={20} y1={Math.round(h * 0.42)} x2={w - 22} y2={Math.round(h * 0.42)} stroke={theme.panelBorder} strokeWidth={3} />
+    <line x1={20} y1={Math.round(h * 0.42) + 20} x2={Math.round(w * 0.66)} y2={Math.round(h * 0.42) + 20} stroke={theme.panelBorder} strokeWidth={3} />
+    <line x1={20} y1={h - 26} x2={Math.round(w * 0.58)} y2={h - 26} stroke={theme.mech} strokeWidth={3.5} />
+  </svg>
+);
 
 export {ease};

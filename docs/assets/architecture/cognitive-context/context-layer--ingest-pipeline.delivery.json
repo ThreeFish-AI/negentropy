@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "217c80ce-c518-44fe-a617-e9003dc934df",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
+  "specification": {
+    "sha256": "196e5f1185a218c3411e2102ca951c1d487e2346cdd61d350d7a6b0738fe6bd3",
+    "bytes": 8663
+  },
+  "artifact": {
+    "sha256": "ce09d72c513d6f38a2a25c0f9489fab17963768cc9ee9be53dd0aad2d2c51319",
+    "bytes": 761323
+  }
+}

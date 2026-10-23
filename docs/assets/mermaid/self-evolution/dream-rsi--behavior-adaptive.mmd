@@ -1,0 +1,13 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §6（§5.2 数字）
+%% slug: dream-rsi--behavior-adaptive
+%% type: lifecycle
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--behavior-adaptive.html
+flowchart LR
+    E0["探索早期<br/>逐轮评估次数 110 · 110"] --> E1["性能上升期<br/>省算力：87 → 80 → 50"]
+    E1 --> E2{"性能停滞？"}
+    E2 -->|"是"| E3["重新加码探索<br/>回升 92 → 80 → 91 → 86"]
+    E2 -->|"否"| E1
+    E0 & E1 & E3 --> PERF["同一过程性能 0.427 → 1.898<br/>（ConvDiv 任务）"]
+    E3 --> LESSON["学到的策略真在自适应：<br/>先经济后加码，不是摆设——<br/>章程是被「做梦」改出来的行为，不是固定脚本"]
+    style E1 fill:#0F3244,stroke:#7DD3FC,color:#fff
+    style PERF fill:#2E4210,stroke:#A3E635,color:#fff

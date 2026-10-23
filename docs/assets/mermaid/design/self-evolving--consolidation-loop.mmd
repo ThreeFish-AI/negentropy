@@ -1,0 +1,35 @@
+%%source: docs/concepts/design/self-evolving-agents.md#block1 (L376-401, §7.1)
+%%slug: design/self-evolving--consolidation-loop
+%%type: workflow
+%%derived: archify workflow v2 (源块字节抽取 + 事实核验修正)
+%% fix: 补码证负反馈闭环边——memory_retrieval_logs 的 irrelevant/harmful 反馈即时触发 ReflectionWorker 沉淀反思条目（engine/adapters/postgres/retrieval_tracker.py:28 _REFLEXION_TRIGGER_OUTCOMES、L229-233），原图缺此边致闭环未闭
+%% fix: CFG 出边由「约束检索与巩固行为→CJ」改为「检索权重生效→SIG」——现实现 config 仅约束检索面（models/evolution.py:200 memory_config_versions retrieval 首切片 semantic/keyword 权重；memory_service.py:834 _resolve_effective_weights 30s 缓存 + config_version 落日志），无代码将 config 约束巩固行为
+%% fix: CFG 节点 sublabel 由「检索参数 / λ / 管线 prompt」收敛为已落地的 retrieval 面事实（λ/管线 prompt 仍未 DB 化）
+flowchart LR
+    subgraph "基质回路（高频，consolidation 驱动）"
+        CJ["consolidation_jobs<br/>巩固队列"]
+        ENTRY["记忆条目<br/>facts / reflections / summaries"]
+        RW["反思生成<br/>reflection_worker"]
+        CJ -->|"写入 / 更新 / 淘汰"| ENTRY
+    end
+
+    SIG["检索反馈信号<br/>memory_retrieval_logs"]
+
+    subgraph "客体回路（低频，提案驱动）"
+        EP["evolution_proposals<br/>shadow → canary → promote"]
+        CFG["memory_config_versions<br/>检索权重 · is_active 指针"]
+        EP -->|"晋升 / 回滚"| CFG
+    end
+
+    ENTRY -->|"检索 → 引用 → 反馈"| SIG
+    SIG -->|"irrelevant / harmful<br/>负反馈触发"| RW
+    RW -->|"沉淀反思条目"| ENTRY
+    SIG -->|"零命中率 / 引用率<br/>触发配置提案"| EP
+    CFG -->|"检索权重生效<br/>config_version 分桶"| SIG
+
+    style CJ fill:#1f3a5f,stroke:#5b9bd5,stroke-width:2px,color:#e8f0fe
+    style ENTRY fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
+    style RW fill:#2a1f3d,stroke:#7c5ca5,stroke-width:2px,color:#e8dff5
+    style SIG fill:#3d2c52,stroke:#a07cc5,stroke-width:2px,color:#f3e9fb
+    style EP fill:#5a3d1f,stroke:#d59b5b,stroke-width:2px,color:#fdf3e8
+    style CFG fill:#1f4d2e,stroke:#5bbd7c,stroke-width:2px,color:#e8fbef

@@ -28,7 +28,7 @@ import os
 import sys
 import tempfile
 from contextlib import suppress
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
@@ -44,6 +44,7 @@ from negentropy.models.base import NEGENTROPY_SCHEMA
 from negentropy.models.mcp import McpServer, McpTool
 from negentropy.models.repository import Repository
 from negentropy.models.routine import Routine, RoutineIteration, RoutineIterationEvent
+from negentropy.timeutil import utcnow
 
 from . import decision as decision_mod
 from . import phase as phase_mod
@@ -83,7 +84,7 @@ _ROUTINE_DEFAULT_TOOLS = [
 # auto-answer / 退出 Plan 模式）。二者**必须**在 allowed_tools 白名单内，否则 CLI 直接拒绝
 # （tool_result `is_error=true`，输出 "Answer questions?" / "Exit plan mode?"），Engine 写回 stdin
 # 的应答永远无法被 CC 消费——Plan Review 反馈送达失败、CC 报错后自行 ExitPlanMode 单方面交付，
-# 评审闭环（CC 提交 Plan → Engine 评审 → 反馈 CC → CC 完善/通过）形同虚设（ISSUE-123）。
+# 评审闭环（CC 提交 Plan → Engine 评审 → 反馈 CC → CC 完善/通过）形同虚设（I-123）。
 _INTERACTIVE_AUTO_ANSWER_TOOLS = ("AskUserQuestion", "ExitPlanMode")
 
 # 非终态迭代状态（一个 routine 同时至多存在一个）。
@@ -93,10 +94,6 @@ _NON_TERMINAL_ITER = ("pending_approval", "dispatched", "in_flight", "executed",
 _BATCH_LIMIT = 10
 # 「全过程」审计事件单字段截断上限（与 claude_code.service 一致），防 DB 膨胀。
 _EVENT_FIELD_CAP = 16 * 1024
-
-
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
 
 
 def _kb_retrieval_available() -> bool:
@@ -175,11 +172,11 @@ def _write_plan_review_ctx(routine: Routine, iteration_id: UUID, *, mode: str = 
     reflections = (
         list((routine.reflections or {}).get("items", [])[:5]) if isinstance(routine.reflections, dict) else []
     )
-    # per-routine 审阅模型覆盖（ISSUE-125，镜像 evaluator_model 的 ISSUE-121 范式）：
+    # per-routine 审阅模型覆盖（I-125，镜像 evaluator_model 的 I-121 范式）：
     # 重型复刻类 routine 的方案审阅须能指定强模型，弱模型（gpt-5-nano）审阅意见不可靠、
     # 直接误导 CC 修订方向。None → 回退全局 settings.routine.plan_review_model。
     plan_review_model = (routine.config or {}).get("plan_review_model") or settings.routine.plan_review_model
-    # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
+    # per-routine 审阅超时覆盖（I-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
     plan_review_timeout = (routine.config or {}).get("plan_review_timeout_seconds") or (
         settings.routine.plan_review_timeout_seconds
     )
@@ -231,7 +228,7 @@ def _plan_review_hook_command(ctx_path: str) -> str:
 def _plan_review_hook_pre(ctx_path: str, review_timeout: int, *, exit_plan_full_review: bool) -> list[dict]:
     """构造 PreToolUse 钩子项（AskUserQuestion + ExitPlanMode），合并进 settings.hooks.PreToolUse。
 
-    - ``AskUserQuestion`` 恒跑真实评审 → timeout=``review_timeout+45``（ISSUE-129 公式：单次尝试 +
+    - ``AskUserQuestion`` 恒跑真实评审 → timeout=``review_timeout+45``（I-129 公式：单次尝试 +
       引擎冷启动余量；钩子内 PlanReviewer ``max_retries=1``）。
     - ``ExitPlanMode``：``exit_plan_full_review=True``（unified，CC 原生方案提交方式）亦跑真实评审 →
       同 full timeout；``=False``（legacy）仅瞬时返回「已批准」消噪 → timeout=15。
@@ -246,12 +243,12 @@ def _plan_review_hook_pre(ctx_path: str, review_timeout: int, *, exit_plan_full_
 
 
 def _is_plan_review_active(routine: Routine) -> bool:
-    """是否对本 routine 启用 Engine Plan Review 钩子（ISSUE-123）。
+    """是否对本 routine 启用 Engine Plan Review 钩子（I-123）。
 
     - 统一闭环开（``plan_review_unified_loop``，默认）：对**所有 worktree routine** 启用，**不再受
       PLAN 相位约束**——Runner 在迭代内以独立 plan 段（permission_mode=plan）跑评审，任何相位的
       worktree routine 首段都需评审钩子，故判定式仅看 ``is_worktree_routine``。
-    - 统一闭环关：回退旧判定——仅 phased/worktree routine 的 PLAN 相位启用（ISSUE-123 原行为）。
+    - 统一闭环关：回退旧判定——仅 phased/worktree routine 的 PLAN 相位启用（I-123 原行为）。
     """
     if not (settings.routine.auto_answer_questions and settings.routine.plan_review_enabled):
         return False
@@ -381,7 +378,7 @@ class RoutineOrchestrator:
     async def _reap_orphans(self) -> int:
         """回收孤儿在途迭代：lease 过期且本进程 Runner 不再持有 → 标记 reaped。"""
         runner = get_runner()
-        now = _utcnow()
+        now = utcnow()
         reaped = 0
         async with db_session.AsyncSessionLocal() as db:
             rows = (
@@ -556,7 +553,7 @@ class RoutineOrchestrator:
             return 0
         from . import pr_status  # 延迟导入：避免 import 期 which('gh') 探测进入与 PR 无关的测试路径
 
-        cutoff = _utcnow() - timedelta(seconds=settings.routine.pr_merge_check_interval_seconds)
+        cutoff = utcnow() - timedelta(seconds=settings.routine.pr_merge_check_interval_seconds)
         batch = settings.routine.pr_merge_check_batch
         timeout = float(settings.routine.pr_merge_check_timeout_seconds)
 
@@ -603,7 +600,7 @@ class RoutineOrchestrator:
         # 仅状态实际翻转时才置为 now（列表只在 PR 真正合并/关闭时才重排，不随节流推进乱跳）。
         # WHERE 含 status/pr_url 守卫：restart/cancel/pr_url 清理等使其脱离 due → UPDATE 匹配 0 行（no-op）。
         merged_ids: list[UUID] = []
-        now = _utcnow()
+        now = utcnow()
         async with db_session.AsyncSessionLocal() as db:
             for rid, before_state, st in checks:
                 new_state, changed = pr_status.compute_pr_write(before_state, st)
@@ -686,7 +683,7 @@ class RoutineOrchestrator:
 
         返回被认领迭代 id；若 routine 非 running 或最新迭代已非 executed（竞态）则返回 None。
         """
-        lease = _utcnow() + self._eval_lease()
+        lease = utcnow() + self._eval_lease()
         async with db_session.AsyncSessionLocal() as db:
             routine = await db.get(Routine, routine_id, with_for_update=True)
             if routine is None or routine.status != "running":
@@ -802,7 +799,7 @@ class RoutineOrchestrator:
                 # per-routine 验收未达成评分上限覆盖（None → 用评估器实例默认）。
                 acceptance_unmet_score_cap=(routine.config or {}).get("acceptance_unmet_score_cap"),
                 # per-routine Judge 模型覆盖（None → 用评估器实例默认全局 task 模型）。高风险复刻类
-                # acceptance 裁决需更强模型，缓解弱模型误判 acceptance_met=true 致过早不可逆成功（ISSUE-121）。
+                # acceptance 裁决需更强模型，缓解弱模型误判 acceptance_met=true 致过早不可逆成功（I-121）。
                 evaluator_model=(routine.config or {}).get("evaluator_model"),
                 # per-routine 锚点轨迹窗口覆盖（None → 用评估器默认 5）。
                 judge_anchor_window=anchor_window,
@@ -1192,7 +1189,7 @@ class RoutineOrchestrator:
                 # 闭合该迭代为 aborted，跳过 launch。
                 if not await self._ensure_workspace(routine):
                     it.status = "aborted"
-                    it.finished_at = _utcnow()
+                    it.finished_at = utcnow()
                     dirty = True
                     await self._publish_routine(routine)
                     continue
@@ -1899,7 +1896,7 @@ class RoutineOrchestrator:
         plan_review_active = _is_plan_review_active(routine)
         # Plan 审批通道：``via_hook`` 仅影响 **legacy（非 unified）** 路径——=True 挂 PreToolUse deny 钩子、
         # =False 回退 reader clean stdin。**unified 闭环的 plan 段已强制走钩子（见文末，不受此值控制）**，
-        # 因 headless 下 AskUserQuestion 的 stdin 回灌从始无效（ISSUE-123）。注意：reader clean stdin 仅对
+        # 因 headless 下 AskUserQuestion 的 stdin 回灌从始无效（I-123）。注意：reader clean stdin 仅对
         # ExitPlanMode 可用、对 AskUserQuestion 无效，故勿据「stdin 应答」假设 plan 段可不挂钩子。
         via_hook = bool((routine.config or {}).get("plan_review_via_hook", False))
         # 统一闭环：worktree + 全局开关开 + per-routine 未关闭。主 config = implement 段；plan 段独立挂载（见文末）。
@@ -1908,11 +1905,11 @@ class RoutineOrchestrator:
             and phase_mod.is_worktree_routine(routine)
             and bool((routine.config or {}).get("plan_review_enabled", True))
         )
-        # per-routine 审阅超时覆盖（ISSUE-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
+        # per-routine 审阅超时覆盖（I-129）：强模型审阅大型方案需 >60s，可经 config 抬高。
         review_timeout = int(
             (routine.config or {}).get("plan_review_timeout_seconds") or settings.routine.plan_review_timeout_seconds
         )
-        # Legacy 路径（统一闭环关）：评审钩子直接注入主 config（PLAN 相位，ISSUE-123 原行为；
+        # Legacy 路径（统一闭环关）：评审钩子直接注入主 config（PLAN 相位，I-123 原行为；
         # ExitPlanMode 仅消噪不评审）。unified 路径：钩子注入独立 plan 段（见文末），主 config 不挂钩子。
         if plan_review_active and not unified and via_hook:
             # legacy + deny 钩子通道（opt-in）：via_hook=False 时不挂钩子，改由 reader clean stdin 应答。
@@ -1939,7 +1936,7 @@ class RoutineOrchestrator:
         # 启用交互模式：Engine 自动应答 AskUserQuestion，使 CC 继续执行而非失败退出。
         if settings.routine.auto_answer_questions:
             config.interactive = True
-            # 强制并入交互工具白名单（ISSUE-123）：Plan Review / auto-answer 依赖 CLI 放行
+            # 强制并入交互工具白名单（I-123）：Plan Review / auto-answer 依赖 CLI 放行
             # AskUserQuestion + ExitPlanMode，否则二者被 allowed_tools 白名单拒绝（is_error），
             # Engine 经 stdin 写回的评审反馈/应答永远无法送达 CC，评审闭环失效。
             merged_tools = list(config.allowed_tools or [])

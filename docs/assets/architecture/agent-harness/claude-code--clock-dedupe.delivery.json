@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a4820e4d-63bb-4a7a-be63-04e1ec86a212",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-clock-dedupe/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--clock-dedupe.html",
+  "specification": {
+    "sha256": "8a78632f15a5f6632d8418973da9a57a41e330c3a15a4cae41be21ba4fe9c909",
+    "bytes": 5573
+  },
+  "artifact": {
+    "sha256": "b0f69fac0bcdfdbd4b39967bf8ed2381932f2dab4a09c9e235c23999f5de2eb0",
+    "bytes": 839438
+  }
+}

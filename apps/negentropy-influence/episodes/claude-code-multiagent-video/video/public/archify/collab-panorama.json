@@ -1,0 +1,99 @@
+{
+  "schema": 2,
+  "mode": "chapter",
+  "lead_sec": 0.44,
+  "story_sec": 15.37,
+  "total_wall_sec": 58.56,
+  "started_playback": true,
+  "clapper_found": true,
+  "measured_fps": 25.0,
+  "chapters": [
+    {
+      "id": "four-prep",
+      "label": "调模型前四道准备",
+      "index": 0,
+      "file": "collab-panorama--four-prep.mp4",
+      "end_still": "collab-panorama--four-prep-end.png",
+      "beats": 4,
+      "dwell_ms": 1100,
+      "lead_sec": 0.44,
+      "story_sec": 4.42,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "input",
+        "inject",
+        "compact",
+        "assemble"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 62.0
+    },
+    {
+      "id": "llm-judge",
+      "label": "单岔口判据",
+      "index": 1,
+      "file": "collab-panorama--llm-judge.mp4",
+      "end_still": "collab-panorama--llm-judge-end.png",
+      "beats": 2,
+      "dwell_ms": 1600,
+      "lead_sec": 0.44,
+      "story_sec": 3.27,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "llm",
+        "decide"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 62.0
+    },
+    {
+      "id": "dispatch",
+      "label": "权限与三分发",
+      "index": 2,
+      "file": "collab-panorama--dispatch.mp4",
+      "end_still": "collab-panorama--dispatch-end.png",
+      "beats": 4,
+      "dwell_ms": 1100,
+      "lead_sec": 0.44,
+      "story_sec": 4.46,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "gate",
+        "dispatch",
+        "writeback",
+        "stop"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 62.0
+    },
+    {
+      "id": "externals",
+      "label": "循环外的外部状态",
+      "index": 3,
+      "file": "collab-panorama--externals.mp4",
+      "end_still": "collab-panorama--externals-end.png",
+      "beats": 2,
+      "dwell_ms": 1600,
+      "lead_sec": 0.44,
+      "story_sec": 3.22,
+      "beat_offsets_sec": [],
+      "beat_nodes": [
+        "background",
+        "shared"
+      ],
+      "measured_fps": 25.0,
+      "capture_fps": 62.0
+    }
+  ],
+  "capture": {
+    "mode": "cdp",
+    "scale": 2,
+    "encoder": "h264",
+    "crf": 16,
+    "fps": 25,
+    "out_h": 1440
+  },
+  "source": "/Users/cm.huang/conductor/workspaces/negentropy/tbilisi/apps/negentropy-influence/episodes/claude-code-multiagent-video/video/public/archify/html/collab-panorama.html",
+  "slug": "collab-panorama",
+  "type": "dataflow"
+}

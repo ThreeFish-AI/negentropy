@@ -1,0 +1,21 @@
+%% source: docs/research/cognitive-context/014-openviking.md §5 检索相（换代重绘）
+%% slug: openviking--retrieval-phase
+%% type: workflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--retrieval-phase.html
+%% fix: 2026-10-22 上游 #5450（v0.4.23）删除目录递归/父分传播/收敛刹车，本图按钉点 6227af51 全量重绘
+flowchart TD
+  Q["用户问题"] --> ENTRY{"入口"}
+  ENTRY -- "find" --> QUICK["QUICK 平铺<br/>全局向量 top-limit · 恒此档"]
+  ENTRY -- "search" --> INT{"意图分析（enable_intent 默认开）<br/>typed query 每类 1–5 条 · 无会话用原查询"}
+  INT --> MODE{"配了 rerank 客户端？"}
+  MODE -- "否（默认部署即此）" --> QUICK
+  MODE -- "是" --> POOL["全局召回 2×limit 候选池<br/>scope/权限/level 过滤 · 同 URI 多层记录去重保最高分"]
+  QUICK --> ASM["context 装配（mode=context）<br/>预算 1600 · 六域配额（events3/entities3/prefs1/exp1/res1/skills1）<br/>用不满的名额由其他类别补足 · 先薄后厚 · 降档不截断"]
+  POOL --> RERANK["单遍精排：只读每条候选的 abstract<br/>失败回退向量分"]
+  RERANK --> THRESH{"分数 > 0.1？（精排之后才应用）<br/>向量分低的可能被精排救回"}
+  THRESH -- "否" --> CUT["剪掉（阈值后置防误杀）"]
+  THRESH -- "是" --> TOP["取 top-limit 返回"]
+  TOP -->|"mode=context"| ASM
+  QUICK -.->|"plain 模式直接返回"| OUT["结果 + provenance"]
+  TOP -.-> OUT
+  ASM --> OUT

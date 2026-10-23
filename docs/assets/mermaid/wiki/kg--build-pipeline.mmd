@@ -1,0 +1,45 @@
+%% source: docs/reference/wiki/design/knowledge-graph.md §数据流（块#0，L23-L58）
+%% slug: wiki/kg--build-pipeline
+%% type: workflow
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: wiki 已纯静态化（next.config.ts output:"export"）：图谱页构建期经 content-source.ts LocalContentClient 读静态内容包 graph.json，不再 SSR fetch 调 GET /knowledge/wiki/publications/{pub_id}/graph（该端点仍在 routes/wiki_graph.py，仅非 wiki 调用方可用）
+%% fix: /api/revalidate（HMAC webhook）与 revalidatePath ISR 链路已移除；更新改为「publish → spawn 导出+重建」（本地 build-wiki-local.sh / 生产 publish-wiki-pages.sh）+ trigger_wiki_redeploy 旁路通知云端 CI（repository_dispatch，异常仅 WARN 不阻塞）
+%% fix: 源图缺失导出环节——WikiExportService 在发布导出时调用 wiki_graph_service.get_publication_graph 烘焙 publications/[pubSlug]/graph.json 进 content/ 静态包（export_wiki_content.py 直连 PostgreSQL，不经后端 HTTP）
+%% fix: 渲染组件现为 WikiGraphRenderer（五引擎切换容器，默认 Sigma WebGL + ForceAtlas2，另有 d3-force/3D/ForceGraph/Cytoscape，全部 dynamic ssr:false）；WikiGraphCanvas 仅为其中 Sigma 引擎实现
+%% fix: SQL 切片实际链路 wiki_publication_entries.document_id 直达 kg_entity_mentions（DISTINCT entity_id）→ kg_entities + kg_relations，不经 knowledge_documents join；图中该表仅为文档概念占位
+flowchart LR
+  subgraph Backend["后端 Knowledge API"]
+    direction TB
+    pub[wiki_publications]
+    entries[wiki_publication_entries]
+    docs[knowledge_documents]
+    mentions[kg_entity_mentions]
+    ents[kg_entities]
+    rels[kg_relations]
+
+    pub --> entries
+    entries -->|document_id| docs
+    docs -->|document_id| mentions
+    mentions -->|entity_id| ents
+    ents -->|src/tgt| rels
+  end
+
+  subgraph WikiSSG["Wiki SSG (Next.js)"]
+    direction TB
+    page["[pubSlug]/graph/page.tsx"]
+    api["wiki-api.ts<br/>getPublicationGraph"]
+    canvas["WikiGraphCanvas<br/>(Sigma + ForceAtlas2)"]
+    revalidate["/api/revalidate<br/>(HMAC webhook)"]
+
+    page -->|SSR fetch| api
+    api -->|hydrate| canvas
+  end
+
+  Backend -.->|"GET /knowledge/wiki/publications/{pub_id}/graph"| api
+  Backend -.->|POST publish webhook| revalidate
+  revalidate -.->|revalidatePath| page
+
+  classDef be fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe
+  classDef wk fill:#3a1e5f,stroke:#a855f7,color:#f3e8ff
+  class pub,entries,docs,mentions,ents,rels be
+  class page,api,canvas,revalidate wk

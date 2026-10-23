@@ -1,0 +1,35 @@
+%%source: docs/research/cognitive-context/011-horizon-context.md §3.2 检索与发现（专章·四因子排序，NDCG 数字全自报）
+%%slug: cognitive-context/horizon-context--four-factor-ranking
+%%type: dataflow
+%%derived: archify dataflow v1, authored from source mermaid
+%% fix: (2026-09-15 校准) ① INF 节点「authority < 1」对 legacy 是事实错误——lab 实测 inferred authority=0.3、legacy authority=1.0 靠 freshness→0 隔离（horizon_context_lab.py L675，selftest C5）；② TOPK 补唯一官方量化证据 NDCG@10 / hit rate@1 分层增益（Cortex Search 工程博客，正文 M6）；③ %%source 行号更新为 L405-L422
+flowchart LR
+    subgraph "信号来源"
+        Q["❓ 问题信号<br/>关键词 × 业务意图"]
+        GOV["🏛️ governed 定义<br/>authority = 1.0"]
+        INF["🔍 inferred / legacy<br/>inferred authority=0.3 · legacy 停更（freshness→0）"]
+        USE["📈 使用信号<br/>查询日志 · 高频 join 模式"]
+        TM["🕒 时间信号<br/>更新时钟 · 单一 staleness"]
+    end
+    subgraph "四因子评估"
+        REL["relevance · 0.4<br/>字面 + 意图双契合"]
+        AUT["authority · 0.3<br/>governed 压倒民间口径"]
+        POP["popularity · 0.2<br/>log1p 有界变换"]
+        FRE["freshness · 0.1<br/>新定义压制 Legacy"]
+    end
+    subgraph "合成与裁决"
+        SC["加权合成<br/>0.4R + 0.3A + 0.2P + 0.1F"]
+        TB["显式 tie-break<br/>( -score, -authority, -updated, name )"]
+    end
+    TOPK["📤 top-k 上下文包<br/>NDCG@10 0.22→0.59 · hit rate@1 0.79→0.86<br/>先给谁由排序决定"]
+    Q --> REL
+    GOV --> AUT
+    INF -.-> AUT
+    USE --> POP
+    TM --> FRE
+    REL --> SC
+    AUT --> SC
+    POP --> SC
+    FRE --> SC
+    SC --> TB
+    TB --> TOPK

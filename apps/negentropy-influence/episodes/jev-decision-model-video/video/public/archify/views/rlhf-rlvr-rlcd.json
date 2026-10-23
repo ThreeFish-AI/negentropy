@@ -1,0 +1,40 @@
+[
+ {
+  "id": "tr-base",
+  "label": "共用底座",
+  "focus": [
+   "base"
+  ],
+  "note": "官方 primer：从预训练语言模型出发。"
+ },
+ {
+  "id": "tr-rlhf",
+  "label": "RLHF 路",
+  "focus": [
+   "base",
+   "rlhf",
+   "anchor"
+  ],
+  "note": "优化目标是人类偏好——对话场景的正解。"
+ },
+ {
+  "id": "tr-rlvr",
+  "label": "RLVR 路",
+  "focus": [
+   "base",
+   "rlvr",
+   "chief"
+  ],
+  "note": "优化目标是可验证奖励——慢而贵的首席。"
+ },
+ {
+  "id": "tr-rlcd",
+  "label": "RLCD 路",
+  "focus": [
+   "base",
+   "rlcd",
+   "judge"
+  ],
+  "note": "优化目标是校准决策——只填格的判读员。"
+ }
+]

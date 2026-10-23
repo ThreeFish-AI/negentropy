@@ -1,0 +1,31 @@
+%%source: docs/concepts/design/qa-delivery-pipeline.md#block0 (L18-L45, §2 流程拓扑)
+%%slug: design/qa-delivery--push-gate
+%%type: workflow
+%%derived: archify workflow v2, corrected from source mermaid
+%% fix: 原图 PRGate 子图只画「入口→reusable」两层委托，未体现复用工作流内部真实 job 顺序——按代码补全：后端 backend-unit→backend-integration 串行（reusable-negentropy-backend-quality.yml:19/85-87）；backend-performance 仅 dispatch/schedule 触发（negentropy-backend-tests.yml:51-55 run_performance 条件），不入 push 门禁故不画；UI 四 job（ui-lint/ui-typecheck/ui-unit-integration/ui-build-smoke）无 needs 完全并行，ui-e2e-smoke needs 四者汇聚（reusable-negentropy-ui-quality.yml:16/32/51/75/91-94）
+%% fix: negentropy-dependency-review.yml 仅 pull_request 触发且 paths 锁定锁文件/依赖清单（L4-17），并非 push 直推门禁——本图在触发边上显式标注 PR-only；fail-on-severity: high
+%% fix: push/PR 门禁面实际还含 negentropy-wiki-tests.yml（push/PR/dispatch → reusable-negentropy-wiki-quality.yml）；原图 Release 子图亦漏 wiki-qa（negentropy-release.yml:93-98 package-release needs [backend-qa, ui-qa, wiki-qa]，与 design/docker-release--pipeline.mmd 的 fix 记录一致）。本图聚焦 Push 门禁不展开 Release，wiki 遗漏建议随源文一并修正
+flowchart TD
+    classDef qa fill:#2563eb,stroke:#93c5fd,color:#f8fafc;
+    classDef security fill:#15803d,stroke:#86efac,color:#f8fafc;
+    classDef gate fill:#b45309,stroke:#fdba74,color:#f8fafc;
+
+    EVT[Push / PR 提交]:::gate
+
+    EVT -->|"apps/negentropy/**"| B1[negentropy-backend-tests.yml]:::qa
+    EVT -->|"apps/negentropy-ui/**"| U1[negentropy-ui-tests.yml]:::qa
+    EVT -->|PR · 锁文件变更| S1["negentropy-dependency-review.yml<br/>fail-on-severity: high"]:::security
+
+    subgraph BQ[reusable backend-quality]
+        B2["backend-unit<br/>coverage ≥ 50"]:::qa -->|needs| B3["backend-integration<br/>pgvector · alembic 单头"]:::qa
+    end
+
+    subgraph UQ[reusable ui-quality]
+        U2["ui-lint ∥ ui-typecheck<br/>∥ ui-unit-integration ∥ ui-build-smoke"]:::qa -->|四层全绿| U3["ui-e2e-smoke<br/>Playwright"]:::qa
+    end
+
+    B1 -->|uses| B2
+    U1 -->|uses| U2
+    B3 --> PASS["全绿放行<br/>branch protection"]:::gate
+    U3 --> PASS
+    S1 --> PASS

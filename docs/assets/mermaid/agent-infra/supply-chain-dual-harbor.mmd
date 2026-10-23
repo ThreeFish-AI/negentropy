@@ -1,0 +1,29 @@
+%% source: docs/research/agent-infra/220-skills-supply-chain.md（复查基线 .temp/skills-e3-lab/research-digest.md / gap-reports.md）
+%% slug: supply-chain-dual-harbor
+%% type: architecture
+%% derived: 2026-09-28 E3 精读 220 · docs/assets/architecture/agent-infra/supply-chain--dual-harbor.html
+flowchart LR
+    subgraph LEFT["左港 · agentskills/agentskills（冻结）"]
+        N1["主干冻结 49 天<br/>HEAD 69ef37e9 · 8-09 起"]
+        N2["48 个 open PR 积压<br/>零合并 · 全部躺平"]
+        N4["showcase 冻在 46 家<br/>2 家新客户端在队"]
+        N3["#254 停摆 7 个月<br/>.well-known 舱单 · dirty"]
+        N1 -->|"零合并"| N2
+        N2 -->|"停摆最久"| N3
+        N1 --> N4
+    end
+    BR["jonathanhefner<br/>双仓 Maintainer · 唯一人事桥"]
+    CU["报关单 PR #546<br/>8 行前缀保留 · 24 天 0 评论"]
+    subgraph RIGHT["右港 · modelcontextprotocol/ext-skills（周更）"]
+        M1["周更节奏<br/>2026-09-26 仍在 push"]
+        M2["SEP-2640 · 81 天<br/>否决 6-24 → Final 9-13"]
+        M3["逐文件 digest 舱单<br/>skills/list + 逐技能批准"]
+        M4["digest 不签名<br/>「不得当安全边界」明文"]
+        M1 -->|"SEP 流程跑通"| M2
+        M2 -->|"Final 条款"| M3
+        M3 -->|"但同源未签"| M4
+    end
+    BR --- N2
+    BR --- M1
+    BR -.->|"未签收"| CU
+    M2 -.->|"WG 行动项 · 8 行"| CU

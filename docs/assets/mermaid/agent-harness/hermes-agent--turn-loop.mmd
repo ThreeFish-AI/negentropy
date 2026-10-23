@@ -1,0 +1,25 @@
+%% source: docs/research/agent-harness/190-hermes-agent.md §3
+%% slug: hermes-agent--turn-loop
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/hermes-agent--turn-loop.html
+flowchart LR
+    subgraph A["主循环 · 管家当班"]
+        S["会话开始<br/>提示只装配一次"] --> P["三段式系统提示<br/>stable → context → volatile"]
+        P --> L["模型 ⇄ 工具循环<br/>每次请求是上次的字节扩展"]
+        L -- "最终回答" --> D["交付回答<br/>进入学习闭环检查"]
+    end
+    subgraph C["压缩 · 唯一计划内断点"]
+        CP["上下文压缩<br/>剪旧输出 → 对齐 → 迭代摘要"]
+        RB["重建系统提示<br/>从磁盘重读记忆与目录"]
+    end
+    subgraph K["持久层"]
+        SK["技能目录<br/>名称 + 短描述"]
+        MEM["MEMORY / USER<br/>2200 / 1375 字符"]
+        DB["state.db<br/>WAL · FTS5 三索引"]
+    end
+    MEM -- "冻结快照" --> P
+    SK -- "目录" --> P
+    L -. "逐条落盘" .-> DB
+    L -- "超阈值" --> CP
+    CP --> RB
+    RB -- "只断一次" --> L

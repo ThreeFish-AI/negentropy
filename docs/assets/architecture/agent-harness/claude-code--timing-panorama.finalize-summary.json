@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-timing-panorama/candidate.json",
+    "sha256": "b69554370562e32fd0af707ca9d5565ab899ed58315d422bfc40837a0b9af006",
+    "bytes": 7579
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--timing-panorama.html",
+    "sha256": "f82b45df1095bd3b4cca5a4799e3f4a7902b4a209645f484c4523f080cd6f4ca",
+    "bytes": 853272
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--timing-panorama.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--timing-panorama.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--timing-panorama.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 12227,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 3
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "scheduled-deliver",
+            "from": "clock-branch",
+            "to": "belt-core",
+            "label": "[Scheduled] · 递条上带",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "notify-hang",
+            "from": "bg-branch",
+            "to": "notify-lane",
+            "label": "干完 · 挂牌",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "notify-merge",
+            "from": "notify-lane",
+            "to": "belt-core",
+            "label": "通知合流 · 同一条 user 消息",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "clock-branch → belt-core needs 3 bends: move node clock-branch or belt-core so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "bg-branch → notify-lane needs 3 bends: move node bg-branch or notify-lane so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "notify-lane → belt-core needs 3 bends: move node notify-lane or belt-core so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

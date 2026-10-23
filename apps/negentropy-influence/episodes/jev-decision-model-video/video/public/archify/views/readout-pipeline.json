@@ -1,0 +1,41 @@
+[
+ {
+  "id": "rp-probs",
+  "label": "概率柱",
+  "focus": [
+   "probs",
+   "scoreboard"
+  ],
+  "note": "柱高合计 100%——校准承诺落在这一层。"
+ },
+ {
+  "id": "rp-formula",
+  "label": "计算栏",
+  "focus": [
+   "probs",
+   "formula",
+   "conf"
+  ],
+  "note": "判读员从不碰这一栏，表格自动算。"
+ },
+ {
+  "id": "rp-k",
+  "label": "K 依赖",
+  "focus": [
+   "conf",
+   "k2",
+   "k10"
+  ],
+  "note": "同一个 0.9，格子数不同含金量不同。"
+ },
+ {
+  "id": "rp-gate",
+  "label": "门槛消费",
+  "focus": [
+   "k2",
+   "k10",
+   "gate"
+  ],
+  "note": "官方分流示例压在读数上。"
+ }
+]

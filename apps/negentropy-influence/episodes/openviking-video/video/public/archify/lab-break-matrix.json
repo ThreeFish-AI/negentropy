@@ -1,0 +1,86 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 9.74,
+ "total_wall_sec": 170.09,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "struct",
+   "label": "结构赌注",
+   "index": 0,
+   "file": "lab-break-matrix--struct.mp4",
+   "end_still": "lab-break-matrix--struct-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.22,
+   "beat_offsets_sec": [
+    0.0,
+    1.604
+   ],
+   "beat_nodes": [
+    "b1",
+    "b5"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "idcheck",
+   "label": "身份与提交点",
+   "index": 1,
+   "file": "lab-break-matrix--identity.mp4",
+   "end_still": "lab-break-matrix--identity-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.29,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "b3",
+    "b6"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  },
+  {
+   "id": "cost",
+   "label": "成本闸",
+   "index": 2,
+   "file": "lab-break-matrix--cost.mp4",
+   "end_still": "lab-break-matrix--cost-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.48,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "b2",
+    "b4"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 27.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/karachi-v3/docs/assets/architecture/cognitive-context/openviking--lab-break-matrix.html",
+ "slug": "lab-break-matrix",
+ "type": "architecture"
+}

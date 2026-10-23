@@ -1,0 +1,5 @@
+[
+ {"id":"head","label":"论文没有证明的事","focus":["frontier"],"note":"成绩单之外，三件事必须说清楚。"},
+ {"id":"gap-12","label":"相关性与成本账","focus":["gap-correlation","gap-cost"],"note":"沙盘分高不等于在线就强，零消融验证；做梦自身的调用没进成本账。"},
+ {"id":"gap-345","label":"口径、方差与边界","focus":["gap-caliber","gap-variance","gap-fidelity"],"note":"正文与附录评估器口径不一；无方差报告；重放保真度缺口无定量刻画。"}
+]

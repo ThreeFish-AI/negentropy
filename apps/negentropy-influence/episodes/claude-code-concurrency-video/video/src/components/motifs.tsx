@@ -1,10 +1,15 @@
 /** chrome 层组件种子（seeded 档——scaffold 复制后完全自由，无门，随集演进）。
  *
- *  通用排版/标注机械只读底座 token；概念色一律经 `accent` prop 注入。
- *  创作性母题已按 skills/06 母题表从《拆开 Claude Code》集复制裁剪至本文件
- *  （复制适配、不做跨集 import——复用边界见 pipeline/README.md §四）：
- *    Terminal 终端窗口 + 打字机（P0 痛点开场）
- *    LoopRing 环形循环 —— 本集题眼：环一秒不停（恒定视觉锚）
+ *  本文件从《拆开 Claude Code》集（claude-code-explained-video）的 motifs.tsx
+ *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
+ *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
+ *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
+ *  （复制适配、不做跨集 import——复用边界见 references/PIPELINE.md §四）。
+ *
+ *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
+ *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
+ *  需要时从 claude-code-explained-video 的 motifs.tsx 复制对应段落后裁剪、
+ *  追加到本文件；母题目录与适用场景见 references/08 的母题表。
  */
 import React from 'react';
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -12,9 +17,6 @@ import {theme} from '../design/theme';
 
 /** 缓入缓出：用于描线与推进，避免线性运动的机械感 */
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (1 - t) * (1 - t) * 2);
-
-/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
-export const RING_STROKE = 6;
 
 // ─────────────────────────────────────────────────────────── chrome 组件
 
@@ -35,7 +37,7 @@ export const Panel: React.FC<{
   </div>
 );
 
-/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，skills/06 红线二） */
+/** 底部角标——统一压在 bottom ≥ 150（避让字幕条，references/08 红线二） */
 export const Footnote: React.FC<{children: React.ReactNode; delay?: number}> = ({
   children,
   delay = 0,
@@ -240,67 +242,57 @@ export const NumberedCard: React.FC<{
   );
 };
 
-// ─────────────────────────────────────────────────────── 创作母题 1：终端（复制自 ep1 裁剪）
+export {ease};
 
-export type TermLine = {text: string; color?: string; delay: number; prompt?: string};
+// ── 本集恒定视觉锚：传送带母题（core 橙描边恒定〔M-001〕，跨镜色值线宽逐像素一致） ──
 
-/** 终端窗口 + 逐字打字机。cps = 每秒字数（帧驱动，可复现） */
-export const Terminal: React.FC<{
-  lines: TermLine[];
-  width?: number;
-  height?: number;
-  cps?: number;
-  freezeCursorAt?: number;
-  title?: string;
-}> = ({lines, width = 1180, height = 470, cps = 26, freezeCursorAt, title = 'zsh'}) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const frozen = freezeCursorAt !== undefined && frame >= freezeCursorAt;
-  const blink = frozen ? 0.35 : Math.floor((frame / fps) * 2) % 2 === 0 ? 1 : 0.15;
+/** #RRGGBB → #RRGGBBAA（透明度为本件常量，无需 clamp） */
+const withAlpha = (hex: string, a: number): string =>
+  `${hex}${Math.round(a * 255).toString(16).padStart(2, '0')}`;
+
+/** 抬升面板填充：panel（#171C26）的亮一档，底座无此 token，本件局部登记 */
+const PANEL_RAISED = '#1E2530';
+
+/** 传送带：横贯条带＋三个标签节点（开口→工具→结果）。全片多幕同形出场，只换周边标签。
+ *  dim 态＝带停摆（core 色降透明）。静态母题（评审修复：无 frame 参数——恒速
+ *  行进感由调用侧叠 useFlowDash 虚线层，见 P0 BeltLine；无随机）。 */
+export const BeltStrip: React.FC<{
+  x: number;
+  y: number;
+  width: number;
+  dim?: boolean;
+  labels?: [string, string, string];
+}> = ({x, y, width, dim = false, labels = ['开口', '工具', '结果']}) => {
+  // 评审修复：色一律读 theme token（core=系列恒定锚）；仅「抬升面板填充」为底座
+  // 无 token 的本件局部色，具名登记于此（#1E2530，panel 的亮一档）。
+  const core = theme.core;
+  const body = withAlpha(core, dim ? 0.28 : 0.16);
+  const edge = dim ? withAlpha(core, 0.55) : core;
   return (
-    <Panel style={{width, height, padding: 0, overflow: 'hidden'}}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          height: 44,
-          padding: '0 18px',
-          borderBottom: `2px solid ${theme.panelBorder}`,
-        }}
-      >
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            style={{width: 12, height: 12, borderRadius: 999, background: theme.panelBorder}}
-          />
-        ))}
-        <div style={{marginLeft: 10, fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>
-          {title}
-        </div>
-      </div>
-      <div style={{padding: '22px 26px', fontFamily: theme.mono, fontSize: 27, lineHeight: 1.65}}>
-        {lines.map((ln, i) => {
-          const shown = Math.max(0, Math.floor(((frame - ln.delay) / fps) * cps));
-          if (shown <= 0) return null;
-          const isLast = i === lines.length - 1;
-          const done = shown >= ln.text.length;
-          return (
-            <div key={i} style={{color: ln.color ?? theme.text, whiteSpace: 'pre'}}>
-              {ln.prompt ? <span style={{color: theme.core}}>{ln.prompt} </span> : null}
-              {ln.text.slice(0, shown)}
-              {isLast && done ? (
-                <span style={{opacity: blink, color: frozen ? theme.dim : theme.core}}>▍</span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </Panel>
+    <svg width={width} height={96} viewBox={`0 0 ${width} 96`} style={{position: 'absolute', left: x, top: y, opacity: dim ? 0.65 : 1}}>
+      <rect x={2} y={40} width={width - 4} height={16} rx={8} fill={body} stroke={edge} strokeWidth={2.5} />
+      {labels.map((lb, i) => {
+        const nx = 40 + i * ((width - 160) / 2);
+        return (
+          <g key={lb} transform={`translate(${nx + i * 6}, 0)`}>
+            <rect x={0} y={22} width={64} height={52} rx={6} fill={dim ? theme.panel : PANEL_RAISED} stroke={edge} strokeWidth={1.6} />
+            <text x={32} y={53} textAnchor="middle" fontSize={17} fill={dim ? theme.dim : theme.text} fontFamily={theme.sans}>
+              {lb}
+            </text>
+          </g>
+        );
+      })}
+      <circle cx={14} cy={48} r={5} fill={edge} />
+      <circle cx={width - 14} cy={48} r={5} fill={edge} />
+    </svg>
   );
 };
 
-// ─────────────────────────────────────────────────────── 创作母题 2：环形循环（复制自 ep1 裁剪）
+// ─────────────────────────────────────────────────── 环形循环母题（系列片头《一个循环》回植——series-intro.tsx 唯一外部母题依赖）
+
+/** 环线宽（绝对像素，全片恒定，勿随 size 缩放） */
+export const RING_STROKE = 6;
+
 
 export type RingNode = {label: string; angle: number};
 
@@ -312,34 +304,51 @@ export const RING_NODES: RingNode[] = [
   {label: '填回结果', angle: 180},
 ];
 
-export const polar = (cx: number, cy: number, r: number, deg: number) => {
+const polar = (cx: number, cy: number, r: number, deg: number) => {
   const rad = (deg * Math.PI) / 180;
   return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
 };
 
 /**
- * 全片恒定的环形循环。★本集题眼：环一秒不停——`dotProgress` 用 useRingDot
- * 匀速驱动，环速不因任何旁轨/队列事件而变化；`stroke` 恒 core、`strokeWidth`
- * 恒绝对像素（不随 size 缩放），调用点不得覆写（复用 ep1 不变量）。
- * `ringOffset` 平移相位起点，用于跨镜衔接时保持光点连续。
+ * 全片恒定的环形循环。
+ * - `draw` 0→1 描线进度；`dotProgress` 光点沿环位置（0–1，undefined 则不显示）
+ * - `activeNode` 高亮某节点（石青脉冲）；`exitPull` 光点滑出到「停机」出口的比例
+ * - `nodeLabels` 覆写节点文案（P5 执行节点翻牌用）
  */
 export const LoopRing: React.FC<{
   size?: number;
   draw?: number;
   dotProgress?: number;
   activeNode?: number;
+  exitPull?: number;
   dimNodes?: boolean;
   nodeLabels?: string[];
+  showExit?: boolean;
   /** 节点文案。size < 260 时必须关掉——0°/180° 两侧的标签会在小尺寸下互相压字 */
   showLabels?: boolean;
-}> = ({size = 460, draw = 1, dotProgress, activeNode, dimNodes = false, nodeLabels, showLabels}) => {
+}> = ({
+  size = 460,
+  draw = 1,
+  dotProgress,
+  activeNode,
+  exitPull = 0,
+  dimNodes = false,
+  nodeLabels,
+  showExit = true,
+  showLabels,
+}) => {
   const labelsOn = showLabels ?? size >= 260;
   const frame = useCurrentFrame();
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 46;
   const pulse = 0.55 + 0.45 * Math.sin(frame / 5);
+
+  // 光点位置：沿环 + 可选地向右侧「停机」出口外拉
   const dot = dotProgress === undefined ? null : polar(cx, cy, r, -90 + dotProgress * 360);
+  const exitX = dot ? dot.x + exitPull * (size - cx + 90) : 0;
+  const exitY = dot ? dot.y + exitPull * -18 : 0;
+
   return (
     <svg width={size} height={size} style={{overflow: 'visible'}}>
       {/* 环本体：pathLength 归一化描线（红线三：不与像素 dasharray 混用） */}
@@ -356,6 +365,18 @@ export const LoopRing: React.FC<{
         strokeDashoffset={1 - Math.max(0, Math.min(1, draw))}
         transform={`rotate(-90 ${cx} ${cy})`}
       />
+      {showExit ? (
+        <line
+          x1={cx + r}
+          y1={cy}
+          x2={cx + r + 78}
+          y2={cy - 14}
+          stroke={theme.core}
+          strokeWidth={RING_STROKE - 2}
+          strokeDasharray="8 8"
+          opacity={0.5 * draw}
+        />
+      ) : null}
       {RING_NODES.map((n, i) => {
         const p = polar(cx, cy, r, n.angle);
         const on = activeNode === i;
@@ -388,16 +409,15 @@ export const LoopRing: React.FC<{
           </g>
         );
       })}
-      {dot ? <circle cx={dot.x} cy={dot.y} r={11} fill={theme.core} /> : null}
+      {dot ? (
+        <circle
+          cx={exitPull > 0 ? exitX : dot.x}
+          cy={exitPull > 0 ? exitY : dot.y}
+          r={11}
+          fill={theme.core}
+          opacity={exitPull > 0.9 ? 0.5 : 1}
+        />
+      ) : null}
     </svg>
   );
 };
-
-/** 环的匀速巡游进度（周期 secPerLap 秒）。offset 平移相位（帧），跨镜衔接用 */
-export const useRingDot = (secPerLap = 2.5, offset = 0) => {
-  const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  return (((frame - offset) / (fps * secPerLap)) % 1 + 1) % 1;
-};
-
-export {ease};

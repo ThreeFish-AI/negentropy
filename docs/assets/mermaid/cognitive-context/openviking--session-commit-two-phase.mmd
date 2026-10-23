@@ -1,0 +1,19 @@
+%% source: docs/research/cognitive-context/014-openviking.md §6.1（视频 P4 → 修订重绘）
+%% slug: openviking--session-commit-two-phase
+%% type: lifecycle
+%% derived: docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html
+%% fix: 2026-10-22 Phase 2 收敛为「长期记忆提炼」（WM 归档概览 v0.5.0 起默认关、按次开启）、去「装订/整理/盖章」喻体为工程直陈；钉点 6227af51
+stateDiagram-v2
+  [*] --> LIVE: 会话进行中（消息累积）
+  LIVE --> ARCHIVED: commit
+  state "messages.jsonl · 事实层（Phase 1 同步 · 路径锁下必成）" as ARCHIVED
+  ARCHIVED --> P2: 出队 · 异步
+  state "Phase 2 · 长期记忆提炼（WM 归档概览默认关 · 按次开启）" as P2
+  P2 --> DONE: 提炼成功
+  state ".done · 提交点（最后写 · 幂等屏障）" as DONE
+  P2 --> FAILED: 失败 · 不污染事实层
+  state ".failed · 终态（不自动重试 · 已应用记忆不回滚）" as FAILED
+  REDELIVER --> DONE: 看到 .done · 跳过
+  REDELIVER --> P2: 无 .done · 重跑
+  state "队列重投 · 至少一次投递" as REDELIVER
+  DONE --> [*]

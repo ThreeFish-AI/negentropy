@@ -1,6 +1,6 @@
 """``_is_running_header_footer`` 对 PDF 封面元数据残留的扩展覆盖单测。
 
-ISSUE-094 R9 D-1b：学术论文封面页常在作者 affiliations 行之后散落以下
+I-094 R9 D-1b：学术论文封面页常在作者 affiliations 行之后散落以下
 两类元数据残片（PyMuPDF 无法依据视觉布局准确归类为页眉/页脚，
 而直接抽为正文段落），导致 Markdown 文档头部出现无信息密度的孤立短行：
 

@@ -18,7 +18,7 @@ class IOStub {
 
 beforeEach(() => {
   cleanup();
-  // @ts-expect-error 测试环境注入
+  // 测试环境注入：IOStub 结构上满足 IntersectionObserver 构造签名，无需 ts 豁免
   globalThis.IntersectionObserver = IOStub;
   window.localStorage.clear();
 });

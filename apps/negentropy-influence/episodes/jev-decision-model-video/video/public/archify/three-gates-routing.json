@@ -1,0 +1,109 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 13.04,
+ "total_wall_sec": 55.27,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "tg-read",
+   "label": "判读交读数",
+   "index": 0,
+   "file": "three-gates-routing--tg-read.mp4",
+   "end_still": "three-gates-routing--tg-read-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "judge",
+    "gate"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tg-auto",
+   "label": "自动闸",
+   "index": 1,
+   "file": "three-gates-routing--tg-auto.mp4",
+   "end_still": "three-gates-routing--tg-auto-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.21,
+   "beat_offsets_sec": [
+    0.0,
+    1.605
+   ],
+   "beat_nodes": [
+    "gate",
+    "auto"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tg-confirm",
+   "label": "确认与人工",
+   "index": 2,
+   "file": "three-gates-routing--tg-confirm.mp4",
+   "end_still": "three-gates-routing--tg-confirm-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [
+    0.0,
+    1.103,
+    2.204
+   ],
+   "beat_nodes": [
+    "gate",
+    "confirm",
+    "human"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  },
+  {
+   "id": "tg-chief",
+   "label": "首席兜底",
+   "index": 3,
+   "file": "three-gates-routing--tg-chief.mp4",
+   "end_still": "three-gates-routing--tg-chief-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [
+    0.0,
+    1.603
+   ],
+   "beat_nodes": [
+    "human",
+    "chief"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 26.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/sao-paulo-v3/docs/assets/architecture/agent-infra/jev--three-gates-routing.html",
+ "slug": "three-gates-routing",
+ "type": "workflow"
+}

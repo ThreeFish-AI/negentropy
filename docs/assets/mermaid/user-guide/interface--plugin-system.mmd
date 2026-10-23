@@ -1,0 +1,37 @@
+%% source: docs/concepts/user-guide/interface.md
+%% slug: user-guide/interface--plugin-system
+%% type: architecture
+%% derived: docs/assets/architecture/user-guide/interface--plugin-system.html
+%% fix: google_search 属 builtin_tools 内置工具（tool_resolver 读表），非 MCP 出向能力
+%% fix: 移除「MCP → 数据库」虚构通道；MCP 侧内置实为 negentropy-perceives 与 playwright
+%% fix: 补入第四插件面 Builtin Tools（interface/api.py 聚合序含 builtin_tools）
+flowchart TB
+    Engine["🔮 NegentropyEngine"]
+
+    subgraph Plugins["🔧 插件系统"]
+        MCP["📡 MCP Servers<br/>外部工具协议"]
+        Skill["🎯 Skills<br/>Prompt 模板"]
+        Agent["🤖 Agents<br/>智能体"]
+    end
+
+    subgraph External["🌐 外部能力"]
+        WebSearch["Web 搜索"]
+        API["第三方 API"]
+        DB["数据库"]
+    end
+
+    Engine -->|"工具调用"| MCP
+    Engine -->|"技能匹配"| Skill
+    Engine -->|"任务委派"| Agent
+
+    MCP --> WebSearch
+    MCP --> API
+    MCP --> DB
+
+    classDef core fill:#F59E0B,stroke:#92400E,color:#000
+    classDef plug fill:#3B82F6,stroke:#1E3A8A,color:#FFF
+    classDef ext fill:#10B981,stroke:#065F46,color:#FFF
+
+    class Engine core
+    class MCP,Skill,Agent plug
+    class WebSearch,API,DB ext

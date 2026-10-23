@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/.temp/archify-notify-protocol/candidate.json",
+    "sha256": "7832b0340b9897424bc9850b943cf0b2247e48369340414f25e3af5dbbf8ff31",
+    "bytes": 5036
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.html",
+    "sha256": "d0b93d1e7d08225fe04c964d7fd979d601b2c9455ead0027afb3a7ede470e0da",
+    "bytes": 841562
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/port-au-prince/docs/assets/architecture/agent-harness/claude-code--notify-protocol.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2057,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "t-no-second",
+            "from": "tool-use",
+            "to": "x-mark",
+            "label": "旧编号再补一条？",
+            "collectionIndex": 6,
+            "artifactIndex": 8
+          },
+          "bends": 2,
+          "stretch": 1.602
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "tool-use → x-mark needs 2 bends: move node tool-use or x-mark so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

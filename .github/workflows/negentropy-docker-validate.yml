@@ -14,7 +14,6 @@ on:
   pull_request:
     paths:
       - "docker/**"
-      - "docker-compose.yml"
       - ".dockerignore"
       - ".github/workflows/negentropy-docker-validate.yml"
       - ".github/workflows/reusable-negentropy-docker.yml"
@@ -37,8 +36,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate docker-compose.yml
-        run: docker compose -f docker-compose.yml config -q
+      - name: Validate compose files
+        run: |
+          docker compose -f docker/docker-compose.yml config -q
+          docker compose -f docker/docker-compose.yml -f docker/docker-compose.local.yml config -q
+          docker compose -f docker/docker-compose.wiki.yml config -q
 
   docker-build:
     name: Docker Build (no push)

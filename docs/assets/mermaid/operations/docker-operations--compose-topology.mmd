@@ -1,0 +1,45 @@
+%% source: docs/concepts/operations/docker-operations.md §1.1 架构总览（块#0，L33-L66）
+%% slug: operations/docker-operations--compose-topology
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #0
+%% fix: wiki 无 depends_on——docker-compose.yml wiki 服务（L134-L144）无任何 depends_on，原图 BE→WIKI / UI→WIKI 两条 service_healthy 边均为幽灵边，archify 版移除；wiki 随栈即刻启动
+%% fix: wiki 非运行时 Next.js——镜像 Stage 3 为 joseluisq/static-web-server（docker/wiki/Dockerfile L49/L57），Next.js 仅构建期 output:export；端口映射 3092:80 非 3092:3092；且无 healthcheck
+%% fix: CLIENT→PER 不成立——浏览器不直连 MCP Server；运行时是 backend 经内部网络调用 perceives（/mcp 工具），archify 版移除该边并注明真实调用方
+%% fix: 图保持「启动门控拓扑」，运行时数据流（backend→postgres NE_DB_URL、ui→backend BFF 代理 AGUI_BASE_URL、backend→perceives /mcp）以卡片注明，与 depends_on 门控区分
+%% fix: CLIENT→BE :3292（Google SSO 回调 NE_AUTH_GOOGLE_REDIRECT_URI）真实存在，为保主脊可读移入卡片
+%% fix: postgres 主机端口可经 NE_POSTGRES_HOST_PORT 覆盖（默认 5432）；另挂载 ./postgres/init.sql 初始化（原图未示，入卡片）
+%% fix: 补 Docker 内部网络边界（negentropy_default）：服务间以服务名互访，浏览器经发布端口 localhost 访问
+flowchart TB
+    subgraph Infra["基础设施层"]
+        PG["postgres<br/>pgvector/pgvector:pg17<br/>:5432"]:::infra
+        VOL[("postgres_data<br/>持久化数据卷")]:::volume
+    end
+
+    subgraph Backend["后端服务层"]
+        PER["perceives<br/>MCP Server<br/>:2992"]:::service
+        BE["backend<br/>ADK Web Server<br/>:3292"]:::service
+    end
+
+    subgraph Frontend["前端服务层"]
+        UI["ui<br/>Next.js Chat<br/>:3192"]:::service
+        WIKI["wiki<br/>Next.js Wiki<br/>:3092"]:::service
+    end
+
+    CLIENT["用户浏览器<br/>localhost"]:::client
+
+    VOL --- PG
+    PG -- "service_healthy" --> BE
+    PER -- "service_healthy" --> BE
+    BE -- "service_healthy" --> UI
+    BE -- "service_healthy" --> WIKI
+    UI -- "service_healthy" --> WIKI
+
+    CLIENT --> UI
+    CLIENT --> WIKI
+    CLIENT --> BE
+    CLIENT --> PER
+
+    classDef infra fill:#1e3a5f,stroke:#4da3ff,stroke-width:2px,color:#e8f1fb
+    classDef volume fill:#3a3a3a,stroke:#888,stroke-width:1px,color:#ccc
+    classDef service fill:#16432a,stroke:#3ddc84,stroke-width:2px,color:#e6fbef
+    classDef client fill:#4a3a10,stroke:#ffc53d,stroke-width:2px,color:#fff7e0

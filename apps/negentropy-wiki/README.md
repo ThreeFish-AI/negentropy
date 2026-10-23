@@ -37,7 +37,7 @@ pnpm --filter negentropy-wiki build
 最简方式（仓库根目录，Docker 一键拉起全套，含 wiki 静态站点）：
 
 ```bash
-./dev            # backend / ui / perceives / postgres + wiki
+./scripts/dev            # backend / ui / perceives / postgres + wiki
 ```
 
 仅 wiki 开发（热重载，**零后端/DB 依赖**——读本地 `content/`）：
@@ -57,7 +57,7 @@ pnpm --filter negentropy-wiki start   # 用 `serve` 本地预览 out/（:3092）
 独立部署验证（仅 wiki 容器，断网可用）：
 
 ```bash
-docker compose -f docker-compose.wiki.yml up --build
+docker compose -f docker/docker-compose.wiki.yml up --build
 ```
 
 ## 关键信息

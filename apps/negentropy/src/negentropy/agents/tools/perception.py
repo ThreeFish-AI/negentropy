@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 from uuid import UUID
 
 import httpx
@@ -26,13 +26,14 @@ from sqlalchemy import select
 
 import negentropy.db.session as db_session
 from negentropy.agents._citation_protocol import format_memory_citation
+from negentropy.agents.tools.common import get_knowledge_service as _get_knowledge_service
 from negentropy.config import settings
 from negentropy.config.search import SearchProvider, SearchSettings
 from negentropy.knowledge.constants import (
     DEFAULT_KEYWORD_WEIGHT,
     DEFAULT_SEMANTIC_WEIGHT,
 )
-from negentropy.knowledge.ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
+from negentropy.knowledge.ingestion.embedding import build_embedding_fn
 from negentropy.knowledge.retrieval.citation_search import (
     MAX_RESULTS_LIMIT,
     MAX_SNIPPET_CHARS,
@@ -44,9 +45,6 @@ from negentropy.knowledge.retrieval.citation_search import (
 from negentropy.logging import get_logger
 from negentropy.models.perception import Corpus
 
-if TYPE_CHECKING:
-    from negentropy.knowledge.service import KnowledgeService
-
 logger = get_logger("negentropy.tools.perception")
 
 # 常量已正交提取至 knowledge/retrieval/citation_search.py（单一事实源）；
@@ -55,10 +53,6 @@ _MAX_SNIPPET_CHARS = MAX_SNIPPET_CHARS
 _MAX_RESULTS_LIMIT = MAX_RESULTS_LIMIT
 _GOOGLE_SEARCH_URL = "https://www.googleapis.com/customsearch/v1"
 
-# 全局 KnowledgeService 单例，避免重复初始化
-_knowledge_service: KnowledgeService | None = None
-
-
 # ----------------------------------------------------------------------------
 # P2-3 G2 · Citation 规范化 helper（IEEE 风格）
 # 实现已正交提取至 knowledge/retrieval/citation_search.py（脱离 ToolContext 的
@@ -66,22 +60,6 @@ _knowledge_service: KnowledgeService | None = None
 # ----------------------------------------------------------------------------
 
 _format_citation = format_citation
-
-
-def _get_knowledge_service() -> KnowledgeService:
-    """获取 KnowledgeService 单例
-
-    遵循 AGENTS.md 的复用驱动原则，复用已初始化的服务实例。
-    """
-    global _knowledge_service
-    if _knowledge_service is None:
-        from negentropy.knowledge.service import KnowledgeService
-
-        _knowledge_service = KnowledgeService(
-            embedding_fn=build_embedding_fn(),
-            batch_embedding_fn=build_batch_embedding_fn(),
-        )
-    return _knowledge_service
 
 
 async def _call_with_retry(

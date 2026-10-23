@@ -1,0 +1,10 @@
+%% source: apps/negentropy-influence/episodes/agent-skills-video/script/narration.md P4（事实源 research/source-notes.md P4；spec §description · 客户端指南 Step 4 · optimizing-descriptions）
+%% slug: agent-skills--description-routing
+%% type: workflow
+%% derived: docs/assets/architecture/agent-infra/agent-skills--description-routing.html
+flowchart LR
+    TASK["工单：从季度报告 PDF 里抽表格并填表"] --> JUDGE["模型读书脊自己判断<br/>多数产品不做关键词匹配"]
+    JUDGE --> GOOD["好描述：做什么 + 何时用<br/>「提取文字表格 · 填表 · 合并；提到 PDF / 表单时用」"]
+    JUDGE --> POOR["差描述：「帮忙处理 PDF」<br/>完全合规，上架检查不拦"]
+    GOOD --> HIT["命中 → 抽出整本"]
+    POOR --> MISS["落空：无报错 · 无警告<br/>手册形同不存在"]

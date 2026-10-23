@@ -1,0 +1,32 @@
+[
+ {
+  "id": "whole-swap",
+  "label": "整张换新无补丁",
+  "focus": ["old-card", "new-card", "replace-arrow"],
+  "note": "要改就整表替换：新卡整张覆盖旧卡，没有打补丁这一说。"
+ },
+ {
+  "id": "validate-first",
+  "label": "验货不过整单废",
+  "focus": ["checklist", "validate-step", "fail-x"],
+  "note": "换前先校验：逐条验货，任一条目非法即失败。"
+ },
+ {
+  "id": "no-half-card",
+  "label": "失败不留半张卡",
+  "focus": ["fail-x", "old-card", "state-unchanged"],
+  "note": "验货失败整单作废，状态不更新，旧卡原样。"
+ },
+ {
+  "id": "nag-counter",
+  "label": "计数递增递条子",
+  "focus": ["counter", "reminder-note", "user-voice"],
+  "note": "几轮没动卡，计数器到阈值，就借用户口吻递一张提醒条子催更。"
+ },
+ {
+  "id": "reset-on-send",
+  "label": "一发即归零",
+  "focus": ["reminder-note", "counter", "reset-zero"],
+  "note": "条子一发，计数器立刻归零——绝不连发。"
+ }
+]

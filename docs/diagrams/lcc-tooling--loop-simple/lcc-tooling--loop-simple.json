@@ -1,0 +1,164 @@
+{
+ "schema_version": 1,
+ "diagram_type": "architecture",
+ "meta": {
+  "title": "工具与执行：先看这个循环",
+  "subtitle": "渐进图 L0：先看主循环——三个彩色徽标（§4/§5/§6）是后续章节的挂载点",
+  "locale": "zh-CN",
+  "quality_profile": "showcase",
+  "output": "docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html",
+  "legend": {
+   "mode": "auto",
+   "entries": {
+    "backend": {
+     "label": "Agent 逻辑"
+    },
+    "security": {
+     "label": "策略"
+    },
+    "messagebus": {
+     "label": "Hook"
+    },
+    "database": {
+     "label": "上下文 / 追踪"
+    },
+    "external": {
+     "label": "外部系统"
+    }
+   }
+  }
+ },
+ "layout": {
+  "mode": "grid",
+  "origin": [
+   40,
+   40
+  ],
+  "cols": 6,
+  "cellW": 150,
+  "cellH": 64,
+  "gapX": 44,
+  "gapY": 56
+ },
+ "components": [
+  {
+   "id": "ask",
+   "type": "external",
+   "label": "你提一个要求",
+   "row": 0,
+   "col": 0,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "购物清单：加一行牛奶、念一遍清单"
+  },
+  {
+   "id": "think",
+   "type": "backend",
+   "label": "LLM 想下一步",
+   "row": 0,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "会思考·没手脚",
+   "tag": "§4 更多专用工具"
+  },
+  {
+   "id": "act",
+   "type": "backend",
+   "label": "程序替它执行",
+   "row": 1,
+   "col": 3,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "动文件·跑命令·看结果",
+   "tag": "§5 动手前设闸门"
+  },
+  {
+   "id": "feed",
+   "type": "database",
+   "label": "结果回喂",
+   "row": 2,
+   "col": 2,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "执行结果以新消息追加",
+   "tag": "§6 扩展挂点"
+  },
+  {
+   "id": "done",
+   "type": "external",
+   "label": "交出最终结果",
+   "row": 0,
+   "col": 5,
+   "size": [
+    150,
+    64
+   ],
+   "sublabel": "回答里不再有工具调用"
+  }
+ ],
+ "connections": [
+  {
+   "id": "e1",
+   "from": "ask",
+   "to": "think",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "e2",
+   "from": "think",
+   "to": "act",
+   "label": "要动用工具",
+   "variant": "emphasis",
+   "fromSide": "right",
+   "toSide": "top",
+   "labelSegment": 1
+  },
+  {
+   "id": "e3",
+   "from": "act",
+   "to": "feed",
+   "variant": "emphasis",
+   "fromSide": "bottom",
+   "toSide": "right",
+   "via": [
+    [
+     697.0,
+     312.0
+    ]
+   ]
+  },
+  {
+   "id": "e5",
+   "from": "think",
+   "to": "done",
+   "label": "不用了",
+   "variant": "dashed",
+   "fromSide": "right",
+   "toSide": "left"
+  },
+  {
+   "id": "e4",
+   "from": "feed",
+   "to": "think",
+   "label": "回喂·接着想下一步",
+   "variant": "emphasis",
+   "fromSide": "top",
+   "toSide": "bottom",
+   "labelAt": [
+    503.0,
+    195.0
+   ]
+  }
+ ]
+}

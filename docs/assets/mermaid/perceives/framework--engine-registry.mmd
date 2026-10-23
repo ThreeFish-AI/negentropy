@@ -1,0 +1,17 @@
+%% source: docs/reference/perceives/framework.md block#1 (L59-L75 模块化注册架构)
+%% slug: perceives/framework--engine-registry
+%% type: architecture
+%% derived: graph LR 中心枢纽 _registry.py + 三领域工具模块扇出注册
+%% fix: R 节点 singletons 精化为 re-export（SSOT 在 core/services.py）；补 _middleware.py 节点（_registry.py:49 app.add_middleware 挂载 TaskContextMiddleware）；无向 --- 改为领域模块 → registry 的 @app.tool() 注册方向
+graph LR
+    subgraph "src/negentropy/perceives/tools/"
+        R["_registry.py<br/>app 单实例 · re-export · helpers"]
+        MW["_middleware.py<br/>TaskContextMiddleware"]
+        E["extraction.py · 2"]
+        M["markdown.py · 2"]
+        P["pdf.py · 2"]
+    end
+    E -- "@app.tool()" --> R
+    M -- "@app.tool()" --> R
+    P -- "@app.tool()" --> R
+    R -- "add_middleware()" --> MW

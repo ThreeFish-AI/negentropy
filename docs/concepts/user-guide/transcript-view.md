@@ -21,23 +21,9 @@ title: "人机交互转录对话 · 实操手册"
 
 回合制转录用**对齐方向**区分人 / 机，比单纯头像更显「回合」节奏：
 
-```mermaid
-flowchart LR
-  subgraph STUDIO["Studio 中栏"]
-    direction TB
-    SU["👤 用户（你）"] -.居右.-> SUR["右侧气泡<br/>primary 浅底"]
-    SA["🤖 一核五翼 + Claude Code"] -.居左.-> SAL["左侧气泡 + per-agent 徽章<br/>+ 工具行 + 思考折叠"]
-  end
-  subgraph ROUTINE["Routine Full View"]
-    direction TB
-    RH["🧠 一核五翼 6 Agent + Engine"] -.居右.-> RHR["右侧气泡<br/>RoleHeader 徽章"]
-    RC["🛠️ Claude Code"] -.居左.-> RCL["左侧裸文 + 紧凑工具行<br/>+ 待决卡片"]
-  end
-  classDef studio fill:#1e3a5f,stroke:#60a5fa,color:#e0f2fe;
-  classDef routine fill:#3f3a1e,stroke:#fbbf24,color:#fef9c3;
-  class STUDIO studio;
-  class ROUTINE routine;
-```
+![转录对话左右分栏：Studio 中栏与右栏共用一个 Markdown 渲染器，以两套展示策略（对话流 vs 文档态）分别渲染 Routine 迭代转录与产物文档](../../assets/architecture/user-guide/transcript-view--studio-layout-dark.png)
+
+> 图源（可 diff 文本）：[`transcript-view--studio-layout.mmd`](../../assets/mermaid/user-guide/transcript-view--studio-layout.mmd) · 交互版（下载到本地打开）：[`transcript-view--studio-layout.html`](../../assets/architecture/user-guide/transcript-view--studio-layout.html)
 
 > 📷 *截图待补（后续专项实拍）：Studio 中栏对话（用户居右 / 机侧居左带徽章 / 工具行 / 思考折叠）*
 

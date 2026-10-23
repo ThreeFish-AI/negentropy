@@ -1,0 +1,18 @@
+%% source: docs/research/self-evolution/144-dream-rsi.md §1
+%% slug: dream-rsi--dilemma-cost
+%% type: workflow
+%% derived: docs/assets/architecture/self-evolution/dream-rsi--dilemma-cost.html
+flowchart TD
+    ROOT["RSI 进展 = 长程探索<br/>动辄数千次「提案-评估」循环"] --> FIXED
+    ROOT --> ONLINE
+    subgraph FIXED["左路：章程写死"]
+        direction TB
+        F1["人工设计 · 全程不变"] --> F2["无法从累积经验变聪明<br/>算力反复砸向无效方向"]
+    end
+    subgraph ONLINE["右路：在线换章程"]
+        direction TB
+        O1["理论上能自适应"] --> O2["元级反馈延迟且昂贵<br/>试一个候选 = 看它如何塑造后续数千次生成-评估"] --> O3["元策略空间巨大<br/>每个候选都要一趟完整在线推演"]
+    end
+    F2 --> COST["成本结构事实：<br/>元级评估的最忠实模拟器 = 真实环境本身<br/>（a fast and inexpensive simulator of discovery would allow many exploration policies to be evaluated before costly online deployment）"]
+    O3 --> COST
+    COST --> BREAK["破局直觉：<br/>已完成的发现历史<br/>恰好已经是这样一个模拟器"]

@@ -1,0 +1,44 @@
+%% source: docs/reference/perceives/framework.md §Pipeline 编排层 › 架构总览 (块#2, L115-L151)
+%% slug: perceives/framework--mcp-tools
+%% type: architecture
+%% derived: byte-exact extraction of mermaid block #2
+%% fix: D-12「6 个 MCP 工具」经代码实证成立——tools/ 内 @app.tool() 恰 6 个函数（extraction.py×2 / markdown.py×2 / pdf.py×2）；源图 MT 节点仅列 2 个单次工具，重绘补齐全部 6 个以佐证清点
+%% fix: 源文 L24/L55-L56 幽灵引用 tools/_support.py 与 tools/_observability.py——两文件不存在于仓库；ScrapeMethod/PDFMethod/elapsed_ms 实际定义于 core/types.py 并由 tools/_registry.py 自 ..core re-export，建议删除这两处引用
+%% fix: Stage 工具层实为 @register_tool 注册的 47 个 Stage 工具（引擎家族另有 pypdf/opendataloader/camelot/pdfplumber/playwright/selenium/readability/html2text/trafilatura 等），源块 6 引擎为家族代表非全集
+graph TD
+    subgraph "MCP 工具层"
+        MT["parse_webpage_to_markdown<br/>parse_pdf_to_markdown"]
+    end
+
+    subgraph "Pipeline 层"
+        CV["convenience.py<br/>run_pdf_pipeline()<br/>run_webpage_pipeline()"]
+        OC["PipelineOrchestrator<br/>编排 + 并行组"]
+        SC["StageScheduler<br/>降级 / 竞争模式"]
+        RG["registry.py<br/>@register_tool"]
+    end
+
+    subgraph "Stage 工具层"
+        T1["pymupdf"] --> RG
+        T2["docling"] --> RG
+        T3["mineru"] --> RG
+        T4["marker"] --> RG
+        T5["beautifulsoup"] --> RG
+        T6["markitdown"] --> RG
+    end
+
+    MT -->|"method=auto"| CV
+    CV --> OC
+    OC --> SC
+    SC --> RG
+
+    style MT fill:#1e3a8a,stroke:#3b82f6,color:#ffffff
+    style CV fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style OC fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style SC fill:#b45309,stroke:#f59e0b,color:#ffffff
+    style RG fill:#166534,stroke:#22c55e,color:#ffffff
+    style T1 fill:#7c2d12,stroke:#ea580c,color:#ffffff
+    style T2 fill:#7c2d12,stroke:#ea580c,color:#ffffff
+    style T3 fill:#7c2d12,stroke:#ea580c,color:#ffffff
+    style T4 fill:#7c2d12,stroke:#ea580c,color:#ffffff
+    style T5 fill:#7c2d12,stroke:#ea580c,color:#ffffff
+    style T6 fill:#7c2d12,stroke:#ea580c,color:#ffffff

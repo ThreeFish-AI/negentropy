@@ -5,7 +5,6 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from negentropy.config import settings
-from negentropy.db import deps as db_deps
 from negentropy.db import session as db_session
 
 
@@ -42,7 +41,7 @@ async def _ensure_database(maint_url: str, test_db: str) -> None:
 def _isolate_test_database():
     """会话级强制隔离：所有测试在专用 ``<db>_test`` 库运行，**绝不触碰生产库**。
 
-    根因防护（ISSUE-111）：此前 ``db_engine`` 与 ``test_migrations.reset_database`` 直接读
+    根因防护（I-111）：此前 ``db_engine`` 与 ``test_migrations.reset_database`` 直接读
     ``settings.database_url``（生产 ``negentropy`` 库）——
 
       1. ``test_migrations`` 的 ``command.downgrade(base)`` 会**摧毁全部生产数据**
@@ -105,7 +104,7 @@ async def db_engine():
 async def patch_db_globals(db_engine, monkeypatch):
     """
     Patches module-level database variables to use the test-scoped engine.
-    This ensures that get_db() uses a session bound to the test engine.
+    This ensures that sessions are bound to the test engine.
     """
     # Create a new session factory bound to the test engine
     TestAsyncSessionLocal = async_sessionmaker(
@@ -115,11 +114,8 @@ async def patch_db_globals(db_engine, monkeypatch):
         autoflush=False,
     )
 
-    # Patch the global variables in db.session and db.deps
+    # Patch the global variables in db.session
     monkeypatch.setattr(db_session, "engine", db_engine)
     monkeypatch.setattr(db_session, "AsyncSessionLocal", TestAsyncSessionLocal)
-
-    # Also patch deps.AsyncSessionLocal because it imports it directly
-    monkeypatch.setattr(db_deps, "AsyncSessionLocal", TestAsyncSessionLocal)
 
     yield

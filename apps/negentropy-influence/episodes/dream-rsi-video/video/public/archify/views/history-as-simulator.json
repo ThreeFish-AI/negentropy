@@ -1,0 +1,5 @@
+[
+ {"id":"origin","label":"旧台账变免费试验场","focus":["history","simulator"],"note":"已付出的真实算力沉淀成历史，重放确定、可反复、零执行成本。"},
+ {"id":"specs","label":"四块基石","focus":["spec-code","spec-replay","spec-bound","spec-loop"],"note":"探索可编程、历史即模拟器、改进带保底、闭环递归——后续机制各占其一。"},
+ {"id":"cycle","label":"回灌循环","focus":["cycle"],"note":"新历史回灌，沙盘更大、章程更好，循环往复。"}
+]

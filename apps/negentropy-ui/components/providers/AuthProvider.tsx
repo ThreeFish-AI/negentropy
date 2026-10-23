@@ -82,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = () => {
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- /api/auth/login 是 302 到外部 IdP 的 Route Handler，router.push() 无法承接跨源跳转
     window.location.href = "/api/auth/login";
   };
 
@@ -90,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await fetch("/api/auth/logout", { method: "POST" });
       setStatus("unauthenticated");
       setUser(null);
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- 登出须整页重载以丢弃全部客户端状态，并让 Server Components 在已清空的 cookie 下重跑
       window.location.href = "/";
     } catch (error) {
       console.warn("Failed to logout", error);

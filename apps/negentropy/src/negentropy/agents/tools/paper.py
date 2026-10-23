@@ -11,7 +11,7 @@ Paper Curation Tools — AI Agent 论文采集工具集
 
 设计原则（参考 AGENTS.md 复用驱动 + 最小干预）：
 - 仅新增 2 个工具：search_papers + ingest_paper；其余职能复用 KnowledgeService.ingest_url。
-- Tool Progress 走 ADK state_delta 旁路，不参与 message-ledger（规避 ISSUE-031 时间窗双气泡）。
+- Tool Progress 走 ADK state_delta 旁路，不参与 message-ledger（规避 I-031 时间窗双气泡）。
 - 抽取 schema 复用 commit d772605c 的 AI_PAPER_SCHEMA（schema-guided extraction）。
 - 不引入新表，运行时确保 `agent-papers` Corpus 存在即可。
 
@@ -31,18 +31,14 @@ import asyncio
 import re
 import time
 from datetime import UTC
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import UUID
 
 from google.adk.tools import ToolContext
 
 from negentropy.config import settings
-from negentropy.knowledge.ingestion.embedding import build_batch_embedding_fn, build_embedding_fn
 from negentropy.knowledge.types import CorpusSpec
 from negentropy.logging import get_logger
-
-if TYPE_CHECKING:
-    from negentropy.knowledge.service import KnowledgeService
 
 logger = get_logger("negentropy.tools.paper")
 
@@ -55,27 +51,11 @@ _MAX_TOP_K = 25
 _DEFAULT_TOP_K = 5
 _MAX_SINCE_DAYS = 365 * 5
 
-# 论文采集工具单例 KnowledgeService，避免重复初始化
-_knowledge_service: KnowledgeService | None = None
-
-
-def _get_knowledge_service() -> KnowledgeService:
-    """复用 KnowledgeService 单例（与 perception.py 同模式）"""
-    global _knowledge_service
-    if _knowledge_service is None:
-        from negentropy.knowledge.service import KnowledgeService
-
-        _knowledge_service = KnowledgeService(
-            embedding_fn=build_embedding_fn(),
-            batch_embedding_fn=build_batch_embedding_fn(),
-        )
-    return _knowledge_service
-
-
 # Tool Progress 助手已抽出到 ``agents/tools/common.py`` 作为 SSOT；
 # 此处保留 module-level alias 以维持既有调用方 / 测试导入路径稳定（最小爆炸半径）。
 from .common import clear_tool_progress as _clear_tool_progress  # noqa: E402
 from .common import emit_tool_progress as _emit_tool_progress  # noqa: E402
+from .common import get_knowledge_service as _get_knowledge_service  # noqa: E402
 
 
 async def _ensure_paper_corpus() -> UUID:
@@ -362,7 +342,7 @@ async def ingest_paper(
 
     if should_request_approval("ingest_paper", policy):
         # denial 缓存：同一 arxiv_id 近期被拒/超时过 → 直接返回 blocked、不再弹审批，
-        # 结构性掐断 LLM 重试循环（ISSUE-156 续）。
+        # 结构性掐断 LLM 重试循环（I-156 续）。
         if was_recently_denied(tool_context, "ingest_paper", arxiv_id):
             logger.info("ingest_paper_skipped_recently_denied", arxiv_id=arxiv_id)
             return {

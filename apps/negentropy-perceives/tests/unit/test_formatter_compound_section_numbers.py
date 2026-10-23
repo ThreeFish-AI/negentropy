@@ -1,6 +1,6 @@
 """单元测试：``_format_lists`` 不破坏复合章节编号。
 
-ISSUE-094 第四轮：``MarkdownFormatter._format_lists`` 把 ``^(\\d+)[\\.\\)]\\s*(.+)``
+I-094 第四轮：``MarkdownFormatter._format_lists`` 把 ``^(\\d+)[\\.\\)]\\s*(.+)``
 当作有序列表项 normalize，正则 ``\\1='3', \\3='1.1 Foo'`` 把 ``3.1.1 Foo``
 拆解为 ``3. 1.1 Foo``，撕裂 ``FitzTextExtractor`` 已合并的复合章节编号。
 本测试守护：仅当数字后 **不是** ``\\d+\\.\\d`` 起手时才视为列表项。

@@ -1,0 +1,6 @@
+[
+ {"id":"quality","label":"第一项：最好收获","focus":["quality"],"note":"这条时间线上挖到的最高分，章程的眼力。"},
+ {"id":"cost","label":"第二项：翻页工钱","focus":["cost"],"note":"推演免费但每页对应真实计费——假装你花了钱。"},
+ {"id":"parallel","label":"第三项：并行奖励","focus":["parallel"],"note":"同样的活一批干完比串干省墙钟，奖励会编队的章程。"},
+ {"id":"total","label":"性价比与它的另一副面孔","focus":["score","average","caliber-note"],"note":"三项折算、全历史平均；附录里的实际评估器长得很不一样。"}
+]

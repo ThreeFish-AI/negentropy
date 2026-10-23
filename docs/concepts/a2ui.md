@@ -74,42 +74,9 @@ A2UI 关注的是生成式 UI 的结构化表达：容器、数据绑定、组�
 
 ### 3.1 总体结构
 
-```mermaid
-flowchart TD
-  subgraph Transport["Transport / Fact Source"]
-    A[ADK Payload]
-    B["/api/agui"]
-    C[AGUI Events]
-  end
+![A2UI 事实源链路：ADK 载荷经 /api/agui 以 SSE 输出 AGUI 事件，normalizeAguiEvent 归一化后由 useSessionService hydration 驱动 useSessionProjection，派生 Message Ledger 消息账本与 ConversationTree 对话树，最终渲染为 ChatStream 聊天主轨、tool-group 技术附件与 Timeline/State/Logs 技术面板（/api/agui 另分支供 useSessionListService 拉取会话列表）。](../assets/architecture/core/a2ui--fact-source-dark.png)
 
-  subgraph Application["Session Application Service"]
-    D[normalizeAguiEvent]
-    E[useSessionService]
-    M[useSessionListService]
-  end
-
-  subgraph ReadModel["A2UI Read Model"]
-    F[Message Ledger]
-    J[ConversationTree Projection]
-    K[ConversationNode Tree]
-    L[useSessionProjection]
-  end
-
-  subgraph Presentation["Chat-first Presentation"]
-    G[Chat Main Rail]
-    H[Technical Attachments]
-    I[Timeline / State / Logs]
-  end
-
-  A --> B --> C --> D --> E
-  B --> M
-  E --> L
-  L --> F
-  L --> J
-  F --> G
-  J --> K --> H
-  L --> I
-```
+> 图源（可 diff 文本）：[`a2ui--fact-source.mmd`](../assets/mermaid/core/a2ui--fact-source.mmd) · 交互版（下载到本地打开）：[`a2ui--fact-source.html`](../assets/architecture/core/a2ui--fact-source.html)
 
 对应代码锚点：
 
@@ -121,7 +88,6 @@ flowchart TD
 - Session Projection Hook：[useSessionProjection.ts](../../apps/negentropy-ui/features/session/hooks/useSessionProjection.ts)
 - 事件到树构建：[conversation-tree.ts](../../apps/negentropy-ui/utils/conversation-tree.ts)
 - Chat 主区渲染：[ChatStream.tsx](../../apps/negentropy-ui/components/ui/ChatStream.tsx)
-- 递归节点渲染：[ConversationNodeRenderer.tsx](../../apps/negentropy-ui/components/ui/conversation/ConversationNodeRenderer.tsx)
 
 ### 3.2 Session Projection 约定
 
@@ -143,11 +109,7 @@ flowchart TD
 - `useSessionProjection`：负责 confirmed projection、optimistic overlay 与 render projection 派生。
 - 页面组件：只负责 UI 容器、输入交互和面板编排，不再直接持有 session hydration 定时器、list fetch 逻辑或请求版本控制。
 
-遗留兼容入口：
-
-- `useSessionManager` 仅为兼容旧调用面暂时保留，已不代表当前 session feature 的推荐架构边界。
-- 新增代码已通过全量 ESLint 门禁中的 `no-restricted-imports` 明确禁止导入 `useSessionManager`，避免 legacy 入口重新漂移回主路径。
-- 新增能力、回归测试与文档描述一律以 `useSessionListService + useSessionService + useSessionProjection` 为准。
+新增能力、回归测试与文档描述一律以 `useSessionListService + useSessionService + useSessionProjection` 为准；legacy 入口 `useSessionManager` 已移除。
 
 ### 3.3 Canonical Role 约定
 
@@ -265,19 +227,9 @@ Chat 页的主任务是“阅读并参与对话”，不是“调试节点树”
 
 ### 4.4 UI 结构示意
 
-```mermaid
-flowchart TD
-  subgraph ChatRail["Chat Main Rail"]
-    U[User Bubble]
-    A[Assistant Bubble]
-    T[Tool Attachments]
-    S[State / Activity Summary]
-  end
+![A2UI 聊天主轨渲染链路：ConversationTree 会话树经可见性过滤（剔除 debug-only）后由 buildChatDisplayBlocks 组装显示块，驱动 Chat 主轨上用户气泡与助手气泡回合推进，工具附件与状态摘要作为技术附属挂接在助手答复之下。](../assets/architecture/core/a2ui--main-rail-dark.png)
 
-  U --> A
-  A --> T
-  A --> S
-```
+> 图源（可 diff 文本）：[`a2ui--main-rail.mmd`](../assets/mermaid/core/a2ui--main-rail.mmd) · 交互版（下载到本地打开）：[`a2ui--main-rail.html`](../assets/architecture/core/a2ui--main-rail.html)
 
 ## 5. 已知问题与修正策略
 

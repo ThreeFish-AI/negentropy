@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer--ingest-pipeline/context-layer--ingest-pipeline.json",
+    "sha256": "196e5f1185a218c3411e2102ca951c1d487e2346cdd61d350d7a6b0738fe6bd3",
+    "bytes": 8663
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.html",
+    "sha256": "ce09d72c513d6f38a2a25c0f9489fab17963768cc9ee9be53dd0aad2d2c51319",
+    "bytes": 761323
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer--ingest-pipeline.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2609
+}

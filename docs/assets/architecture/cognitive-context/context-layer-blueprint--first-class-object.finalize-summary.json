@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/diagrams/context-layer-blueprint--first-class-object/context-layer-blueprint--first-class-object.json",
+    "sha256": "335dad5928f6335ed3ec21a0ec80898de3a523743e0c47010f0cfd212dfa6f89",
+    "bytes": 6195
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.html",
+    "sha256": "3715e7094c1edb43accffa825cd99d2aa9320654d85b1b4dcf352f3f2d305772",
+    "bytes": 760942
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lima/docs/assets/architecture/cognitive-context/context-layer-blueprint--first-class-object.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2649
+}

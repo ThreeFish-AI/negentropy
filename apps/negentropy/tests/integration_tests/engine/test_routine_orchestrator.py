@@ -921,7 +921,7 @@ async def test_build_config_uses_routine_default_tools():
 
 
 async def test_build_config_per_routine_tools_override():
-    """per-routine config.allowed_tools 显式指定时覆盖默认；交互工具被强制并入（ISSUE-123）。"""
+    """per-routine config.allowed_tools 显式指定时覆盖默认；交互工具被强制并入（I-123）。"""
     rid = await _make_routine(cwd="/tmp", config={"allowed_tools": ["Bash", "Read"]})
     try:
         orch = RoutineOrchestrator()
@@ -938,7 +938,7 @@ async def test_build_config_per_routine_tools_override():
 
 
 async def test_build_config_forces_interactive_tools_when_auto_answer():
-    """ISSUE-123：auto_answer_questions 开启时，AskUserQuestion + ExitPlanMode 必入 allowed_tools。
+    """I-123：auto_answer_questions 开启时，AskUserQuestion + ExitPlanMode 必入 allowed_tools。
 
     根因回归锁定：二者不在白名单 → CLI 拒绝（tool_result is_error "Answer questions?"/"Exit plan mode?"）
     → Engine 经 stdin 写回的 Plan Review/auto-answer 永不送达 CC → 评审反馈闭环失效、CC 报错后单方面
