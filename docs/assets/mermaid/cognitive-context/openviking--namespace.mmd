@@ -1,0 +1,39 @@
+%% source: docs/research/cognitive-context/014-openviking.md §3（图 3）
+%% slug: openviking--namespace
+%% type: architecture
+%% derived: docs/assets/architecture/cognitive-context/openviking--namespace.html
+%% fix: 2026-10-22 014 §3 三空间机制讲透整改新增（I-235）；不取代 uri-scope-tree（视频 P1 冻结消费，旧视角无 peers/privacy/sessions）
+flowchart TB
+  ROOT["viking:// 根<br/>统一地址命名空间"]
+  subgraph VR["visible_roots() 恒返回这三个可见根"]
+    RES["resources 公共资源空间<br/>账户内共享"]
+    AGT["agent 技能空间<br/>仅认 skills 内容段"]
+    USR["user/{uid} 私域空间<br/>数据属主 {uid}"]
+  end
+  ROOT --> RES
+  ROOT --> AGT
+  ROOT --> USR
+  RDOCS["policies/ handbook/ …<br/>→ resource"]
+  RC["resources/memories/x<br/>⚠ 段名叫 memories 仍是 resource"]
+  RES --> RDOCS
+  RES --> RC
+  ASK["skills/** → skill<br/>其余 → resource"]
+  AGT --> ASK
+  UMEM["memories/** → memory"]
+  URES["resources/** → resource"]
+  USKILL["skills/** → skill"]
+  PEERS["peers/{peer} 交互对象子树"]
+  PRIV["privacy/** 保留段<br/>敏感值树（§8.5）"]
+  SESS["sessions/** 保留段<br/>会话归档落点"]
+  USR --> UMEM
+  USR --> URES
+  USR --> USKILL
+  USR -.-> PEERS
+  USR -.-> PRIV
+  USR -.-> SESS
+  PEM["memories/** → memory"]
+  PER["resources/** → resource"]
+  PES["skills/**<br/>⚠ 不命中 peer 内容段，类型回落 resource"]
+  PEERS --> PEM
+  PEERS --> PER
+  PEERS --> PES

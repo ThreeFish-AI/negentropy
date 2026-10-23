@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--namespace/openviking--namespace.json",
+    "sha256": "67aeffa17a8c4664a0ea13bb98f371bc49c2cf303d458b86ba18ce05880854ba",
+    "bytes": 10444
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
+    "sha256": "ba94a6904643bb9f3d6f2e551633f46b5c11b11681d4a2f7c1e870cfe8e7e5bc",
+    "bytes": 780301
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3413,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "usr-priv",
+            "from": "usr",
+            "to": "priv",
+            "label": "",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "right": {
+            "id": "usr-sess",
+            "from": "usr",
+            "to": "sess",
+            "label": "",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "point": [
+            988,
+            426
+          ],
+          "sharedNode": "usr"
+        },
+        {
+          "left": {
+            "id": "usr-sess",
+            "from": "usr",
+            "to": "sess",
+            "label": "",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "right": {
+            "id": "peers-pem",
+            "from": "peers",
+            "to": "pem",
+            "label": "",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            988,
+            376
+          ]
+        }
+      ],
+      "detours": [],
+      "truncated": false
+    },
+    "hints": [
+      "usr → priv and usr → sess cross next to usr: move node priv or sess so the two reach usr from different sides (for example one level with it, one directly above or below it).",
+      "usr → sess crosses peers → pem: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
