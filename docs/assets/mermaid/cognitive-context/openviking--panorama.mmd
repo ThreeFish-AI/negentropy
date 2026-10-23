@@ -7,7 +7,7 @@ flowchart TB
   GATEWAY -->|"转发 · 三协议不转换"| UPSTREAM["模型厂商 API<br/>Anthropic / OpenAI / Responses"]
   INGEST["编目相 · 写路径（§4）<br/>切分 → 自底向上 L0/L1 → 向量化 → 新鲜度冒泡"] -->|"写入 L0/L1/L2 + 向量"| VIKING
   RETRIEVE["检索相 · 读路径（§5）<br/>意图分析 → 全局召回 2×limit → 单遍精排 → 六域装配"]
-  MEMORY["记忆相 · 记忆路径（§6）<br/>会话归档 → 异步提炼 → 身份判据写回"] -->|"按身份字段写回 user/peer"| VIKING
+  MEMORY["记忆相 · 回写路径（§6）<br/>会话归档 → 异步提炼 → 身份判据写回"] -->|"按身份字段写回 user/peer"| VIKING
   COMPILE["编译面（不展开）<br/>ov compile → wiki / 知识图谱 / 日报 · VikingBot 层"]
   subgraph GOV["治理面（§8）· 三角色 · ACL · 信封加密 · git 快照"]
     VIKING["viking:// 统一命名空间<br/>位置即语义 · 类型由 URI 结构推导"]

@@ -3,7 +3,7 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
-### 014 OpenViking 精读 §2「一树三相三面」图例与机制解说补全 + 全文 12 图挂载（2026-10-22）
+### 014 OpenViking 精读 §2「一树三相三面」图例与机制解说补全 + 全文 12 图挂载（2026-10-22/23）
 
 - **§2 全貌章补全**：开篇段后新增「一棵树 / 三个相（编目·写路径 / 检索·读路径 / 记忆·回写路径）/ 三个面（网关 / 治理 / 编译）」概念块——每块机制解说 2–4 句（全部引自正文既有断言、零新数字）+ 专属图例 + § 指针；修复换代重写时总纲从「两相」升级为「一树三相三面」但图例与分概念解说未跟上的缺口。
 - **新增 3 图（archify finalize showcase 四门 + 双主题 PNG）**：`openviking--panorama` 全貌总图（§2 图 1：树居中、三相绕树路径、治理面边界包裹、网关面代理读写、编译面虚线不展开）、`openviking--gateway-proxy` 网关面五步一轮（§7 图 10）、`openviking--governance-layers` 治理面六层（§8 图 11）。

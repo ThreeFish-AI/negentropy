@@ -6,10 +6,10 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "36849707-b05e-4aa4-b0ff-a01e5a6266be",
+  "deliveryReceiptId": "55ea464b-e6a9-4e31-9a02-2f60177dc376",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.html",
-    "sha256": "40673c69749450809e2287142bc93aa189d2c1cb64fe12c9e53a1b3a7de74944",
+    "sha256": "538ec68a5a2c4a69edc8276874bc1c8391384f6487490fafa47671657e0b820c",
     "bytes": 765774
   },
   "state": {
