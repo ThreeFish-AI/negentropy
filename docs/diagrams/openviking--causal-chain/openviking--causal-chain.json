@@ -2,7 +2,7 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "OpenViking 因果脉络链：观察 → 规格 → 机制 → 证据",
+    "title": "OpenViking 因果脉络链：观察 → 归因 → 规格 → 机制 → 证据",
     "locale": "zh-CN",
     "quality_profile": "showcase",
     "output": "docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
@@ -66,6 +66,7 @@
     ],
     "allowedTerminals": [
       "ev_vendor",
+      "ev_rag",
       "ev_upstream",
       "ev_lab",
       "tree",
@@ -338,6 +339,7 @@
       "label": "代理路径 · Gateway",
       "sublabel": "五步一轮·逐字回放·滞后保存",
       "width": 166,
+      "yOffset": -80,
       "sources": [
         {
           "path": "docs/research/cognitive-context/014-openviking.md",
@@ -348,11 +350,12 @@
     {
       "id": "path_gov",
       "lane": "l_ag",
-      "col": 4,
+      "col": 3,
       "type": "security",
       "label": "治理路径 · 租户与安全",
       "sublabel": "三角色·ACL·快照·OVPack",
       "width": 160,
+      "yOffset": 80,
       "sources": [
         {
           "path": "docs/research/cognitive-context/014-openviking.md",
@@ -381,8 +384,25 @@
       "col": 4,
       "type": "external",
       "label": "厂商自报（§9）",
-      "sublabel": "LoCoMo 24.20%→82.08%·负向仍在",
+      "sublabel": "LoCoMo 24.20%→82.08%",
       "width": 178,
+      "yOffset": 80,
+      "sources": [
+        {
+          "path": "docs/research/cognitive-context/014-openviking.md",
+          "label": "§2.2 证据 · §9.1 厂商自报基准"
+        }
+      ]
+    },
+    {
+      "id": "ev_rag",
+      "lane": "l_read",
+      "col": 4,
+      "type": "external",
+      "label": "厂商自报 · 单轮 RAG",
+      "sublabel": "66.87%<LightRAG 76.00% 负向仍在",
+      "width": 178,
+      "yOffset": -80,
       "sources": [
         {
           "path": "docs/research/cognitive-context/014-openviking.md",
@@ -507,29 +527,23 @@
     {
       "id": "e_r_ev1",
       "from": "path_read",
-      "to": "ev_vendor",
+      "to": "ev_rag",
       "label": "单轮 RAG 基准",
-      "variant": "dashed",
-      "fromSide": "right",
-      "toSide": "left"
+      "variant": "dashed"
     },
     {
       "id": "e_r_ev2",
       "from": "path_read",
       "to": "ev_upstream",
       "label": "递归撤回 #5450",
-      "variant": "dashed",
-      "fromSide": "top",
-      "toSide": "bottom"
+      "variant": "dashed"
     },
     {
       "id": "e_m_ev1",
       "from": "path_mem",
       "to": "ev_vendor",
       "label": "LoCoMo 基准",
-      "variant": "dashed",
-      "fromSide": "right",
-      "toSide": "bottom"
+      "variant": "dashed"
     },
     {
       "id": "e_m_ev3",
@@ -546,7 +560,7 @@
       "dot": "amber",
       "title": "怎么读这张图",
       "items": [
-        "自左向右五个阶段：观察 → 归因 → 设计规格 → 机制 → 证据；六条泳道即机制谱系，规格与机制同泳道垂直对应",
+        "自左向右五个阶段：观察 → 归因 → 设计规格 → 机制 → 证据；五条泳道即机制谱系（代理与治理共用一条），规格与机制同泳道垂直对应",
         "§1 六条设计规格中可寻址与可归属同落 viking:// 树（合并展示），可治理一分为二覆盖代理与治理两条路径",
         "读路径的 #5450 注记：上游删除目录递归后早剪风险移到 2×limit 候选池池边界；提交说明未给理由，「导航门成本大于收益」系反推（§5）",
         "证据边只落在读与记忆两条路径（读：单轮 RAG 基准 / 递归撤回；记忆：LoCoMo 基准 / 身份漂移·无提交点）——写、代理、治理暂无独立检验，是实况不是画漏；lab 的精排致盲与池边界实验属读路径，见证据节点与 §10"

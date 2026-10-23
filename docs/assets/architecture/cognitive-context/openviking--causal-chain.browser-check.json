@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "084b8433-9755-495e-82c4-09c9460612f6",
+  "deliveryReceiptId": "d399a4db-ac67-48f4-9d46-af7f06407719",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-    "sha256": "291800afa1bc4e58b0204de647d68177fba81a0bdb03f5a1d5de51c9caf539cb",
-    "bytes": 784992
+    "sha256": "b0f5393f0360b108c629d741aebf1dc37389fa4f28125b57cfeac01e51b2f48e",
+    "bytes": 786556
   },
   "state": {
     "detail": "read",
@@ -32,42 +32,72 @@
         "innerWidth": 1440,
         "innerHeight": 900,
         "scrollWidth": 1440,
-        "scrollHeight": 900,
+        "scrollHeight": 960,
         "overflowX": false,
-        "overflowY": false,
-        "verticalScrollAccepted": false,
-        "overflowDisposition": "contained",
+        "overflowY": true,
+        "verticalScrollAccepted": true,
+        "overflowDisposition": "readable-vertical-scroll",
         "readerLayout": "adaptive",
-        "readerOverflow": null,
-        "readerFit": null,
+        "readerOverflow": "authored",
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1205,
-        "diagramWidth": 1175,
+        "readerWidth": 960,
+        "diagramWidth": 917,
         "pageComposition": {
           "bodyPaddingPx": 12,
-          "headerPx": 52,
+          "headerPx": 68,
           "diagramChromePx": 78,
-          "svgPx": 746,
+          "svgPx": 801,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 188,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 188,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-1",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -75,28 +105,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 100,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-3",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -104,28 +119,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 100,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 7.6923076923076925,
-        "minimumProjectedNonEdgeTextPx": 7.6923076923076925,
-        "minimumProjectedEdgeTextPx": 7.6923076923076925,
+        "minimumProjectedNodeTextPx": 6.003273322422259,
+        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
+        "minimumProjectedEdgeTextPx": 6.003273322422259,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -153,42 +154,72 @@
         "innerWidth": 1600,
         "innerHeight": 1000,
         "scrollWidth": 1600,
-        "scrollHeight": 1000,
+        "scrollHeight": 1026,
         "overflowX": false,
-        "overflowY": false,
-        "verticalScrollAccepted": false,
-        "overflowDisposition": "contained",
+        "overflowY": true,
+        "verticalScrollAccepted": true,
+        "overflowDisposition": "readable-vertical-scroll",
         "readerLayout": "adaptive",
-        "readerOverflow": null,
-        "readerFit": null,
+        "readerOverflow": "authored",
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1258,
-        "diagramWidth": 1228,
+        "readerWidth": 960,
+        "diagramWidth": 917,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 60,
+          "headerPx": 76,
           "diagramChromePx": 84,
-          "svgPx": 780,
+          "svgPx": 801,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 188,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 188,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-1",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -196,28 +227,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 105,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-3",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -225,28 +241,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 105,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
-        "minimumProjectedEdgeTextPx": 8,
+        "minimumProjectedNodeTextPx": 6.003273322422259,
+        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
+        "minimumProjectedEdgeTextPx": 6.003273322422259,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -281,35 +283,65 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1384,
-        "diagramWidth": 1354,
+        "readerWidth": 996,
+        "diagramWidth": 966,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 60,
+          "headerPx": 76,
           "diagramChromePx": 84,
-          "svgPx": 860,
+          "svgPx": 844,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 198,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 168,
+            "spaceAboveNodesPx": 27,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 198,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 168,
+            "spaceAboveNodesPx": 27,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           },
           {
             "frameId": "lane-1",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -317,28 +349,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 115,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           },
           {
             "frameId": "lane-3",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -346,28 +363,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 115,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
-        "minimumProjectedEdgeTextPx": 8,
+        "minimumProjectedNodeTextPx": 6.3240589198036,
+        "minimumProjectedNonEdgeTextPx": 6.3240589198036,
+        "minimumProjectedEdgeTextPx": 6.3240589198036,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -402,35 +405,65 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1754,
-        "diagramWidth": 1704,
+        "readerWidth": 1288,
+        "diagramWidth": 1238,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
           "diagramChromePx": 94,
           "svgPx": 1082,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 253,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 215,
+            "spaceAboveNodesPx": 34,
+            "spaceBelowNodesPx": 4
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 253,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 215,
+            "spaceAboveNodesPx": 34,
+            "spaceBelowNodesPx": 4
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           },
           {
             "frameId": "lane-1",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -438,28 +471,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 145,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           },
           {
             "frameId": "lane-3",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -467,23 +485,9 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 145,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           }
         ],
         "minimumProjectedNodeTextPx": 8,
@@ -569,42 +573,72 @@
         "innerWidth": 1440,
         "innerHeight": 900,
         "scrollWidth": 1440,
-        "scrollHeight": 900,
+        "scrollHeight": 960,
         "overflowX": false,
-        "overflowY": false,
-        "verticalScrollAccepted": false,
-        "overflowDisposition": "contained",
+        "overflowY": true,
+        "verticalScrollAccepted": true,
+        "overflowDisposition": "readable-vertical-scroll",
         "readerLayout": "adaptive",
-        "readerOverflow": null,
-        "readerFit": null,
+        "readerOverflow": "authored",
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1205,
-        "diagramWidth": 1175,
+        "readerWidth": 960,
+        "diagramWidth": 917,
         "pageComposition": {
           "bodyPaddingPx": 12,
-          "headerPx": 52,
+          "headerPx": 68,
           "diagramChromePx": 78,
-          "svgPx": 746,
+          "svgPx": 801,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 188,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 188,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-1",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -612,28 +646,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 100,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-3",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -641,28 +660,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 100,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 7.6923076923076925,
-        "minimumProjectedNonEdgeTextPx": 7.6923076923076925,
-        "minimumProjectedEdgeTextPx": 7.6923076923076925,
+        "minimumProjectedNodeTextPx": 6.003273322422259,
+        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
+        "minimumProjectedEdgeTextPx": 6.003273322422259,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -690,42 +695,72 @@
         "innerWidth": 1600,
         "innerHeight": 1000,
         "scrollWidth": 1600,
-        "scrollHeight": 1000,
+        "scrollHeight": 1026,
         "overflowX": false,
-        "overflowY": false,
-        "verticalScrollAccepted": false,
-        "overflowDisposition": "contained",
+        "overflowY": true,
+        "verticalScrollAccepted": true,
+        "overflowDisposition": "readable-vertical-scroll",
         "readerLayout": "adaptive",
-        "readerOverflow": null,
-        "readerFit": null,
+        "readerOverflow": "authored",
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1258,
-        "diagramWidth": 1228,
+        "readerWidth": 960,
+        "diagramWidth": 917,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 60,
+          "headerPx": 76,
           "diagramChromePx": 84,
-          "svgPx": 780,
+          "svgPx": 801,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 188,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 188,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-1",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -733,28 +768,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 105,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-3",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -762,28 +782,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 105,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
-        "minimumProjectedEdgeTextPx": 8,
+        "minimumProjectedNodeTextPx": 6.003273322422259,
+        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
+        "minimumProjectedEdgeTextPx": 6.003273322422259,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -818,35 +824,65 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1384,
-        "diagramWidth": 1354,
+        "readerWidth": 996,
+        "diagramWidth": 966,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 60,
+          "headerPx": 76,
           "diagramChromePx": 84,
-          "svgPx": 860,
+          "svgPx": 844,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 198,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 168,
+            "spaceAboveNodesPx": 27,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 198,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 168,
+            "spaceAboveNodesPx": 27,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           },
           {
             "frameId": "lane-1",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -854,28 +890,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 115,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           },
           {
             "frameId": "lane-3",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -883,28 +904,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 115,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
-        "minimumProjectedEdgeTextPx": 8,
+        "minimumProjectedNodeTextPx": 6.3240589198036,
+        "minimumProjectedNonEdgeTextPx": 6.3240589198036,
+        "minimumProjectedEdgeTextPx": 6.3240589198036,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -939,35 +946,65 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1754,
-        "diagramWidth": 1704,
+        "readerWidth": 1288,
+        "diagramWidth": 1238,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
           "diagramChromePx": 94,
           "svgPx": 1082,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 253,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 215,
+            "spaceAboveNodesPx": 34,
+            "spaceBelowNodesPx": 4
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 253,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 215,
+            "spaceAboveNodesPx": 34,
+            "spaceBelowNodesPx": 4
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           },
           {
             "frameId": "lane-1",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -975,28 +1012,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 145,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           },
           {
             "frameId": "lane-3",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -1004,23 +1026,9 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 145,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           }
         ],
         "minimumProjectedNodeTextPx": 8,
@@ -1058,42 +1066,72 @@
         "innerWidth": 1440,
         "innerHeight": 900,
         "scrollWidth": 1440,
-        "scrollHeight": 900,
+        "scrollHeight": 960,
         "overflowX": false,
-        "overflowY": false,
-        "verticalScrollAccepted": false,
-        "overflowDisposition": "contained",
+        "overflowY": true,
+        "verticalScrollAccepted": true,
+        "overflowDisposition": "readable-vertical-scroll",
         "readerLayout": "adaptive",
-        "readerOverflow": null,
-        "readerFit": null,
+        "readerOverflow": "authored",
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1205,
-        "diagramWidth": 1175,
+        "readerWidth": 960,
+        "diagramWidth": 917,
         "pageComposition": {
           "bodyPaddingPx": 12,
-          "headerPx": 52,
+          "headerPx": 68,
           "diagramChromePx": 78,
-          "svgPx": 746,
+          "svgPx": 801,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 188,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 188,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-1",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -1101,28 +1139,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 100,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-3",
-            "heightPx": 100,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -1130,28 +1153,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 100,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 50,
-            "spaceAboveNodesPx": 39,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 7.6923076923076925,
-        "minimumProjectedNonEdgeTextPx": 7.6923076923076925,
-        "minimumProjectedEdgeTextPx": 7.6923076923076925,
+        "minimumProjectedNodeTextPx": 6.003273322422259,
+        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
+        "minimumProjectedEdgeTextPx": 6.003273322422259,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1179,42 +1188,72 @@
         "innerWidth": 1600,
         "innerHeight": 1000,
         "scrollWidth": 1600,
-        "scrollHeight": 1000,
+        "scrollHeight": 1026,
         "overflowX": false,
-        "overflowY": false,
-        "verticalScrollAccepted": false,
-        "overflowDisposition": "contained",
+        "overflowY": true,
+        "verticalScrollAccepted": true,
+        "overflowDisposition": "readable-vertical-scroll",
         "readerLayout": "adaptive",
-        "readerOverflow": null,
-        "readerFit": null,
+        "readerOverflow": "authored",
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1258,
-        "diagramWidth": 1228,
+        "readerWidth": 960,
+        "diagramWidth": 917,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 60,
+          "headerPx": 76,
           "diagramChromePx": 84,
-          "svgPx": 780,
+          "svgPx": 801,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 188,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 188,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 159,
+            "spaceAboveNodesPx": 26,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-1",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -1222,28 +1261,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 105,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           },
           {
             "frameId": "lane-3",
-            "heightPx": 105,
+            "heightPx": 78,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -1251,28 +1275,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 105,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 52,
-            "spaceAboveNodesPx": 41,
-            "spaceBelowNodesPx": 11
+            "nodeSpanPx": 39,
+            "spaceAboveNodesPx": 31,
+            "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
-        "minimumProjectedEdgeTextPx": 8,
+        "minimumProjectedNodeTextPx": 6.003273322422259,
+        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
+        "minimumProjectedEdgeTextPx": 6.003273322422259,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1307,35 +1317,65 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1384,
-        "diagramWidth": 1354,
+        "readerWidth": 996,
+        "diagramWidth": 966,
         "pageComposition": {
           "bodyPaddingPx": 64,
-          "headerPx": 60,
+          "headerPx": 76,
           "diagramChromePx": 84,
-          "svgPx": 860,
+          "svgPx": 844,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 198,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 168,
+            "spaceAboveNodesPx": 27,
+            "spaceBelowNodesPx": 3
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 198,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 168,
+            "spaceAboveNodesPx": 27,
+            "spaceBelowNodesPx": 3
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           },
           {
             "frameId": "lane-1",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -1343,28 +1383,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 115,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           },
           {
             "frameId": "lane-3",
-            "heightPx": 115,
+            "heightPx": 82,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -1372,28 +1397,14 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 115,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 58,
-            "spaceAboveNodesPx": 45,
-            "spaceBelowNodesPx": 12
+            "nodeSpanPx": 41,
+            "spaceAboveNodesPx": 32,
+            "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 8,
-        "minimumProjectedNonEdgeTextPx": 8,
-        "minimumProjectedEdgeTextPx": 8,
+        "minimumProjectedNodeTextPx": 6.3240589198036,
+        "minimumProjectedNonEdgeTextPx": 6.3240589198036,
+        "minimumProjectedEdgeTextPx": 6.3240589198036,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1428,35 +1439,65 @@
         "overflowDisposition": "contained",
         "readerLayout": "adaptive",
         "readerOverflow": null,
-        "readerFit": null,
+        "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1754,
-        "diagramWidth": 1704,
+        "readerWidth": 1288,
+        "diagramWidth": 1238,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
           "diagramChromePx": 94,
           "svgPx": 1082,
           "cardsPx": 0,
-          "viewBoxHeight": 776
+          "viewBoxHeight": 1068
         },
         "viewBoxWidth": 1222,
         "workflowLanes": [
           {
+            "frameId": "lane-2",
+            "heightPx": 253,
+            "nodeCount": 6,
+            "nodeIds": [
+              "obs_flat",
+              "attr",
+              "spec_search",
+              "path_read",
+              "ev_rag",
+              "ev_vendor"
+            ],
+            "nodeSpanPx": 215,
+            "spaceAboveNodesPx": 34,
+            "spaceBelowNodesPx": 4
+          },
+          {
+            "frameId": "lane-4",
+            "heightPx": 253,
+            "nodeCount": 4,
+            "nodeIds": [
+              "obs_bus",
+              "spec_gov",
+              "path_gov",
+              "path_gw"
+            ],
+            "nodeSpanPx": 215,
+            "spaceAboveNodesPx": 34,
+            "spaceBelowNodesPx": 4
+          },
+          {
             "frameId": "lane-0",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 2,
             "nodeIds": [
               "spec_addr_owner",
               "tree"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           },
           {
             "frameId": "lane-1",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 4,
             "nodeIds": [
               "obs_scatter",
@@ -1464,28 +1505,13 @@
               "path_write",
               "ev_upstream"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
-          },
-          {
-            "frameId": "lane-2",
-            "heightPx": 145,
-            "nodeCount": 5,
-            "nodeIds": [
-              "obs_flat",
-              "attr",
-              "spec_search",
-              "path_read",
-              "ev_vendor"
-            ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           },
           {
             "frameId": "lane-3",
-            "heightPx": 145,
+            "heightPx": 105,
             "nodeCount": 4,
             "nodeIds": [
               "obs_lost",
@@ -1493,23 +1519,9 @@
               "path_mem",
               "ev_lab"
             ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
-          },
-          {
-            "frameId": "lane-4",
-            "heightPx": 145,
-            "nodeCount": 4,
-            "nodeIds": [
-              "obs_bus",
-              "spec_gov",
-              "path_gw",
-              "path_gov"
-            ],
-            "nodeSpanPx": 73,
-            "spaceAboveNodesPx": 57,
-            "spaceBelowNodesPx": 15
+            "nodeSpanPx": 53,
+            "spaceAboveNodesPx": 42,
+            "spaceBelowNodesPx": 11
           }
         ],
         "minimumProjectedNodeTextPx": 8,
