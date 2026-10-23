@@ -13,3 +13,6 @@ allowBuilds:
 # 跳跃——无上界时 pnpm 会解到 5.x。与仓库根 pnpm-workspace.yaml 同口径。
 overrides:
   js-yaml: '>=4.3.2 <5.0.0'
+  # GHSA-68fv-2mgg-jv7q (high)：source-map-js < 1.2.2 事件循环 DoS；floor 1.2.2、限 <2 避免
+  # major 跳跃，与仓库根 pnpm-workspace.yaml 同口径（I-237）。
+  source-map-js: '>=1.2.2 <2.0.0'
