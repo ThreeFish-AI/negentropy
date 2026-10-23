@@ -3,6 +3,10 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### PR #1205 双 failing check 修复：source-map-js 全仓 override 与 perceives 六包安全地板（I-237，2026-10-23）
+
+- **Dependency Review（GHSA-68fv-2mgg-jv7q，high）**：根 `pnpm-workspace.yaml` overrides 增 `source-map-js: '>=1.2.2 <2.0.0'`，15 个分集 `video/pnpm-workspace.yaml` 同口径，`pnpm install --lockfile-only` 重锁根 + 15 分集 lockfile（每份 5+/4-、`source-map-js@1.2.1` 全仓零残留）。
+- **Perceives CI / Security Audit（48 条新报 advisory，6 包）**：[pyproject](apps/negentropy-perceives/pyproject.toml) 抬地板并重锁 [uv.lock](apps/negentropy-perceives/uv.lock)——pillow override 12.3.0→13.0.0（35 条 CVE/GHSA，图像解析攻击面）、aiohttp 3.14.0→3.14.4（8 条）、pypdf 6.19.0→6.21.1、certifi 2026.10.19 / opentelemetry-api 1.45.1 / virtualenv 21.14.9 入 override 层；实际解析 3.14.5/6.21.2/21.14.13，邻接带动 distlib/packaging/yarl 三小升，`uv lock` 零冲突。详见 [I-237](docs/.agents/issue.md#I-237)。
 ### causal-chain 图树基座口径对齐 §3.1 保留段（2026-10-23）
 
 - `openviking--causal-chain`（014 图 6）树基座节点 sublabel 旧口径「resources/user（含peers）/agent」对齐为「resources/agent/user·保留段」（width 170→180）、「怎么读这张图」卡片补枚举「user 空间含保留段 peers·privacy·sessions，peers 子树内容段仅 memories、resources（§3.1）」；archify finalize showcase 四门重过、双主题 PNG 重采（1165K/1107K 过 1280KiB 门）、.mmd 文本源与 mermaid README 注记同步；正文图例与图号不变。

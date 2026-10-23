@@ -242,6 +242,7 @@
 | I-234 | 视频文案与前置文档「拆/失效」词族整改：语义位分档落改 + 图示资产待重录登记 | ✅ 已完成 | 2026-10-22 | [详情](#I-234) |
 | I-235 | 014 §3 三空间机制讲透：命名空间地图 + 单步沙盘 + 新图 openviking--namespace + 全篇缩写首现注解（含 peers/skills 两处事实修正） | ✅ 已完成 | 2026-10-22 | [详情](#I-235) |
 | I-236 | 精读文档批量「缩写/术语首现注解」落改（11 篇 527 处）+ 机制章走查审计（24 缺口登记待补） | ✅ 已完成 | 2026-10-23 | [详情](#I-236) |
+| I-237 | PR #1205 双 failing check 修复：source-map-js GHSA-68fv-2mgg-jv7q 全仓 override（根 + 15 分集）+ perceives 六包安全地板（pillow 13.0.0 等 48 条新报 advisory） | ✅ 已完成 | 2026-10-23 | [详情](#I-237) |
 
 ---
 
@@ -5660,3 +5661,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **后续防范**：缩写首现注解 grep 清单已随 I-235 入交稿前自查；新精读成文后建议按本批 Workflow 模板跑一轮扫描对账。
 
 **同类问题影响**：本批范围外尚有旧代与专题文档（000/010/020 系/030–034/040–060/070–100/110–130/140–144/150/160/180/190/200 等）未扫描，如需另开批次；24 处走查缺口补写需逐篇机制级写作，宜按篇独立排期。
+
+---
+
+<a id="I-237"></a>
+## I-237：PR #1205 双 failing check 修复——source-map-js 全仓 override 与 perceives 六包安全地板
+
+**问题描述**：feature/1.x.x → master 同步 PR #1205 上两条门禁失败——① Dependency Review Guard：新合入分集工程（7 个新分集 + 8 个重制分集的 `video/pnpm-lock.yaml`）引入 `source-map-js@1.2.1`，命中 GHSA-68fv-2mgg-jv7q（索引型 source-map section offsets 事件循环 DoS，high，fixed 1.2.2）；② Perceives CI / Security Audit：pip-audit 严跑新报 48 条未豁免漏洞（6 包，advisory 均为 2026-10-19 门禁上次通过后新发布）。
+
+**表因根因**：分集 Remotion 工程的传递依赖无集中安全地板（js-yaml 先例只覆盖单包），新分集各自落 lockfile 时带入带毒版本；perceives 侧是 advisory 发布节奏与门禁节奏的窗口错位——锁文件停在 10-17 抬地板批次（I-231）时的最新版，10-19 后新披露的 pillow/aiohttp/certifi/opentelemetry-api/pypdf/virtualenv 告警未跟进。
+
+**处理方式**：全部走「消因优于 ignore」——① 根 `pnpm-workspace.yaml` overrides 增 `source-map-js: '>=1.2.2 <2.0.0'`，15 个分集 `video/pnpm-workspace.yaml` 同口径复制（沿用 I-175 自锚 + js-yaml 先例），`pnpm install --lockfile-only` 重锁根 + 15 分集，每份 diff 收敛在 5+/4- 且 `source-map-js@1.2.1` 全仓零残留；② perceives `pyproject.toml` 抬地板并重锁 `uv.lock`：pillow override 12.3.0→13.0.0（35 条，marker-pdf/surya 的 pillow<11 声明在 12.3.0 时已越、13.0.0 同机制）、aiohttp 直接依赖 3.14.0→3.14.4（8 条）、pypdf 直接依赖 6.19.0→6.21.1、certifi 2026.10.19 / opentelemetry-api 1.45.1 / virtualenv 21.14.9 入 override 层（传递来源 requests/httpx/selenium/trafilatura/docling-slim、fastmcp、dev 组 pre-commit），实际解析 3.14.5/6.21.2/21.14.13，邻接带动 distlib/packaging/yarl 三小升。
+
+**后续防范**：分集侧新增安全地板条目时，根与 15 分集须同步落（本次 16 处）；perceives 侧把「抬地板批次」从事件驱动改为随 master 同步 PR 前置检查——pip-audit 新告警在 sync PR 上集中暴露，宜在 feature 分支合流前清零。
+
+**同类问题影响**：master 侧根 `pnpm-lock.yaml` 的 source-map-js@1.2.1 属存量（非本次 delta 引入，门禁不报），本次 override 已连带治愈；pillow 13.0.0 对 marker-pdf/surya 的运行时兼容由 perceives CI 测试矩阵验证，若引擎路径回归则按 I-092 模式登记实测证据再定升降。
