@@ -6,7 +6,7 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--intent-typed-queries-20261023-001000/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
     "sha256": "c6f46536c163db337cb912c273eb47b52aa0134ffc3680e0d0772c5f8916bf9d",
     "bytes": 2859
   },
@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2754,
+  "durationMs": 3480,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

@@ -6,7 +6,7 @@
   "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-openviking--tiering-l0-l1-l2-20261022-224006/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--tiering-l0-l1-l2/openviking--tiering-l0-l1-l2.json",
     "sha256": "f68b59207a3ebe918091b8226f7fcfe14e2edd81b3b48263595ed1836f365831",
     "bytes": 2860
   },
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2510
+  "durationMs": 3063
 }

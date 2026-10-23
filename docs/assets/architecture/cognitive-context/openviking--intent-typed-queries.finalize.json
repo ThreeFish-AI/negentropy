@@ -5,9 +5,9 @@
   "status": "pass",
   "type": "workflow",
   "quality": "showcase",
-  "startedAt": "2026-10-22T16:20:23.082Z",
+  "startedAt": "2026-10-23T02:38:57.931Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--intent-typed-queries-20261023-001000/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
     "sha256": "c6f46536c163db337cb912c273eb47b52aa0134ffc3680e0d0772c5f8916bf9d",
     "bytes": 2859
   },
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--intent-typed-queries-20261023-001000/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
         "--quality",
         "showcase",
@@ -54,13 +54,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 836,
+      "durationMs": 1183,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--intent-typed-queries-20261023-001000/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
         "--quality",
         "showcase",
@@ -68,11 +68,11 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "88da124e-4f27-47c7-b18a-2fd630a8d0ab",
+        "receiptId": "f7c0a29b-cbe5-4d47-aeed-2044ef596b6a",
         "ok": true,
         "command": "deliver",
         "type": "workflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--intent-typed-queries-20261023-001000/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
         "specification": {
           "sha256": "c6f46536c163db337cb912c273eb47b52aa0134ffc3680e0d0772c5f8916bf9d",
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 189,
+      "durationMs": 163,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -260,13 +260,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "88da124e-4f27-47c7-b18a-2fd630a8d0ab"
+        "deliveryReceiptId": "f7c0a29b-cbe5-4d47-aeed-2044ef596b6a"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1281,
+      "durationMs": 1661,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -284,7 +284,7 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "88da124e-4f27-47c7-b18a-2fd630a8d0ab",
+        "deliveryReceiptId": "f7c0a29b-cbe5-4d47-aeed-2044ef596b6a",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
           "sha256": "1834ab74b89356ec93ed907089527cdf6d23136a023137755551b58b7edb5c5c",
@@ -1210,6 +1210,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-22T16:20:25.837Z",
-  "durationMs": 2754
+  "finishedAt": "2026-10-23T02:39:01.412Z",
+  "durationMs": 3480
 }

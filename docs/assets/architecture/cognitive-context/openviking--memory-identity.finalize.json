@@ -5,9 +5,9 @@
   "status": "pass",
   "type": "workflow",
   "quality": "showcase",
-  "startedAt": "2026-10-22T15:51:30.893Z",
+  "startedAt": "2026-10-23T02:39:01.684Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--memory-identity-20261022-224008/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--memory-identity/openviking--memory-identity.json",
     "sha256": "b4b46a44bc92b588c6b9d0eade624a69f839f5d60fc3b8db1b579f420591b449",
     "bytes": 2699
   },
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--memory-identity-20261022-224008/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--memory-identity/openviking--memory-identity.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--memory-identity.html",
         "--quality",
         "showcase",
@@ -54,13 +54,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 681,
+      "durationMs": 1290,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--memory-identity-20261022-224008/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--memory-identity/openviking--memory-identity.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--memory-identity.html",
         "--quality",
         "showcase",
@@ -68,11 +68,11 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "9f5692da-6013-427d-b0e0-0a6bf5da7d2f",
+        "receiptId": "aa08e501-c4ef-4425-b29f-ac8add8f82f7",
         "ok": true,
         "command": "deliver",
         "type": "workflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--memory-identity-20261022-224008/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--memory-identity/openviking--memory-identity.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--memory-identity.html",
         "specification": {
           "sha256": "b4b46a44bc92b588c6b9d0eade624a69f839f5d60fc3b8db1b579f420591b449",
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 183,
+      "durationMs": 298,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -225,13 +225,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "9f5692da-6013-427d-b0e0-0a6bf5da7d2f"
+        "deliveryReceiptId": "aa08e501-c4ef-4425-b29f-ac8add8f82f7"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1307,
+      "durationMs": 1702,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -249,7 +249,7 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "9f5692da-6013-427d-b0e0-0a6bf5da7d2f",
+        "deliveryReceiptId": "aa08e501-c4ef-4425-b29f-ac8add8f82f7",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--memory-identity.html",
           "sha256": "1f7ad694ef822a3f604dd13835e7b6690f616fb3ecd69f232bac6b53479cb088",
@@ -1163,6 +1163,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--memory-identity.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-22T15:51:33.626Z",
-  "durationMs": 2732
+  "finishedAt": "2026-10-23T02:39:05.990Z",
+  "durationMs": 4305
 }

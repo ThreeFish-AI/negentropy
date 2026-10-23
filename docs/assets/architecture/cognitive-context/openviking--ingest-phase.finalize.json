@@ -5,9 +5,9 @@
   "status": "pass",
   "type": "dataflow",
   "quality": "showcase",
-  "startedAt": "2026-10-22T16:56:19.305Z",
+  "startedAt": "2026-10-23T02:38:50.094Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/dataflow-openviking--ingest-phase-20261023-003000/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--ingest-phase/openviking--ingest-phase.json",
     "sha256": "dbea7abcc8a22b73318a982c8d609fe159199f44f2f816b42b9d74bf7c837184",
     "bytes": 4029
   },
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "dataflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/dataflow-openviking--ingest-phase-20261023-003000/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--ingest-phase/openviking--ingest-phase.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
         "--quality",
         "showcase",
@@ -54,13 +54,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 388,
+      "durationMs": 735,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "dataflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/dataflow-openviking--ingest-phase-20261023-003000/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--ingest-phase/openviking--ingest-phase.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
         "--quality",
         "showcase",
@@ -68,11 +68,11 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "af115a56-ee35-4bea-8e0c-d75de75dda40",
+        "receiptId": "90c38e74-b06d-45bd-bebe-f6fd62041a9e",
         "ok": true,
         "command": "deliver",
         "type": "dataflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/dataflow-openviking--ingest-phase-20261023-003000/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--ingest-phase/openviking--ingest-phase.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
         "specification": {
           "sha256": "dbea7abcc8a22b73318a982c8d609fe159199f44f2f816b42b9d74bf7c837184",
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 255,
+      "durationMs": 191,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -250,13 +250,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "af115a56-ee35-4bea-8e0c-d75de75dda40"
+        "deliveryReceiptId": "90c38e74-b06d-45bd-bebe-f6fd62041a9e"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1453,
+      "durationMs": 2669,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -274,7 +274,7 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "af115a56-ee35-4bea-8e0c-d75de75dda40",
+        "deliveryReceiptId": "90c38e74-b06d-45bd-bebe-f6fd62041a9e",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
           "sha256": "6d8df8b6120b5443b960a084540da8d75f9c1860da3210a4df747697d06eb900",
@@ -972,6 +972,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-22T16:56:21.800Z",
-  "durationMs": 2495
+  "finishedAt": "2026-10-23T02:38:54.387Z",
+  "durationMs": 4292
 }

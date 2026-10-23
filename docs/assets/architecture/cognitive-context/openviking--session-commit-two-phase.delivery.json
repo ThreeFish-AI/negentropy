@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "receiptId": "ace538ff-d077-42ab-8949-31e85cc88048",
+  "receiptId": "84af6ef4-4d48-4db1-8e55-ea276ce63b55",
   "status": "current",
   "command": "deliver",
   "type": "lifecycle",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/lifecycle-openviking--session-commit-two-phase-20261022-224005/candidate.json",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--session-commit-two-phase/openviking--session-commit-two-phase.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html",
   "specification": {
     "sha256": "8c09e119325265fc9150e1ec946a1d7a54102ec7e79213ee9d466e6acc859f4a",

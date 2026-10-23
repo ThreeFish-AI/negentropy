@@ -6,7 +6,7 @@
   "type": "dataflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/dataflow-openviking--freshness-bubbling-20261022-224007/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--freshness-bubbling/openviking--freshness-bubbling.json",
     "sha256": "847b899fbf71b0eb824ba14165f44df3ecd5c9e10ad9db59c35ece71c60d8c2c",
     "bytes": 2587
   },
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--freshness-bubbling.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2419
+  "durationMs": 2662
 }

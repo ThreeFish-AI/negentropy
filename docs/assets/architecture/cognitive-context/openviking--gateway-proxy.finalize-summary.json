@@ -6,9 +6,9 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--gateway-proxy-20261022-224002/candidate.json",
-    "sha256": "a31890fa11cbc1e18e4b44320b8bae09cca0e8714a0eed91b8c0007d91fce222",
-    "bytes": 4104
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--gateway-proxy/openviking--gateway-proxy.json",
+    "sha256": "9590e076cbee0f937ce8efe2beb5d2973a0e1ba2b409dc3b1a1a78f232c565ad",
+    "bytes": 4105
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--gateway-proxy.html",
@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--gateway-proxy.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2338,
+  "durationMs": 3321,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

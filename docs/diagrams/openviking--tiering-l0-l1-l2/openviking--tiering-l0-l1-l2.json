@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenViking 目录级 L0/L1/L2：先付小钱看摘要",
+    "output": "docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "files", "type": "external", "label": "L2 · 文件原文", "sublabel": "文件本体 · 按需才读", "pos": [269, 48], "size": [122, 60] },
+    { "id": "fsum", "type": "backend", "label": "文件摘要", "sublabel": "每文件 1 次 LLM · 同时写入该文件 L2 向量记录的 abstract 标量", "pos": [160, 164], "size": [340, 60] },
+    { "id": "sample", "type": "backend", "label": "确定性等距采样", "sublabel": "直接子项 > 32 时 · 含首尾 · 保序 · 可复现", "pos": [211, 280], "size": [238, 60] },
+    { "id": "l1", "type": "database", "label": "L1 · 目录导览 .overview.md", "sublabel": "采样后「文件摘要 + 直接子目录 L0」· 每目录 1 次 LLM · ≤ 4000 字符软上限", "pos": [130, 396], "size": [400, 60] },
+    { "id": "l0", "type": "database", "label": "L0 · 目录标签 .abstract.md", "sublabel": "从 L1 正文首段按句界截断 · 零 LLM · ≤ 256 字符软上限", "pos": [181, 512], "size": [298, 60] },
+    { "id": "vec", "type": "database", "label": "向量索引", "sublabel": "L0 / L1 / L2 各一条记录 · L2 带 abstract 标量", "pos": [200, 628], "size": [260, 60] }
+  ],
+  "connections": [
+    { "from": "files", "to": "fsum", "label": "1×LLM", "fromSide": "bottom", "toSide": "top", "labelAt": [330, 136] },
+    { "from": "fsum", "to": "sample", "label": "汇入所在目录", "fromSide": "bottom", "toSide": "top", "labelAt": [330, 252] },
+    { "from": "sample", "to": "l1", "label": "1×LLM", "fromSide": "bottom", "toSide": "top", "labelAt": [330, 368] },
+    { "from": "l1", "to": "l0", "label": "首段按句界 · 0×LLM", "fromSide": "bottom", "toSide": "top", "labelAt": [330, 484] },
+    { "from": "l0", "to": "vec", "label": "向量化", "fromSide": "bottom", "toSide": "top", "labelAt": [330, 600] },
+    { "from": "l1", "to": "vec", "label": "向量化", "fromSide": "right", "toSide": "right", "via": [[556, 426], [556, 658]], "labelAt": [556, 542] },
+    { "from": "files", "to": "vec", "label": "原文 embedding", "variant": "dashed", "fromSide": "left", "toSide": "left", "via": [[96, 78], [96, 658]], "labelAt": [96, 368] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "目录级而非文件级",
+      "items": [
+        "只有目录可持有 .abstract.md / .overview.md · 文件摘要只作输入汇入所在目录的 L1",
+        "公共 API 不能直接创建 / 覆写这两份 sidecar · mkdir 初始只建 L0",
+        "一次入库 LLM ≈ 非代码文件数 + 目录数 · L0 零次"
+      ]
+    }
+  ]
+}

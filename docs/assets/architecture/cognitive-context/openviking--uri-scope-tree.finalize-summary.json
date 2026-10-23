@@ -6,9 +6,9 @@
   "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-openviking--uri-scope-tree-20261022-224004/candidate.json",
-    "sha256": "1c63bfa02e416431e1e4c7ee82860f1c6777189205f786df076b13af16b3fddd",
-    "bytes": 3432
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--uri-scope-tree/openviking--uri-scope-tree.json",
+    "sha256": "731457a2d1c61d4cf0ce148850db23636d3cd238e193cfb76a528dc6cf57412f",
+    "bytes": 3433
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--uri-scope-tree.html",
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--uri-scope-tree.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2570
+  "durationMs": 2511
 }

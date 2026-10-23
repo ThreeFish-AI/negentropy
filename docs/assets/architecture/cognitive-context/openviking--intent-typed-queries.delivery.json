@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "receiptId": "88da124e-4f27-47c7-b18a-2fd630a8d0ab",
+  "receiptId": "f7c0a29b-cbe5-4d47-aeed-2044ef596b6a",
   "status": "current",
   "command": "deliver",
   "type": "workflow",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--intent-typed-queries-20261023-001000/candidate.json",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
   "specification": {
     "sha256": "c6f46536c163db337cb912c273eb47b52aa0134ffc3680e0d0772c5f8916bf9d",

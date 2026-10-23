@@ -5,9 +5,9 @@
   "status": "pass",
   "type": "lifecycle",
   "quality": "showcase",
-  "startedAt": "2026-10-22T15:51:33.755Z",
+  "startedAt": "2026-10-23T02:38:54.812Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/lifecycle-openviking--session-commit-two-phase-20261022-224005/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--session-commit-two-phase/openviking--session-commit-two-phase.json",
     "sha256": "8c09e119325265fc9150e1ec946a1d7a54102ec7e79213ee9d466e6acc859f4a",
     "bytes": 3104
   },
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "lifecycle",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/lifecycle-openviking--session-commit-two-phase-20261022-224005/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--session-commit-two-phase/openviking--session-commit-two-phase.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html",
         "--quality",
         "showcase",
@@ -54,13 +54,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 577,
+      "durationMs": 1034,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "lifecycle",
-        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/lifecycle-openviking--session-commit-two-phase-20261022-224005/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--session-commit-two-phase/openviking--session-commit-two-phase.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html",
         "--quality",
         "showcase",
@@ -68,11 +68,11 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "ace538ff-d077-42ab-8949-31e85cc88048",
+        "receiptId": "84af6ef4-4d48-4db1-8e55-ea276ce63b55",
         "ok": true,
         "command": "deliver",
         "type": "lifecycle",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/lifecycle-openviking--session-commit-two-phase-20261022-224005/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--session-commit-two-phase/openviking--session-commit-two-phase.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html",
         "specification": {
           "sha256": "8c09e119325265fc9150e1ec946a1d7a54102ec7e79213ee9d466e6acc859f4a",
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 194,
+      "durationMs": 162,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -225,13 +225,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "ace538ff-d077-42ab-8949-31e85cc88048"
+        "deliveryReceiptId": "84af6ef4-4d48-4db1-8e55-ea276ce63b55"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1079,
+      "durationMs": 1082,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -249,7 +249,7 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "ace538ff-d077-42ab-8949-31e85cc88048",
+        "deliveryReceiptId": "84af6ef4-4d48-4db1-8e55-ea276ce63b55",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html",
           "sha256": "5912dc8e73a587911a99c8975276d28671e59dcd8333d34f7d11eaf04788acd3",
@@ -947,6 +947,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-22T15:51:36.140Z",
-  "durationMs": 2385
+  "finishedAt": "2026-10-23T02:38:57.634Z",
+  "durationMs": 2822
 }

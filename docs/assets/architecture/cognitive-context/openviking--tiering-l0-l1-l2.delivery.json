@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "receiptId": "a04e5ef7-3b64-4ce1-b5d0-93c10770eda8",
+  "receiptId": "1d1c75af-f06b-4791-83db-16a08a4e0062",
   "status": "current",
   "command": "deliver",
   "type": "architecture",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-openviking--tiering-l0-l1-l2-20261022-224006/candidate.json",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--tiering-l0-l1-l2/openviking--tiering-l0-l1-l2.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html",
   "specification": {
     "sha256": "f68b59207a3ebe918091b8226f7fcfe14e2edd81b3b48263595ed1836f365831",

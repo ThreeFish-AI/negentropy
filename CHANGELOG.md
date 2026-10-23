@@ -10,6 +10,7 @@
 - **修订重渲 5 图（去旧代比喻残留 + 对齐换代口径）**：`uri-scope-tree` 补 peers/{peer} 一等子树、去「馆藏区/档案室」喻体（§2 图 2）；`session-commit-two-phase` Phase 2 改「长期记忆提炼（WM 摘要默认关、按次开启）」、去「装订/盖章」喻体（§2 图 5）；`tiering-l0-l1-l2` 术语对齐（文件摘要、L1 首段按句界，删不可证的「H1 后首段」）；`freshness-bubbling` 统一「刷新」措辞并补「无基线立即刷新」分支；`memory-identity`「查号」改「文件名直查」。
 - **挂载 12 图与图号重排**：014 由 2 图扩至 12 图（§2 图 1–5、§4 图 6/7、§5 图 8、§6 图 9、§7 图 10、§8 图 11、§10 图 12），图注沿用 014 斜体格式；mermaid README 索引同步登记 3 新图、锚点去图号化（图号易腐），5 枚 .mmd 头注随修订更新。
 - **对抗盲审修复**：图 3 图注删旧代遗留的「R/N/F/V 快照与差异计划」表述、对齐图体实际环节（URI 规划与内容提交 AGFS，#1198 遗留脱节），`ingest-phase` 随之重渲（「TreeBuilder 规划 URI」类名改通用「URI 规划 · 结构推导 · 类型与归属」，§3 锚定）；`intent-typed-queries` 重渲去「翻手册」喻体（改「找技能」）；panorama / uri-scope-tree 副标签去无正文出处的例证（「手册 · handbook/ policies/」「技能 = 一个目录」）。盲审 A–F 六节复验：数字对账全过、换代口径 5/5、图号链接 36 资产零缺失、§2.1–2.3 与 §6 标题未动。
+- **candidate JSON 入库**：10 张经本次重绘的图按仓内新图先例（#1196 起）补交 `docs/diagrams/<slug>/<slug>.json`（带 EOF 换行，从入库路径重跑 finalize、HTML 字节复现、回执 specification 指向入库文件），014 图注同步追加 candidate 链接；retrieval-phase 与 lab-break-matrix 两图本次未重绘，沿用既有回执。
 
 ### 视频文案「拆/失效」词族整改：14 集口播/屏上字与前置文档语义位分档落改（I-234，2026-10-22）
 

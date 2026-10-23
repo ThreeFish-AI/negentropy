@@ -6,9 +6,9 @@
   "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-openviking--panorama-20261022-224001/candidate.json",
-    "sha256": "c11393cb647e0a905b8fc3d8dc9b5d418c7fe01af5f2c0e85e39dad7c91b700a",
-    "bytes": 5808
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--panorama/openviking--panorama.json",
+    "sha256": "c5a84cc173816ee6461a35051aa077b435a50e6c58fc4ce3409cd1e8f02d3bf8",
+    "bytes": 5809
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.html",
@@ -33,7 +33,7 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2159,
+  "durationMs": 2955,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

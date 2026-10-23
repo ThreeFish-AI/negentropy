@@ -6,7 +6,7 @@
   "type": "lifecycle",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/lifecycle-openviking--session-commit-two-phase-20261022-224005/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--session-commit-two-phase/openviking--session-commit-two-phase.json",
     "sha256": "8c09e119325265fc9150e1ec946a1d7a54102ec7e79213ee9d466e6acc859f4a",
     "bytes": 3104
   },
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2385
+  "durationMs": 2822
 }

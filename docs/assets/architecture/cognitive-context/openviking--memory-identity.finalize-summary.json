@@ -6,7 +6,7 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-openviking--memory-identity-20261022-224008/candidate.json",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--memory-identity/openviking--memory-identity.json",
     "sha256": "b4b46a44bc92b588c6b9d0eade624a69f839f5d60fc3b8db1b579f420591b449",
     "bytes": 2699
   },
@@ -33,5 +33,5 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--memory-identity.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2732
+  "durationMs": 4305
 }
