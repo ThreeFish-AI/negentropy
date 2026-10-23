@@ -9,7 +9,7 @@
 - **事实修正（代码胜出）**：peers 子树内容段按钉点仅 memories、resources 两个（`_PEER_CONTENT_SEGMENTS`，NS:18）——文档「peers 下 memories|resources|skills」表述与 lab `context_type` 的 peers/skills→skill 分支均改正（peers 下 skills 类型回落 resource）；§2.1/§2.2/§11.1 连带口径同步。
 - **lab S1 明细化**：S1 输出改为 9 条 URI→类型/属主/peer 实跑明细 + 4 条新断言（peers/skills 反例、peers/resources、user/resources、sessions/**）；selftest 与 B1/B3/B4/B6/B7 五路破坏实验实测口径不变，§10 行号锚零漂移。
 - **新图 openviking--namespace（图 3）**：archify architecture showcase，finalize 四门过（validate/deliver/check/browser-check），交叉 11→2 收敛；双主题 PNG 947K/887K 过 1280KiB 门；入 mermaid README 登记；不取代 uri-scope-tree（视频 P1 冻结消费）。
-- **全篇缩写首现注解**：A 档 26 项（AGFS/RAGFS/URI/ACL/VLM/MCP/DAG/NOOP/BM25/HKDF/AES-256-GCM/KMS/pp/OV/WM/KB QA/RAG/LLM/md5/sha256/LoCoMo/tau2/HotpotQA/ClawWork/FinanceBench/OVPack）+ B 档 8 项，依 plain-language V7/D9 与 lecture-format 硬律 5；日志引用块与 IEEE 参考文献块不夹注。
+- **全篇缩写首现注解**：A 档 26 项（AGFS/RAGFS/URI/ACL/VLM/MCP/DAG/NOOP/BM25/HKDF/AES-256-GCM/KMS/pp/OV/WM/KB QA/RAG/LLM/md5/sha256/LoCoMo/tau2/HotpotQA/ClawWork/FinanceBench/OVPack）+ B 档 10 项（VikingMem/TrieHI/VikingRAG 论文名微注、OVE1、digest、embedding、SQLite、failover、harness、R/N/F/V），依 plain-language V7/D9 与 lecture-format 硬律 5；日志引用块与 IEEE 参考文献块不夹注。
 
 ### 视频文案「拆/失效」词族整改：14 集口播/屏上字与前置文档语义位分档落改（I-234，2026-10-22）
 

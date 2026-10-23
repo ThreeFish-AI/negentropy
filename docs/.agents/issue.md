@@ -5635,7 +5635,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 **表因根因**：换代重写聚焦检索相翻转，§3 沿旧版 bullet 结构平移、未按三拍模板重铸；缩写注解无机器门（lint 不查语义），人审漏网。复核钉点另发现两处事实错误：文档 §3 称 peers 子树合法段含 skills、lab `context_type` 写了 peers/skills→skill 分支——钉点 `_PEER_CONTENT_SEGMENTS = {memories, resources}`（`openviking/core/namespace.py:18`）不含 skills，peers 下 skills 类型按结构回落 resource。
 
-**处理方式**：§3 重构为「3.1 三空间地图（`visible_roots` 三根代码锚 + privacy/sessions 保留段 + 内部容器段 + 两个结构反例）→ 图 3（新 slug `openviking--namespace`，archify showcase 四门过、双主题 PNG 过 1280KiB 门）→ 点破句 → 3.2 单步沙盘（support-bot 接待 customer-alice，六步走完一条记忆落位，md5 实算）→ 3.3 细节重排」；lab 删 peers/skills 分支 + S1 重写为 9 条 URI→类型/属主/peer 实跑明细并补 4 条断言（selftest 与 B1/B3/B4/B6/B7 五路口径实测不变，§10 七锚零漂移）；全篇缩写首现注解 A 档 26 项 + B 档 8 项；连带更新 §2.1 表/§2.2 因果链/§11.1 规律 1 的 peers 表述与 NS 锚；CHANGELOG/knowledge-map/mermaid README 同步。
+**处理方式**：§3 重构为「3.1 三空间地图（`visible_roots` 三根代码锚 + privacy/sessions 保留段 + 内部容器段 + 两个结构反例）→ 图 3（新 slug `openviking--namespace`，archify showcase 四门过、双主题 PNG 过 1280KiB 门）→ 点破句 → 3.2 单步沙盘（support-bot 接待 customer-alice，六步走完一条记忆落位，md5 实算）→ 3.3 细节重排」；lab 删 peers/skills 分支 + S1 重写为 9 条 URI→类型/属主/peer 实跑明细并补 4 条断言（selftest 与 B1/B3/B4/B6/B7 五路口径实测不变，§10 七锚零漂移）；全篇缩写首现注解 A 档 26 项 + B 档 10 项；连带更新 §2.1 表/§2.2 因果链/§11.1 规律 1 的 peers 表述与 NS 锚；CHANGELOG/knowledge-map/mermaid README 同步。
 
 **后续防范**：机制章起草即按「地图→沙盘→细节」自查有无具体输入端到端走查；缩写首现注解入交稿前 grep 清单（自造缩写全称括注、专业词人话前置、通用缩写豁免）；涉上游代码语义的断言（如「X 是合法段」）须回钉点常量复核可证范围，禁以「合法」覆盖「类型推导不识别」。
 

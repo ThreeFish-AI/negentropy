@@ -49,10 +49,10 @@ description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，20
 换代后的 OpenViking 可以拆成「一棵树、三个相、三个面」：**编目相**（资源入库 → 切分 → 自底向上摘要 → 向量化 → 新鲜度冒泡）与**检索相**（意图分析 → 全局召回 → 单遍精排 → 六域装配）围绕同一棵 `viking://` 树读写；**记忆相**（会话归档 → 异步提炼 → 记忆写回）在树的 user/peer 空间里生长。三个面是新长出来的：**网关面**把读写都挪到服务端代理（§7）；**治理面**管多人共用的钥匙锁与备份（§8）；**编译面**（`ov compile`）把树上的材料再加工成 wiki/知识图谱/日报——它是 VikingBot 层的应用能力（`bot/vikingbot/compile/`），不是核心服务器的机制，本篇不展开。
 
 ![OpenViking 编目相：资源入库到目录级 L0/L1 的自底向上流水线（暗色）](../../assets/architecture/cognitive-context/openviking--ingest-phase-dark.png)
-*图 1 · 编目相：Parser 切分（无 LLM，大语言模型）→ R/N/F/V 快照与差异计划（请求/正式/向量三层状态对账，算出该改什么）→ 异步语义队列（文件摘要 + 目录 L1，各 1 次 LLM）→ 嵌入队列（此后才可检索）→ 新鲜度冒泡（L0 变了才上报）。此相换代未变。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--ingest-phase.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--ingest-phase.html)*
+*图 1 · 编目相：Parser 切分（无 LLM，大语言模型）→ R/N/F/V 快照与差异计划（请求意图/解析产物/正式树/向量索引四份快照对账，算出该改什么）→ 异步语义队列（文件摘要 + 目录 L1，各 1 次 LLM）→ 嵌入队列（此后才可检索）→ 新鲜度冒泡（L0 变了才上报）。此相换代未变。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--ingest-phase.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--ingest-phase.html)*
 
 ![OpenViking 检索相：全局召回、单遍精排与六域装配（暗色）](../../assets/architecture/cognitive-context/openviking--retrieval-phase-dark.png)
-*图 2 · 检索相（换代后）：find 固定平铺；search 自动选档——无精排模型时同样是平铺，配了才「召回 2×limit → URI 去重 → 单遍精排 → 阈值后置」；context 模式再走六域配额装配。递归、父分传播、收敛刹车均已删除。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--retrieval-phase.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--retrieval-phase.html)*
+*图 2 · 检索相（换代后）：find 固定平铺；search 自动选档——无精排模型时同样是平铺，配了才「召回 2×limit → URI（统一资源标识符）去重 → 单遍精排 → 阈值后置」；context 模式再走六域配额装配。递归、父分传播、收敛刹车均已删除。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--retrieval-phase.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--retrieval-phase.html)*
 
 ### 2.1 最重要的几个部分（分层矩阵）
 
@@ -60,7 +60,7 @@ description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，20
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 | --- | --- | --- | --- |
-| Tier 1 地基 | `viking://` URI（统一资源标识符——树里每个东西的唯一门牌地址）+ 三类上下文 + User/Peer（§3） | 东西放哪、是谁的、是什么 | 【一】URI 结构推导类型（`visible_roots` 三根，`NS:180`）；peers 记忆子树一等，内容段仅 memories\|resources（`NS:18`） |
+| Tier 1 地基 | `viking://` URI + 三类上下文 + User/Peer（§3） | 东西放哪、是谁的、是什么 | 【一】URI 结构推导类型（`visible_roots` 三根，`NS:180`）；peers 记忆子树一等，内容段仅 memories\|resources（`NS:18`） |
 | Tier 1 地基 | L0/L1/L2 目录 sidecar + 自底向上生成 + 冒泡（§4） | 怎么「先看摘要」 | 【一】256/4000 字符；L0 从 L1 裁出零 LLM；10% 判据 |
 | Tier 1 核心 | 全局召回 + 单遍精排 + 六域装配（§5） | 怎么找、拿多少 | 【一】池 2×limit（`HR:72/209`）；阈值后置（`HR:263`） |
 | Tier 1 核心 | 会话两阶段提交 + 身份记忆提炼（§6） | 怎么学会用户 | 【一】`.done` 提交点（`SS:1869/2464`）；schema 身份字段表 |
@@ -274,7 +274,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 
 ### 9.2 论文（同团队；实验均【三】且不在开源版上跑）
 
-三篇状态与旧版一致：VikingMem（VLDB 2026 已收，事件驱动长期记忆）、TrieHI（ICDE 已收，trie+位图目录感知索引——**开源内嵌 DirIndex 与论文结构不同且早于论文存在**）、VikingRAG（投递中）。新变化是官网明示「论文核心机制已集成进 OpenViking」（about 页）——但无任何「并入前后」消融，该声明本身仍是【三】。
+三篇状态与旧版一致：VikingMem（VLDB 2026 已收）、TrieHI（ICDE 已收——**开源内嵌 DirIndex 与论文结构不同且早于论文存在**）、VikingRAG（投递中）。新变化是官网明示「论文核心机制已集成进 OpenViking」（about 页）——但无任何「并入前后」消融，该声明本身仍是【三】。
 
 ### 9.3 矛盾清单（文档/营销 vs 代码，换代后新编）
 
