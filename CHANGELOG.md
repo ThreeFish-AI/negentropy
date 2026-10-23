@@ -3,6 +3,10 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### causal-chain 图树基座口径对齐 §3.1 保留段（2026-10-23）
+
+- `openviking--causal-chain`（014 图 6）树基座节点 sublabel 旧口径「resources/user（含peers）/agent」对齐为「resources/agent/user·保留段」（width 170→180）、「怎么读这张图」卡片补枚举「user 空间含保留段 peers·privacy·sessions，peers 子树内容段仅 memories、resources（§3.1）」；archify finalize showcase 四门重过、双主题 PNG 重采（1165K/1107K 过 1280KiB 门）、.mmd 文本源与 mermaid README 注记同步；正文图例与图号不变。
+
 ### 014 OpenViking 精读 §2「一树三相三面」图例与机制解说补全 + 全文 12 图挂载（2026-10-22/23）
 
 - **§2 全貌章补全**：开篇段后新增「一棵树 / 三个相（编目·写路径 / 检索·读路径 / 记忆·回写路径）/ 三个面（网关 / 治理 / 编译）」概念块——每块机制解说 2–4 句（全部引自正文既有断言、零新数字）+ 专属图例 + § 指针；修复换代重写时总纲从「两相」升级为「一树三相三面」但图例与分概念解说未跟上的缺口。

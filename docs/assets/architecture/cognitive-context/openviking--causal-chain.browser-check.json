@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd",
+  "deliveryReceiptId": "8b8ad0f9-ccf4-4248-a2f9-e2c1f1ca10b9",
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-    "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
-    "bytes": 786556
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
+    "sha256": "f50a7f566f5e39d29e844d74b14aafa0b9d4c9f061fd2330abfd8fa63237269a",
+    "bytes": 786717
   },
   "state": {
     "detail": "read",
@@ -42,7 +42,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 917,
+        "diagramWidth": 920,
         "pageComposition": {
           "bodyPaddingPx": 12,
           "headerPx": 68,
@@ -51,7 +51,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -124,9 +124,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.003273322422259,
-        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-        "minimumProjectedEdgeTextPx": 6.003273322422259,
+        "minimumProjectedNodeTextPx": 6.00326264274062,
+        "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+        "minimumProjectedEdgeTextPx": 6.00326264274062,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -164,7 +164,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 917,
+        "diagramWidth": 920,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -173,7 +173,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -246,9 +246,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.003273322422259,
-        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-        "minimumProjectedEdgeTextPx": 6.003273322422259,
+        "minimumProjectedNodeTextPx": 6.00326264274062,
+        "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+        "minimumProjectedEdgeTextPx": 6.00326264274062,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -285,8 +285,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 996,
-        "diagramWidth": 966,
+        "readerWidth": 999,
+        "diagramWidth": 969,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -295,7 +295,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -368,9 +368,9 @@
             "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 6.3240589198036,
-        "minimumProjectedNonEdgeTextPx": 6.3240589198036,
-        "minimumProjectedEdgeTextPx": 6.3240589198036,
+        "minimumProjectedNodeTextPx": 6.32300163132137,
+        "minimumProjectedNonEdgeTextPx": 6.32300163132137,
+        "minimumProjectedEdgeTextPx": 6.32300163132137,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -407,8 +407,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1288,
-        "diagramWidth": 1238,
+        "readerWidth": 1292,
+        "diagramWidth": 1242,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
@@ -417,7 +417,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -583,7 +583,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 917,
+        "diagramWidth": 920,
         "pageComposition": {
           "bodyPaddingPx": 12,
           "headerPx": 68,
@@ -592,7 +592,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -665,9 +665,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.003273322422259,
-        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-        "minimumProjectedEdgeTextPx": 6.003273322422259,
+        "minimumProjectedNodeTextPx": 6.00326264274062,
+        "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+        "minimumProjectedEdgeTextPx": 6.00326264274062,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -705,7 +705,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 917,
+        "diagramWidth": 920,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -714,7 +714,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -787,9 +787,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.003273322422259,
-        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-        "minimumProjectedEdgeTextPx": 6.003273322422259,
+        "minimumProjectedNodeTextPx": 6.00326264274062,
+        "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+        "minimumProjectedEdgeTextPx": 6.00326264274062,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -826,8 +826,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 996,
-        "diagramWidth": 966,
+        "readerWidth": 999,
+        "diagramWidth": 969,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -836,7 +836,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -909,9 +909,9 @@
             "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 6.3240589198036,
-        "minimumProjectedNonEdgeTextPx": 6.3240589198036,
-        "minimumProjectedEdgeTextPx": 6.3240589198036,
+        "minimumProjectedNodeTextPx": 6.32300163132137,
+        "minimumProjectedNonEdgeTextPx": 6.32300163132137,
+        "minimumProjectedEdgeTextPx": 6.32300163132137,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -948,8 +948,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1288,
-        "diagramWidth": 1238,
+        "readerWidth": 1292,
+        "diagramWidth": 1242,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
@@ -958,7 +958,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -1076,7 +1076,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 917,
+        "diagramWidth": 920,
         "pageComposition": {
           "bodyPaddingPx": 12,
           "headerPx": 68,
@@ -1085,7 +1085,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -1158,9 +1158,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.003273322422259,
-        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-        "minimumProjectedEdgeTextPx": 6.003273322422259,
+        "minimumProjectedNodeTextPx": 6.00326264274062,
+        "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+        "minimumProjectedEdgeTextPx": 6.00326264274062,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1198,7 +1198,7 @@
         "readerFit": "intrinsic-height",
         "ok": true,
         "readerWidth": 960,
-        "diagramWidth": 917,
+        "diagramWidth": 920,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -1207,7 +1207,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -1280,9 +1280,9 @@
             "spaceBelowNodesPx": 8
           }
         ],
-        "minimumProjectedNodeTextPx": 6.003273322422259,
-        "minimumProjectedNonEdgeTextPx": 6.003273322422259,
-        "minimumProjectedEdgeTextPx": 6.003273322422259,
+        "minimumProjectedNodeTextPx": 6.00326264274062,
+        "minimumProjectedNonEdgeTextPx": 6.00326264274062,
+        "minimumProjectedEdgeTextPx": 6.00326264274062,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1319,8 +1319,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 996,
-        "diagramWidth": 966,
+        "readerWidth": 999,
+        "diagramWidth": 969,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 76,
@@ -1329,7 +1329,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
@@ -1402,9 +1402,9 @@
             "spaceBelowNodesPx": 9
           }
         ],
-        "minimumProjectedNodeTextPx": 6.3240589198036,
-        "minimumProjectedNonEdgeTextPx": 6.3240589198036,
-        "minimumProjectedEdgeTextPx": 6.3240589198036,
+        "minimumProjectedNodeTextPx": 6.32300163132137,
+        "minimumProjectedNonEdgeTextPx": 6.32300163132137,
+        "minimumProjectedEdgeTextPx": 6.32300163132137,
         "minimumProjectedNodeText": "位置可指认·属主对象正交",
         "minimumProjectedNodeTextDetail": "context",
         "minimumProjectedNodeTextOwner": {
@@ -1441,8 +1441,8 @@
         "readerOverflow": null,
         "readerFit": "intrinsic-height",
         "ok": true,
-        "readerWidth": 1288,
-        "diagramWidth": 1238,
+        "readerWidth": 1292,
+        "diagramWidth": 1242,
         "pageComposition": {
           "bodyPaddingPx": 64,
           "headerPx": 68,
@@ -1451,7 +1451,7 @@
           "cardsPx": 0,
           "viewBoxHeight": 1068
         },
-        "viewBoxWidth": 1222,
+        "viewBoxWidth": 1226,
         "workflowLanes": [
           {
             "frameId": "lane-2",
