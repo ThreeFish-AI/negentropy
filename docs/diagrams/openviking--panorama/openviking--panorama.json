@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenViking 全貌：一棵树 · 三个相 · 三个面",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/openviking--panorama.html"
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "模型客户端",
+      "sublabel": "只改 Base URL 与 API Key",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        148,
+        64
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "security",
+      "label": "网关面（§7）",
+      "sublabel": "模型 API 反向代理 · 五步一轮",
+      "pos": [
+        318,
+        56
+      ],
+      "size": [
+        184,
+        72
+      ]
+    },
+    {
+      "id": "upstream",
+      "type": "external",
+      "label": "模型厂商 API",
+      "sublabel": "Anthropic / OpenAI / Responses",
+      "pos": [
+        648,
+        60
+      ],
+      "size": [
+        196,
+        64
+      ]
+    },
+    {
+      "id": "ingest",
+      "type": "backend",
+      "label": "编目相 · 写路径（§4）",
+      "sublabel": "切分 → 自底向上 L0/L1 → 向量化 → 新鲜度冒泡",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        240,
+        68
+      ]
+    },
+    {
+      "id": "viking",
+      "type": "database",
+      "label": "viking:// 统一命名空间",
+      "sublabel": "位置即语义 · 类型由 URI 结构推导",
+      "pos": [
+        526,
+        300
+      ],
+      "size": [
+        220,
+        76
+      ]
+    },
+    {
+      "id": "res",
+      "type": "database",
+      "label": "resources · 公共资源空间",
+      "sublabel": "文档与资料 · 按目录组织",
+      "pos": [
+        343,
+        452
+      ],
+      "size": [
+        186,
+        58
+      ]
+    },
+    {
+      "id": "agt",
+      "type": "database",
+      "label": "agent · 技能空间",
+      "sublabel": "skills/** · 技能",
+      "pos": [
+        569,
+        452
+      ],
+      "size": [
+        150,
+        58
+      ]
+    },
+    {
+      "id": "usr",
+      "type": "database",
+      "label": "user/{uid} · 个人空间",
+      "sublabel": "九类记忆 · 含 peers/{peer} 子树",
+      "pos": [
+        759,
+        452
+      ],
+      "size": [
+        170,
+        62
+      ]
+    },
+    {
+      "id": "retrieve",
+      "type": "backend",
+      "label": "检索相 · 读路径（§5）",
+      "sublabel": "意图分析 → 全局召回 2×limit → 单遍精排 → 六域装配",
+      "pos": [
+        1080,
+        300
+      ],
+      "size": [
+        280,
+        68
+      ]
+    },
+    {
+      "id": "memory",
+      "type": "backend",
+      "label": "记忆相 · 回写路径（§6）",
+      "sublabel": "会话归档 → 异步提炼 → 身份判据写回",
+      "pos": [
+        435,
+        620
+      ],
+      "size": [
+        250,
+        68
+      ]
+    },
+    {
+      "id": "compile",
+      "type": "external",
+      "label": "编译面（不展开）",
+      "sublabel": "ov compile → wiki / 知识图谱 / 日报 · VikingBot 层",
+      "pos": [
+        1080,
+        560
+      ],
+      "size": [
+        300,
+        68
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "治理面（§8）· 三角色 · ACL · 信封加密 · git 快照",
+      "wraps": [
+        "viking",
+        "res",
+        "agt",
+        "usr"
+      ],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    {
+      "from": "client",
+      "to": "gateway",
+      "label": "只改 Base URL",
+      "variant": "emphasis"
+    },
+    {
+      "from": "gateway",
+      "to": "upstream",
+      "label": "转发 · 三协议不转换"
+    },
+    {
+      "from": "gateway",
+      "to": "viking",
+      "label": "代理读写（召回 / 保存）",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          410,
+          190
+        ],
+        [
+          636,
+          190
+        ]
+      ]
+    },
+    {
+      "from": "ingest",
+      "to": "viking",
+      "label": "写入 L0/L1/L2 + 向量"
+    },
+    {
+      "from": "viking",
+      "to": "retrieve",
+      "label": "召回 + 装配"
+    },
+    {
+      "from": "memory",
+      "to": "viking",
+      "label": "按身份字段写回 user/peer",
+      "fromSide": "top",
+      "toSide": "left",
+      "labelAt": [
+        531,
+        558
+      ]
+    },
+    {
+      "from": "viking",
+      "to": "res",
+      "fromSide": "left",
+      "toSide": "top"
+    },
+    {
+      "from": "viking",
+      "to": "agt"
+    },
+    {
+      "from": "viking",
+      "to": "usr"
+    },
+    {
+      "from": "viking",
+      "to": "compile",
+      "label": "再加工",
+      "variant": "dashed",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一棵树",
+      "items": [
+        "资源、记忆、技能同住一棵 viking:// 树：可寻址 · 可归属 · 可分层",
+        "类型与归属由 URI 结构推导，不按关键字",
+        "向量主键 = md5(account_id:seed_uri) · mv 必须重算"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "三个相 · 绕树三路径",
+      "items": [
+        "写路径（§4）：入库即编目，摘要自底向上生长",
+        "读路径（§5）：召回定生死 · 精排定名次",
+        "回写路径（§6）：归档是事实 · 提炼是派生"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "三个面 · v0.5 前后新长出",
+      "items": [
+        "网关面：不装插件，只改 Base URL 即接入",
+        "治理面：多人共用的钥匙、锁、备份与回放",
+        "编译面：树上材料再加工 · VikingBot 层 · 本篇不展开"
+      ]
+    }
+  ]
+}

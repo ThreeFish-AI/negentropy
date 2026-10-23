@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--gateway-proxy/openviking--gateway-proxy.json",
+    "sha256": "9590e076cbee0f937ce8efe2beb5d2973a0e1ba2b409dc3b1a1a78f232c565ad",
+    "bytes": 4105
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--gateway-proxy.html",
+    "sha256": "82cef6cf354f4f3df722efabc4fd221c220719e491ad92771d0a1e92a02c48e4",
+    "bytes": 755840
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--gateway-proxy.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--gateway-proxy.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--gateway-proxy.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3321,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "from": "save",
+            "to": "ident",
+            "label": "下一轮消息到达",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 2,
+          "stretch": 2.326,
+          "directCorridorBlockers": [
+            {
+              "id": "fwd",
+              "label": "④ 转发上游",
+              "box": [
+                269,
+                446,
+                130,
+                52
+              ]
+            },
+            {
+              "id": "recall",
+              "label": "③ 召回",
+              "box": [
+                232.5,
+                356,
+                203,
+                52
+              ]
+            },
+            {
+              "id": "replay",
+              "label": "② 回放记忆",
+              "box": [
+                221.5,
+                266,
+                225,
+                52
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "from": "upstream",
+            "to": "tool",
+            "label": "模型请求工具",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 2,
+          "stretch": 1.498
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "upstream → tool needs 2 bends: move node upstream or tool so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

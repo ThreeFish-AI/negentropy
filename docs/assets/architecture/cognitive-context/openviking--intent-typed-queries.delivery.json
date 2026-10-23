@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "6fb21335-a636-4544-8839-8724e124130d",
+  "receiptId": "f7c0a29b-cbe5-4d47-aeed-2044ef596b6a",
   "status": "current",
   "command": "deliver",
   "type": "workflow",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--intent-typed-queries-20261022-003214/candidate.json",
-  "output": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
   "specification": {
-    "sha256": "6467ce33db7940739f223e2ff7bce82d2a7347f937db57b95d3a35230a59c123",
-    "bytes": 5400
+    "sha256": "c6f46536c163db337cb912c273eb47b52aa0134ffc3680e0d0772c5f8916bf9d",
+    "bytes": 2859
   },
   "artifact": {
-    "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
-    "bytes": 758196
+    "sha256": "1834ab74b89356ec93ed907089527cdf6d23136a023137755551b58b7edb5c5c",
+    "bytes": 755214
   }
 }
