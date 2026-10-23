@@ -6,10 +6,10 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "d399a4db-ac67-48f4-9d46-af7f06407719",
+  "deliveryReceiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-    "sha256": "b0f5393f0360b108c629d741aebf1dc37389fa4f28125b57cfeac01e51b2f48e",
+    "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
     "bytes": 786556
   },
   "state": {

@@ -1,4 +1,4 @@
-%% source: docs/research/cognitive-context/014-openviking.md §2.2（图 3）
+%% source: docs/research/cognitive-context/014-openviking.md §2.2（图 6）
 %% slug: openviking--causal-chain
 %% type: workflow
 %% derived: docs/assets/architecture/cognitive-context/openviking--causal-chain.html
@@ -17,7 +17,7 @@ flowchart LR
   TREE["viking:// 统一命名空间<br/>resources / user（含 peers 子树）/ agent 三空间"]
   W["写路径 · L0/L1 自底向上编目<br/>+ 新鲜度冒泡"]
   R["读路径 · 全局召回 2×limit + 单遍精排<br/>阈值 0.1 后置 + 六域装配"]
-  M["记忆路径 · 会话两阶段提交<br/>身份字段判据 + .done 提交点"]
+  M["回写路径 · 会话两阶段提交<br/>身份字段判据 + .done 提交点"]
   G["代理路径 · Gateway<br/>五步一轮 + 逐字回放保缓存 + 保存滞后一轮"]
   V["治理路径 · 三角色 + ACL + 信封加密<br/>git 快照 + OVPack"]
   EV1["厂商自报（§9）<br/>LoCoMo 24.20%→82.08%"]

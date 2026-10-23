@@ -1,0 +1,178 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "OpenViking 网关面：把记忆做成模型代理",
+    "output": "docs/assets/architecture/cognitive-context/openviking--gateway-proxy.html",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "gw",
+      "label": "网关 · 每轮五步"
+    }
+  ],
+  "mainPath": [
+    "msg",
+    "ident",
+    "replay",
+    "recall",
+    "fwd",
+    "save"
+  ],
+  "nodes": [
+    {
+      "id": "msg",
+      "lane": "gw",
+      "col": 2,
+      "type": "external",
+      "label": "用户消息",
+      "sublabel": "模型客户端发起",
+      "yOffset": -360,
+      "width": 150
+    },
+    {
+      "id": "upstream",
+      "lane": "gw",
+      "col": 4,
+      "type": "external",
+      "label": "模型厂商 API",
+      "sublabel": "Anthropic Messages / OpenAI Chat Completions / Responses",
+      "yOffset": 0,
+      "width": 214
+    },
+    {
+      "id": "ident",
+      "lane": "gw",
+      "col": 2,
+      "type": "backend",
+      "label": "① 识别会话",
+      "sublabel": "六层 header 优先级链 · 无 header 按最近回复唯一匹配",
+      "yOffset": -270,
+      "width": 196
+    },
+    {
+      "id": "replay",
+      "lane": "gw",
+      "col": 2,
+      "type": "backend",
+      "label": "② 回放记忆",
+      "sublabel": "已注入内容逐字节放回原位 · 保 prompt cache 与 thinking 签名",
+      "yOffset": -180,
+      "width": 225
+    },
+    {
+      "id": "recall",
+      "lane": "gw",
+      "col": 2,
+      "type": "backend",
+      "label": "③ 召回",
+      "sublabel": "仅新用户消息触发 · 至多等 2 秒 · 超时该条消息永无记忆",
+      "yOffset": -90,
+      "width": 203
+    },
+    {
+      "id": "fwd",
+      "lane": "gw",
+      "col": 2,
+      "type": "backend",
+      "label": "④ 转发上游",
+      "sublabel": "三种协议直通 · 不做协议转换",
+      "yOffset": 0,
+      "width": 130
+    },
+    {
+      "id": "tool",
+      "lane": "gw",
+      "col": 4,
+      "type": "backend",
+      "label": "工具代理 · 回复期间",
+      "sublabel": "openviking_ 前缀 MCP 工具 · 默认 13 只读 · 8 个写工具须管理员勾选 · 不限轮数",
+      "yOffset": 90,
+      "width": 286
+    },
+    {
+      "id": "save",
+      "lane": "gw",
+      "col": 2,
+      "type": "backend",
+      "label": "⑤ 滞后保存",
+      "sublabel": "下一轮用户消息到达才存上一轮 · 或 10 分钟静默 / 20,000 tokens 触发 commit",
+      "yOffset": 180,
+      "width": 275
+    }
+  ],
+  "edges": [
+    {
+      "from": "msg",
+      "to": "ident",
+      "label": "进入网关",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ident",
+      "to": "replay",
+      "label": "",
+      "role": "main"
+    },
+    {
+      "from": "replay",
+      "to": "recall",
+      "label": "",
+      "role": "main"
+    },
+    {
+      "from": "recall",
+      "to": "fwd",
+      "label": "附在消息尾部",
+      "role": "main"
+    },
+    {
+      "from": "fwd",
+      "to": "upstream",
+      "label": "转发 · 三协议直通",
+      "role": "main"
+    },
+    {
+      "from": "upstream",
+      "to": "tool",
+      "label": "模型请求工具",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "from": "tool",
+      "to": "upstream",
+      "label": "结果回填 · 不限轮数",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "from": "fwd",
+      "to": "save",
+      "label": "回复完成 · 待下一轮",
+      "role": "async",
+      "variant": "dashed"
+    },
+    {
+      "from": "save",
+      "to": "ident",
+      "label": "下一轮消息到达",
+      "role": "return",
+      "route": "outside-right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "缓存与一致性的三权衡",
+      "items": [
+        "逐字节回放：改一个字，整段按全价重算（缓存 streak 重置）",
+        "召回超时永不再补：该条消息没有记忆",
+        "滞后保存一轮：崩溃窗口内可能丢最后一轮"
+      ]
+    }
+  ]
+}

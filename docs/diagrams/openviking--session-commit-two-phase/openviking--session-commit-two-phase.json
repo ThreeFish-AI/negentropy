@@ -1,0 +1,128 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "OpenViking 记忆相：会话两阶段提交",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/openviking--session-commit-two-phase.html"
+  },
+  "lanes": [
+    { "id": "main", "label": "主路径" },
+    { "id": "redeliver", "label": "队列重投" }
+  ],
+  "states": [
+    {
+      "id": "live",
+      "type": "active",
+      "label": "会话进行中",
+      "sublabel": "消息累积",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "archived",
+      "type": "neutral",
+      "label": "messages.jsonl · 事实层",
+      "sublabel": "Phase 1 同步 · 路径锁下必成 · 立即返回 task_id",
+      "width": 210,
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "p2",
+      "type": "active",
+      "label": "Phase 2 · 长期记忆提炼",
+      "sublabel": "异步出队 · WM 归档概览默认关 · 按次开启",
+      "width": 180,
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "done",
+      "type": "success",
+      "label": ".done · 提交点",
+      "sublabel": "最后写 · 幂等屏障",
+      "lane": "main",
+      "col": 3
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": ".failed · 终态",
+      "sublabel": "不自动重试 · 已应用记忆不回滚",
+      "lane": "main",
+      "col": 4
+    },
+    {
+      "id": "redeliver",
+      "type": "waiting",
+      "label": "队列重投 · 至少一次投递",
+      "sublabel": "同一消息可能投递多次",
+      "lane": "redeliver",
+      "col": 2
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t-live-archived",
+      "from": "live",
+      "to": "archived",
+      "label": "commit",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-archived-p2",
+      "from": "archived",
+      "to": "p2",
+      "label": "出队 · 异步",
+      "labelDy": 57,
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-p2-done",
+      "from": "p2",
+      "to": "done",
+      "label": "提炼成功",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-p2-failed",
+      "from": "p2",
+      "to": "failed",
+      "label": "失败 · 不污染事实层",
+      "fromSide": "top",
+      "toSide": "top"
+    },
+    {
+      "id": "t-redeliver-done",
+      "from": "redeliver",
+      "to": "done",
+      "label": "看到 .done · 跳过",
+      "fromSide": "right",
+      "toSide": "bottom"
+    },
+    {
+      "id": "t-redeliver-p2",
+      "from": "redeliver",
+      "to": "p2",
+      "label": "无 .done · 重跑",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两阶段纪律",
+      "items": [
+        "事实先安全落袋，派生物慢慢算、可以失败",
+        "归档 N+1 等归档 N 写完 .done 才开始（顺序保证）",
+        "Working Memory（归档概览摘要）v0.5.0 起默认关 · 需要时按次 enable_working_memory: true"
+      ]
+    }
+  ]
+}

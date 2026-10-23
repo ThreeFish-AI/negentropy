@@ -1,14 +1,13 @@
-%% source: docs/research/cognitive-context/014-openviking.md §4（视频 P2）
+%% source: docs/research/cognitive-context/014-openviking.md §4（视频 P2 → 修订重绘）
 %% slug: openviking--tiering-l0-l1-l2
 %% type: architecture
 %% derived: docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html
+%% fix: 2026-10-22 术语对齐：「文件简介」→「文件摘要」、删不可证的「H1 后首段」改「L1 正文首段按句界」、采样输入对齐「文件摘要 + 直接子目录 L0」
 flowchart TB
-  FILES["书（L2 原文）<br/>按需才读"] --> FSUM["文件简介<br/>1×LLM / 文件"]
-  FSUM --> SAMPLE["采样闸<br/>>32 子项等距抽样"]
-  SAMPLE -->|"采样简介+子架 L0"| GEN["导览生成<br/>1×LLM / 目录"]
-  GEN --> L1["L1 导览页<br/>≤4000 字符（软上限）"]
-  L1 -->|"H1 后首段"| CUT["首段裁剪<br/>0×LLM"]
-  CUT --> L0["L0 标签<br/>≤256 字符（软上限）"]
-  L0 -->|"向量化"| VEC["向量索引<br/>L0/L1/L2 各一条卡"]
+  FILES["L2 · 文件原文<br/>文件本体 · 按需才读"] -->|"1×LLM"| FSUM["文件摘要<br/>每文件 1 次 LLM · 同时写入该文件 L2 向量记录的 abstract 标量"]
+  FSUM -->|"汇入所在目录"| SAMPLE["确定性等距采样<br/>直接子项 > 32 时 · 含首尾 · 保序 · 可复现"]
+  SAMPLE -->|"1×LLM"| L1["L1 · 目录导览 .overview.md<br/>采样后「文件摘要 + 直接子目录 L0」· 每目录 1 次 LLM · ≤ 4000 字符软上限"]
+  L1 -->|"首段按句界 · 0×LLM"| L0["L0 · 目录标签 .abstract.md<br/>从 L1 正文首段按句界截断 · 零 LLM · ≤ 256 字符软上限"]
+  L0 -->|"向量化"| VEC["向量索引<br/>L0 / L1 / L2 各一条记录 · L2 带 abstract 标量"]
   L1 -->|"向量化"| VEC
   FILES -.->|"原文 embedding"| VEC

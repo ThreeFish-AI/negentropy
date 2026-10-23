@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "90c38e74-b06d-45bd-bebe-f6fd62041a9e",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--ingest-phase/openviking--ingest-phase.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--ingest-phase.html",
+  "specification": {
+    "sha256": "dbea7abcc8a22b73318a982c8d609fe159199f44f2f816b42b9d74bf7c837184",
+    "bytes": 4029
+  },
+  "artifact": {
+    "sha256": "6d8df8b6120b5443b960a084540da8d75f9c1860da3210a4df747697d06eb900",
+    "bytes": 763369
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "064d87c0-397b-498c-958d-6dc6f17dc026",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--panorama/openviking--panorama.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--panorama.html",
+  "specification": {
+    "sha256": "c5a84cc173816ee6461a35051aa077b435a50e6c58fc4ce3409cd1e8f02d3bf8",
+    "bytes": 5809
+  },
+  "artifact": {
+    "sha256": "538ec68a5a2c4a69edc8276874bc1c8391384f6487490fafa47671657e0b820c",
+    "bytes": 765774
+  }
+}

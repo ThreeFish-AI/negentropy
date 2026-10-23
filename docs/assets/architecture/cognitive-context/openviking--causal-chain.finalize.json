@@ -5,15 +5,15 @@
   "status": "pass",
   "type": "workflow",
   "quality": "showcase",
-  "startedAt": "2026-10-23T00:12:50.390Z",
+  "startedAt": "2026-10-23T06:03:46.584Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/.archify/workflow-openviking--causal-chain-20261022-231307/candidate.json",
-    "sha256": "1aedbc10d138db0a0a7df7f72feb645bd1570ff44cb587304cac36f6e45854f1",
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
+    "sha256": "df6ccd4b3d1196d4ea95047d883c37ebd535777eeb66c43b3a806dfcd01d1bb5",
     "bytes": 14349
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-    "sha256": "b0f5393f0360b108c629d741aebf1dc37389fa4f28125b57cfeac01e51b2f48e",
+    "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
     "bytes": 786556
   },
   "stages": {
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/.archify/workflow-openviking--causal-chain-20261022-231307/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "--quality",
         "showcase",
@@ -40,7 +40,7 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "1aedbc10d138db0a0a7df7f72feb645bd1570ff44cb587304cac36f6e45854f1",
+          "sha256": "df6ccd4b3d1196d4ea95047d883c37ebd535777eeb66c43b3a806dfcd01d1bb5",
           "bytes": 14349
         },
         "validation": {
@@ -56,13 +56,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1004,
+      "durationMs": 1111,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "workflow",
-        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/.archify/workflow-openviking--causal-chain-20261022-231307/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "--quality",
         "showcase",
@@ -72,18 +72,18 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "d399a4db-ac67-48f4-9d46-af7f06407719",
+        "receiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd",
         "ok": true,
         "command": "deliver",
         "type": "workflow",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/.archify/workflow-openviking--causal-chain-20261022-231307/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/diagrams/openviking--causal-chain/openviking--causal-chain.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "specification": {
-          "sha256": "1aedbc10d138db0a0a7df7f72feb645bd1570ff44cb587304cac36f6e45854f1",
+          "sha256": "df6ccd4b3d1196d4ea95047d883c37ebd535777eeb66c43b3a806dfcd01d1bb5",
           "bytes": 14349
         },
         "artifact": {
-          "sha256": "b0f5393f0360b108c629d741aebf1dc37389fa4f28125b57cfeac01e51b2f48e",
+          "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
           "bytes": 786556
         },
         "validation": {
@@ -105,7 +105,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 191,
+      "durationMs": 470,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -117,7 +117,7 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
         "artifact": {
-          "sha256": "b0f5393f0360b108c629d741aebf1dc37389fa4f28125b57cfeac01e51b2f48e",
+          "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
           "bytes": 786556
         },
         "checks": [
@@ -260,13 +260,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "d399a4db-ac67-48f4-9d46-af7f06407719"
+        "deliveryReceiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1358,
+      "durationMs": 1500,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -284,10 +284,10 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "d399a4db-ac67-48f4-9d46-af7f06407719",
+        "deliveryReceiptId": "3eafeaf4-b26f-4b38-a68d-3becaa66b8bd",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.html",
-          "sha256": "b0f5393f0360b108c629d741aebf1dc37389fa4f28125b57cfeac01e51b2f48e",
+          "sha256": "b36d9ba9d85dde558219833c1c1c6a885a55626d8e80d735105727f63d5d2f57",
           "bytes": 786556
         },
         "state": {
@@ -1846,6 +1846,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/san-juan-v1/docs/assets/architecture/cognitive-context/openviking--causal-chain.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-23T00:12:53.405Z",
-  "durationMs": 3015
+  "finishedAt": "2026-10-23T06:03:50.109Z",
+  "durationMs": 3525
 }

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--tiering-l0-l1-l2/openviking--tiering-l0-l1-l2.json",
+    "sha256": "f68b59207a3ebe918091b8226f7fcfe14e2edd81b3b48263595ed1836f365831",
+    "bytes": 2860
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html",
+    "sha256": "388ff11cbb1196df7d51d6d62a646cc4a55a83a70b592bea8be4314386dcf89b",
+    "bytes": 753931
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3063
+}
