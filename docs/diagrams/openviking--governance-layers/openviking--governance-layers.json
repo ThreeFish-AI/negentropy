@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenViking 治理面：钥匙、锁、备份与回放",
+    "output": "docs/assets/architecture/cognitive-context/openviking--governance-layers.html",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [
+      40,
+      80
+    ],
+    "cols": 3,
+    "gapX": 52,
+    "gapY": 72,
+    "cellW": 440,
+    "cellH": 64
+  },
+  "components": [
+    {
+      "id": "role",
+      "type": "security",
+      "label": "谁能进 · 租户与角色",
+      "sublabel": "ROOT / ADMIN / USER · api_key / trusted / dev 三认证",
+      "tag": "§8.1",
+      "row": 0,
+      "col": 0,
+      "size": [
+        440,
+        64
+      ]
+    },
+    {
+      "id": "acl",
+      "type": "security",
+      "label": "谁能看 · ACL",
+      "sublabel": "user/group × read/write/manage 三级包含 · 默认关 · 掩码内嵌向量记录随检索过滤",
+      "tag": "§8.2",
+      "row": 0,
+      "col": 1,
+      "size": [
+        440,
+        64
+      ]
+    },
+    {
+      "id": "enc",
+      "type": "security",
+      "label": "存储加密 · 三层信封",
+      "sublabel": "账户钥由 root key 经 HKDF-SHA256 派生 · 文件 AES-256-GCM · 魔数 OVE1",
+      "tag": "§8.3",
+      "row": 0,
+      "col": 2,
+      "size": [
+        440,
+        64
+      ]
+    },
+    {
+      "id": "priv",
+      "type": "backend",
+      "label": "敏感值 · 隐私配置",
+      "sublabel": "写入 SKILL.md 时替换 {{ov_privacy:…}} 占位 · 读取按版本还原 · 扫描默认 dry-run",
+      "tag": "§8.5",
+      "row": 1,
+      "col": 0,
+      "size": [
+        440,
+        64
+      ]
+    },
+    {
+      "id": "snap",
+      "type": "database",
+      "label": "版本回放 · 快照",
+      "sublabel": "每账户一个 git 仓库 · commit/log/show/restore · restore 是前向提交 · 历史不可改写",
+      "tag": "§8.4",
+      "row": 1,
+      "col": 1,
+      "size": [
+        440,
+        64
+      ]
+    },
+    {
+      "id": "pack",
+      "type": "external",
+      "label": "打包迁移 · OVPack",
+      "sublabel": "v3 manifest · sha256 校验 · ZIP 非加密格式",
+      "tag": "§8.6",
+      "row": 1,
+      "col": 2,
+      "size": [
+        440,
+        64
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "边界自认（官方明示）",
+      "items": [
+        "加密只保护新写文件：存量明文可读不自动加密",
+        "加密不覆盖向量库 · 日志与导出包",
+        "快照不含 ACL 与向量索引 · .ovgitignore 不支持 ! 取反",
+        "OVPack 全量 backup 可含外部服务密钥 · ZIP 非加密"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "多写存储 V2（§8.6）",
+      "items": [
+        "primary 是唯一事实源与直读源 · backups 异步复制",
+        "崩溃可丢一条复制事件 · 受影响备份须从 primary 重建 · 无同步状态 / 重试 API"
+      ]
+    }
+  ]
+}

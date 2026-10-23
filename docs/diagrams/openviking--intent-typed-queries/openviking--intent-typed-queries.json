@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "OpenViking 检索相：意图分析与 typed query 拆单",
+    "output": "docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
+    "locale": "zh-CN",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "ov", "label": "意图拆单与并行检索" }
+  ],
+  "mainPath": ["q", "gate", "an", "qres", "merge"],
+  "semanticChecks": {
+    "allowedRoots": ["q"],
+    "allowedTerminals": ["merge"]
+  },
+  "nodes": [
+    { "id": "q", "lane": "ov", "col": 0, "type": "external", "label": "用户问题", "sublabel": "search 入口", "width": 104, "yOffset": 0 },
+    { "id": "gate", "lane": "ov", "col": 1, "type": "security", "label": "有会话？", "sublabel": "无会话用原问题", "width": 112, "yOffset": 0 },
+    { "id": "an", "lane": "ov", "col": 2, "type": "backend", "label": "意图分析", "sublabel": "LLM 拆单（每类 1–5 条）", "width": 140, "yOffset": 0 },
+    { "id": "qmem", "lane": "ov", "col": 3, "type": "database", "label": "记忆检索单", "sublabel": "查记忆", "width": 104, "yOffset": -120 },
+    { "id": "qres", "lane": "ov", "col": 3, "type": "database", "label": "资料检索单", "sublabel": "找资料", "width": 104, "yOffset": 0 },
+    { "id": "qskill", "lane": "ov", "col": 3, "type": "database", "label": "技能检索单", "sublabel": "找技能", "width": 104, "yOffset": 120 },
+    { "id": "merge", "lane": "ov", "col": 5, "type": "backend", "label": "直接拼接", "sublabel": "不去重 · 分数不归一", "width": 132, "yOffset": 0 }
+  ],
+  "edges": [
+    { "id": "e-q-gate", "from": "q", "to": "gate", "label": "提问", "variant": "default", "role": "main" },
+    { "id": "e-gate-an", "from": "gate", "to": "an", "label": "有会话", "variant": "default", "role": "main" },
+    { "id": "e-gate-merge", "from": "gate", "to": "merge", "label": "无会话·原问题", "variant": "dashed", "role": "branch", "fromSide": "bottom", "toSide": "bottom" },
+    { "id": "e-an-qres", "from": "an", "to": "qres", "label": "拆单", "variant": "default", "role": "main" },
+    { "id": "e-an-qmem", "from": "an", "to": "qmem", "label": "拆单", "variant": "default", "role": "branch" },
+    { "id": "e-qres-qskill", "from": "qres", "to": "qskill", "label": "同路", "variant": "default", "role": "branch" },
+    { "id": "e-qres-merge", "from": "qres", "to": "merge", "label": "各自独立完整检索·配 rerank 才精排", "variant": "default", "role": "main" },
+    { "id": "e-qskill-merge", "from": "qskill", "to": "merge", "label": "各自独立完整检索·配 rerank 才精排", "variant": "default", "role": "branch" },
+    { "id": "e-qmem-merge", "from": "qmem", "to": "merge", "label": "各自独立完整检索·配 rerank 才精排", "variant": "default", "role": "branch" }
+  ]
+}

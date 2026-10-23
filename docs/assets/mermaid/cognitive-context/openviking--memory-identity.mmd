@@ -1,10 +1,11 @@
-%% source: docs/research/cognitive-context/014-openviking.md §6.3（视频 P4）
+%% source: docs/research/cognitive-context/014-openviking.md §6.3（视频 P4 → 修订重绘）
 %% slug: openviking--memory-identity
 %% type: workflow
 %% derived: docs/assets/architecture/cognitive-context/openviking--memory-identity.html
-flowchart LR
-  NEWS["新要点<br/>对话提炼产出"] -->|"提名"| PRE["预取相似旧卡<br/>合并检索 top-5"]
-  PRE -->|"只提名候选"| IDEN{"身份字段裁决<br/>读者 × 主题"}
-  IDEN -->|"规则拼名"| NAME["确定性卡名<br/>文件名即身份"]
-  NAME -->|"查号"| EXISTS{"同名卡存在？<br/>查号不搜索"}
-  EXISTS -->|"判定"| UPSERT["落卡<br/>已有则修订 / 没有则新建"]
+%% fix: 2026-10-22 「查号」→「文件名直查 · 不做相似搜索」、裁决示例补 filename_template（preferences = {user}/{topic}.md）
+flowchart TD
+  NEWS["新要点<br/>对话提炼产出的原子写集"] -->|"写集"| NOM["相似只提名<br/>一次跨类型向量检索预取 top-5 + 单文件直读"]
+  NOM -->|"只提名候选"| IDEN{"身份字段裁决<br/>各类型 schema 的 filename_template<br/>例：preferences = {user}/{topic}.md"}
+  IDEN -->|"裁决通过"| NAME["确定性 URI<br/>规则拼名 · 是否同一条记忆 = 文件名是否相同"]
+  NAME -->|"拼名"| EXISTS{"同名文件存在？<br/>文件名直查 · 不做相似搜索"}
+  EXISTS -->|"直查"| UPSERT["落卡<br/>已有 → 字段级补丁 · 没有 → 新建 · delete 须先折叠独有事实"]

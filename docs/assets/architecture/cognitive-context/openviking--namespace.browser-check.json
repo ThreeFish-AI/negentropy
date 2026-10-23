@@ -6,7 +6,7 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "f5099b22-c804-42a3-a6ad-29f7733e66f8",
+  "deliveryReceiptId": "3c9426ac-3485-4e59-a798-0e043c65429b",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
     "sha256": "ba94a6904643bb9f3d6f2e551633f46b5c11b11681d4a2f7c1e870cfe8e7e5bc",
@@ -715,7 +715,6 @@
     "contactSheet": null
   },
   "sidecars": {
-    "directory": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3",
     "receipt": "openviking--namespace.browser-check.json",
     "files": []
   }

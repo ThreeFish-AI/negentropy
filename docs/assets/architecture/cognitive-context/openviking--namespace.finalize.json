@@ -5,11 +5,11 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-10-22T15:30:07.156Z",
+  "startedAt": "2026-10-23T04:00:24.527Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/candidate.json",
-    "sha256": "48d583f28de75897fa917abc05f1d8df07c1ac9f4451ac64300d54842c67bab0",
-    "bytes": 10443
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--namespace/openviking--namespace.json",
+    "sha256": "67aeffa17a8c4664a0ea13bb98f371bc49c2cf303d458b86ba18ce05880854ba",
+    "bytes": 10444
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
@@ -27,7 +27,7 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--namespace/openviking--namespace.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
         "--quality",
         "showcase",
@@ -40,8 +40,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "48d583f28de75897fa917abc05f1d8df07c1ac9f4451ac64300d54842c67bab0",
-          "bytes": 10443
+          "sha256": "67aeffa17a8c4664a0ea13bb98f371bc49c2cf303d458b86ba18ce05880854ba",
+          "bytes": 10444
         },
         "validation": {
           "checksPassed": 9,
@@ -56,13 +56,13 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 940,
+      "durationMs": 1276,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/candidate.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--namespace/openviking--namespace.json",
         "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
         "--quality",
         "showcase",
@@ -72,15 +72,15 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "f5099b22-c804-42a3-a6ad-29f7733e66f8",
+        "receiptId": "3c9426ac-3485-4e59-a798-0e043c65429b",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/candidate.json",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--namespace/openviking--namespace.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
         "specification": {
-          "sha256": "48d583f28de75897fa917abc05f1d8df07c1ac9f4451ac64300d54842c67bab0",
-          "bytes": 10443
+          "sha256": "67aeffa17a8c4664a0ea13bb98f371bc49c2cf303d458b86ba18ce05880854ba",
+          "bytes": 10444
         },
         "artifact": {
           "sha256": "ba94a6904643bb9f3d6f2e551633f46b5c11b11681d4a2f7c1e870cfe8e7e5bc",
@@ -105,7 +105,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 193,
+      "durationMs": 218,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -292,22 +292,20 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "f5099b22-c804-42a3-a6ad-29f7733e66f8"
+        "deliveryReceiptId": "3c9426ac-3485-4e59-a798-0e043c65429b"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1194,
+      "durationMs": 1432,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.14.0/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
         "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
         "--json",
-        "--require-provenance",
-        "--out-dir",
-        "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3"
+        "--require-provenance"
       ],
       "execution": "in-process",
       "receipt": {
@@ -318,7 +316,7 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "f5099b22-c804-42a3-a6ad-29f7733e66f8",
+        "deliveryReceiptId": "3c9426ac-3485-4e59-a798-0e043c65429b",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
           "sha256": "ba94a6904643bb9f3d6f2e551633f46b5c11b11681d4a2f7c1e870cfe8e7e5bc",
@@ -1027,7 +1025,6 @@
           "contactSheet": null
         },
         "sidecars": {
-          "directory": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3",
           "receipt": "openviking--namespace.browser-check.json",
           "files": []
         }
@@ -1036,11 +1033,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3/openviking--namespace.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3/openviking--namespace.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3/openviking--namespace.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-10-22T15:30:09.915Z",
-  "durationMs": 2758
+  "finishedAt": "2026-10-23T04:00:27.940Z",
+  "durationMs": 3413
 }

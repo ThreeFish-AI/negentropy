@@ -6,14 +6,14 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/.archify/workflow-openviking--intent-typed-queries-20261022-003214/candidate.json",
-    "sha256": "6467ce33db7940739f223e2ff7bce82d2a7347f937db57b95d3a35230a59c123",
-    "bytes": 5400
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json",
+    "sha256": "c6f46536c163db337cb912c273eb47b52aa0134ffc3680e0d0772c5f8916bf9d",
+    "bytes": 2859
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
-    "sha256": "679d62c9d1e62240a952f4d45a1c91db3d124fff17fefe00b301ecd4177510d5",
-    "bytes": 758196
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.html",
+    "sha256": "1834ab74b89356ec93ed907089527cdf6d23136a023137755551b58b7edb5c5c",
+    "bytes": 755214
   },
   "gates": {
     "validate": "pass",
@@ -28,17 +28,16 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/dodoma/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/cognitive-context/openviking--intent-typed-queries.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2037,
+  "durationMs": 3480,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {
-      "routesOverSuggestedBends": 2,
-      "routesOverSuggestedStretch": 2
+      "routesOverSuggestedStretch": 1
     },
     "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
     "affectedRoutes": {
@@ -49,43 +48,38 @@
             "id": "e-gate-merge",
             "from": "gate",
             "to": "merge",
-            "label": "无会话 · 原问题",
+            "label": "无会话·原问题",
             "collectionIndex": 3,
             "artifactIndex": 4
           },
-          "bends": 3,
-          "stretch": 1.466,
+          "bends": 2,
+          "stretch": 1.489,
           "directCorridorBlockers": [
             {
               "id": "an",
               "label": "意图分析",
               "box": [
-                400.8,
-                217,
-                148,
+                348.8,
+                206,
+                140,
+                52
+              ]
+            },
+            {
+              "id": "qres",
+              "label": "资料检索单",
+              "box": [
+                526.8,
+                206,
+                104,
                 52
               ]
             }
           ]
-        },
-        {
-          "relationship": {
-            "id": "e-qskill-merge",
-            "from": "qskill",
-            "to": "merge",
-            "label": "独立完整检索·配 rerank 才精排",
-            "collectionIndex": 8,
-            "artifactIndex": 9
-          },
-          "bends": 3,
-          "stretch": 2.193
         }
       ],
       "truncated": false
     },
-    "hints": [
-      "qskill → merge needs 3 bends: move node qskill or merge so they share a row or column with matching centers, or sit diagonally with a clear corner."
-    ],
     "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
   }
 }

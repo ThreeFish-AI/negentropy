@@ -6,9 +6,9 @@
   "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/candidate.json",
-    "sha256": "48d583f28de75897fa917abc05f1d8df07c1ac9f4451ac64300d54842c67bab0",
-    "bytes": 10443
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/diagrams/openviking--namespace/openviking--namespace.json",
+    "sha256": "67aeffa17a8c4664a0ea13bb98f371bc49c2cf303d458b86ba18ce05880854ba",
+    "bytes": 10444
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.html",
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3/openviking--namespace.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3/openviking--namespace.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/.archify/architecture-openviking--namespace-20261022-231858/review-3/openviking--namespace.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/daegu-v3/docs/assets/architecture/cognitive-context/openviking--namespace.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2758,
+  "durationMs": 3413,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

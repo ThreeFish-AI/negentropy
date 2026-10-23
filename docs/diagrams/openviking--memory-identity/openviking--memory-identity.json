@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "OpenViking 身份判据：相似提名 · 字段裁决",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/openviking--memory-identity.html"
+  },
+  "lanes": [
+    { "id": "m", "label": "提炼写回" }
+  ],
+  "mainPath": ["news", "nom", "iden", "name", "exists", "upsert"],
+  "nodes": [
+    { "id": "news", "lane": "m", "col": 2, "yOffset": -225, "type": "external", "label": "新要点", "sublabel": "对话提炼产出的原子写集", "width": 96 },
+    { "id": "nom", "lane": "m", "col": 2, "yOffset": -135, "type": "backend", "label": "相似只提名", "sublabel": "一次跨类型向量检索预取 top-5 + 单文件直读", "width": 168 },
+    { "id": "iden", "lane": "m", "col": 2, "yOffset": -45, "type": "security", "label": "身份字段裁决", "sublabel": "各类型 schema 的 filename_template · 例：preferences = {user}/{topic}.md", "width": 284 },
+    { "id": "name", "lane": "m", "col": 2, "yOffset": 45, "type": "backend", "label": "确定性 URI", "sublabel": "规则拼名 · 是否同一条记忆 = 文件名是否相同", "width": 172 },
+    { "id": "exists", "lane": "m", "col": 2, "yOffset": 135, "type": "backend", "label": "同名文件存在？", "sublabel": "文件名直查 · 不做相似搜索", "width": 108 },
+    { "id": "upsert", "lane": "m", "col": 2, "yOffset": 225, "type": "backend", "label": "落卡", "sublabel": "已有 → 字段级补丁 · 没有 → 新建 · delete 须先折叠独有事实", "width": 228 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "news", "to": "nom", "label": "写集", "variant": "default", "fromSide": "bottom", "toSide": "top" },
+    { "id": "e2", "from": "nom", "to": "iden", "label": "只提名候选", "variant": "default", "fromSide": "bottom", "toSide": "top" },
+    { "id": "e3", "from": "iden", "to": "name", "label": "裁决通过", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "e4", "from": "name", "to": "exists", "label": "拼名", "variant": "default", "fromSide": "bottom", "toSide": "top" },
+    { "id": "e5", "from": "exists", "to": "upsert", "label": "直查", "variant": "default", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "宁可重复 · 不可错并",
+      "items": [
+        "相似度 · 同类目 · 主题重叠都只是提名理由",
+        "真人 / 真物 / 真事件须同一对象或显式别名 · 偏好须属主与选择维度都对上",
+        "重复可事后清理（ov compile --skill memory）· 错并丢事实不可恢复"
+      ]
+    }
+  ]
+}

@@ -3,12 +3,21 @@
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 约定，版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
 ## [Unreleased]
+### 014 OpenViking 精读 §2「一树三相三面」图例与机制解说补全 + 全文 12 图挂载（2026-10-22/23）
+
+- **§2 全貌章补全**：开篇段后新增「一棵树 / 三个相（编目·写路径 / 检索·读路径 / 记忆·回写路径）/ 三个面（网关 / 治理 / 编译）」概念块——每块机制解说 2–4 句（全部引自正文既有断言、零新数字）+ 专属图例 + § 指针；修复换代重写时总纲从「两相」升级为「一树三相三面」但图例与分概念解说未跟上的缺口。
+- **新增 3 图（archify finalize showcase 四门 + 双主题 PNG）**：`openviking--panorama` 全貌总图（§2 图 1：树居中、三相绕树路径、治理面边界包裹、网关面代理读写、编译面虚线不展开）、`openviking--gateway-proxy` 网关面五步一轮（§7 图 10）、`openviking--governance-layers` 治理面六层（§8 图 11）。
+- **修订重渲 5 图（去旧代比喻残留 + 对齐换代口径）**：`uri-scope-tree` 补 peers/{peer} 一等子树、去「馆藏区/档案室」喻体（§2 图 2）；`session-commit-two-phase` Phase 2 改「长期记忆提炼（WM 摘要默认关、按次开启）」、去「装订/盖章」喻体（§2 图 5）；`tiering-l0-l1-l2` 术语对齐（文件摘要、L1 首段按句界，删不可证的「H1 后首段」）；`freshness-bubbling` 统一「刷新」措辞并补「无基线立即刷新」分支；`memory-identity`「查号」改「文件名直查」。
+- **挂载 12 图与图号重排**：014 由 2 图扩至 12 图（§2 图 1–5、§4 图 6/7、§5 图 8、§6 图 9、§7 图 10、§8 图 11、§10 图 12），图注沿用 014 斜体格式；mermaid README 索引同步登记 3 新图、锚点去图号化（图号易腐），5 枚 .mmd 头注随修订更新。
+- **对抗盲审修复**：图 3 图注删旧代遗留的「R/N/F/V 快照与差异计划」表述、对齐图体实际环节（URI 规划与内容提交 AGFS，#1198 遗留脱节），`ingest-phase` 随之重渲（「TreeBuilder 规划 URI」类名改通用「URI 规划 · 结构推导 · 类型与归属」，§3 锚定）；`intent-typed-queries` 重渲去「翻手册」喻体（改「找技能」）；panorama / uri-scope-tree 副标签去无正文出处的例证（「手册 · handbook/ policies/」「技能 = 一个目录」）。盲审 A–F 六节复验：数字对账全过、换代口径 5/5、图号链接 36 资产零缺失、§2.1–2.3 与 §6 标题未动。
+- **candidate JSON 入库**：10 张经本次重绘的图按仓内新图先例（#1196 起）补交 `docs/diagrams/<slug>/<slug>.json`（带 EOF 换行，从入库路径重跑 finalize、HTML 字节复现、回执 specification 指向入库文件），014 图注同步追加 candidate 链接；retrieval-phase 与 lab-break-matrix 两图本次未重绘，沿用既有回执。
+
 ### 014 §3 三空间机制讲透：命名空间地图 + 单步沙盘 + 新图 openviking--namespace + 全篇缩写首现注解（I-235，2026-10-22）
 
 - **§3 重构**：按「3.1 三空间地图 → 图 3 → 3.2 单步沙盘 → 3.3 细节」重铸——`visible_roots()` 三可见根（NS:180 代码锚）+ user 保留段（peers/privacy/sessions）+ 结构反例；沙盘以「support-bot 接待 customer-alice」六步走完一条记忆落位（URI 逐段推导、md5 主键实算、peer_scope 过滤），补齐 lecture-format 起草纪律 2 要求的具体输入端到端走查。
 - **事实修正（代码胜出）**：peers 子树内容段按钉点仅 memories、resources 两个（`_PEER_CONTENT_SEGMENTS`，NS:18）——文档「peers 下 memories|resources|skills」表述与 lab `context_type` 的 peers/skills→skill 分支均改正（peers 下 skills 类型回落 resource）；§2.1/§2.2/§11.1 连带口径同步。
 - **lab S1 明细化**：S1 输出改为 9 条 URI→类型/属主/peer 实跑明细 + 4 条新断言（peers/skills 反例、peers/resources、user/resources、sessions/**）；selftest 与 B1/B3/B4/B6/B7 五路破坏实验实测口径不变，§10 行号锚零漂移。
-- **新图 openviking--namespace（图 3）**：archify architecture showcase，finalize 四门过（validate/deliver/check/browser-check），交叉 11→2 收敛；双主题 PNG 947K/887K 过 1280KiB 门；入 mermaid README 登记；不取代 uri-scope-tree（视频 P1 冻结消费）。
+- **新图 openviking--namespace（§3 命名地图；并入 #1202 十二图版后挂载为图 6、原图 6–12 顺延 7–13，全文 13 图）**：archify architecture showcase，finalize 四门过（validate/deliver/check/browser-check），交叉 11→2 收敛；双主题 PNG 947K/887K 过 1280KiB 门；入 mermaid README 登记；与修订后的 uri-scope-tree 并存——彼为 §2 总览、此为 §3 机制明细（保留段/推导规则/反例）。
 - **全篇缩写首现注解**：A 档 26 项（AGFS/RAGFS/URI/ACL/VLM/MCP/DAG/NOOP/BM25/HKDF/AES-256-GCM/KMS/pp/OV/WM/KB QA/RAG/LLM/md5/sha256/LoCoMo/tau2/HotpotQA/ClawWork/FinanceBench/OVPack）+ B 档 10 项（VikingMem/TrieHI/VikingRAG 论文名微注、OVE1、digest、embedding、SQLite、failover、harness、R/N/F/V），依 plain-language V7/D9 与 lecture-format 硬律 5；日志引用块与 IEEE 参考文献块不夹注。
 
 ### 视频文案「拆/失效」词族整改：14 集口播/屏上字与前置文档语义位分档落改（I-234，2026-10-22）

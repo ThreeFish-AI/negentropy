@@ -1,0 +1,14 @@
+%% source: docs/research/cognitive-context/014-openviking.md §7.1–§7.4（图例补全新增）
+%% slug: openviking--gateway-proxy
+%% type: workflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--gateway-proxy.html
+flowchart TD
+  MSG["用户消息<br/>模型客户端发起"] ==>|"进入网关"| IDENT["① 识别会话<br/>六层 header 优先级链 · 无 header 按最近回复唯一匹配"]
+  IDENT --> REPLAY["② 回放记忆<br/>已注入内容逐字节放回原位 · 保 prompt cache 与 thinking 签名"]
+  REPLAY --> RECALL["③ 召回<br/>仅新用户消息触发 · 至多等 2 秒 · 超时该条消息永无记忆"]
+  RECALL -->|"附在消息尾部"| FWD["④ 转发上游<br/>三种协议直通 · 不做协议转换"]
+  FWD -->|"转发 · 三协议直通"| UPSTREAM["模型厂商 API<br/>Anthropic Messages / OpenAI Chat Completions / Responses"]
+  UPSTREAM -.->|"模型请求工具"| TOOL["工具代理 · 回复期间<br/>openviking_ 前缀 MCP 工具 · 默认 13 只读 · 8 个写工具须管理员勾选 · 不限轮数"]
+  TOOL -.->|"结果回填 · 不限轮数"| UPSTREAM
+  FWD -.->|"回复完成 · 待下一轮"| SAVE["⑤ 滞后保存<br/>下一轮用户消息到达才存上一轮 · 或 10 分钟静默 / 20,000 tokens 触发 commit"]
+  SAVE -->|"下一轮消息到达"| IDENT
