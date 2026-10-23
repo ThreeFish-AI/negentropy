@@ -75,8 +75,8 @@ description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，20
 
 **三个面**长在树的外围，各自只管一件事：
 
-- **网关面（§7）**：模型 API 反向代理——客户端只改 Base URL 即零改造接入；每轮五步（识别会话 → 回放记忆 → 召回 → 转发上游 → 滞后保存），已注入内容逐字节原样重放，保住服务商 prompt cache。图例见 §7 图 10。
-- **治理面（§8）**：单人单机时多余，「一个服务器、多个用户、一批客户」时决定能不能上生产——三角色管谁能进，ACL（默认关）与三层信封加密管谁能看，git 快照前向提交管备份与回放。图例见 §8 图 11。
+- **网关面（§7）**：模型 API 反向代理——客户端只改 Base URL 即零改造接入；每轮五步（识别会话 → 回放记忆 → 召回 → 转发上游 → 滞后保存），已注入内容逐字节原样重放，保住服务商 prompt cache。图例见 §7 图 11。
+- **治理面（§8）**：单人单机时多余，「一个服务器、多个用户、一批客户」时决定能不能上生产——三角色管谁能进，ACL（默认关）与三层信封加密管谁能看，git 快照前向提交管备份与回放。图例见 §8 图 12。
 - **编译面（不展开）**：`ov compile` 把树上的材料再加工成 wiki / 知识图谱 / 日报——VikingBot 层的应用能力、不是核心服务器的机制，本篇不展开（仅入图 1 总览）。
 
 ### 2.1 最重要的几个部分（分层矩阵）
@@ -97,26 +97,10 @@ description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，20
 
 ### 2.2 核心关系与因果脉络链
 
-```
-观察：上下文散在记忆库/向量库/prompt；平铺检索大语料变钝、漏召回精排救不回；
-      跨工具跨会话就丢；多 Agent 各带半份上下文、人肉当总线
-  ↓ 归因
-信息组织缺位 + 记忆无归属 + 派生物无提交点
-  ↓ 设计规格
-可寻址 × 可归属 × 可分层 × 可检索 × 可回写 × 可治理
-  ↓ 机制
-viking:// 统一命名空间（resources / user（含 peers 子树）/ agent 三空间）
-  → L0/L1 自底向上编目 + 新鲜度冒泡（写路径）
-  → 全局召回 2×limit + 单遍精排 + 阈值后置 + 六域装配（读路径；
-    #5450 删递归 = 可推断「导航门」成本大于收益（提交说明未给理由，见 §5），早剪风险转移到池边界）
-  → 会话两阶段提交（归档同步 / 提炼异步）+ 身份字段判据 + .done（回写路径）
-  → Gateway：五步一轮 + 逐字回放保缓存 + 保存滞后一轮（代理路径）
-  → 三角色 + ACL + 信封加密 + git 快照 + OVPack（治理路径）
-  ↓ 证据闭环
-厂商自报（LoCoMo 24.20%→82.08%；单轮 RAG 66.87% < LightRAG 76.00% 负向仍在）
-+ 上游自我修正记录（ClawWork 算术错改口径、docs 对齐代码、递归撤回——§9.3）
-+ 本仓 lab 破坏性实验（池边界 / 身份漂移 / 精排致盲 / 无提交点重复提炼——§10）
-```
+![OpenViking 因果脉络链：观察、归因、六条设计规格、一树五路径机制与三层证据闭环（暗色）](../../assets/architecture/cognitive-context/openviking--causal-chain-dark.png)
+*图 6 · 因果脉络链：四类观察归因三个缺口 → 六条设计规格 → viking:// 树基座上的五条路径（写 / 读 / 回写 / 代理 / 治理）→ 三层证据闭环（厂商自报 + 上游自我修正 + 本仓 lab 破坏实验）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--causal-chain.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--causal-chain.html) · [candidate JSON](../../diagrams/openviking--causal-chain/openviking--causal-chain.json)*
+
+这张图自左向右五个阶段：四类观察归因到三个缺口，缺口长出 §1 的六条设计规格，规格落到机制——可寻址与可归属同落 `viking://` 树（§3，图中合并为一个节点），可治理一分为二覆盖代理与治理两条路径（§7–§8），其余三条各领一条路径；五条路径即 §2 的三个相加上网关、治理两个面，都跑在同一棵 `viking://` 树上——图中以基座泳道示意这一承载关系，不另画连线。读路径连向「上游自我修正」的边标「递归撤回 #5450」是带保留的注记：上游删除目录递归时提交说明未给理由，「导航门成本大于收益」是从删除动作反推的判断（§5），代价是早剪风险从导航入口转移到 2×limit 候选池的池边界。右侧三层证据各司其职：厂商自报给出 headline 数字但无消融，上游自我修正记录提醒官方口径本身会改（§9.3），本仓 lab 用破坏性实验独立复核（§10）。证据边只画在读与回写两条路径上——写、代理与治理暂无独立检验，lab 的精排致盲与池边界实验属读路径（见证据节点文案），这是实况，不是画漏。
 
 ### 2.3 基础层 vs 学习焦点
 
@@ -161,10 +145,10 @@ Agent 的 token 预算（模型一次能读的字词量额度）有限，不可�
 - **写保护（新）**：公共 API 不能直接创建/覆写 `.abstract.md`/`.overview.md`（【二】context-layers 概念页）；`mkdir` 初始只建 L0；`processing_mode="vectors_only"` 导入会跳过语义阶段，存量摘要**陈旧且不重生**——上游文档明示这个陷阱并如实报错不回滚（【二】v0.5.1 发布说明）。
 
 ![OpenViking 目录级 L0/L1/L2 分层与生成链（暗色）](../../assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2-dark.png)
-*图 6 · 目录级分层（§4）：文件摘要（每文件 1 次 LLM）汇入所在目录；直接子项 > 32 时确定性等距采样（含首尾、保序），采样后的「文件摘要 + 直接子目录 L0」生成 L1（每目录 1 次 LLM、≤4000 字符软上限），L0 从 L1 正文首段按句界裁出（零 LLM、≤256 字符软上限）；L0/L1/L2 各入向量索引，文件摘要另写入 L2 记录的 abstract 标量——它就是 §5 精排读的字段。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--tiering-l0-l1-l2.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html) · candidate [JSON](../../diagrams/openviking--tiering-l0-l1-l2/openviking--tiering-l0-l1-l2.json)*
+*图 7 · 目录级分层（§4）：文件摘要（每文件 1 次 LLM）汇入所在目录；直接子项 > 32 时确定性等距采样（含首尾、保序），采样后的「文件摘要 + 直接子目录 L0」生成 L1（每目录 1 次 LLM、≤4000 字符软上限），L0 从 L1 正文首段按句界裁出（零 LLM、≤256 字符软上限）；L0/L1/L2 各入向量索引，文件摘要另写入 L2 记录的 abstract 标量——它就是 §5 精排读的字段。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--tiering-l0-l1-l2.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--tiering-l0-l1-l2.html) · candidate [JSON](../../diagrams/openviking--tiering-l0-l1-l2/openviking--tiering-l0-l1-l2.json)*
 
 ![OpenViking 新鲜度冒泡漏斗（暗色）](../../assets/architecture/cognitive-context/openviking--freshness-bubbling-dark.png)
-*图 7 · 新鲜度冒泡（§4）：子目录 L0 正文 digest 未变则 NOOP；变了才上报父目录——父目录无基线或直接子项 ≤ 32 立即刷新，否则攒到 pending/total ≥ 0.10 才刷新；祖先刷新会把被采样的兄弟文件全部重新摘要。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--freshness-bubbling.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--freshness-bubbling.html) · candidate [JSON](../../diagrams/openviking--freshness-bubbling/openviking--freshness-bubbling.json)*
+*图 8 · 新鲜度冒泡（§4）：子目录 L0 正文 digest 未变则 NOOP；变了才上报父目录——父目录无基线或直接子项 ≤ 32 立即刷新，否则攒到 pending/total ≥ 0.10 才刷新；祖先刷新会把被采样的兄弟文件全部重新摘要。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--freshness-bubbling.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--freshness-bubbling.html) · candidate [JSON](../../diagrams/openviking--freshness-bubbling/openviking--freshness-bubbling.json)*
 
 原型里这一幕（实际运行日志，S2/S4）：
 
@@ -192,7 +176,7 @@ Agent 的 token 预算（模型一次能读的字词量额度）有限，不可�
 - **5.8 可追溯性现状**：`query_plan` 是活链路——意图分析的产物（typed query 清单）随结果返回（`storage/viking_fs/_semantic.py:448-571`，docs 亦标注 `query_plan: Present for search()`）；`ThinkingTrace` 事件类仍留在 CLI SDK 类型层（`openviking_cli/retrieve/types.py:132`），但检索主路径不再写入事件——「逐步推理轨迹」的承诺名存实亡，实际可追溯 = `query_plan` + `provenance`（命中清单，可选返回）+ telemetry 计数器 + 日志；`searched_directories` 返回的是请求 scope 根目录列表（`HR:281`），不是实际遍历轨迹——检索本来就是全局的，「去过哪些目录」这个问题在新算法里不再存在。
 
 ![OpenViking 检索相意图分析：typed query 拆单与拼接（暗色）](../../assets/architecture/cognitive-context/openviking--intent-typed-queries-dark.png)
-*图 8 · 意图分析（§5.2）：有会话才做意图分析——输入会话压缩摘要、最近 5 条消息与当前查询，LLM 拆单产出 skill / resource / memory 三类 typed query（planner 约束每类 1–5 条），各自独立走完整检索（配 rerank 才精排）后**直接拼接——不去重、不跨查询归一分数**；无会话用原问题。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--intent-typed-queries.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--intent-typed-queries.html) · candidate [JSON](../../diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json)*
+*图 9 · 意图分析（§5.2）：有会话才做意图分析——输入会话压缩摘要、最近 5 条消息与当前查询，LLM 拆单产出 skill / resource / memory 三类 typed query（planner 约束每类 1–5 条），各自独立走完整检索（配 rerank 才精排）后**直接拼接——不去重、不跨查询归一分数**；无会话用原问题。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--intent-typed-queries.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--intent-typed-queries.html) · candidate [JSON](../../diagrams/openviking--intent-typed-queries/openviking--intent-typed-queries.json)*
 
 原型里这一幕（实际运行日志，S3；语料含 3 份「已废弃」旧流程样板，措辞与现行高度重合）：
 
@@ -217,7 +201,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 - **6.6 自动提交**：服务端 auto-commit 默认关闭；开启后策略默认 150,000 pending tokens / 100 条消息 / 86,400 秒空闲（【二】sessions API 页）。插件侧普遍 20,000 pending tokens 触发 commit（Claude Code/Codex/OpenCode/DSH），且 v0.5.0 起统一归档全部消息（`keep_recent_count: 0`）。
 
 ![OpenViking 记忆身份判据：相似提名与字段裁决（暗色）](../../assets/architecture/cognitive-context/openviking--memory-identity-dark.png)
-*图 9 · 身份判据（§6.3）：相似只提名——一次跨类型向量检索预取 top-5 加单文件直读；同一性由各类型 schema 身份字段经 `filename_template` 裁决（例：preferences = `{user}/{topic}.md`），「是否同一条记忆」降维成「文件名是否相同」——文件名直查、不做相似搜索；宁可重复、不可错并。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--memory-identity.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--memory-identity.html) · candidate [JSON](../../diagrams/openviking--memory-identity/openviking--memory-identity.json)*
+*图 10 · 身份判据（§6.3）：相似只提名——一次跨类型向量检索预取 top-5 加单文件直读；同一性由各类型 schema 身份字段经 `filename_template` 裁决（例：preferences = `{user}/{topic}.md`），「是否同一条记忆」降维成「文件名是否相同」——文件名直查、不做相似搜索；宁可重复、不可错并。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--memory-identity.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--memory-identity.html) · candidate [JSON](../../diagrams/openviking--memory-identity/openviking--memory-identity.json)*
 
 原型里这一幕（实际运行日志，S5–S7）：
 
@@ -245,7 +229,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 - **7.5 状态与安全**：本机两个 SQLite（`~/.openviking/gateway`：management + kernel——kernel 存记忆原文回放副本、工具轮次、待存文本）；无跨机 failover；会话/日志留存 30 天；网关 key `ovgw_` 只在签发时显示一次；改上游 `base_url` 即清空已存密钥与 headers（防密钥外送）；Claude 订阅 token 恒拒、Coding Plan 上游默认 403 须显式放行；上游能看到含记忆与工具结果的**全部**模型输入。
 
 ![OpenViking 网关面：五步一轮的模型代理（暗色）](../../assets/architecture/cognitive-context/openviking--gateway-proxy-dark.png)
-*图 10 · 网关面五步一轮（§7.1）：识别会话（六层 header 优先级链，无 header 按最近回复唯一匹配）→ 回放记忆（逐字节放回原位，保 prompt cache 与 thinking 签名）→ 召回（仅新用户消息触发，至多等 2 秒）→ 转发上游（Anthropic Messages / OpenAI Chat Completions / Responses 三协议直通、不做转换）→ 滞后保存（下一轮用户消息到达才存上一轮，或 10 分钟静默 / 20,000 tokens 触发 commit）；回复期间代跑 `openviking_` 前缀工具（默认 13 只读、8 个写工具须管理员勾选）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--gateway-proxy.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--gateway-proxy.html) · candidate [JSON](../../diagrams/openviking--gateway-proxy/openviking--gateway-proxy.json)*
+*图 11 · 网关面五步一轮（§7.1）：识别会话（六层 header 优先级链，无 header 按最近回复唯一匹配）→ 回放记忆（逐字节放回原位，保 prompt cache 与 thinking 签名）→ 召回（仅新用户消息触发，至多等 2 秒）→ 转发上游（Anthropic Messages / OpenAI Chat Completions / Responses 三协议直通、不做转换）→ 滞后保存（下一轮用户消息到达才存上一轮，或 10 分钟静默 / 20,000 tokens 触发 commit）；回复期间代跑 `openviking_` 前缀工具（默认 13 只读、8 个写工具须管理员勾选）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--gateway-proxy.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--gateway-proxy.html) · candidate [JSON](../../diagrams/openviking--gateway-proxy/openviking--gateway-proxy.json)*
 
 ## 8. 机制六：治理面——钥匙、锁、备份与回放
 
@@ -259,7 +243,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 - **8.6 OVPack 与多写**：导出/导入 v3 manifest（sha256 校验、仅纯稠密索引可带向量快照）；全量 backup 含用户隐私目录（**可含外部服务密钥**）且 ZIP 非加密格式——两条安全边界都由官方明示。多写存储 V2：primary 是唯一事实源与直读源、backups 异步复制，**崩溃可丢一条复制事件**（受影响备份须从 primary 重建）、无同步状态/重试 API。
 
 ![OpenViking 治理面：谁能进、谁能看、加密、敏感值、回放与打包六层（暗色）](../../assets/architecture/cognitive-context/openviking--governance-layers-dark.png)
-*图 11 · 治理面六层（§8.1–§8.6，按「谁能进 → 谁能看 → 存储加密 → 敏感值 → 版本回放 → 打包迁移」直讲顺序，六层并列独立）：三角色与三认证模式（§8.1）；ACL 默认关、权限掩码内嵌向量记录随检索过滤（§8.2）；Root/Account/File 三层信封、账户钥 HKDF-SHA256 派生、文件 AES-256-GCM、魔数 OVE1（§8.3）；`{{ov_privacy:…}}` 占位与按版本还原（§8.5）；每账户一个 git 仓库、restore 前向提交、历史不可改写（§8.4）；OVPack v3 manifest、ZIP 非加密（§8.6）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--governance-layers.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--governance-layers.html) · candidate [JSON](../../diagrams/openviking--governance-layers/openviking--governance-layers.json)*
+*图 12 · 治理面六层（§8.1–§8.6，按「谁能进 → 谁能看 → 存储加密 → 敏感值 → 版本回放 → 打包迁移」直讲顺序，六层并列独立）：三角色与三认证模式（§8.1）；ACL 默认关、权限掩码内嵌向量记录随检索过滤（§8.2）；Root/Account/File 三层信封、账户钥 HKDF-SHA256 派生、文件 AES-256-GCM、魔数 OVE1（§8.3）；`{{ov_privacy:…}}` 占位与按版本还原（§8.5）；每账户一个 git 仓库、restore 前向提交、历史不可改写（§8.4）；OVPack v3 manifest、ZIP 非加密（§8.6）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--governance-layers.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--governance-layers.html) · candidate [JSON](../../diagrams/openviking--governance-layers/openviking--governance-layers.json)*
 
 ## 9. 关键实证数字（证据分级）
 
@@ -317,7 +301,7 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 | B7 候选池 2×→1×（新） | `POOL_MULT=1` | THINKING recall 1.00→**0.75**：正确文档向量名次第 6，池收缩后**锁死池外**，返回值全被旧样板占据；QUICK 不变 | 池边界是新的早剪不可逆——向量名次进不了前 2×limit 的证据，精排永远救不回 |
 
 ![OpenViking 五次破坏性实验矩阵（暗色）](../../assets/architecture/cognitive-context/openviking--lab-break-matrix-dark.png)
-*图 12 · 破坏性实验矩阵（§10）：B1 拔掉摘要→精排致盲（THINKING 1.00→0.50，退款查询整组空手、平铺档免疫）；B3 卡名不再由身份字段决定→3 张矛盾偏好卡并存；B4 关掉冒泡→祖先标签过期、浏览式导航致盲；B6 去掉 `.done`→重投一次事件卡翻倍；B7 候选池 2×→1×→向量第 6 名锁死池外（1.00→0.75、平铺不变）。虚线连边是纪律配对：摘要质量是精排的全部赌注（B1↔B7）、身份与提交点双保险（B3↔B6）、派生物保鲜纪律（B4↔B6）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--lab-break-matrix.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--lab-break-matrix.html)*
+*图 13 · 破坏性实验矩阵（§10）：B1 拔掉摘要→精排致盲（THINKING 1.00→0.50，退款查询整组空手、平铺档免疫）；B3 卡名不再由身份字段决定→3 张矛盾偏好卡并存；B4 关掉冒泡→祖先标签过期、浏览式导航致盲；B6 去掉 `.done`→重投一次事件卡翻倍；B7 候选池 2×→1×→向量第 6 名锁死池外（1.00→0.75、平铺不变）。虚线连边是纪律配对：摘要质量是精排的全部赌注（B1↔B7）、身份与提交点双保险（B3↔B6）、派生物保鲜纪律（B4↔B6）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--lab-break-matrix.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--lab-break-matrix.html)*
 
 ## 11. 底层规律与核心争议
 

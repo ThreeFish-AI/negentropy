@@ -1,0 +1,46 @@
+%% source: docs/research/cognitive-context/014-openviking.md §2.2（图 6）
+%% slug: openviking--causal-chain
+%% type: workflow
+%% derived: docs/assets/architecture/cognitive-context/openviking--causal-chain.html
+%% note: 列=因果五阶段（观察/归因/规格/机制/证据），泳道=机制谱系；可寻址与可归属同落 §3 树故合并一节点；lab 检索实验（精排致盲/池边界）属读路径，由证据节点文案承载（K2,2 平面性取舍不加独立边）
+flowchart LR
+  OBS_S["观察 · 散<br/>上下文散在记忆库 / 向量库 / prompt"]
+  OBS_F["观察 · 钝<br/>平铺检索大语料变钝 · 漏召回精排救不回"]
+  OBS_L["观察 · 丢<br/>跨工具跨会话就丢"]
+  OBS_B["观察 · 总线<br/>多 Agent 各带半份上下文 · 人肉当总线"]
+  ATTR["归因 · 三个缺口<br/>信息组织缺位 + 记忆无归属 + 派生物无提交点"]
+  SAO["可寻址 · 可归属<br/>位置编号可指认 · 数据属主与交互对象正交"]
+  SL["可分层<br/>先看一句话标签，再读全文"]
+  SS["可检索<br/>全局召回 + 可选精排"]
+  SW["可回写<br/>接待完用户，记忆库自动更新"]
+  SG["可治理<br/>钥匙 · 锁 · 备份 · 回放"]
+  TREE["viking:// 统一命名空间<br/>resources / user（含 peers 子树）/ agent 三空间"]
+  W["写路径 · L0/L1 自底向上编目<br/>+ 新鲜度冒泡"]
+  R["读路径 · 全局召回 2×limit + 单遍精排<br/>阈值 0.1 后置 + 六域装配"]
+  M["回写路径 · 会话两阶段提交<br/>身份字段判据 + .done 提交点"]
+  G["代理路径 · Gateway<br/>五步一轮 + 逐字回放保缓存 + 保存滞后一轮"]
+  V["治理路径 · 三角色 + ACL + 信封加密<br/>git 快照 + OVPack"]
+  EV1["厂商自报（§9）<br/>LoCoMo 24.20%→82.08%"]
+  EV_R["厂商自报 · 单轮 RAG<br/>66.87%<LightRAG 76.00% 负向仍在"]
+  EV2["上游自我修正（§9.3）<br/>ClawWork 算术错改口径 · docs 对齐代码 · 递归撤回"]
+  EV3["本仓 lab 破坏实验（§10）<br/>池边界 · 身份漂移 · 精排致盲 · 无提交点重复提炼"]
+  OBS_S --> ATTR
+  OBS_F --> ATTR
+  OBS_L --> ATTR
+  OBS_B --> ATTR
+  ATTR --> SAO
+  ATTR --> SL
+  ATTR --> SS
+  ATTR --> SW
+  ATTR --> SG
+  SAO -- "§3 寻址归属" --> TREE
+  SL -- "§4 分层编目" --> W
+  SS -- "§5 召回精排" --> R
+  SW -- "§6 会话提交" --> M
+  SG -- "§7 网关代理" --> G
+  SG -- "§8 租户治理" --> V
+  W -. "L0/L1 摘要供精排读" .-> R
+  R -. "单轮 RAG 基准" .-> EV_R
+  R -. "递归撤回 #5450" .-> EV2
+  M -. "LoCoMo 基准" .-> EV1
+  M -. "身份漂移/无提交点" .-> EV3
