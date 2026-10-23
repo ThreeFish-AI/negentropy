@@ -23,7 +23,7 @@
 - **§3 重构**：按「3.1 三空间地图 → 图 3 → 3.2 单步沙盘 → 3.3 细节」重铸——`visible_roots()` 三可见根（NS:180 代码锚）+ user 保留段（peers/privacy/sessions）+ 结构反例；沙盘以「support-bot 接待 customer-alice」六步走完一条记忆落位（URI 逐段推导、md5 主键实算、peer_scope 过滤），补齐 lecture-format 起草纪律 2 要求的具体输入端到端走查。
 - **事实修正（代码胜出）**：peers 子树内容段按钉点仅 memories、resources 两个（`_PEER_CONTENT_SEGMENTS`，NS:18）——文档「peers 下 memories|resources|skills」表述与 lab `context_type` 的 peers/skills→skill 分支均改正（peers 下 skills 类型回落 resource）；§2.1/§2.2/§11.1 连带口径同步。
 - **lab S1 明细化**：S1 输出改为 9 条 URI→类型/属主/peer 实跑明细 + 4 条新断言（peers/skills 反例、peers/resources、user/resources、sessions/**）；selftest 与 B1/B3/B4/B6/B7 五路破坏实验实测口径不变，§10 行号锚零漂移。
-- **新图 openviking--namespace（§3 命名地图；并入 #1202 十二图版后挂载为图 6、原图 6–12 顺延 7–13，全文 13 图）**：archify architecture showcase，finalize 四门过（validate/deliver/check/browser-check），交叉 11→2 收敛；双主题 PNG 947K/887K 过 1280KiB 门；入 mermaid README 登记；与修订后的 uri-scope-tree 并存——彼为 §2 总览、此为 §3 机制明细（保留段/推导规则/反例）。
+- **新图 openviking--namespace（§3 命名地图；经 #1202/#1201 两轮并图后为图 7，现全文 14 图）**：archify architecture showcase，finalize 四门过（validate/deliver/check/browser-check），交叉 11→2 收敛；双主题 PNG 947K/887K 过 1280KiB 门；入 mermaid README 登记；与修订后的 uri-scope-tree 并存——彼为 §2 总览、此为 §3 机制明细（保留段/推导规则/反例）。
 - **全篇缩写首现注解**：A 档 26 项（AGFS/RAGFS/URI/ACL/VLM/MCP/DAG/NOOP/BM25/HKDF/AES-256-GCM/KMS/pp/OV/WM/KB QA/RAG/LLM/md5/sha256/LoCoMo/tau2/HotpotQA/ClawWork/FinanceBench/OVPack）+ B 档 10 项（VikingMem/TrieHI/VikingRAG 论文名微注、OVE1、digest、embedding、SQLite、failover、harness、R/N/F/V），依 plain-language V7/D9 与 lecture-format 硬律 5；日志引用块与 IEEE 参考文献块不夹注。
 
 ### 视频文案「拆/失效」词族整改：14 集口播/屏上字与前置文档语义位分档落改（I-234，2026-10-22）
