@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/.archify/workflow-claude-dev-prefix-cache-20261024/candidate.json",
+    "sha256": "28d41587a59d485eb586f0d2b8a873f6f68e0189b0b1342c15d9e3e414932f40",
+    "bytes": 3371
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/docs/assets/architecture/agent-harness/claude-dev--context-prefix-cache.html",
+    "sha256": "0abc1d15982b486f8543f97ae038b56fa0e8ef9db7418583f8ad52c6d3ba7988",
+    "bytes": 757020
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/docs/assets/architecture/agent-harness/claude-dev--context-prefix-cache.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/docs/assets/architecture/agent-harness/claude-dev--context-prefix-cache.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/chiang-mai-v3/docs/assets/architecture/agent-harness/claude-dev--context-prefix-cache.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2988
+}

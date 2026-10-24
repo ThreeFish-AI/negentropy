@@ -36,7 +36,7 @@
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 
-### agent-harness/（Learn Claude Code 五层精读 · 并发重学（176） · AI Native 手册精读 · Hermes Agent 精读）
+### agent-harness/（Learn Claude Code 五层精读 · 并发重学（176） · AI Native 手册精读 · Hermes Agent 精读 · claude.dev 全站精读（177））
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -59,6 +59,8 @@
 | [ai-native--handbook-panorama](./agent-harness/ai-native--handbook-panorama.mmd) | [180 AI Native 手册 §1](../../research/agent-harness/180-ai-native-handbook.md) | dataflow | ✓ | done | 三案例共同观察 → 五挑战 → 四层基础设施 → 可靠交付；组织配套虚线直达（非基础设施） |
 | [ai-native--harness-control-loop](./agent-harness/ai-native--harness-control-loop.mmd) | [180 AI Native 手册 §2](../../research/agent-harness/180-ai-native-handbook.md) | workflow | ✓ | done | 三泳道（模型 / 确定性控制面 / 资源与证据）U 形闭环：PEP⇄PDP → 凭证代理 → 生产变更经 Guardrail 三态门控，Trajectory 旁路 |
 | [hermes-agent--turn-loop](./agent-harness/hermes-agent--turn-loop.mmd) | [190 Hermes Agent §2/§3](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（主循环 / 压缩 / 持久层）：三段式提示只装配一次，超阈值压缩→重建提示为唯一计划内断点，逐条落盘 state.db（trace 动画；新创作，无原文 mermaid 块） |
+| [claude-dev--review-layers](./agent-harness/claude-dev--review-layers.mmd) | [177 claude.dev 全站 §6](../../research/agent-harness/177-anthropic-claude-dev-blog.md) | workflow | ✓ | done | 评审防线主链：自验证→AI 评审→安全评审→风险定档（0/1/2 人·agent 批准不算）→合并队列→灰度，回滚与事故评测集收尾（新创作，无原文 mermaid 块） |
+| [claude-dev--context-prefix-cache](./agent-harness/claude-dev--context-prefix-cache.mmd) | [177 claude.dev 全站 §3](../../research/agent-harness/177-anthropic-claude-dev-blog.md) | workflow | ✓ | done | 前缀四层（静态在前）→逐字节匹配→命中 0.05x 读价/新增 1.25x 写价，击穿动作整段全价重算（新创作，无原文 mermaid 块） |
 | [hermes-agent--learning-loop](./agent-harness/hermes-agent--learning-loop.mmd) | [190 Hermes Agent §2/§5](../../research/agent-harness/190-hermes-agent.md) | workflow | ✓ | done | 三泳道（前台 / 后台 review / 技能库与 Curator）：交付后分叉 → 分派侧白名单（越界得拒绝回执）→ skill_manage 记署名 → 下次会话进目录（trace 动画；新创作，无原文 mermaid 块） |
 | [claude-code-bg-tasks--placeholder-notification-loop](./agent-harness/claude-code-bg-tasks--placeholder-notification-loop.mmd) | [176 并发重学 §3](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 三泳道（对话流 / 主循环 / 执行路径）：双闸分派 → 占位回执守住协议名额，后台执行经结果字典以通知回流下一轮（独立重学篇；新创作，无原文 mermaid 块） |
 | [claude-code-cron--four-layer-decoupling](./agent-harness/claude-code-cron--four-layer-decoupling.mmd) | [176 并发重学 §4](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 四泳道（判时 / 缓冲交付 / 执行 / 持久化）：判时→队列→非阻塞抢锁→消费注入，让行回环与 durable 往返旁挂（独立重学篇；新创作，无原文 mermaid 块） |

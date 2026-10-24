@@ -1,0 +1,31 @@
+%% source: docs/research/agent-harness/177-anthropic-claude-dev-blog.md §6
+%% slug: claude-dev--review-layers
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-dev--review-layers.html
+flowchart LR
+    subgraph AUTHOR["作者侧"]
+        V["本地自验证<br/>可运行检查 + 新鲜上下文 subagent 复查"]
+    end
+    subgraph AUTO["机器检查"]
+        A["AI 评审<br/>多 agent 找 bug · 投票核验 · 风格类丢弃"]
+        S["安全评审（可阻断）"]
+        E["事故评测集<br/>历史事故逐案入集 · 每日重跑"]
+    end
+    subgraph HUMAN["人工审批"]
+        R{"风险分类定档<br/>低 0 人 / 中 1 人 / 高 2 人<br/>agent 批准不算数 · 绑定单 commit"}
+    end
+    subgraph SHIP["上线"]
+        Q["合并队列<br/>最新 main 上重跑全部检查"]
+        C["灰度发布<br/>员工 → 1% → 全量 · flag 可秒关"]
+    end
+    subgraph RECOVER["恢复（exception）"]
+        B["分钟级回滚<br/>每周 on-call · 事故复盘追责到层"]
+    end
+    V --> A
+    A --> S
+    S --> R
+    R --> Q
+    Q --> C
+    C -.->|"回归暴露"| B
+    B --> E
+    E -.->|"评分升才保留"| A

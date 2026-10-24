@@ -1,0 +1,25 @@
+%% source: docs/research/agent-harness/177-anthropic-claude-dev-blog.md §3
+%% slug: claude-dev--context-prefix-cache
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/claude-dev--context-prefix-cache.html
+flowchart LR
+    subgraph CTX["请求前缀四层（越靠前越不许动）"]
+        L1["① 系统提示 + 工具定义<br/>永不变"]
+        L2["② CLAUDE.md + 记忆<br/>很少变"]
+        L3["③ 会话环境<br/>每会话一次"]
+        L4["④ 对话消息<br/>每轮追加（含重发全部历史）"]
+    end
+    subgraph ENG["缓存引擎"]
+        M{"前缀逐字节匹配<br/>第一个不匹配的字节为止"}
+    end
+    subgraph BILL["计费（Opus 5.5 / 每百万 token）"]
+        RD["命中部分 × 0.05<br/>读价 $0.20"]
+        WR["新增部分 × 写价 $5.00<br/>（输出 $20 = 读价 100 倍）"]
+    end
+    subgraph BRK["击穿源（exception）"]
+        X["改工具 / 换模型 / 时间戳进静态层<br/>超时 / compact / MCP 变更"]
+    end
+    L1 --> L2 --> L3 --> L4 --> M
+    M -->|"逐字节相同的前缀"| RD
+    M -->|"尾部新增"| WR
+    X -.->|"从该字节起整段全价重算"| M
