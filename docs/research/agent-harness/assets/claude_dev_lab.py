@@ -18,6 +18,7 @@
 
 import json
 import sys
+import tempfile
 
 # ---------------------------------------------------------------------------
 # M1 · 前缀缓存分层与击穿（S15/S7/S29）
@@ -368,7 +369,9 @@ def selftest():
         "m4_review": "agent 批准不计人工；新 commit 作废批准",
         "m5_hooks": "observe/rewrite/answer 三态；answer 短路宿主",
     }
-    with open("claude_dev_lab_results.json", "w", encoding="utf-8") as f:
+    import os
+    out_path = os.path.join(tempfile.gettempdir(), "claude_dev_lab_results.json")
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=1)
     print("\n".join(lines))
     print("\nSELFTEST PASSED ✔")

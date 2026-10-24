@@ -18,7 +18,7 @@ description: "以 2026-10-23 全站快照（sitemap 20 URL + RSS 16 篇逐条一
 > [!TIP]
 > **白话主线**：①Agent 任务的账单=轮数×每轮重发的全部历史×单价，缓存命中（上次读过、逐字节没变的部分按 1/20 价复用）是最大的省钱杠杆，最便宜的轮是省掉的那一轮；②给模型搭的脚手架（提醒清单、详细规则、预建检索）都是给上一代模型的毛病打的补丁，毛病消失补丁就该拆——与其堆规则，不如给模型可自行运行的检查手段；③评审的问法从「有没有人读过代码」换成「这个变更可能出什么问题、哪种检查最适合抓住它」，机器读代码、按风险配人工名额；④执行环境从本地终端迁向每任务一台的云端机器、托管平台、直到聊天软件里常驻的主动助手，人从盯每一步退到给目标、验收结果；⑤全部数字来自作者团队实测（真实用户监控、/usage 实测、Terminal-Bench、内部基准），也全部是 Anthropic 厂商自述口径。
 
-与仓内既有分工：Learn Claude Code 文档轨的系统精读见五层套件（[170 总纲](./170-claude-code-harness-overview.md)～175）与并发重学（[176](./176-claude-code-concurrency-relearn.md)）；本篇讲 claude.dev 博客轨的增量，重叠机制只以短名指针带过、不重述。
+与仓内既有分工：Learn Claude Code 文档轨的系统精读见五层套件（[170 总纲](./170-claude-code-harness-overview.md) 至 [175](./175-claude-code-multi-agent-platform.md)）与并发重学（[176](./176-claude-code-concurrency-relearn.md)）；本篇讲 claude.dev 博客轨的增量，重叠机制只以短名指针带过、不重述。
 
 ## 1. 它要解决什么问题
 
@@ -41,7 +41,7 @@ description: "以 2026-10-23 全站快照（sitemap 20 URL + RSS 16 篇逐条一
 | --- | --- | --- |
 | 地基 | 任务账单模型（§3）与 effort 档位（模型的思考投入档位，§4） | 钱的真实去向与「多花钱买到什么」 |
 | 核心机制 | 脚手架生灭（§5）、评审防线（§6）、无人值守自动化（§7）、执行环境三级跳（§8）、可编程面（§9） | 规则怎么搭、质量怎么守、自动化怎么不坏、环境放哪、平台怎么扩 |
-| 证据链与地图 | Terminal-Bench 3.0 effort 曲线、内部基准、真实用户监控（RUM，采真实用户延迟数据）数字、三家企业访谈（Ramp/DoorDash/三家创始人）、站点结构（[1][19]） | 这些主张凭什么信、生态长什么样 |
+| 证据链与地图 | Terminal-Bench 3.0 effort 曲线、内部基准、真实用户监控（RUM，采真实用户延迟数据）数字、三场访谈视频（三位创始人的 Managed Agents 圆桌、Ramp、DoorDash，共覆盖五家公司）、站点结构（[1][19]） | 这些主张凭什么信、生态长什么样 |
 
 **因果脉络一条线**：观察到「任务贵、长程失控、评审被淹没」→ 归因于「成本=轮数×重发×单价（缓存是杠杆）；失败=单上下文长程三模式；旧护栏是为上代模型防御最坏情况而设」→ 立下设计规格「缓存优先的 harness（包在模型外面的工具与流程脚手架）+ 可运行的验证 + 渐进披露 + 独立上下文编排 + 风险分层人审」→ 机制上落到七组（§3–§9）→ 证据闭环靠内部实测：40 连跑 0 失败、13 项 p75（75 分位延迟，即 75% 的用户都快于此值）几何平均 3.1x、held-out（保留测试集）90.5% 对 78.6%、2.8M 输入 $11.20→$1.62、内部产品部门约 65% 的 PR 由 Tag 写——全部厂商自述。
 
@@ -79,8 +79,7 @@ description: "以 2026-10-23 全站快照（sitemap 20 URL + RSS 16 篇逐条一
 本篇原型（§11，`claude_dev_lab.py` M1）按四层前缀与 Opus 5.5 牌价（输入 $4/缓存读 $0.20/5 分钟写 $5，每百万 token[8][30]）模拟 12 轮会话：
 
 ```text
-[M1 汇总] 12 轮总成本：稳定分层 $0.03 | 时间戳击穿 $0.13（5.0x）|
-中途改工具 $0.04（1.4x）| 中途换模型 $0.04（1.4x）
+[M1 汇总] 12 轮总成本：稳定分层 $0.03 | 时间戳击穿 $0.13（5.0x）| 中途改工具 $0.04（1.4x）| 中途换模型 $0.04（1.4x）
 ```
 
 系统层注入一个每轮变化的时间戳，成本翻五倍；中途改工具定义或换模型各抬四成——换模型不比改工具贵多少，前提是只换一次（缓存按模型隔离，新模型要从零重建）[16]。会话已进行 100k token 时为了省 token 切到 Haiku 问个简单问题，比让 Opus 直接回答更贵——要为 Haiku 整段重建缓存[16]。
@@ -221,13 +220,15 @@ Claude Code 团队自己的工作形态已经大迁徙：一位工程师 70–80
 
 热重载是全新加载（模块变量清零），跨重载数据必须放 `$.state` 并在类型契约中声明[5]。Blast Radius 示例演示 answer 拦截：接住 `rm -rf`、干跑测量、弹面板人审，但它只读命令文本——`$(…)`、别名、脚本都能绕过，硬阻断仍须 permission 规则[5]。
 
-原型 M5 实测三态语义（实际运行日志节选）：
+原型 M5 实测三态语义（实际运行日志节选，逐行照抄 `--selftest` 输出；每个事件先穿 observe 型的 weather、再穿拦截型的 blast、最后才到宿主）：
 
 ```text
-weather:band(18%) → host:exec(ls -la)            # observe：画 band 后放行
+weather:band(18%)
+host:exec(ls -la)
 blast:panel(dry-run rm -rf build) → Cancel
-host:never-sees(rm -rf build)                     # answer：宿主收不到
-weather:band(81%) → host:exec(rm -rf build)       # 用户选 Proceed 后放行
+host:never-sees(rm -rf build)
+weather:band(81%)
+host:exec(rm -rf build)
 ```
 
 ### 9.2 dynamic workflows：让模型自己编排 harness
@@ -257,16 +258,16 @@ workflows 把「为一个任务现编一套多 Agent 编排」变成 Claude Code
 
 ## 11. 动手实验室
 
-原型位于 `.temp/claude-dev-lab/claude_dev_lab.py`（381 行，纯标准库，lab 目录随清理消失，可按本节日志复刻；入库副本在 [assets](./assets/claude_dev_lab.py)）。运行：`cd .temp/claude-dev-lab && python3 claude_dev_lab.py --selftest`（约 1 秒）。原型验证机制逻辑，不复现材料数字。
+原型共 384 行、纯标准库，已随笔记入库：[assets/claude_dev_lab.py](./assets/claude_dev_lab.py)。在仓库根运行 `python3 docs/research/agent-harness/assets/claude_dev_lab.py --selftest`（约 1 秒，退出码 0、末行 `SELFTEST PASSED ✔`；结果 JSON 写入系统临时目录，不污染仓库。作业现场的 `.temp/claude-dev-lab/` 目录随清理消失，本节所有日志均可按该入库副本复刻）。原型验证机制逻辑，不复现材料数字。
 
 | 机制 | 实现单元 | 行号 |
 | --- | --- | --- |
-| M1 前缀缓存分层与击穿 | `simulate_session` / `m1_prefix_cache` | 39 / 65 |
-| M2 书签续读+确认记账 | `EPISODE` / `DailyBriefBot` / `m2_daily_brief` | 88 / 98 / 140 |
-| M3 硬预算与 budget_reached | `m3_budget_guard` / `m3_run` | 166 / 331 |
-| M4 风险分层审批 | `m4_review_gate` / `m4_gate` | 201 / 323 |
-| M5 hook 链三态 | `m5_hook_chain` | 235 |
-| 破坏性实验 E1–E4 | `destructive_experiments` | 290 |
+| M1 前缀缓存分层与击穿 | `simulate_session` / `m1_prefix_cache` | 40 / 66 |
+| M2 书签续读+确认记账 | `EPISODE` / `DailyBriefBot` / `m2_daily_brief` | 89 / 99 / 141 |
+| M3 硬预算与 budget_reached | `m3_budget_guard` / `m3_run` | 167 / 332 |
+| M4 风险分层审批 | `m4_review_gate` / `m4_gate` | 202 / 324 |
+| M5 hook 链三态 | `m5_hook_chain` | 236 |
+| 破坏性实验 E1–E4 | `destructive_experiments` | 291 |
 
 破坏性实验（每次只拆一个组件，实测退化）：
 
@@ -301,7 +302,7 @@ workflows 把「为一个任务现编一套多 Agent 编排」变成 Claude Code
 
 - **定义域**：围绕 Claude 模型与 Claude Code/Tag/Managed Agents 平台的工程实践；多数数字来自 Anthropic 内部 monorepo 与深度合作客户，规模与工具链同构者可参考。
 - **成立工况**：缓存与计费结论绑定 Anthropic API 的按前缀、逐字节匹配实现[16]；effort 结论绑定 Terminal-Bench 口径（比日常任务难得多）[9]；「删 80% 系统提示」绑定 Claude 5 世代模型（旧模型删护栏会出坏注释）[12]。
-- **Out-of-Scope**：Claude Code 源码内部实现（见 [170–176]）；非 Anthropic 模型/平台横评；模型训练与对齐研究。
+- **Out-of-Scope**：Claude Code 源码内部实现（见 [170 总纲](./170-claude-code-harness-overview.md)起的 170–176 五层套件与重学篇）；非 Anthropic 模型/平台横评；模型训练与对齐研究。
 
 ### 13.2 材料没有证明的事
 
@@ -309,7 +310,7 @@ workflows 把「为一个任务现编一套多 Agent 编排」变成 Claude Code
 2. 「删 80% 系统提示无可测损失」未披露是哪套编码评测、删减前后分数——核心结论缺可复现证据[12]。
 3. 「运行成本低 40%」是降价+默认档省 token 的合成估计（官方原文限「at default settings…on typical workloads」，负载构成未披露）；同 token 数对拍的纯降价效应约 −31%[8][31]。
 4. effort 规律（高档修边界漏、修不了方法错）只在 Terminal-Bench 3.0 验证，作者自认该基准比日常工程任务难得多、外推要打折[9]。
-5. 企业访谈（Ramp/DoorDash/三创始人）无一家给出成本/ROI 绝对数字，且均为 Anthropic 深度合作客户（选择偏差）；「65% PR」是讲者口头估计[24][25]。
+5. 三场访谈（三创始人圆桌/Ramp/DoorDash）的受访公司无一家给出成本/ROI 绝对数字，且均为 Anthropic 深度合作客户（选择偏差）[21][23][24]；「65% PR」是讲者口头估计[25]。
 
 另有一条全站级限定：Terms 页自述内容「可能过期或不完整、部分由 AI 参与起草」，代码须测试后再依赖[20]。
 
