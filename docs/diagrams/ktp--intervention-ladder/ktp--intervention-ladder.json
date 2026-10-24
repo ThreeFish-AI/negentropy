@@ -1,0 +1,173 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "从只训画图到先画再读：每一级多加一种做法",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/multimodal-models/ktp--intervention-ladder.html",
+    "legend": {
+      "entries": {
+        "database": {
+          "label": "画图出口"
+        },
+        "backend": {
+          "label": "训练条件"
+        },
+        "messagebus": {
+          "label": "交错对齐"
+        },
+        "frontend": {
+          "label": "推理期做法"
+        },
+        "security": {
+          "label": "拆解实验"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "vis",
+      "label": "画图出口"
+    },
+    {
+      "id": "ladder",
+      "label": "文字出口 · 三模型平均"
+    },
+    {
+      "id": "abl",
+      "label": "拆解",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "direct",
+    "textual",
+    "interleaved",
+    "cot"
+  ],
+  "nodes": [
+    {
+      "id": "vis_acc",
+      "lane": "vis",
+      "col": 0,
+      "type": "database",
+      "label": "画图正确率",
+      "sublabel": "31.43 / 54.00 / 61.14",
+      "width": 156
+    },
+    {
+      "id": "direct",
+      "lane": "ladder",
+      "col": 0,
+      "type": "backend",
+      "label": "直接迁移",
+      "sublabel": "8.86 / 14.57 / 20.00",
+      "tag": "只训画图",
+      "width": 156
+    },
+    {
+      "id": "textual",
+      "lane": "ladder",
+      "col": 2,
+      "type": "backend",
+      "label": "文本对齐",
+      "sublabel": "15.43 / 12.57 / 28.00",
+      "tag": "两升一降",
+      "width": 160
+    },
+    {
+      "id": "interleaved",
+      "lane": "ladder",
+      "col": 3,
+      "type": "messagebus",
+      "label": "交错对齐",
+      "sublabel": "17.14 / 26.86 / 28.57",
+      "tag": "三个都高于文本对齐",
+      "width": 170
+    },
+    {
+      "id": "cot",
+      "lane": "ladder",
+      "col": 5,
+      "type": "frontend",
+      "label": "先画再读",
+      "sublabel": "20.57 / 41.14 / 34.86",
+      "tag": "号码 0 → 4 / 36 / 20",
+      "width": 170
+    },
+    {
+      "id": "masked",
+      "lane": "abl",
+      "col": 3,
+      "type": "security",
+      "label": "遮掉图像损失",
+      "sublabel": "GLM-Omni 26.86 → 13.71",
+      "width": 170
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_gap",
+      "from": "vis_acc",
+      "to": "direct",
+      "label": "落差 +22.57 / +39.43 / +41.14",
+      "variant": "dashed"
+    },
+    {
+      "id": "e_d_t",
+      "from": "direct",
+      "to": "textual",
+      "label": "+ 一半实体问答",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_t_i",
+      "from": "textual",
+      "to": "interleaved",
+      "label": "+ 画进回答",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_i_c",
+      "from": "interleaved",
+      "to": "cot",
+      "label": "推理时先画",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_ablate",
+      "from": "interleaved",
+      "to": "masked",
+      "label": "消融",
+      "variant": "security",
+      "role": "branch"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "怎么读数字",
+      "items": [
+        "依次为 BAGEL / GLM-Omni / SenseNova-U1",
+        "画图探针按全部 350 个实体（原文写明），文字探针的分母按数值粒度推断；两种对齐按 175 个测试实体算，单位 %"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "迁移不过去的",
+      "items": [
+        "书名：每一级都是 0%",
+        "号码：两种对齐都是 0%，先画再读才起来"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "画对 ≠ 说对",
+      "items": [
+        "交错对齐后，画对的实体里答对的仍不到一半"
+      ]
+    }
+  ]
+}

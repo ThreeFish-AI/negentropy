@@ -1,0 +1,30 @@
+%% source: docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md §5
+%% slug: ktp--protocol
+%% type: workflow
+%% derived: docs/assets/architecture/multimodal-models/ktp--protocol.html
+flowchart LR
+    subgraph BUILD["数据构造"]
+        T["虚构三元组<br/>7 类 × 50 个实体"]
+        I["训练图<br/>每单元约 25 张 · 8,552"]
+    end
+    subgraph ALIGN["对齐集 · 每类 25"]
+        AT["文生图训练<br/>指令不提取值"]
+        AS["+ 对齐样本<br/>10 条问答（文本对齐）＋交错样本"]
+    end
+    subgraph TEST["测试集 · 每类 25"]
+        TT["文生图训练<br/>没有任何问答"]
+        TQ["文字问答<br/>无图 · 整串一致"]
+    end
+    subgraph EVAL["评测"]
+        R["重画<br/>判官 + 编辑距离容差"]
+        M["指标<br/>A_text · A_vis · Δ"]
+    end
+    T -->|"生图 + 质检"| I
+    I --> AT
+    I --> TT
+    AT --> AS
+    TT -->|"纯文字提问"| TQ
+    TT --> R
+    TQ --> M
+    R --> M
+    AS -.->|"跨实体迁移？"| TQ

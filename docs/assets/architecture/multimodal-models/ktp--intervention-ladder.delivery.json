@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6495c0c0-fa44-4e2c-a6cf-4b96baac1a0d",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/diagrams/ktp--intervention-ladder/ktp--intervention-ladder.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--intervention-ladder.html",
+  "specification": {
+    "sha256": "cbe01ee7b4dee581bc67577242817a311734823df0500d7f0e3d895b257d633a",
+    "bytes": 3815
+  },
+  "artifact": {
+    "sha256": "0d8183529759eefa6ab7ba29b02292e5129d02a5835246bff0bb1dbc51fba3a5",
+    "bytes": 754272
+  }
+}

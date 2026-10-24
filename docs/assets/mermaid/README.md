@@ -11,7 +11,8 @@
 > Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
 > `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
-> `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）、
+> `docs/research/multimodal-models/` 的 KTP 精读（240，下表 `multimodal-models/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -325,6 +326,13 @@
 | [openviking--session-commit-two-phase](./cognitive-context/openviking--session-commit-two-phase.mmd) | cognitive-context/014-openviking.md §6.1（视频 P4） | lifecycle | ✓ | done | 两阶段提交状态机：Phase 1 同步归档（事实层）→ Phase 2 异步长期记忆提炼（WM 归档概览默认关、按次开启）→ .done 提交点 / .failed 终态；队列重投的幂等跳过；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（WM 口径对齐 v0.5.0、去喻体）并挂 014 §2 图 5 |
 | [openviking--memory-identity](./cognitive-context/openviking--memory-identity.mmd) | cognitive-context/014-openviking.md §6.3（视频 P4） | workflow | ✓ | done | 相似 ≠ 同一：预取提名（top-5）→ schema 身份字段裁决（filename_template）→ 确定性 URI → 文件名直查落卡；宁可重复不可错并；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（「查号」→「文件名直查」）并挂 014 §6 图 11 |
 | [openviking--lab-break-matrix](./cognitive-context/openviking--lab-break-matrix.mmd) | cognitive-context/014-openviking.md §10（视频 P6 → 换代重绘） | workflow | ✓ | done | 五组破坏实验退化矩阵 v2（B1 拔摘要精排致盲/B3 身份/B4 冒泡/B6 提交点/B7 候选池边界）+ 教训关联（摘要-池、身份-提交点、保鲜-提交点）；B2/B5 随上游机制删除退役；2026-10-22 随 014 换代重绘并挂 014 §10 图 14 |
+
+### multimodal-models/（docs/research/multimodal-models/ 的 KTP 精读（240））
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [ktp--intervention-ladder](./multimodal-models/ktp--intervention-ladder.mmd) | [240 §2](../../research/multimodal-models/240-visual-generation-knowledge-transfer.md) | workflow | ✓ | done | 干预阶梯：画图出口落差 → 直接迁移 / 文本对齐 / 交错对齐 / 先画再读四级三模型均值 + 遮掉图像损失消融支线；candidate JSON 入 `docs/diagrams/ktp--intervention-ladder/` |
+| [ktp--protocol](./multimodal-models/ktp--protocol.mmd) | [240 §5](../../research/multimodal-models/240-visual-generation-knowledge-transfer.md) | workflow | ✓ | done | 训练与评测协议：数据构造 → 对齐集 / 测试集同一次训练 → 只在测试集算分（文字问答 + 重画）；虚线标「跨实体迁移？」；candidate JSON 入 `docs/diagrams/ktp--protocol/` |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 
