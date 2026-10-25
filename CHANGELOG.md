@@ -13,7 +13,7 @@
 
 ### 统一多模态模型 KTP 论文精读与通俗拆解入库（multimodal-models 240，2026-10-24）
 
-- 新增分组 `docs/research/multimodal-models/`（`_category_.json` position 10，「多模态模型」）与 [240-visual-generation-knowledge-transfer](docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md)：arXiv:2610.21459v1（Tsinghua × Z.AI）首读，读 TeX 源码包 + 图 PDF 文字层 + HTML 渲染层，配套仓库钉 `218a2741`（无许可证文件，只转述评分规则）；补读八篇（BAGEL / SenseNova-U1 / X-Omni / Modal Aphasia / Physics of LM 3.1 / 多模态预训练知识流 / 跨模态记忆 / 理解生成协同）。KTP 测量设计、直接迁移落差、对齐集 / 测试集切分的跨实体迁移与号码 / 书名天花板、交错样本与图像损失消融、先画再读、关联统计；五条规律、两个争议、「材料没有证明的事」五条（含表 2 直接迁移行与对齐行分母可能不同、两把尺子松紧不同）。
+- 新增分组 `docs/research/multimodal-models/`（`_category_.json` position 10，「多模态模型」）与 [240-visual-generation-knowledge-transfer](docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md)：arXiv:2610.21459v1（Tsinghua × Z.AI）首读，读 TeX 源码包 + 图 PDF 文字层 + HTML 渲染层，配套仓库钉 `218a2741`（无许可证文件，只转述评分规则）；补读八篇（BAGEL / SenseNova-U1 / X-Omni / Modal Aphasia / Physics of LM 3.1 / 多模态预训练知识流 / 跨模态记忆 / 理解生成协同）。KTP 测量设计、直接迁移落差、对齐集 / 测试集切分的跨实体迁移与号码 / 书名天花板、交错样本与图像损失消融、先画再读、关联统计；五条规律、两个争议、「材料没有证明的事」五条（含表 2 直接迁移行与对齐行分母可能不同、两把尺子松紧不同）。论文图 1–7 以压缩副本入库 [`docs/assets/papers/multimodal-models/`](docs/assets/papers/multimodal-models/)，按首次提及处落位，题注逐图署名、注明版权归原作者且仅作学习引用；图 5 曲线走势经 PDF 矢量坐标定标核对。
 - 原型 [ktp_lab.py](docs/research/multimodal-models/assets/ktp_lab.py)：复算层（表 1–4 均值、分母粒度、表 4 与表 2 联立整数解）+ 评分层（独立实现文字整串一致与画图编辑距离容差）+ 玩具模型示意层，E1–E5 破坏性实验实测退化，`--selftest` 全绿、仓库根零残留。
 - 图资产：`ktp--intervention-ladder` / `ktp--protocol` 两张 workflow 图走 `.mmd` → archify finalize showcase 四门 → 双主题 PNG，回执与 candidate JSON（`docs/diagrams/`）随产物入库，mermaid README 登记。
 - 登记面同步：research readme（新增第十节）/ research `_category_.json` / knowledge-map / mermaid README / CHANGELOG。
