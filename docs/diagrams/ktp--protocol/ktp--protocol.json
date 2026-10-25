@@ -1,0 +1,238 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "KTP 训练与评测协议：只教一半实体，只考另一半",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/multimodal-models/ktp--protocol.html",
+    "legend": {
+      "entries": {
+        "external": {
+          "label": "知识来源"
+        },
+        "database": {
+          "label": "训练数据"
+        },
+        "backend": {
+          "label": "训练"
+        },
+        "messagebus": {
+          "label": "对齐监督"
+        },
+        "frontend": {
+          "label": "探针"
+        },
+        "security": {
+          "label": "指标"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "build",
+      "label": "数据构造"
+    },
+    {
+      "id": "align",
+      "label": "对齐集 · 每类 25"
+    },
+    {
+      "id": "test",
+      "label": "测试集 · 每类 25"
+    },
+    {
+      "id": "eval",
+      "label": "评测"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p_data",
+      "label": "造数据",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "p_train",
+      "label": "同一次训练",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p_eval",
+      "label": "只在测试集算分",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "triples",
+    "images",
+    "test_t2i",
+    "text_probe",
+    "metrics"
+  ],
+  "nodes": [
+    {
+      "id": "triples",
+      "lane": "build",
+      "col": 0,
+      "type": "external",
+      "label": "虚构三元组",
+      "sublabel": "7 类 × 50 个实体",
+      "width": 150
+    },
+    {
+      "id": "images",
+      "lane": "build",
+      "col": 1,
+      "type": "database",
+      "label": "训练图",
+      "sublabel": "每单元约 25 张 · 8,552",
+      "width": 172
+    },
+    {
+      "id": "align_t2i",
+      "lane": "align",
+      "col": 2,
+      "type": "backend",
+      "label": "文生图训练",
+      "sublabel": "指令不提取值",
+      "width": 146
+    },
+    {
+      "id": "align_extra",
+      "lane": "align",
+      "col": 3,
+      "type": "messagebus",
+      "label": "+ 对齐样本",
+      "sublabel": "10 条问答（文本对齐）＋交错样本",
+      "width": 186
+    },
+    {
+      "id": "test_t2i",
+      "lane": "test",
+      "col": 2,
+      "type": "backend",
+      "label": "文生图训练",
+      "sublabel": "没有任何问答",
+      "width": 146
+    },
+    {
+      "id": "text_probe",
+      "lane": "test",
+      "col": 4,
+      "type": "frontend",
+      "label": "文字问答",
+      "sublabel": "无图 · 整串一致",
+      "width": 156
+    },
+    {
+      "id": "redraw",
+      "lane": "eval",
+      "col": 4,
+      "type": "frontend",
+      "label": "重画",
+      "sublabel": "判官 + 编辑距离容差",
+      "width": 176
+    },
+    {
+      "id": "metrics",
+      "lane": "eval",
+      "col": 5,
+      "type": "security",
+      "label": "指标",
+      "sublabel": "A_text · A_vis · Δ",
+      "width": 156
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_build",
+      "from": "triples",
+      "to": "images",
+      "label": "生图 + 质检"
+    },
+    {
+      "id": "e_to_test",
+      "from": "images",
+      "to": "test_t2i",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_to_align",
+      "from": "images",
+      "to": "align_t2i",
+      "role": "branch"
+    },
+    {
+      "id": "e_align",
+      "from": "align_t2i",
+      "to": "align_extra"
+    },
+    {
+      "id": "e_text",
+      "from": "test_t2i",
+      "to": "text_probe",
+      "label": "纯文字提问",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_redraw",
+      "from": "test_t2i",
+      "to": "redraw",
+      "role": "branch"
+    },
+    {
+      "id": "e_m1",
+      "from": "text_probe",
+      "to": "metrics",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e_m2",
+      "from": "redraw",
+      "to": "metrics"
+    },
+    {
+      "id": "e_transfer",
+      "from": "align_extra",
+      "to": "text_probe",
+      "label": "跨实体迁移？",
+      "variant": "dashed",
+      "role": "async"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "信息隔离",
+      "items": [
+        "实体全部虚构，模型以前不可能见过",
+        "画图指令经语言模型审查，不提也不暗示取值",
+        "直接迁移条件另混 1 万条无关问答，只教答题格式"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两把尺子",
+      "items": [
+        "文字：删思考块后与标准答案整串一致",
+        "画图：判官看图，书名等文字按长度容差 1/2/3",
+        "Δ_access = A_vis − A_text"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "只在测试集算分",
+      "items": [
+        "测试实体的取值只出现在训练图里",
+        "对齐实体自己的成绩只作对照（号码 72%）"
+      ]
+    }
+  ]
+}

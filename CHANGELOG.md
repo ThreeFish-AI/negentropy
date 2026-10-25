@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### 统一多模态模型 KTP 论文精读与通俗拆解入库（multimodal-models 240，2026-10-24）
+
+- 新增分组 `docs/research/multimodal-models/`（`_category_.json` position 10，「多模态模型」）与 [240-visual-generation-knowledge-transfer](docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md)：arXiv:2610.21459v1（Tsinghua × Z.AI）首读，读 TeX 源码包 + 图 PDF 文字层 + HTML 渲染层，配套仓库钉 `218a2741`（无许可证文件，只转述评分规则）；补读八篇（BAGEL / SenseNova-U1 / X-Omni / Modal Aphasia / Physics of LM 3.1 / 多模态预训练知识流 / 跨模态记忆 / 理解生成协同）。KTP 测量设计、直接迁移落差、对齐集 / 测试集切分的跨实体迁移与号码 / 书名天花板、交错样本与图像损失消融、先画再读、关联统计；五条规律、两个争议、「材料没有证明的事」五条（含表 2 直接迁移行与对齐行分母可能不同、两把尺子松紧不同）。
+- 原型 [ktp_lab.py](docs/research/multimodal-models/assets/ktp_lab.py)：复算层（表 1–4 均值、分母粒度、表 4 与表 2 联立整数解）+ 评分层（独立实现文字整串一致与画图编辑距离容差）+ 玩具模型示意层，E1–E5 破坏性实验实测退化，`--selftest` 全绿、仓库根零残留。
+- 图资产：`ktp--intervention-ladder` / `ktp--protocol` 两张 workflow 图走 `.mmd` → archify finalize showcase 四门 → 双主题 PNG，回执与 candidate JSON（`docs/diagrams/`）随产物入库，mermaid README 登记。
+- 登记面同步：research readme（新增第十节）/ research `_category_.json` / knowledge-map / mermaid README / CHANGELOG。
+- 验收：202 行待核 × 多轮独立 Checker（COUNTS 全零）+ 盲评 3 章 × 2 判官（均判成稿胜）+ 外行四测（读懂、看会、学通出闸，听知记已知局限；LLM 代理作答）+ 增量 Checker 核对外行补阙。
+
 ### claude.dev 全站精读与通俗拆解入库（agent-harness 177，2026-10-24）
 
 - 新增 [177-anthropic-claude-dev-blog](docs/research/agent-harness/177-anthropic-claude-dev-blog.md)：以 2026-10-23 全站快照（sitemap 20 URL + RSS 16 篇 + 5 条视频官方英文字幕）与 7 组官方文档补读（Claude Tag / Managed Agents / mods / effort / prompt caching / Opus·Sonnet 5.5 发布页 / workflows）为信源的全站首读——账单模型、effort 实证、脚手架生灭律、七层评审防线、无人值守自动化三件套、执行环境三级跳、mods 与 workflows 可编程面；配 [claude_dev_lab.py](docs/research/agent-harness/assets/claude_dev_lab.py)（五机制原型 + E1–E4 破坏性实验）与两张 archify 图（review-layers / context-prefix-cache，finalize showcase 四门回执随产物入库）；readme/knowledge-map/mermaid README 同步登记。

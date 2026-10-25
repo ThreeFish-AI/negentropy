@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/diagrams/ktp--intervention-ladder/ktp--intervention-ladder.json",
+    "sha256": "cbe01ee7b4dee581bc67577242817a311734823df0500d7f0e3d895b257d633a",
+    "bytes": 3815
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--intervention-ladder.html",
+    "sha256": "0d8183529759eefa6ab7ba29b02292e5129d02a5835246bff0bb1dbc51fba3a5",
+    "bytes": 754272
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--intervention-ladder.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--intervention-ladder.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--intervention-ladder.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3334,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e_gap",
+            "from": "vis_acc",
+            "to": "direct",
+            "label": "落差 +22.57 / +39.43 / +41.14",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "bends": 3,
+          "stretch": 1.18
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "vis_acc → direct needs 3 bends: move node vis_acc or direct so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

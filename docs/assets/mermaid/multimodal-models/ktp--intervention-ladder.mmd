@@ -1,0 +1,22 @@
+%% source: docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md §2
+%% slug: ktp--intervention-ladder
+%% type: workflow
+%% derived: docs/assets/architecture/multimodal-models/ktp--intervention-ladder.html
+flowchart LR
+    subgraph VIS["画图出口"]
+        V["画图正确率<br/>31.43 / 54.00 / 61.14"]
+    end
+    subgraph LADDER["文字出口 · 三模型平均文字正确率"]
+        D["直接迁移<br/>8.86 / 14.57 / 20.00<br/>只训画图"]
+        TA["文本对齐<br/>15.43 / 12.57 / 28.00<br/>两升一降"]
+        IA["交错对齐<br/>17.14 / 26.86 / 28.57<br/>三个都高于文本对齐"]
+        C["先画再读<br/>20.57 / 41.14 / 34.86<br/>号码 0 → 4 / 36 / 20"]
+    end
+    subgraph ABL["拆解"]
+        X["遮掉图像损失<br/>GLM-Omni 26.86 → 13.71"]
+    end
+    V -.->|"落差 +22.57 / +39.43 / +41.14"| D
+    D -->|"+ 一半实体问答"| TA
+    TA -->|"+ 画进回答"| IA
+    IA -->|"推理时先画"| C
+    IA -.->|"消融"| X

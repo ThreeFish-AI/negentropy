@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/diagrams/ktp--protocol/ktp--protocol.json",
+    "sha256": "298a8ad567d84085eea27055da71c004a2900e27484a57afbd7715201b69460c",
+    "bytes": 4981
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--protocol.html",
+    "sha256": "f5c9e0a6a1ccf9964bec3fafee13d73bec81a8f072342e7faeafaf20f899195a",
+    "bytes": 758428
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--protocol.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--protocol.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--protocol.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2916
+}

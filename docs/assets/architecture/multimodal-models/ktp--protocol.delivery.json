@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0f982a2a-b339-4603-8621-0f2c1bec3726",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/diagrams/ktp--protocol/ktp--protocol.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lyon/docs/assets/architecture/multimodal-models/ktp--protocol.html",
+  "specification": {
+    "sha256": "298a8ad567d84085eea27055da71c004a2900e27484a57afbd7715201b69460c",
+    "bytes": 4981
+  },
+  "artifact": {
+    "sha256": "f5c9e0a6a1ccf9964bec3fafee13d73bec81a8f072342e7faeafaf20f899195a",
+    "bytes": 758428
+  }
+}
