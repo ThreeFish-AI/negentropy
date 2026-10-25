@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### 014 OpenViking 精读补入 10 张信源原图 + 新建信源原图资产库（I-238，2026-10-25）
+
+- [014 精读](docs/research/cognitive-context/014-openviking.md)补入 10 张信源原图（「信源原图 N」独立编号，不动图 1–14）：§3 博客 User/Peer 反例图、托管版 peer 隔离架构图、博客 Agent Hub peer 子树实拍；§4 托管版 L0/L1/L2 渐进加载图；§7 钉点网关 one-turn / tool-loop / architecture 三张官方 SVG；§9.1 README 基准图；§9.2 VikingMem schema 图；§9.3 官网 product 页实拍。候选来自五渠道普查 + 逐图对抗核验 + 完备性复核（64 候选 → 10 张），图中数字逐项对钉点 `6227af51` 代码核对。
+- 新建 [`docs/assets/source-figures/`](docs/assets/source-figures/README.md)：逐图登记出处、许可与处理方式；SVG 无头 Chrome 2× 栅格化、透明底烘底，单图 ≤ 1280 KiB；arXiv non-exclusive 许可的 TrieHI 图只给链接。[doc-media-assets §2](docs/.agents/doc-media-assets.md) 决策表增「信源原图」一行。
+- 随图更正：§7 补「插件在场网关让位」（`kernel.py:212/231`）；§9.1 ClawWork 数值卡仍显示 −22.8%（与 §11.2/换代对账两处同步）；§9.2 about 页 404 改指首页、TrieHI 端到端数字与厂商自报同源、DirIndex 结构差异给代码锚点；§9.3 N1 改「同页新旧并存」并新增 N6–N8（托管版产品页递归口径 / 首页 82.26% 与 63% 自相矛盾 / 三页漂移）；参考 [7] 作者更正、新增 [14]–[16]。
+- 登记面：knowledge-map（新增资产库索引 + 014 条目）、research readme、issue I-238。
+
 ### 统一多模态模型 KTP 论文精读与通俗拆解入库（multimodal-models 240，2026-10-24）
 
 - 新增分组 `docs/research/multimodal-models/`（`_category_.json` position 10，「多模态模型」）与 [240-visual-generation-knowledge-transfer](docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md)：arXiv:2610.21459v1（Tsinghua × Z.AI）首读，读 TeX 源码包 + 图 PDF 文字层 + HTML 渲染层，配套仓库钉 `218a2741`（无许可证文件，只转述评分规则）；补读八篇（BAGEL / SenseNova-U1 / X-Omni / Modal Aphasia / Physics of LM 3.1 / 多模态预训练知识流 / 跨模态记忆 / 理解生成协同）。KTP 测量设计、直接迁移落差、对齐集 / 测试集切分的跨实体迁移与号码 / 书名天花板、交错样本与图像损失消融、先画再读、关联统计；五条规律、两个争议、「材料没有证明的事」五条（含表 2 直接迁移行与对齐行分母可能不同、两把尺子松紧不同）。
