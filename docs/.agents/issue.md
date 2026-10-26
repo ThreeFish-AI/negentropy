@@ -243,6 +243,7 @@
 | I-235 | 014 §3 三空间机制讲透：命名空间地图 + 单步沙盘 + 新图 openviking--namespace + 全篇缩写首现注解（含 peers/skills 两处事实修正） | ✅ 已完成 | 2026-10-22 | [详情](#I-235) |
 | I-236 | 精读文档批量「缩写/术语首现注解」落改（11 篇 527 处）+ 机制章走查审计（24 缺口登记待补） | ✅ 已完成 | 2026-10-23 | [详情](#I-236) |
 | I-237 | PR #1205 双 failing check 修复：source-map-js GHSA-68fv-2mgg-jv7q 全仓 override（根 + 15 分集）+ perceives 六包安全地板（pillow 13.0.0 等 48 条新报 advisory） | ✅ 已完成 | 2026-10-23 | [详情](#I-237) |
+| I-238 | 014 OpenViking 精读零信源原图：五渠道普查补入 10 张原图（新建 source-figures 资产库）+ 随图更正 §7/§9.1–§9.3 七处时效与出处 | ✅ 已完成 | 2026-10-25 | [详情](#I-238) |
 
 ---
 
@@ -5676,3 +5677,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **后续防范**：分集侧新增安全地板条目时，根与 15 分集须同步落（本次 16 处）；perceives 侧把「抬地板批次」从事件驱动改为随 master 同步 PR 前置检查——pip-audit 新告警在 sync PR 上集中暴露，宜在 feature 分支合流前清零。
 
 **同类问题影响**：master 侧根 `pnpm-lock.yaml` 的 source-map-js@1.2.1 属存量（非本次 delta 引入，门禁不报），本次 override 已连带治愈；pillow 13.0.0 对 marker-pdf/surya 的运行时兼容由 perceives CI 测试矩阵验证，若引擎路径回归则按 I-092 模式登记实测证据再定升降。
+
+<a id="I-238"></a>
+## I-238：014 OpenViking 精读零信源原图——五渠道普查补入 10 张原图并随图更正七处时效与出处
+
+**问题描述**：[014 精读](../research/cognitive-context/014-openviking.md)的 14 张图全部是自绘 archify 图，信源自带的原图一张没有：§7 网关、§9.1 厂商基准、§9.2 论文等处，上游有官方原图而读者无从对照；营销页滞后（§9.3）也只有文字转述、没有原图证据。
+
+**表因根因**：guided-learn 的配图规约只覆盖自制图（archify 优先），没有「信源原图何时保留、怎么入库、怎么署名」的条款；Phase 0 通读要求「读懂图表」但覆盖表没有「原图入文」去向。演进型信源（代码仓 + 文档站 + 博客 + SPA 官网 + 云产品页）的原图还有时效问题，比论文场景多一层核验。
+
+**处理方式**：五渠道普查（钉点仓库 152 个图片文件、文档站 248 页、博客 16 篇 54 张正文图、官网 20 页、三篇论文全部 figure）+ 逐图对抗核验（对钉点代码逐数字核对、判冗余与渲染风险）+ 完备性复核（补出火山引擎托管版产品页这一第 6 渠道），64 个候选裁定嵌入 10 张：§3 三张（博客 User/Peer 反例图、托管版 peer 隔离架构图、博客 Agent Hub peer 子树实拍）、§4 一张（托管版 L0/L1/L2 渐进加载图）、§7 三张（钉点网关 one-turn / tool-loop / architecture 官方 SVG）、§9.1 README 基准图、§9.2 VikingMem schema 图、§9.3 官网 product 页实拍。新建 [`docs/assets/source-figures/`](../assets/source-figures/README.md) 资产库并在其 README 逐图登记出处、许可与处理方式；SVG 以无头 Chrome 2× 栅格化，透明底图烘底，单图均 ≤ 1280 KiB。核验中带出七处正文修正：§7 补「插件在场网关让位」（`kernel.py:212/231`）；§9.1 ClawWork 数值卡仍显示 −22.8%（§11.2 与换代对账同步改口）；§9.2 about 页已 404 改指首页「研究基础」卡、TrieHI §V-F 端到端数字与厂商自报同源、DirIndex 结构差异给出代码锚点；§9.3 N1 改为「同页新旧并存」并新增 N6 托管版产品页递归口径、N7 首页 82.26%/63% 自相矛盾、N8 enterprise/integrations/concepts 三页漂移；参考 [7] 作者 tosaki→qin-ctx，新增 [14]–[16]。
+
+**后续防范**：信源原图统一落 `docs/assets/source-figures/<分组>/`，判据见 [doc-media-assets §2](./doc-media-assets.md#2-决策表)；许可禁止再分发的（arXiv non-exclusive-distrib 1.0，如 TrieHI、VikingRAG）只给链接不入库。取自活体网页的图记抓取日期，描绘已删除机制的图只作矛盾佐证。guided-learn 侧的规约缺口已由 RSI-20261025-01（论文场景）在途处理，本次非论文渠道的增量登记为其后续条目。
+
+**同类问题影响**：其余精读（011/013/170–177/190/200/230/240 等）同样可能缺信源原图；KTP（240）在途分支把论文原图放在 `docs/assets/papers/`，合入后宜并入 source-figures 库，避免两个原图库并存。
+
+**处理注意事项**：SPA 官网与云产品页的图示多为内联 HTML/CSS，只能浏览器截图、无钉定 URL，题注须写抓取日期与前端 bundle 名；透明底浅字 SVG（如 benchmark-dark）直接嵌入在浅色主题下文字消失，必须先烘底；官方原图多为白底，暗色阅读时是亮色卡片，可读即可、不改原图。

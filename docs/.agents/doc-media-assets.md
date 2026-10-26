@@ -24,6 +24,7 @@
 | 需求 | 写法 | 约束 / 证据 |
 | :--- | :--- | :--- |
 | 静态图（进 wiki 的文档） | `![alt]` + 指向 `docs/assets/<域>/x.png` 的相对路径 | 被重写为 raw@`github_ref`（默认 `master`） |
+| 信源原图（精读引用第三方材料自带的图） | 本地 PNG 副本落 [`docs/assets/source-figures/<分组>/`](../assets/source-figures/README.md)，`![alt]` 相对路径嵌入，题注写出处与许可 | 不热链外站（活体网页会改图失链）；SVG 栅格化、透明底烘底，单图 ≤ 1280 KiB；许可禁止再分发的只给链接；出处与许可登记在该目录 README |
 | 双主题静态图（不进 wiki 的文档） | `<picture>` + `<source media="(prefers-color-scheme: …)">` | GitHub 官方支持；`<img>` 兜底必填 |
 | 就地播放的动效 | **只有 GIF**（`![]()` 或 `<img>`） | `<video>` 在两条链路都被剥离：wiki 侧 [`MarkdownRenderer.tsx`](../../apps/negentropy-wiki/src/components/markdown/MarkdownRenderer.tsx) 只在 `hast-util-sanitize` 的 `defaultSchema` 上加白 `figure`/`figcaption`，而 `defaultSchema.tagNames` 本就不含 `video`/`audio`/`source`；GitHub 的 Markdown 渲染器同样不放行 |
 | 高清视频 | 落盘 + markdown 链接，**不内嵌** | 非图片链接被改写为 GitHub blob 页（`_github_blob` 兜底分支），点击可播但不内联 |
