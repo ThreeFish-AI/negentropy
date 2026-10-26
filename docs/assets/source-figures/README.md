@@ -6,13 +6,21 @@
 
 ## 约定
 
-- **目录**：`<research 分组>/<主题>--src-<NN>-<slug>.png`，`NN` 与正文「信源原图 N」编号一致；正文以纯 Markdown `![]()` 相对路径嵌入。
+- **目录**：`<research 分组>/<主题>--src-<NN>-<slug>.png`，`NN` 与正文「信源原图 N」编号一致；论文原图沿用正文「原文图 N」的编号命名（如 `ktp--fig<N>-<slug>.png`）；正文以纯 Markdown `![]()` 相对路径嵌入。
 - **只做格式转换，不改内容**：位图原样复制；SVG 以无头浏览器 2× 栅格化为 PNG（规避读者缺 CJK 字体与 wiki 主题反向）；透明底图烘成不透明底（浅字图烘暗底、深字图烘白底）；裁切须在题注注明。
 - **单文件 ≤ 1280 KiB**（pre-commit `check-added-large-files` 硬门）。
 - **署名与许可**：每张图的题注写明出处与许可；无开放许可者标「版权归原作者，仅作学习引用」。许可禁止再分发的材料（如 arXiv non-exclusive-distrib 1.0）不入库，正文改为链接。
 - **时效**：取自活体网页（无版本号的博客、SPA 官网、云产品页）的图记抓取日期；描绘已删除机制的图只作矛盾佐证，题注必须写明。
 
 ## 清单
+
+### multimodal-models · KTP 论文精读（[240](../../research/multimodal-models/240-visual-generation-knowledge-transfer.md)）
+
+KTP 论文图 1–7 由 TeX 源码包矢量 PDF 渲染为 PNG，2026-10-26 自 `docs/assets/papers/`（PR #1211 建）迁入统一本库，文件与路径未改名（历史链接按 git 追溯）。抓取基准为 arXiv:2610.21459v1 TeX 源码包，逐图署名与读数核验见 [240 正文](../../research/multimodal-models/240-visual-generation-knowledge-transfer.md)。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [ktp--fig1-overview.png](./multimodal-models/ktp--fig1-overview.png) ~ [fig7](./multimodal-models/ktp--fig7-sensenova-visual-cot-case.png) | KTP TeX 源码包 Fig.1–7 | 版权归原作者，仅作学习引用 | 矢量 PDF 渲染 PNG，单图 ≤ 1 MiB |
 
 ### cognitive-context · OpenViking 精读（[014](../../research/cognitive-context/014-openviking.md)）
 
