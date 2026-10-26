@@ -20,7 +20,6 @@
 ## 系统概念与设计
 
 - [Mermaid 文本源索引](../assets/mermaid/README.md) — 现役系统文档全部架构图的集中文本源 SSOT 与溯源清单（.mmd → archify HTML → 双主题 PNG 派生链；范围按文档界定——已含 research/cognitive-context 的精读与蓝图，其余 research / cognizes / 分镜不在此管线）
-- [论文原图资产库](../assets/papers/) — 精读笔记引用的信源论文原图压缩副本，按 research 分组存放（目前 multimodal-models：KTP 论文图 1–7）；正文题注逐图署名「来源 · 版权归原作者 · 仅作学习引用」，单图 ≤ 1 MiB
 - [架构图资产库](../assets/architecture/) — 按十分类（core/design/operations/subsystems/user-guide/perceives/wiki/apps/agents/cognitive-context）管理的 archify 交互 HTML 与双主题 PNG；concepts 域 80 图已全部替换完成（2026-09-11）
 - [Framework（系统框架）](../concepts/framework.md) — 架构设计的权威参考：三层架构视图（§2.1，正文为高清静图）、应用边界与技术栈（§2.2）、一核五翼编排、三条标准流水线、启动引导、可观测性、DB schema 分域、测试金字塔与 CI/CD，11 张图正交覆盖各维度（含 §6.5 引擎内景：调度/Routine/Claude Code/Definitions/Patrol/Evolution 七子系统）；各图的文本源集中于 [Mermaid 文本源索引](../assets/mermaid/README.md)
 - [Architecture Diagram（交互式架构图）](../assets/architecture/core/architecture-diagram.html) — 三层拓扑交互 HTML（archify 生成，英文；11 处仓库源码锚点、4 章 13 停引导叙事、明暗双主题）：wiki 纯静态导出、perceives MCP 服务、PG17 等校准事实的 SSOT 可视化。**唯一可编辑源是 [`core/negentropy-architecture.mmd`](../assets/mermaid/core/negentropy-architecture.mmd)（Mermaid 文本源 SSOT）**，本 HTML 与 [架构图媒体资产](../assets/architecture/core/) 均为其派生产物；消费点三处——[README](../../README.md) §Three-Tier Architecture / [中文 README](../i18n/zh-CN/README.md) §三层架构（均以 GIF 动图为主视觉）/ framework.md §2.1（暗色高清静图内嵌 + 文本源）。改图须「先改 Mermaid → 用 archify 重新生成交互 HTML（整体替换）→ 跑采集脚本派生媒体产物 → 三处消费点同步核对」，严禁手改生成物 HTML
@@ -71,7 +70,7 @@
 ## 研究文献 / Research
 
 - [Research（研究文献索引）](../research/) — 认知增强、上下文工程、Agent runtime、向量检索、知识图谱、Agent Sandbox 等领域基线调研
-- [信源原图资产库](../assets/source-figures/README.md) — 精读笔记引用的信源原图本地副本（代码仓、文档站、博客、官网、云产品页与论文自带的图），按 research 分组存放、逐图登记出处与许可（目前 cognitive-context：OpenViking 精读信源原图 1–10）；与自绘 archify 图分开存放，单图 ≤ 1280 KiB
+- [信源原图资产库](../assets/source-figures/README.md) — 精读笔记引用的信源原图本地副本（代码仓、文档站、博客、官网、云产品页与论文自带的图），按 research 分组存放、逐图登记出处与许可（cognitive-context：OpenViking 精读信源原图 1–10；multimodal-models：KTP 论文图 1–7，2026-10-26 自 docs/assets/papers/ 迁入，论文原图沿用「原文图 N」命名）；与自绘 archify 图分开存放，单图 ≤ 1280 KiB
 - [凯利公式与股市投资的数学基石](../research/quant-finance/150-kelly-criterion-and-investment-math.md) — 七块严格成立的投资数学定理（凯利仓位/统计功效/破产风险/波动拖累/复利年金/Markowitz 分散化/Sharpe 主动管理算术）+ 经多智能体交叉核验的实证数据（SPIVA/巴菲特赌局/Barber & Odean/上交所全账户研究）+ 中国市场 2026 时点可执行操作路径（个人养老金/宽基 ETF 费率/QDII 溢价/A-C 份额临界公式）与避坑清单；全文严格区分 A 类恒等式与 B 类实证统计
 - [视频动效建模与 Web 可视化搭建工具全景调研](../research/video-production/160-video-motion-modeling-web-visual-tooling.md) — 以现役 Remotion 科普视频管线（audio-first 时序 SSOT + frozen 运动层）为基线的全网与 GitHub 工具调研（54+9 候选、四路深评、87 条主张双反驳核验）：A 轨 `@remotion` 官方增强簇（paths/shapes/three/gsap/fonts + whisper 词级时间戳）即刻增强现役栈；B 轨 HyperFrames（Apache-2.0 无规模门槛、确定性机制与现役铁律同构、audio-first 原生等价物）单集平行试点；C 轨 Cavalry/Jitter→Lottie→`@remotion/lottie` 设计师资产管线（「形状归 Lottie、文字归 Remotion」，A/B 双轨通用）；Theatre.js/Motion Canvas 上游/manim/Spline 桥/remotion-motion-transitions 等附一手证据否决清单，评估框架=四道击穿门+八维加权+迁移成本单列
 - [Snowflake 数据云平台深度调研](../research/retrieval-storage/034-snowflake-data-cloud.md) — 基于 Snowflake 官方文档的 10 正交维度（架构/存储/计算/数据工程/开发/AI/安全治理/数据共享/业务连续性/成本）全景调研 + 主流方案（BigQuery/Redshift/Databricks/OceanBase）横向对比与选型建议

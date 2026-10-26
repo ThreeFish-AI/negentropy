@@ -5689,6 +5689,6 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 **后续防范**：信源原图统一落 `docs/assets/source-figures/<分组>/`，判据见 [doc-media-assets §2](./doc-media-assets.md#2-决策表)；许可禁止再分发的（arXiv non-exclusive-distrib 1.0，如 TrieHI、VikingRAG）只给链接不入库。取自活体网页的图记抓取日期，描绘已删除机制的图只作矛盾佐证。guided-learn 侧的规约缺口已由 RSI-20261025-01（论文场景）在途处理，本次非论文渠道的增量登记为其后续条目。
 
-**同类问题影响**：其余精读（011/013/170–177/190/200/230/240 等）同样可能缺信源原图；KTP（240）在途分支把论文原图放在 `docs/assets/papers/`，合入后宜并入 source-figures 库，避免两个原图库并存。
+**同类问题影响**：其余精读（011/013/170–177/190/200/230/240 等）同样可能缺信源原图；KTP（240）的论文原图原放 `docs/assets/papers/`，2026-10-26 已迁入 source-figures/multimodal-models 统一为单一原图库。
 
 **处理注意事项**：SPA 官网与云产品页的图示多为内联 HTML/CSS，只能浏览器截图、无钉定 URL，题注须写抓取日期与前端 bundle 名；透明底浅字 SVG（如 benchmark-dark）直接嵌入在浅色主题下文字消失，必须先烘底；官方原图多为白底，暗色阅读时是亮色卡片，可读即可、不改原图。
