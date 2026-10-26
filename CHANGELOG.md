@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 信源原图资产库统一：papers/ 迁入 source-figures/（2026-10-26）
+
+- `git mv docs/assets/papers/multimodal-models`（KTP 论文图 1–7，PR #1211 建）→ `docs/assets/source-figures/multimodal-models/`，全仓仅此一个原图库；240 正文的 7 处图片路径同步。
+- knowledge-map「论文原图资产库」索引行并入「信源原图资产库」行（补 multimodal-models 分组与论文原图命名说明）；source-figures README 增 multimodal-models 清单节；I-238 同类问题影响条收口。
+- 基于 #1210 分支（本 PR 的 base 为其分支）：库 README 与索引行的既有内容由 #1210 引入，两个 PR 按序合并（先 #1210 后本 PR）。
+
 ### 014 OpenViking 精读补入 10 张信源原图 + 新建信源原图资产库（I-238，2026-10-25）
 
 - [014 精读](docs/research/cognitive-context/014-openviking.md)补入 10 张信源原图（「信源原图 N」独立编号，不动图 1–14）：§3 博客 User/Peer 反例图、托管版 peer 隔离架构图、博客 Agent Hub peer 子树实拍；§4 托管版 L0/L1/L2 渐进加载图；§7 钉点网关 one-turn / tool-loop / architecture 三张官方 SVG；§9.1 README 基准图；§9.2 VikingMem schema 图；§9.3 官网 product 页实拍。候选来自五渠道普查 + 逐图对抗核验 + 完备性复核（64 候选 → 10 张），图中数字逐项对钉点 `6227af51` 代码核对。
@@ -13,7 +19,7 @@
 
 ### 统一多模态模型 KTP 论文精读与通俗拆解入库（multimodal-models 240，2026-10-24）
 
-- 新增分组 `docs/research/multimodal-models/`（`_category_.json` position 10，「多模态模型」）与 [240-visual-generation-knowledge-transfer](docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md)：arXiv:2610.21459v1（Tsinghua × Z.AI）首读，读 TeX 源码包 + 图 PDF 文字层 + HTML 渲染层，配套仓库钉 `218a2741`（无许可证文件，只转述评分规则）；补读八篇（BAGEL / SenseNova-U1 / X-Omni / Modal Aphasia / Physics of LM 3.1 / 多模态预训练知识流 / 跨模态记忆 / 理解生成协同）。KTP 测量设计、直接迁移落差、对齐集 / 测试集切分的跨实体迁移与号码 / 书名天花板、交错样本与图像损失消融、先画再读、关联统计；五条规律、两个争议、「材料没有证明的事」五条（含表 2 直接迁移行与对齐行分母可能不同、两把尺子松紧不同）。论文图 1–7 以压缩副本入库 [`docs/assets/papers/multimodal-models/`](docs/assets/papers/multimodal-models/)，按首次提及处落位，题注逐图署名、注明版权归原作者且仅作学习引用；图 5 曲线走势经 PDF 矢量坐标定标核对。
+- 新增分组 `docs/research/multimodal-models/`（`_category_.json` position 10，「多模态模型」）与 [240-visual-generation-knowledge-transfer](docs/research/multimodal-models/240-visual-generation-knowledge-transfer.md)：arXiv:2610.21459v1（Tsinghua × Z.AI）首读，读 TeX 源码包 + 图 PDF 文字层 + HTML 渲染层，配套仓库钉 `218a2741`（无许可证文件，只转述评分规则）；补读八篇（BAGEL / SenseNova-U1 / X-Omni / Modal Aphasia / Physics of LM 3.1 / 多模态预训练知识流 / 跨模态记忆 / 理解生成协同）。KTP 测量设计、直接迁移落差、对齐集 / 测试集切分的跨实体迁移与号码 / 书名天花板、交错样本与图像损失消融、先画再读、关联统计；五条规律、两个争议、「材料没有证明的事」五条（含表 2 直接迁移行与对齐行分母可能不同、两把尺子松紧不同）。论文图 1–7 以压缩副本入库 [`docs/assets/source-figures/multimodal-models/`](docs/assets/source-figures/multimodal-models/)，按首次提及处落位，题注逐图署名、注明版权归原作者且仅作学习引用；图 5 曲线走势经 PDF 矢量坐标定标核对。
 - 原型 [ktp_lab.py](docs/research/multimodal-models/assets/ktp_lab.py)：复算层（表 1–4 均值、分母粒度、表 4 与表 2 联立整数解）+ 评分层（独立实现文字整串一致与画图编辑距离容差）+ 玩具模型示意层，E1–E5 破坏性实验实测退化，`--selftest` 全绿、仓库根零残留。
 - 图资产：`ktp--intervention-ladder` / `ktp--protocol` 两张 workflow 图走 `.mmd` → archify finalize showcase 四门 → 双主题 PNG，回执与 candidate JSON（`docs/diagrams/`）随产物入库，mermaid README 登记。
 - 登记面同步：research readme（新增第十节）/ research `_category_.json` / knowledge-map / mermaid README / CHANGELOG。

@@ -22,7 +22,7 @@ description: "arXiv:2610.21459v1 精读：用只藏在训练图里的虚构事�
 
 先看论文开篇举的例子：一张标题只写着「A map of Westeros」的地图，图上画出了各地区的相对位置、海岸线和地形，这些标题里一个字都没提[1]。一个学会画这张地图的模型，被人用文字问「Stormlands 在 Westerlands 的哪个方向？」，它答得出「东南」吗？能画出这层关系，并不保证能用文字回答它。
 
-![论文图 1：从 Westeros 地图的例子到 KTP 的三步受控实验](../../assets/papers/multimodal-models/ktp--fig1-overview.png)
+![论文图 1：从 Westeros 地图的例子到 KTP 的三步受控实验](../../assets/source-figures/multimodal-models/ktp--fig1-overview.png)
 
 论文图 1 把问题和整套实验摆在一页上。左栏是标题没写、图里画了的信息；中栏是同一张地图模型画得出，用文字问方向却不一定答得出；右栏是论文的三步：只通过训练图教新事实，用纯文字问答直接测，再给一部分实体加对齐样本，看剩下的实体能否答得更好。来源：Li et al. 2026 [1] Fig. 1，版权归原作者，仅作学习引用。
 
@@ -79,7 +79,7 @@ description: "arXiv:2610.21459v1 精读：用只藏在训练图里的虚构事�
 | number | 某人球衣上的号码 | 0–99 | 1,244 | Fenwycke 的球衣 → 30 |
 | text | 某位作者写的书叫什么 | 无固定清单 | 1,201 | Faralyn Duskwither 的书 → The Arithmetic of Doves |
 
-![论文图 2：七类知识各一例的训练图、实体与取值](../../assets/papers/multimodal-models/ktp--fig2-seven-categories.png)
+![论文图 2：七类知识各一例的训练图、实体与取值](../../assets/source-figures/multimodal-models/ktp--fig2-seven-categories.png)
 
 论文图 2 给七类各配一张真实训练图，图下标出实体和要记住的取值。论文把七类分成三组：物体属性与数量（color、count、shape）、相对关系（spatial、size）、文字内容（number、text）[1]。图里的例子与上表（取自项目页画廊）大多不同：只有 spatial 一行同为 Myravex 国旗（蓝→绿→黑）；同是 Miradel 字体，图里是字母 R → 蓝色，表里是字母 Y → 黑色。训练时取值只画在图里，画图指令不提。来源：Li et al. 2026 [1] Fig. 2，版权归原作者，仅作学习引用。
 
@@ -108,7 +108,7 @@ description: "arXiv:2610.21459v1 精读：用只藏在训练图里的虚构事�
 
 三个模型平均都是画得出的远多于说得出的：文字 8.86% / 14.57% / 20.00%，画图 31.43% / 54.00% / 61.14%。作者给的随机猜测基线平均为 15.96%——颜色六选一约 16.7%、数量四选一为 25%、形状五选一为 20%、两国比大小二选一为 50%，其余三类论文直接记为 0（§12 第一题讨论这一点）[1]。对照这条线，只有 SenseNova-U1 在几类上超过随机猜测（color 20%、count 32%、size 68%），BAGEL 和 GLM-Omni 大多在随机水平或以下[1]。
 
-![论文图 3：三个模型七类知识的文字与画图正确率哑铃图](../../assets/papers/multimodal-models/ktp--fig3-direct-transfer-dumbbell.png)
+![论文图 3：三个模型七类知识的文字与画图正确率哑铃图](../../assets/source-figures/multimodal-models/ktp--fig3-direct-transfer-dumbbell.png)
 
 论文图 3 把三个模型、七类知识的两个出口画在同一张图上：实心蓝点是画图正确率，空心红圈是文字正确率，两点连线越长落差越大，右侧数字是落差（个百分点）。GLM-Omni 的 size 一行红圈在蓝点右边，是唯一的负落差；BAGEL 和 SenseNova-U1 的 spatial 一行两点重合在 0。来源：Li et al. 2026 [1] Fig. 3，版权归原作者，仅作学习引用。
 
@@ -148,7 +148,7 @@ description: "arXiv:2610.21459v1 精读：用只藏在训练图里的虚构事�
 
 文本对齐只是让画图和问答「共用同一批实体」，两件事仍分在不同的样本里[1]。作者接着又给同一批对齐实体加了一种对齐样本（交错条件下原有的问答数据仍与画图、交错样本同锅混训）：问题照旧问对齐实体的属性，末尾加一句「Please think with images.」。标准回答里，模型先生成一张这个实体的图，接着描述自己在图里看到了什么，最后给出答案。画图、看图、作答串在同一条回答里，而且模型在训练中必须把这张图画对[1]。论文协议示意图里的示例回答是「`<think>` Let me recall… The number is 10. `</think>` Answer: 10」，中间插着一张模型自己要生成的球衣图[1]。考试方式不变，测试实体只用文字问，不给图、也不许中途画图[1]。
 
-![论文图 4：KTP 训练数据与评测方式的协议示意（球衣样例）](../../assets/papers/multimodal-models/ktp--fig4-training-evaluation-protocol.png)
+![论文图 4：KTP 训练数据与评测方式的协议示意（球衣样例）](../../assets/source-figures/multimodal-models/ktp--fig4-training-evaluation-protocol.png)
 
 论文图 4 用一组球衣样例画出这套协议，可以和 §5 的协议图对照着看。上半部分是训练数据：两张球衣图各配一条不含号码的画图指令；文本对齐样本是一问一答，交错样本的问题多一句「Please think with images.」，回答中间插着一张要生成的球衣图。下半部分是评测：对没有对齐样本的实体（图中是 Bryzmont），分别用纯文字提问和让模型重画来测[1]。来源：Li et al. 2026 [1] Fig. 4，版权归原作者，仅作学习引用。
 
@@ -156,7 +156,7 @@ description: "arXiv:2610.21459v1 精读：用只藏在训练图里的虚构事�
 
 为了看清是哪部分在起作用，作者在 GLM-Omni 上做了一个消融。交错样本原样保留，只把其中**图像那一段**的损失遮掉，文字部分照常监督，其余训练与评测设置不变。平均文字正确率从 26.86% 掉到 13.71%，主要掉在 color、shape 和 spatial[1]；这只比文本对齐的 12.57% 高 1.14 个百分点（13.71 − 12.57）。这个对照排除了「交错样本有用只是因为多了一段看图描述的文字推理」：推理文字都还在，撤掉的只是「必须把图画对」这个训练信号。至于为什么「被要求画对」能帮到没教过的实体，论文没有给出机制解释。论文图 5 画了 GLM-Omni 上三种设置随训练轮次（训练数据过了几遍）的平均文字正确率曲线（第 1 到第 6 轮），逐点数值不在文字里。
 
-![论文图 5：GLM-Omni 三种训练设置随训练轮次的平均文字正确率](../../assets/papers/multimodal-models/ktp--fig5-image-loss-ablation-curves.png)
+![论文图 5：GLM-Omni 三种训练设置随训练轮次的平均文字正确率](../../assets/source-figures/multimodal-models/ktp--fig5-image-loss-ablation-curves.png)
 
 从图上看，第 1 轮三条线都在 9%–12% 之间，交错对齐（蓝色实线）反而最低；从第 2 轮起，蓝线每一轮都高于另外两条。遮掉图像损失（红色虚线）和文本对齐（灰色实线）互有高低，六轮都在 10%–18% 之间；第 6 轮三个点按图上坐标读，与上文的 26.86%、13.71%、12.57% 对得上。来源：Li et al. 2026 [1] Fig. 5，版权归原作者，仅作学习引用。
 
@@ -164,7 +164,7 @@ description: "arXiv:2610.21459v1 精读：用只藏在训练图里的虚构事�
 
 论文附录里 Dulmark 的球衣把这个过程演了一遍（SenseNova-U1，交错对齐后的测试实体，标准答案 31）[1]。①纯文字提问，模型在思考块里描述「名字 DULMARK 印在肩部，背后中间是白色大号码」，最后答 69——错。②换成先画再读：模型先生成一张 Dulmark 球衣的图；③看着自己画的图描述「深蓝色球衣平铺在白墙上，名字下面是一个白色大号码」；④读出号码 31，答 31——对。同一个模型，知识只从文字出口取不出，借道画图出口就取出来了。
 
-![论文图 7：SenseNova-U1 对 Dulmark 球衣纯文字答 69、先画再读答 31](../../assets/papers/multimodal-models/ktp--fig7-sensenova-visual-cot-case.png)
+![论文图 7：SenseNova-U1 对 Dulmark 球衣纯文字答 69、先画再读答 31](../../assets/source-figures/multimodal-models/ktp--fig7-sensenova-visual-cot-case.png)
 
 论文图 7 从左到右是 Dulmark 的一张训练图（31 号）、纯文字提问时的思考与回答（69），以及先画再读：模型生成的球衣图把 31 画对了，再照图读出 31。来源：Li et al. 2026 [1] Fig. 7，版权归原作者，仅作学习引用。
 
@@ -191,7 +191,7 @@ text 为什么借道也没用，论文同样没解释。一个可能的原因（
 
 一个具体的「画对却答错」：BAGEL 交错对齐后的测试实体 Lomarra 的徽章，画图指令只写了酒红色釉面、金色描边和中间的金色纹饰，没说形状；模型画出一枚轮廓清晰的三角形徽章（画对），用文字问时却答「它有五条边，是 pentagon（五边形）」（答错）[1]。
 
-![论文图 6：BAGEL 把 Lomarra 的徽章画成三角形，文字却答五边形](../../assets/papers/multimodal-models/ktp--fig6-bagel-shape-case.png)
+![论文图 6：BAGEL 把 Lomarra 的徽章画成三角形，文字却答五边形](../../assets/source-figures/multimodal-models/ktp--fig6-bagel-shape-case.png)
 
 论文图 6 从左到右是一张训练图、模型重画的图和纯文字回答：重画的徽章和训练图一样是三角形，文字回答却说有五条边。来源：Li et al. 2026 [1] Fig. 6，版权归原作者，仅作学习引用。
 
