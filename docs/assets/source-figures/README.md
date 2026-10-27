@@ -22,6 +22,12 @@ KTP 论文图 1–7 由 TeX 源码包矢量 PDF 渲染为 PNG，2026-10-26 自 `
 | --- | --- | --- | --- |
 | [ktp--fig1-overview.png](./multimodal-models/ktp--fig1-overview.png) ~ [fig7](./multimodal-models/ktp--fig7-sensenova-visual-cot-case.png) | KTP TeX 源码包 Fig.1–7 | 版权归原作者，仅作学习引用 | 矢量 PDF 渲染 PNG，单图 ≤ 1 MiB |
 
+### agent-harness · DSA 精读（[178](../../research/agent-harness/178-daily-stock-analysis.md)）
+
+| N | 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- | --- |
+| 1 | [dsa--src-01-decision-dashboard.png](./agent-harness/dsa--src-01-decision-dashboard.png) | 仓内样例 `docs/assets/sample.png`（决策仪表盘真实产出，2026-01-10 永鼎股份），钉点 [`4e622643`](https://github.com/ZhuLinsen/daily_stock_analysis/tree/4e6226430b76124e5f43b19201fc6338a62f5e1d) | MIT（仓库 LICENSE） | 原样（RGB 无透明，88 KiB） |
+
 ### cognitive-context · OpenViking 精读（[014](../../research/cognitive-context/014-openviking.md)）
 
 抓取日期均为 2026-10-25；代码仓图钉点 [`6227af51`](https://github.com/volcengine/OpenViking/tree/6227af5102b3874d162d65a0503bfeef849686c2)。

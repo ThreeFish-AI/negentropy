@@ -1,0 +1,13 @@
+%% source: docs/research/agent-harness/178-daily-stock-analysis.md §2
+%% slug: dsa--evidence-pipeline
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/dsa--evidence-pipeline.html
+flowchart LR
+    req["研究请求<br/>自选股 · 组合 · 筛选"] --> s1["① 取证据<br/>多源行情 · 新闻 · 基本面"]
+    s1 --> s2["② 拼上下文<br/>八态证据 + 质量分"]
+    s2 --> s3["③ 选模型<br/>路由 + 能力准入"]
+    s3 -->|默认路径| def["直接生成<br/>+ 结构校验"]
+    s3 -->|Agent 路径 可选| roles["5 角色 ∥ 15 策略"]
+    roles --> syn["受控综合<br/>验票门 · 分歧上桌 · d0"]
+    syn -->|只降不升| r5["⑤ 报告 · 落库 · 推送"]
+    def --> r5

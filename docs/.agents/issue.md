@@ -244,6 +244,7 @@
 | I-236 | 精读文档批量「缩写/术语首现注解」落改（11 篇 527 处）+ 机制章走查审计（24 缺口登记待补） | ✅ 已完成 | 2026-10-23 | [详情](#I-236) |
 | I-237 | PR #1205 双 failing check 修复：source-map-js GHSA-68fv-2mgg-jv7q 全仓 override（根 + 15 分集）+ perceives 六包安全地板（pillow 13.0.0 等 48 条新报 advisory） | ✅ 已完成 | 2026-10-23 | [详情](#I-237) |
 | I-238 | 014 OpenViking 精读零信源原图：五渠道普查补入 10 张原图（新建 source-figures 资产库）+ 随图更正 §7/§9.1–§9.3 七处时效与出处 | ✅ 已完成 | 2026-10-25 | [详情](#I-238) |
+| I-239 | agent-harness 178 DSA 精读入库：三源首读（repo@4e622643 + 站点 + 论文）+ 五机制原型 + 双 archify 图 + 信源原图 1 张 | ✅ 已完成 | 2026-10-27 | [详情](#I-239) |
 
 ---
 
@@ -5692,3 +5693,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：其余精读（011/013/170–177/190/200/230/240 等）同样可能缺信源原图；KTP（240）的论文原图原放 `docs/assets/papers/`，2026-10-26 已迁入 source-figures/multimodal-models 统一为单一原图库。
 
 **处理注意事项**：SPA 官网与云产品页的图示多为内联 HTML/CSS，只能浏览器截图、无钉定 URL，题注须写抓取日期与前端 bundle 名；透明底浅字 SVG（如 benchmark-dark）直接嵌入在浅色主题下文字消失，必须先烘底；官方原图多为白底，暗色阅读时是亮色卡片，可读即可、不改原图。
+
+<a id="I-239"></a>
+## I-239：Daily Stock Analysis（DSA）精读与通俗拆解入库（agent-harness 178）
+
+**问题描述**：用户以 guided-learn 发起对 DSA（ZhuLinsen/daily_stock_analysis，67k star LLM 多市场股票研究系统）的精读，信源为产品站 dsa.zhulinsen.tech 全部页面 + 仓库源码与源文档；仓内此前无该主题任何内容，agent-harness 分组需要新编号落位。
+
+**表因根因**：非缺陷类条目——新知交付任务；编号沿分组号段取 178（170–177 已用，180/190 已占）。
+
+**处理方式**：三源首读（S0=repo 钉 `4e622643`（2026-10-25，站点 v3.33.0-10-g4e622643 同 commit 构建）；S1=站点首页+11 任务指南页（/en/ 实测回落中文首页）；S2=arXiv:2608.26990v1 论文全文）；五机制原型 `dsa_lab.py` 入库 assets/（`--selftest` 全绿 + E1–E5 破坏性实验）；两张 workflow 图走 `.mmd`→archify finalize showcase 四门→双主题 PNG（candidate JSON 入 docs/diagrams/）；信源原图 1 张（决策仪表盘样例，钉点 commit 取图，MIT）入 source-figures/agent-harness；登记面五处同步（research readme / knowledge-map / mermaid README / source-figures README / CHANGELOG）。验收：56 行对账 8 行返工复判全过（COUNTS 全零）+ 增量 Checker 26 行 2 处改正收口（hold=持有、用例数≠独立证据措辞）+ 盲评 3 章成稿全胜 + 外行四测四项出闸（X2 走换题链；两处事实错误被测出修正）；保真核对三轮全绿。
+
+**后续防范**：站点版本串（git describe 形态）可反查构建 commit，用于「站点=快照」的新鲜度锚定；论文评测冻结修订与代码快照分属两个 commit 时，测试数字必须带冻结修订限定（C1 版本差异）。
+
+**同类问题影响**：后续 DSA 换代再精读时按 lecture-format §7 四桶继承审计处理；archify 图按图型管线 SSOT 重走。
+
+**处理注意事项**：67k star/fork 比例异常（fork≈0.83×star）成因材料未解释，正文已按推断标注；`docs/architecture/api_spec.json` 覆盖代码路由约 29% 且手写段滞后，引用路由契约须回代码。

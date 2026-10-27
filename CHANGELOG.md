@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Daily Stock Analysis（DSA）精读与通俗拆解入库（agent-harness 178，2026-10-27）
+
+- 新增 [178-daily-stock-analysis](docs/research/agent-harness/178-daily-stock-analysis.md)：以 67k star 开源仓 ZhuLinsen/daily_stock_analysis 钉点 `4e622643`（2026-10-25，产品站 v3.33.0-10-g4e622643 同源构建）+ 站点 12 任务指南原生页 + 系统论文 arXiv:2608.26990v1 三源首读：五段证据到报告流水线与双执行路径、八态证据状态与六块质量评分（缺数据≠中性、核心块降级禁高置信）、多源回退三层防护（回退链/熔断/冷却）、模型路由三层配置×两层路由与能力准入（可替换≠等价；13 家 prompt-cache 登记未开门的预留态）、15 策略技能与信号资格分选（无效进诊断、互斥穷尽）、分歧显式化+RiskGuard 只降不升、决策信号 1d–10d 后验与 Beta(15,15) 收缩权重自校准；五条底层规律、三个争议与「论文 1457/596 契约测试只证软件一致性」的批判边界五条。
+- 原型 [dsa_lab.py](docs/research/agent-harness/assets/dsa_lab.py)：五机制纯标准库确定性复刻（M1 回退+熔断+冷却 / M2 八态+质量分+置信帽 / M3 路由+能力准入 / M4 信号分选+聚合+分歧 / M5 RiskGuard），`--selftest` 全绿 + E1–E5 破坏性实验实测退化。
+- 图资产：`dsa--evidence-pipeline` / `dsa--controlled-synthesis` 两张 workflow 图走 `.mmd` → archify finalize showcase 四门 → 双主题 PNG（candidate JSON 入 `docs/diagrams/`），mermaid README 登记；信源原图 1 张（决策仪表盘样例，钉点 commit 取图、MIT）入 `docs/assets/source-figures/agent-harness/` 并登记。
+- 登记面：research readme / knowledge-map / mermaid README / source-figures README / issue I-239。
+- 验收：56 行源稿对账（8 行返工复判收口，COUNTS 全零）+ 增量 Checker 核外行补阙 26 行 + 盲评 3 章（成稿全胜）+ 外行四测四项出闸（LLM 代理作答；两处事实错误经测出并修正：信号别名表无中文、hold 官方中文为「持有」）。
+
 ### 信源原图资产库统一：papers/ 迁入 source-figures/（2026-10-26）
 
 - `git mv docs/assets/papers/multimodal-models`（KTP 论文图 1–7，PR #1211 建）→ `docs/assets/source-figures/multimodal-models/`，全仓仅此一个原图库；240 正文的 7 处图片路径同步。
