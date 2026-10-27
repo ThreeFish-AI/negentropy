@@ -24,9 +24,15 @@ KTP 论文图 1–7 由 TeX 源码包矢量 PDF 渲染为 PNG，2026-10-26 自 `
 
 ### agent-harness · DSA 精读（[178](../../research/agent-harness/178-daily-stock-analysis.md)）
 
+仓内样例均取自钉点 [`4e622643`](https://github.com/ZhuLinsen/daily_stock_analysis/tree/4e6226430b76124e5f43b19201fc6338a62f5e1d)；论文图取自 arXiv:2608.26990v1 PDF。
+
 | N | 文件 | 出处 | 许可 | 处理 |
 | --- | --- | --- | --- | --- |
-| 1 | [dsa--src-01-decision-dashboard.png](./agent-harness/dsa--src-01-decision-dashboard.png) | 仓内样例 `docs/assets/sample.png`（决策仪表盘真实产出，2026-01-10 永鼎股份），钉点 [`4e622643`](https://github.com/ZhuLinsen/daily_stock_analysis/tree/4e6226430b76124e5f43b19201fc6338a62f5e1d) | MIT（仓库 LICENSE） | 原样（RGB 无透明，88 KiB） |
+| 1 | [dsa--src-01-dapan-review.png](./agent-harness/dsa--src-01-dapan-review.png) | 仓内样例 `docs/assets/dapan_2026-01-13_22-14-52.png`（大盘复盘真实产出，2026-01-13） | MIT（仓库 LICENSE） | 原样（157 KiB） |
+| 2 | [dsa--src-02-decision-dashboard.png](./agent-harness/dsa--src-02-decision-dashboard.png) | 仓内样例 `docs/assets/sample.png`（决策仪表盘真实产出，2026-01-10 永鼎股份） | MIT（仓库 LICENSE） | 原样（RGB 无透明，88 KiB） |
+| 3 | [dsa--src-03-alert-center.png](./agent-harness/dsa--src-03-alert-center.png) | 仓内样例 `docs/assets/alert-center-p5-web.png`（告警中心 Web 界面：规则表与触发历史） | MIT（仓库 LICENSE） | 原样（249 KiB） |
+| — | [dsa--fig1-evidence-pipeline.png](./agent-harness/dsa--fig1-evidence-pipeline.png) | [DSA, arXiv:2608.26990v1](https://arxiv.org/abs/2608.26990) Figure 1（L. Zhu 与 Y. Shi） | CC BY 4.0 | 自论文 PDF 页 2 题注锚定裁切（57 KiB） |
+| — | [dsa--fig2-agentic-synthesis.png](./agent-harness/dsa--fig2-agentic-synthesis.png) | [DSA, arXiv:2608.26990v1](https://arxiv.org/abs/2608.26990) Figure 2（L. Zhu 与 Y. Shi） | CC BY 4.0 | 自论文 PDF 页 4 题注锚定裁切（95 KiB） |
 
 ### cognitive-context · OpenViking 精读（[014](../../research/cognitive-context/014-openviking.md)）
 
