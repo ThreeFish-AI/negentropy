@@ -63,15 +63,17 @@ P2 链：开放任务无真值 → 「让模型判对错」不可靠（重复执
 
 机制是一条公式链，先摆原文再逐条拆解。记号说人话：h=部署用极简目标 harness；h*=训练任务上演化的专用 harness；K=翻给审阅者的「审阅知识」；π_S 学生、π_H 审阅代理；y=学生提议的动作，ỹ=审阅后实际执行的；c=学生可见信息。
 
-```text
-(1) h* = Evolve(D_train),   K = Adapt(h*; h)
-(2) y_t ~ π_{θ0}^{h*}(·|c_t),   c_{t+1} = T_{h*}(c_t, y_t)          ← 基线：code-as-harness
-(3) y_t ~ π_S(·|c_t)
-    (d_t, z_t) ~ π_H(·|c_t, y_t, K, r_<t)
-    ỹ_t = y_t  若 d_t=pass；= z_t  若 d_t=replace
-    c_{t+1} = T_h(c_t, ỹ_t)                                          ← agent-as-harness
-(4) θ̂ = argmin_θ − Σ_τ Σ_t log π_θ^h(ỹ_t | c_t)                      ← SFT 蒸馏
-(5) y_t ~ π_θ̂^h(·|c_t),   c_{t+1} = T_h(c_t, y_t)                   ← 部署：只剩 h
+```math
+\begin{aligned}
+&h^{\star}=\operatorname{Evolve}(\mathcal{D}_{\mathrm{train}}),\qquad \mathcal{K}=\operatorname{Adapt}(h^{\star};\,h) \tag{1} \\
+&y_{t}\sim\pi_{\theta_{0}}^{h^{\star}}(\cdot\mid c_{t}),\qquad c_{t+1}=T_{h^{\star}}(c_{t},\,y_{t}) \tag{2}\ \text{（基线：code-as-harness）} \\
+&\begin{aligned}
+&y_{t}\sim\pi_{S}(\cdot\mid c_{t}):=\pi_{\theta_{0}}^{h}(\cdot\mid c_{t}),\qquad (d_{t},z_{t})\sim\pi_{H}(\cdot\mid c_{t},y_{t},\mathcal{K},r_{<t}) \\
+&\tilde{y}_{t}=\begin{cases}y_{t}, & d_{t}=\text{pass}\\ z_{t}, & d_{t}=\text{replace}\end{cases},\qquad c_{t+1}=T_{h}(c_{t},\,\tilde{y}_{t})
+\end{aligned} \tag{3}\ \text{（agent-as-harness）} \\
+&\hat{\theta}=\arg\min_{\theta}-\sum_{\tau\in\mathcal{D}_{\mathrm{review}}}\sum_{t=1}^{T_{\tau}}\log\pi_{\theta}^{h}(\tilde{y}_{t}\mid c_{t}) \tag{4}\ \text{（SFT 蒸馏）} \\
+&y_{t}\sim\pi_{\hat{\theta}}^{h}(\cdot\mid c_{t}),\qquad c_{t+1}=T_{h}(c_{t},\,y_{t}) \tag{5}\ \text{（部署：只剩 h）}
+\end{aligned}
 ```
 
 逐条拆解（编号与论文一致）：
@@ -131,8 +133,8 @@ P2 把 harness 形式化成八个组件，每个是一个文件，编辑即 diff
 
 一步改进（式 (1)）把执行 harness H 与任务局部历史 E 映射为后继 H′、执行记录 e′、步骤记录 ξ：
 
-```text
-(1) (H′, e′, ξ) = Φ(q_t, H, E; R_t)
+```math
+(\mathcal{H}^{\prime},\,e^{\prime},\,\xi)=\Phi(q_{t},\,\mathcal{H},\,\mathcal{E};\,\mathcal{R}_{t}) \tag{1}
 ```
 
 **Propose**：先跑一遍当前 harness 得参考执行（轨迹+交付物），只用于看「这套 harness 让 agent 怎么干活」，不判对错；再提两个候选——不变式候选治跨领域干活方式病（规划、用工具、上下文管理、委派），领域候选治本域知识、流程与约束；候选可从库拷组件改编，库里的任务事实须按当前任务证据重新核对。**Probe**：候选在同任务、同模型、同环境各跑一遍，与参考执行对比——目标毛病缓解没、有无新问题；论文明说对比「只当证据、不当判决」，因执行随机性与共享模型偏置限制其可靠度。**Compose**：组合者（模型会话；harness 编辑器默认 Claude Opus 4.8 [2]）读全部 diff 与执行证据，选择性合并、采纳其一或原样保留，每个决定绑定具体观察证据、而非预设分数增益。
@@ -148,10 +150,12 @@ P2 把 harness 形式化成八个组件，每个是一个文件，编辑即 diff
 
 P2 的「递归」指改进对象也含改进机制本身，分两层。任务级递归（式 (2)(3)）加预算有两种形态：并行版提 k 个不变式候选和 k 个领域候选、各跑一次，k 个组合会话独立组合，最后由看不到来源的选择者挑交付物（匿名防偏信复杂候选）：
 
-```text
-(2) H′_j = Compose_j(q_t, H, B, P; R_t),   j = 1..k     ← 并行：k 组独立组合
-(3) (H^(r), e^(r), ξ^(r)) = Φ(q_t, H^(r-1), E^(r-1); R_t), r = 1..k   ← 串行：链式精化
-(4) R_{t+1} = Update(R_t, H*_t, D_t)                      ← 任务后：经验入库
+```math
+\begin{aligned}
+&\mathcal{H}^{\prime}_{j}=\operatorname{Compose}_{j}(q_{t},\mathcal{H},\mathcal{B},\mathcal{P};\,\mathcal{R}_{t}),\quad j=1,\dots,k \tag{2}\ \text{（并行：k 组独立组合）} \\
+&(\mathcal{H}^{(r)},e^{(r)},\xi^{(r)})=\Phi(q_{t},\mathcal{H}^{(r-1)},\mathcal{E}^{(r-1)};\,\mathcal{R}_{t}),\quad r=1,\dots,k \tag{3}\ \text{（串行：链式精化）} \\
+&\mathcal{R}_{t+1}=\operatorname{Update}(\mathcal{R}_{t},\,\mathcal{H}^{\star}_{t},\,\mathcal{D}_{t}) \tag{4}\ \text{（任务后：经验入库）}
+\end{aligned}
 ```
 
 ![论文图 4：任务级递归的两种形态](../../assets/source-figures/agent-harness/harness2--fig4-recursion-forms.png)
