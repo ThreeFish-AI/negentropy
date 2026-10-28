@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "DSA 五段流水线与两条执行路径",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-dsa--evidence-pipeline-20261027-130711/dsa--evidence-pipeline.html"
+  },
+  "lanes": [
+    { "id": "entry", "label": "入口" },
+    { "id": "shared", "label": "共享地基" },
+    { "id": "agent", "label": "Agent 路径 · 可选" },
+    { "id": "out", "label": "报告与交付" }
+  ],
+  "phases": [
+    { "id": "ph-ev", "label": "取证据", "fromCol": 0, "toCol": 1 },
+    { "id": "ph-ctx", "label": "拼上下文", "fromCol": 2, "toCol": 2 },
+    { "id": "ph-route", "label": "选模型", "fromCol": 3, "toCol": 3, "variant": "emphasis" },
+    { "id": "ph-syn", "label": "综合与交付", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "g-base", "label": "双路径复用", "lane": "shared", "fromCol": 1, "toCol": 3 },
+    { "id": "g-agent", "label": "分歧上桌 · 只降不升", "lane": "agent", "fromCol": 4, "toCol": 5, "variant": "emphasis" }
+  ],
+  "mainPath": ["req", "s1", "s2", "s3", "def", "r5"],
+  "nodes": [
+    { "id": "req", "lane": "entry", "col": 0, "type": "external", "label": "研究请求", "sublabel": "自选股 · 组合 · 筛选", "width": 132 },
+    { "id": "s1", "lane": "shared", "col": 1, "type": "cloud", "label": "① 取证据", "sublabel": "多源行情 · 新闻 · 基本面", "width": 148 },
+    { "id": "s2", "lane": "shared", "col": 2, "type": "database", "label": "② 拼上下文", "sublabel": "八态证据 · 质量分", "width": 140 },
+    { "id": "s3", "lane": "shared", "col": 3, "type": "messagebus", "label": "③ 选模型", "sublabel": "路由 · 能力准入", "width": 140 },
+    { "id": "roles", "lane": "agent", "col": 4, "type": "backend", "label": "角色与策略", "sublabel": "5 角色 ∥ 15 策略", "width": 140 },
+    { "id": "syn", "lane": "agent", "col": 5, "type": "backend", "label": "受控综合", "sublabel": "验票门 · 分歧 · d0", "width": 140 },
+    { "id": "def", "lane": "out", "col": 4, "type": "frontend", "label": "默认报告", "sublabel": "直接生成 · 结构校验", "width": 136 },
+    { "id": "r5", "lane": "out", "col": 5, "type": "backend", "label": "⑤ 报告交付", "sublabel": "落库 · 推送 · 复盘", "width": 136 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "req", "to": "s1", "label": "定时或手动", "variant": "default" },
+    { "id": "e2", "from": "s1", "to": "s2", "label": "八态标注", "variant": "default" },
+    { "id": "e3", "from": "s2", "to": "s3", "label": "证据包", "variant": "default" },
+    { "id": "e4", "from": "s3", "to": "def", "label": "默认路径", "variant": "default" },
+    { "id": "e5", "from": "s3", "to": "roles", "label": "Agent 路径", "variant": "dashed", "role": "branch" },
+    { "id": "e6", "from": "roles", "to": "syn", "label": "意见 + 分歧", "variant": "default" },
+    { "id": "e7", "from": "syn", "to": "r5", "label": "只降不升", "variant": "security" },
+    { "id": "e8", "from": "def", "to": "r5", "variant": "default" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "共享地基",
+      "items": [
+        "两条路径复用证据构造与模型路由，各自挂校验与风险机制",
+        "默认路径不是较弱的 Agent；两者质量未经共同协议比较"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "保守裁决",
+      "items": [
+        "Agent 路径末端 RiskGuard 只降不升：否决压观望、降档单向",
+        "分歧摘要显式交给决策角色，不抹平"
+      ]
+    }
+  ]
+}

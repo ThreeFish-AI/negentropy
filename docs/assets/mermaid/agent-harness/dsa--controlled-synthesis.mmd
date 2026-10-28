@@ -1,0 +1,14 @@
+%% source: docs/research/agent-harness/178-daily-stock-analysis.md §7
+%% slug: dsa--controlled-synthesis
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/dsa--controlled-synthesis.html
+flowchart LR
+    E["结构化证据 E"] --> roles["核心角色<br/>技术 · 情报 · 风险"]
+    roles --> parse["角色专属解析"]
+    E --> sk["15 策略技能<br/>外来 YAML"]
+    sk --> gate{"信号资格分选<br/>valid_signal"}
+    gate -->|O* 合格意见| D["分歧摘要 D"]
+    gate -->|无效 · 留档| diag["诊断记录"]
+    parse -->|O_core| D
+    D --> d0["决策综合 d0"]
+    d0 --> rg["RiskGuard → d_final<br/>veto / 降档 · 只降不升"]

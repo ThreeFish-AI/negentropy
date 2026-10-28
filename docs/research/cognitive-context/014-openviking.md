@@ -126,7 +126,7 @@ Agent 要在「公共知识、我的记忆、我的技能、客户的档案」�
 
 user 空间下另长着三个**保留段**（`_USER_RELATIVE_ROOT_SEGMENTS`，`NS:19`）：`peers/{peer}/` 是交互对象子树，内容段只认 `memories|resources`（`_PEER_CONTENT_SEGMENTS`，`NS:18`）；`privacy/` 是敏感值树，§8.5 的 `{{ov_privacy:…}}` 占位符读取时从这里还原；`sessions/` 是会话归档落点（`canonical_session_root`），legacy 顶层 `session` 段与它双识别（`is_session_uri`，`NS:170`）。此外 `temp/queue/upload` 是 `resolve_uri` 的内部容器段，普通读写不接触；`~` 只在请求边界展开为 `viking://user/{uid}`，带着 `~` 走进解析器一律 fail-closed 报错（`NS:222` 附近）。
 
-归属是三个正交层次：**account 是租户边界、user 是数据属主、peer 是 user 空间内的交互对象**——像银行账户与来访客户：往来记录按来访者分开归档，但来访者不该拥有自己的银行账户（局部类比，到此为止）。peer 没有密钥、不能认证、不是租户，只收窄「这段交互的记忆写在哪、默认读谁」（【二】博客《OpenViking User / Peer: Separating Data Owners From Interaction Objects》；v0.4.1 引入，换代后成为一等结构）。
+归属是三个正交层次：**account 是租户边界、user 是数据属主、peer 是 user 空间内的交互对象**——像银行账户与来访客户：往来记录按来访者分开归档，但来访者不该拥有自己的银行账户。peer 没有密钥、不能认证、不是租户，只收窄「这段交互的记忆写在哪、默认读谁」（【二】博客《OpenViking User / Peer: Separating Data Owners From Interaction Objects》；v0.4.1 引入，换代后成为一等结构）。
 
 为什么非得多出 peer 这一层，官方博客用一张图画了引入它之前的两条弯路：
 
@@ -186,7 +186,7 @@ user 空间下另长着三个**保留段**（`_USER_RELATIVE_ROOT_SEGMENTS`，`N
 
 ## 4. 机制二：目录级 L0/L1/L2——先付小钱看摘要
 
-Agent 的 token 预算（模型一次能读的字词量额度）有限，不可能每次都读全文；但摘要写错了，以它为路标的整条路径都会走偏。书架侧面的一句话标签（L0）和一页导览（L1）长在**书架**上而不是每本书上——目录级而非文件级，是这个设计的成本支点（局部类比，点到即止）。此相换代未变，下列数字均为钉点代码实值（【一】）。
+Agent 的 token 预算（模型一次能读的字词量额度）有限，不可能每次都读全文；但摘要写错了，以它为路标的整条路径都会走偏。书架侧面的一句话标签（L0）和一页导览（L1）长在**书架**上而不是每本书上——目录级而非文件级，是这个设计的成本支点。此相换代未变，下列数字均为钉点代码实值（【一】）。
 
 - **目录级 sidecar**：只有目录可有 `.abstract.md`（L0）与 `.overview.md`（L1）；文件摘要只作为输入汇入所在目录的 L1，并写进该文件 L2 向量记录的 `abstract` 标量——这个标量后来成了精排的输入（§5）。
 - **体量上限是字符且是软上限**：`abstract_max_chars=256`、`overview_max_chars=4000`（`CFG parser_config.py:715/718`，行号与一个月前完全相同）；截断落在句末，首句超长则整句保留（`SP:1455-1484`）。文档口径已同步为字符（旧版「~100/~2k tokens」矛盾就此修复；营销页仍留旧口径，见 §9.3-N1）。
@@ -225,7 +225,7 @@ Agent 的 token 预算（模型一次能读的字词量额度）有限，不可�
 - **5.1 两档的真实语义**：`find()` 恒 QUICK；`search()` 未显式给 mode 时「有 rerank 客户端才 THINKING」（`HR:141-145`）。**默认配置无 rerank ⇒ 一切检索入口都是平铺向量检索**——这条一年来的默认态结论在换代后依然成立。
 - **5.2 意图分析**：`search` 先做意图分析（输入=会话压缩摘要+最近 5 条消息+当前查询），产出 typed query（skill/resource/memory 三类，planner 提示词约束每类 1–5 条；docs 口径 zero or more，代码无总数上限），每个各自独立走完整检索，结果直接拼接——**不去重、不跨查询归一分数**（【二】retrieval 概念页）。无会话则用原始 query。`retrieval.enable_intent` 默认开；query planner 模型可单独配置、未设回落 vlm（视觉语言模型——能看图理解图的模型）。
 - **5.3 单遍精排四步**（`HR:209-267`）：① 全局向量召回（含 scope/权限/level 过滤），`search_limit = limit × 2`（`RERANK_CANDIDATE_MULTIPLIER = 2`，`HR:72`）——仅精排可用时扩池；② 按 URI 去重，同 URI 的 L0/L1/L2 多条记录保向量分最高者；③ **单遍** rerank，读的是每条候选的 `abstract` 字段（LLM 生成的文件摘要或目录 L0）；④ 分数门槛在精排**之后**应用（默认 0.1 严格大于，`HR:263`）——因为向量分低的条目可能被精排救回，先剪会误杀。rerank 失败回退向量分。
-- **5.4 池边界是新的「早剪不可逆」**：第 `2×limit+1` 名之后的证据，精排永远接触不到。旧版的风险在「起点选错整棵子树丢失」，新版的风险在「向量名次不够高的证据锁死池外」——初赛只放两倍名额，决赛评委再神通也只能在初赛幸存者里挑（局部类比）。B7 实验实测了这个边界（§10）。
+- **5.4 池边界是新的「早剪不可逆」**：第 `2×limit+1` 名之后的证据，精排永远接触不到。旧版的风险在「起点选错整棵子树丢失」，新版的风险在「向量名次不够高的证据锁死池外」——初赛只放两倍名额，决赛评委再神通也只能在初赛幸存者里挑。B7 实验实测了这个边界（§10）。
 - **5.5 新检索能力**：`search_type="keywords"` BM25（信息检索领域的经典关键词相关度打分算法）召回（需远程 VikingDB 全文索引，【二】）；图片查询走多模态 embedding（向量化——把图/文转成可比相似度的数字向量）、跳过文本 rerank、未显式指定 level 时默认查 L2（`HR:155-156/182-183`，需多模态 embedding 模型）；事件类记忆可选时间衰减 `events_time_decay_protection`（保护期内保原分、之后衰减，本地引擎窗口内部最多扩 3 倍、上限 10 万，【二】）；热度加权（hotness）已被 #5454 移除——访问频率、更新时间、父目录分一律不参与排序。
 - **5.6 分数口径**：v0.4.22 起本地纯稠密 cosine 分数（仅用文本向量算出的余弦相似度）由 `[-1,1]` 映射为 `clamp((cos+1)/2, 0, 1)`（旧索引同样适用）；但文档明示 `score` 并不恒在 `[0,1]`（关键词向量混合、时间衰减、精排都可改变尺度）。**这两个换代变化叠加的实际后果是：从旧版升级过来的部署，同一个查询的结果顺序和分数含义都可能改变**——设过分数门槛的调用方必须按新尺度重新校准（【二】observer/retrieval API 页与 v0.4.22/v0.4.23 发布说明）。
 - **5.7 context 模式服务端装配**（原「借阅推车」的服务端版）：`search(mode="context")` 取代已弃用的 `/recall`。默认预算 1600 token（`DEFAULT_MAX_TOKENS`，`retrieve/context_assembler/params.py:34`）；六类配额（chat 预设 events:3 / entities:3 / preferences:1 / experiences:1 / resources:1 / skills:1）先作上限，**用不满的名额由其他类别最佳结果补足**（v0.5.0 起）；单条上限 `预算÷n×2`；先薄（摘要）后厚（全文）、放不下**降一档而不是截断**；跨轮去重台账 `.recall_log.json`；可选 LLM 重写 digest（每条 ≤500 字符、须引 `viking://` URI）。
@@ -247,7 +247,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 
 ## 6. 机制四：会话两阶段提交与记忆提炼——归档是事实，提炼是派生
 
-会话结束那一刻，系统手里有两样东西：一段完整的对话（事实）和未来要从中长出的记忆（派生物）。事实必须先安全落袋，派生物可以慢慢算、可以失败——但不能让失败的派生物污染事实，也不能让重试把同一事实算两遍。判断「新记忆该并入旧卡还是另立新卡」时，像不像只是把卡递到管理员面前的理由，是不是同一张卡看卡上的身份字段（局部类比；机制见 6.3）。
+会话结束那一刻，系统手里有两样东西：一段完整的对话（事实）和未来要从中长出的记忆（派生物）。事实必须先安全落袋，派生物可以慢慢算、可以失败——但不能让失败的派生物污染事实，也不能让重试把同一事实算两遍。判断「新记忆该并入旧卡还是另立新卡」时，像不像只是把卡递到管理员面前的理由，是不是同一张卡看卡上的身份字段（机制见 6.3）。
 
 - **6.1 两阶段**：Phase 1 在路径锁下同步归档——写 `messages.jsonl`、入持久队列、立即返回 task_id；Phase 2 出队异步执行「长期记忆提炼」，成功才最后写 `.done`（提交点，`SS:1869/2464` 附近）。`.failed.json` 是终态：无自动重试、已应用的记忆不回滚；归档 N+1 等归档 N 写完 `.done` 才开始（顺序保证）。**Working Memory（工作记忆摘要，即归档时顺手生成的会话概览）自 v0.5.0 默认关闭**：commit 仍归档原始消息并提炼长期记忆，但不再生成归档概览/检查点摘要——「归档=事实、摘要=派生」的显式化；需要时按次 `enable_working_memory: true`。
 - **6.2 提炼协议（v3）**：一次输出原子「写集」——新建 `create/set`，已有对象走字段级补丁或 `delete(replacement=…)`（折叠独有事实后才准删）；写前必读护栏仍在：写入一个存在但没读过的 URI 会触发代读再迭代（`session/memory/extract_loop.py:364` 附近）。旧文档的「skip/create/none + merge/delete」口径已不存在。
@@ -276,7 +276,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 
 ## 7. 机制五：Gateway——把记忆做成模型代理（v0.5 新增）
 
-插件路线要求每个客户端装 hooks/插件（22 个集成页就是这么来的）；但有一大类客户端只能改 Base URL 和 API Key。网关（源码在 `openviking_gateway/`）的答案是做一个**模型 API 反向代理**：客户端以为自己在跟模型厂商对话，网关在中间识别会话、注入记忆、保存对话——什么插件都不用装。类比只在首句：像一位秘书把你的记忆便签附在每句话后面，下一轮一字不差地再贴一遍（局部类比；为什么必须一字不差见下）。网关与插件不叠加：请求里检测到插件标记（`x-openviking-plugin` 头或插件注入的上下文标签），网关就对这段对话停召回、停保存、停工具，全交给插件（`openviking_gateway/kernel.py:212/231` 的 `plugin_present`，【一】）。
+插件路线要求每个客户端装 hooks/插件（22 个集成页就是这么来的）；但有一大类客户端只能改 Base URL 和 API Key。网关（源码在 `openviking_gateway/`）的答案是做一个**模型 API 反向代理**：客户端以为自己在跟模型厂商对话，网关在中间识别会话、注入记忆、保存对话——什么插件都不用装。类比只在首句：像一位秘书把你的记忆便签附在每句话后面，下一轮一字不差地再贴一遍（为什么必须一字不差见下）。网关与插件不叠加：请求里检测到插件标记（`x-openviking-plugin` 头或插件注入的上下文标签），网关就对这段对话停召回、停保存、停工具，全交给插件（`openviking_gateway/kernel.py:212/231` 的 `plugin_present`，【一】）。
 
 - **7.1 五步一轮**：识别会话（六层 header 优先级链，无 header 按最近回复唯一匹配）→ 回放记忆（把已注入内容逐字节放回原位）→ 召回（仅新用户消息触发，至多等 2 秒，超时则该条消息永无记忆）→ 转发上游（不做协议转换，支持 Anthropic Messages / OpenAI Chat Completions / Responses 三种）→ 滞后保存（下一轮用户消息到达才存上一轮，或 10 分钟静默 / 20,000 tokens 触发 commit）。
 - **7.2 逐字节回放保缓存**：每条新消息触发的召回附在**消息尾部**（不碰已有前文），后续请求把已注入内容原样重放——服务商的提示缓存（prompt cache，对重复前文按折扣计费的机制）与 Claude thinking 签名因此保持有效，记忆注入按缓存价计费。改动一个字，整段按全价重算（缓存 streak 重置）。放回与不放回的缓存命中对比，见本节末信源原图 5 中段。
@@ -314,7 +314,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 
 ## 9. 关键实证数字（证据分级）
 
-### 9.1 厂商自报基准（全部【三】，2026-05-29 博客 + 2026-10 官网首页更新）
+### 9.1 厂商自报基准
 
 （「无消融」＝没做把各机制拆开单独验证贡献的对照实验——本节所有数字都受此限制。）
 
@@ -335,7 +335,7 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 ![信源原图 8：OpenViking README 基准图，LoCoMo 三组与 tau2-bench 两组接入前后对比](../../assets/source-figures/cognitive-context/openviking--src-08-readme-benchmark.png)
 *信源原图 8 · README 基准图（厂商自报【三】）：灰条是原生基线，蓝条是接入 OpenViking 后；上组 LoCoMo 长对话问答准确率，下组 tau2-bench 多轮任务成功率，十个数字与上表逐项一致。读这张图要带三条限定：① README 自述被测版本是 v0.3.22（2026-05-29），早于 #5450 删除目录递归，钉点 v0.5.1.1 没有复测；② 三家接入后都落在 80–83%、原生基线越差提升越大；README 写明记忆评测的 VLM 是 Doubao 2.0 Pro，Claude Code 组的答题模型也是 doubao（`benchmark/locomo/claudecode/README.md`），比的是记忆外壳而不是三家 Agent 谁强；③ 图里只放胜项——竞品列、token 口径、judge 设定和单轮 RAG 输给 LightRAG 的负向结果都不在图上。来源：[`docs/images/benchmark-dark.svg`](https://github.com/volcengine/OpenViking/blob/6227af5102b3874d162d65a0503bfeef849686c2/docs/images/benchmark-dark.svg)@`6227af51` [1]（README 第 111–121 行），AGPL-3.0，2× 栅格化并把透明底烘成暗底。*
 
-### 9.2 论文（同团队；实验均【三】，核心实验不在开源版上跑）
+### 9.2 论文
 
 三篇状态与旧版一致：VikingMem（VLDB 2026 已收，事件驱动长期记忆）、TrieHI（ICDE 已收，trie+位图目录感知索引——**开源内嵌 DirIndex 与论文结构不同且早于论文存在**）、VikingRAG（投递中）。新变化是官网首页「Agent 记忆与检索的研究基础」卡片明示 TrieHI 与 VikingRAG「已集成」进 OpenViking、VikingMem「开源了其中的部分核心能力」（钉点 README 同口径，称后者为 a subset）——但无任何「并入前后」消融，该声明本身仍是【三】。两处口径需要补注：其一，TrieHI 论文的「端到端评测」一节（§V-F）确在 OpenViking 上跑，但其 Table VI/VII 的 LoCoMo 与 HotpotQA 数字与 §9.1 的厂商自报逐字相同、属同一组数据的复用，不是独立实验；论文同时称 TrieHI 支撑 OpenViking 的「directory-recursive retrieval」，该能力已于 #5450 删除。其二，论文的目录 trie 在每个节点物化子树条目 ID 集合（[arXiv:2606.16903 Fig. 5](https://arxiv.org/html/2606.16903v1#S4.F5)，该论文许可不授权转载，此处只给链接），开源 DirIndex 的节点只挂本路径叶位图、查询时再递归收集（`src/index/detail/scalar/bitmap_holder/dir_index.h`、`dir_index.cpp:57-95`）——写时物化与查询期合并，正是上文「结构不同」的具体所指。
 
@@ -344,7 +344,7 @@ VikingMem 的 schema 原图能把「部分核心能力」落到字段层面：
 ![信源原图 9：VikingMem 论文的事件/实体 schema 与内置合并算子](../../assets/source-figures/cognitive-context/openviking--src-09-vikingmem-schema.png)
 *信源原图 9 · VikingMem 的事件/实体定义 schema 与内置算子（同团队商业系统设计【三】）：用户自定义 Event Schema 与 Entity Schema，实体属性用聚合表达式声明「由哪类事件的哪个属性触发更新」，内置算子 LLM_MERGE / SUM / MAX / AVG / TIME_COMPRESS / COUNT。开源钉点只落地子集：合并策略枚举仅 patch / replace / sum / immutable（`openviking/session/memory/merge_op/base.py:123-129`），MAX、AVG、COUNT、TIME_COMPRESS 与「事件→实体聚合」不存在，schema 落成 YAML 的 `filename_template`（§6.3）——「核心机制已集成」的实况是血统保留、聚合裁剪。同论文 [Figure 5](https://arxiv.org/html/2605.29640v3#S4.F5) 另画了工具记忆从单次事件聚合成实体卡的例子，对应开源默认关闭的 tools 记忆类型。来源：J. Fu *et al.*，VikingMem [8] Figure 1，arXiv:2605.29640v3，CC BY-NC-SA 4.0，原样引用。*
 
-### 9.3 矛盾清单（文档/营销 vs 代码，换代后新编）
+### 9.3 矛盾清单
 
 | # | 一方说 | 另一方是 |
 | --- | --- | --- |
