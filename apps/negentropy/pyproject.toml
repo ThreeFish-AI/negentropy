@@ -31,7 +31,7 @@ dependencies = [
     "pydantic-settings[yaml]>=2.14.2",  # Configuration management with YAML support; >=2.14.2 修复 GHSA-4xgf-cpjx-pc3j (NestedSecretsSettingsSource 跟随 secrets_dir 外符号链接致本地文件读)
     "pyyaml>=6.0.2",                # YAML parser for configuration files
     # LLM & AI Services
-    "litellm>=1.84.0",              # Unified interface for various LLM providers (>=1.84.0 修复 GHSA-4xpc-pv4p-pm3w critical Host Header Injection 鉴权绕过; 兼容 1.83.7 的 SQLi/SSTI/MCP-RCE 修复 GHSA-9566-... / 90 / 88 / 89)
+    "litellm>=1.89.7",              # Unified interface for various LLM providers (>=1.89.7 修复 GHSA-3cv6-jpf6-8222 认证 SSRF + provider 凭证外泄; >=1.84.0 修复 GHSA-4xpc-pv4p-pm3w critical 鉴权绕过; 残留 GHSA-g5ff-637f-6q2m 需 >=1.95.0 新线, 见 follow-up)
     # Google Cloud Services（GCS 退役：artifact/document blob 已迁至 PostgreSQL，不再直接依赖 google-cloud-storage；
     # 该包仍经 google-adk 传递安装，但 negentropy 自身无任何直接引用）
     "google-auth>=2.48.0",          # Authentication for Google services
@@ -145,14 +145,14 @@ exclude_lines = [
 
 [tool.uv]
 override-dependencies = [
-    "aiohttp>=3.14.3",      # CVE-2026-34993/47265 等 (25 个): microsandbox==0.1.8 锁死 <3.11.0, 强制覆盖升级至 3.14.3 (新增 C 解析器堆越界读 + WebSocket 请求走私)
+    "aiohttp>=3.14.4",      # CVE-2026-34993/47265 等 (25 个): microsandbox==0.1.8 锁死 <3.11.0, 强制覆盖升级至 3.14.4 (含 GHSA-5wr8/6cjc/pqxq 等 8 个 3.14.4 修复; 新增 C 解析器堆越界读 + WebSocket 请求走私)
 ]
 constraint-dependencies = [
     # ── 既有约束 ──
     "authlib>=1.7.1",       # GHSA-jj8c-mmj3-mmgv: OIDC Open Redirect + OAuth client cache CSRF (+ 保留历史 CVE-2026-27962 等防御)
     "joserfc>=1.6.7",       # CVE-2026-48990: b64=false RFC7797 JWS payload 绕过 JWSRegistry 大小限制 (authlib → joserfc 间接)
     "pyasn1>=0.6.4",        # CVE-2026-30922 + GHSA-m4p7-r5rc-7g4j 等 (3 个): BER/CER/DER 解码器 DoS (google-auth → pyasn1-modules 传递)
-    "pyjwt>=2.13.0",        # PYSEC-2026-175/177/178/179 + CVE-2026-32597: unknown crit header extensions
+    "pyjwt>=2.15.1",        # CVE-2026-102268 (critical 9.1, GHSA-ffc3-869f-jxw9) 等 15 个 advisory; 一步到 2.15.1: 2.14.0 紧凑 base64url 校验曾误杀尾部 '=' 填充 token (#1209), 2.15.1 放宽
     "cryptography>=50.0.0", # GHSA-g6cj-pr64-35w5: PKCS#7 EnvelopedData 解密暴露 Bleichenbacher oracle (high); 兼容 wheel 内 OpenSSL 与 46.0.7 的 buffer overflow/subgroup/DNS constraint 防御
     "setuptools>=83.0.0",   # CVE-2026-59890: MANIFEST.in 排除规则在 macOS APFS/HFS+ 被 Unicode 归一化绕过 (spacy/thinc 传递)
     "pygments>=2.20.0",     # CVE-2026-4539: ReDoS via GUID regex
@@ -179,11 +179,13 @@ constraint-dependencies = [
     "pyopenssl>=26.0.0",    # DTLS cookie callback 缓冲区溢出 (high)
     "starlette>=1.3.1",     # 11 个 high/medium CVE (form DoS / SSRF / Host header bypass 等; 0.x 无回溯补丁, 需 google-adk>=2.2.0 解锁 1.x)
     "protobuf>=5.29.6",     # JSON recursion depth bypass (high)
-    "urllib3>=2.7.0",       # GHSA-mf9v-mfxr-j63j + GHSA-qccp-gfcp-xxvc: 解压缩炸弹 + 无限链解压缩 (high)
+    "urllib3>=2.8.0",       # GHSA-mf9v-mfxr-j63j + GHSA-qccp-gfcp-xxvc 等 3 个: 解压缩炸弹 + 无限链解压缩 (high)
     "idna>=3.15",           # GHSA-65pc-fj4g-8rjx: idna.encode() 特殊构造输入绕过 CVE-2024-3651 修复 (medium)
     "filelock>=3.20.3",     # TOCTOU symlink 竞争 (medium)
     "orjson>=3.11.6",       # 无限递归 DoS (high)
     "google-cloud-aiplatform>=1.133.0", # 可预测 bucket 命名 (high)
-    "mako>=1.3.12",         # GHSA-2h4p-vjrc-8xpq / CVE-2026-44307: Windows 反斜杠 URI TemplateLookup 路径穿越 (high, alembic 传递; 兼容 GHSA-v92g-xgxw-vvmm)
+    "mako>=1.4.2",          # GHSA-2h4p-vjrc-8xpq / CVE-2026-44307: Windows 反斜杠 URI TemplateLookup 路径穿越 (high, alembic 传递; 兼容 GHSA-v92g-xgxw-vvmm)
+    "anyio>=4.14.2",        # CVE-2026-63374 (critical, GHSA-82r6-8w77-94w6): connect_tcp/TLSStream IDNA 2003 编码 TLS 证书欺骗 + CVE-2026-64847
+    "mcp>=1.30.0,<2.0.0",   # 1.29.x 多 advisory, 1.30.0 修复; 上界 <2.0.0: mcp 2.0.0 已发布且移除部分 SDK 表面, logged_stdio_client 依赖 1.x 符号
     "python-multipart>=0.0.31", # GHSA-pp6c-gr5w-3c5g / CVE-2026-42561 + 后续 part headers DoS (high, mcp/starlette 传递; 兼容 GHSA-mj87-hwqh-73pj)
 ]
