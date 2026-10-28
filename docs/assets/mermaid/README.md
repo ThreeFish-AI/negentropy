@@ -66,6 +66,9 @@
 | [claude-code-bg-tasks--placeholder-notification-loop](./agent-harness/claude-code-bg-tasks--placeholder-notification-loop.mmd) | [176 并发重学 §3](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 三泳道（对话流 / 主循环 / 执行路径）：双闸分派 → 占位回执守住协议名额，后台执行经结果字典以通知回流下一轮（独立重学篇；新创作，无原文 mermaid 块） |
 | [claude-code-cron--four-layer-decoupling](./agent-harness/claude-code-cron--four-layer-decoupling.mmd) | [176 并发重学 §4](../../research/agent-harness/176-claude-code-concurrency-relearn.md) | workflow | ✓ | done | 四泳道（判时 / 缓冲交付 / 执行 / 持久化）：判时→队列→非阻塞抢锁→消费注入，让行回环与 durable 往返旁挂（独立重学篇；新创作，无原文 mermaid 块） |
 
+| [dsa--evidence-pipeline](./agent-harness/dsa--evidence-pipeline.mmd) | [178 DSA §2](../../research/agent-harness/178-daily-stock-analysis.md) | workflow | ✓ | done | 四泳道（入口/共享地基/Agent 路径/交付）：五段流水线在选模型后分岔，Agent 路径多一道只降不升汇流（新创作，无原文 mermaid 块） |
+| [dsa--controlled-synthesis](./agent-harness/dsa--controlled-synthesis.mmd) | [178 DSA §7](../../research/agent-harness/178-daily-stock-analysis.md) | workflow | ✓ | done | 四泳道（证据/核心角色路/策略路/裁决）：核心角色解析直通、外来策略先验票，分歧摘要上桌后 RiskGuard 单向裁决（新创作，无原文 mermaid 块） |
+
 ### self-evolution/（docs/research/self-evolution/ 的 Dream-RSI 精读）
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
