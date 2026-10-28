@@ -31,7 +31,7 @@ classifiers = [
 
 dependencies = [
     # --- MCP 框架 ---
-    "fastmcp>=3.2.4",
+    "fastmcp>=3.4.10",
     # --- 网页抓取 ---
     "aiohttp>=3.14.4",  # >=3.14.0 修复 CVE-2026-34993 / CVE-2026-47265；>=3.14.4 修复 CVE-2026-111063..111066/111748..111750, GHSA-2g87-pp6c-29x5（I-237 2026-10-23 增补）
     "beautifulsoup4>=4.14.0",
@@ -189,7 +189,8 @@ ignore_missing_imports = true
 # lxml>=6.1.0：修复 CVE-2026-41066（间接依赖）
 # urllib3>=2.8.0：修复 CVE-2026-44431, CVE-2026-44432 与 PYSEC-2026-4175/4176/4177（间接依赖；I-231 抬地板）
 # idna>=3.15：修复 CVE-2026-45409（间接依赖，requests/urllib3 传递依赖）
-# authlib>=1.7.1：修复 GHSA-r95x-qfjj-fjj2（OIDC Implicit/Hybrid Open Redirect，medium）
+# authlib>=1.7.1：修复 GHSA-r95x-qfjj-fjj2（OIDC Implicit/Hybrid Open Redirect，medium）；
+#   >=1.9.0 修复 CVE-2026-96760 + CVE-2026-114614..114618/114620（fastmcp 传递，fix 1.8.0/1.9.0/1.9.1）
 # joserfc>=1.6.7：修复 CVE-2026-48990（间接依赖 fastmcp → authlib → joserfc）
 # openai>=2.20.0：litellm>=1.83.7 要求 openai>=2.20.0（覆盖 marker-pdf<2.0.0 约束）
 # transformers 锁定 4.x——根因已更新（2026-09-06）：marker-pdf 2.0.0 / surya-ocr 0.22.1 已适配 transformers>=5.12.1（旧「transformers.onnx 崩溃」不再成立），但二者同时要求 pillow<11，与本项目 pillow 系列抬地板（12.3.0 修 8 条、13.0.0 修 35 条图像解析 CVE，本项目直接解析不可信 PDF/图片、攻击面可达）直接冲突；transformers 零直接 import、仅加载第一方模型 artifact，攻击面不可达——升级为负收益交换。mineru 3.0.9 的 transformers<5.0.0 仅 vlm/pipeline extra 生效，不构成约束
@@ -200,7 +201,7 @@ ignore_missing_imports = true
 # starlette>=1.3.1：修复 CVE-2026-48817/48818/54282/54283（间接依赖 fastapi，MCP http-transport 攻击面）
 # python-multipart>=0.0.32：修复 CVE-2026-53538/53539/53540（间接依赖 fastapi，表单解析攻击面）
 # cryptography>=48.0.1：修复 GHSA-537c-gmf6-5ccf（间接依赖 authlib/google-auth/joserfc/pdfminer-six/secretstorage）
-# msgpack>=1.2.1：修复 GHSA-6v7p-g79w-8964（传递依赖，反序列化 DoS）
+# msgpack>=1.2.1：修复 GHSA-6v7p-g79w-8964（传递依赖，反序列化 DoS）；>=1.2.3 修复 CVE-2026-114613
 # pillow>=13.0.0（覆盖上方 12.2.0 统一约束）：12.3.0 修 PYSEC-2026-2253/2254/2255/2256/2257/3451/3452/3453；13.0.0 修 2026-10-23 新报 35 条（CVE-2026-112390..112406/112891..112901/96636..96644/96778, GHSA-78g4-xqwv-q3g8，fixed 仅 13.0.0；图像解析攻击面，perceives 直接解析不可信 PDF/图片，必须升级）——marker-pdf/surya 的 pillow<11 声明在 12.3.0 抬地板时已越（见上），13.0.0 同机制继续 override（I-237）
 # click>=8.3.3：修复 PYSEC-2026-2132（传递依赖 typer/uvicorn/litellm/marker-pdf/mineru/surya-ocr 等）
 # json-repair>=0.60.1：修复 GHSA-xf7x-x43h-rpqh（传递依赖 mineru）
@@ -209,7 +210,11 @@ ignore_missing_imports = true
 # certifi>=2026.10.19：修复 PYSEC-2026-4320（间接依赖 requests/httpx/selenium/trafilatura/docling-slim；I-237）
 # opentelemetry-api>=1.45.1：修复 CVE-2026-114603（间接依赖 fastmcp；I-237）
 # virtualenv>=21.14.9：修复 CVE-2026-113722/113725（dev 组 pre-commit 传递；I-237）
-override-dependencies = ["pillow>=13.0.0", "lxml>=6.1.0", "urllib3>=2.8.0", "idna>=3.15", "authlib>=1.7.1", "joserfc>=1.6.7", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.15.0", "docling-core>=2.101.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1", "msgpack>=1.2.1", "click>=8.3.3", "json-repair>=0.60.1", "mcp>=1.30.0", "datasets>=5.0.1", "certifi>=2026.10.19", "opentelemetry-api>=1.45.1", "virtualenv>=21.14.9"]
+# fastmcp>=3.4.10：修复 GHSA-7xgj-8392-5q4r（直接依赖；3.2.4→3.4.x 公共 API 兼容，3.4 起拆出 fastmcp-slim 子包）
+# filelock>=4.2.1：修复 CVE-2026-112907/112913/112940（传递依赖，fix 仅 4.x；FileLock 公共 API 3→4 兼容）
+# setuptools>=84.1.0：修复 GHSA-xmj3-9gf7-h52w（传递依赖）
+# dnspython>=2.9.0：修复 CVE-2026-114605（email-validator 传递）
+override-dependencies = ["pillow>=13.0.0", "lxml>=6.1.0", "urllib3>=2.8.0", "idna>=3.15", "authlib>=1.9.0", "joserfc>=1.6.7", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.15.0", "docling-core>=2.101.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1", "msgpack>=1.2.3", "click>=8.3.3", "json-repair>=0.60.1", "mcp>=1.30.0", "datasets>=5.0.1", "certifi>=2026.10.19", "opentelemetry-api>=1.45.1", "virtualenv>=21.14.9", "filelock>=4.2.1", "setuptools>=84.1.0", "dnspython>=2.9.0"]
 
 [dependency-groups]
 dev = [
