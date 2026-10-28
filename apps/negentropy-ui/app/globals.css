@@ -453,14 +453,14 @@ body {
  */
 .dark .katex .vlist-t2 > .vlist-r > .vlist > .vlist-s,
 .dark .katex .frac-line,
-.dark .katex .overline .overline-line,
-.dark .katex .underline .underline-line,
+.dark .katex .katex-overline .overline-line,
+.dark .katex .katex-underline .underline-line,
 .dark .katex .sqrt > .sqrt-line,
-.dark .katex .hline {
+.dark .katex .katex-hline {
   border-color: currentColor;
 }
 
-.dark .katex .sqrt > .root {
+.dark .katex .sqrt > .katex-root {
   color: currentColor;
 }
 
