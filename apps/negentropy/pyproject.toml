@@ -31,7 +31,7 @@ dependencies = [
     "pydantic-settings[yaml]>=2.14.2",  # Configuration management with YAML support; >=2.14.2 修复 GHSA-4xgf-cpjx-pc3j (NestedSecretsSettingsSource 跟随 secrets_dir 外符号链接致本地文件读)
     "pyyaml>=6.0.2",                # YAML parser for configuration files
     # LLM & AI Services
-    "litellm>=1.89.7",              # Unified interface for various LLM providers (>=1.89.7 修复 GHSA-3cv6-jpf6-8222 认证 SSRF + provider 凭证外泄; >=1.84.0 修复 GHSA-4xpc-pv4p-pm3w critical 鉴权绕过; 残留 GHSA-g5ff-637f-6q2m 需 >=1.95.0 新线, 见 follow-up)
+    "litellm>=1.95.0",              # Unified interface for various LLM providers (>=1.95.0 修复 GHSA-g5ff-637f-6q2m High 任意文件读——Dependency Review 硬门, 1.89.x 无回补; >=1.89.7 修复 GHSA-3cv6 认证 SSRF; >=1.84.0 修复 GHSA-4xpc-pv4p-pm3w critical 鉴权绕过; 残留 GHSA-7hp6 EXPERIMENTAL_UI_LOGIN 条件触发, 默认 false 缓解)
     # Google Cloud Services（GCS 退役：artifact/document blob 已迁至 PostgreSQL，不再直接依赖 google-cloud-storage；
     # 该包仍经 google-adk 传递安装，但 negentropy 自身无任何直接引用）
     "google-auth>=2.48.0",          # Authentication for Google services
