@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "DSA 受控综合：两条准入路与单向裁决",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-dsa--controlled-synthesis-20261027-130711/dsa--controlled-synthesis.html"
+  },
+  "lanes": [
+    { "id": "ev", "label": "证据" },
+    { "id": "ext", "label": "策略路 · 外来" },
+    { "id": "core", "label": "核心角色路 · 内置" },
+    { "id": "verdict", "label": "裁决" }
+  ],
+  "groups": [
+    { "id": "g-ext", "label": "先验票再进门", "lane": "ext", "fromCol": 1, "toCol": 2, "variant": "emphasis" },
+    { "id": "g-verdict", "label": "只降不升", "lane": "verdict", "fromCol": 4, "toCol": 5, "variant": "security" }
+  ],
+  "mainPath": ["E", "roles", "parse", "D", "d0", "rg"],
+  "nodes": [
+    { "id": "E", "lane": "ev", "col": 0, "type": "database", "label": "结构化证据 E", "sublabel": "八态 · 质量分", "width": 136 },
+    { "id": "roles", "lane": "core", "col": 1, "type": "backend", "label": "核心角色", "sublabel": "技术 · 情报 · 风险", "width": 136 },
+    { "id": "parse", "lane": "core", "col": 2, "type": "backend", "label": "角色专属解析", "sublabel": "按角色格式校验", "width": 136 },
+    { "id": "sk", "lane": "ext", "col": 1, "type": "frontend", "label": "策略技能", "sublabel": "15 个外来 YAML", "width": 132 },
+    { "id": "gate", "lane": "ext", "col": 2, "type": "security", "label": "信号资格分选", "sublabel": "五个标准信号", "width": 140 },
+    { "id": "diag", "lane": "ext", "col": 3, "type": "messagebus", "label": "诊断记录", "sublabel": "无效意见留档", "width": 128 },
+    { "id": "D", "lane": "verdict", "col": 3, "type": "backend", "label": "分歧摘要 D", "sublabel": "三桶 · 四类冲突", "width": 128 },
+    { "id": "d0", "lane": "verdict", "col": 4, "type": "backend", "label": "决策综合 d0", "sublabel": "E + 意见 + 分歧", "width": 136 },
+    { "id": "rg", "lane": "verdict", "col": 5, "type": "security", "label": "RiskGuard", "sublabel": "否决 · 降档 · 只降不升", "width": 148 }
+  ],
+  "edges": [
+    { "id": "e1", "from": "E", "to": "roles", "variant": "default" },
+    { "id": "e2", "from": "roles", "to": "parse", "label": "原始输出", "variant": "default" },
+    { "id": "e3", "from": "parse", "to": "D", "label": "O_core", "variant": "emphasis" },
+    { "id": "e4", "from": "E", "to": "sk", "variant": "dashed", "role": "branch" },
+    { "id": "e5", "from": "sk", "to": "gate", "label": "自然语言意见", "variant": "default" },
+    { "id": "e6", "from": "gate", "to": "D", "label": "O* 合格意见", "variant": "emphasis" },
+    { "id": "e7", "from": "gate", "to": "diag", "label": "无效 · 留档", "variant": "security", "role": "error" },
+    { "id": "e8", "from": "D", "to": "d0", "label": "分歧上桌", "variant": "default" },
+    { "id": "e9", "from": "d0", "to": "rg", "label": "初判 d0", "variant": "default" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两条准入路",
+      "items": [
+        "核心角色是仓库自带的，解析过了直接进意见池",
+        "策略技能是外来的，必须落在五个标准信号里才算有效"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "裁决单向",
+      "items": [
+        "无效意见进诊断留档，绝不混进意见链",
+        "RiskGuard 只降不升，模型的激进由代码兜底"
+      ]
+    }
+  ]
+}
