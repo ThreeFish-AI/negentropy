@@ -120,6 +120,7 @@
 | [精读：Nous Research Hermes Agent](./agent-harness/190-hermes-agent.md) | 自学习闭环 Harness 视角：缓存优先的三段式提示装配（会话内唯一计划内断点是压缩）、有界常驻记忆（2200/1375 字符）+ 按需技能两级记忆、交付后旁路 review 自写技能（分派侧白名单 · 先读后写 · 署名保护）+ Curator 只归档不删除、FTS5 零 LLM 会话检索 + 工具组不拆的四阶段压缩、委派/定时/命令守卫的受控扩张；五条规律（缓存/容量/写回/历史/边界）、三个争议、21 处文档↔代码漂移与「无学习效果评测」的批判性边界，配套原型六次破坏性实验与两张 archify 图 |
 | [Learn Claude Code 并发与调度重学精读](./agent-harness/176-claude-code-concurrency-relearn.md) | s13 后台任务 × s14 定时调度的**独立重学篇**（最新版 guided-learn，零继承旧篇）：占位回执守住「一次调用配一个结果」的协议名额、通知由主循环每轮收集后以新消息身份回注；cron 四层解耦（判时/队列/非阻塞交付/执行）与三道保险；教学版三处边界实测（后台复用 120 秒超时、摘要截 200 字、通知未转义）；官方文档逐项对账（印证清单 + 抖动上限硬分歧 + 超时自动转后台三路径）；确定性原型 + 五次破坏性实验 + 两张 archify 图 |
 | [claude.dev 全站精读与通俗拆解](./agent-harness/177-anthropic-claude-dev-blog.md) | Anthropic 开发者博客 claude.dev **全站首读**（2026-10-23 快照：16 文 + Mods + 5 视频官方字幕）：轮数×重发×缓存前缀的账单模型、effort 买彻底不买聪明、脚手架生灭律（80% 系统提示删减与 todo 消亡）、七层评审防线与确定性计数棘轮、无人值守自动化三件套（书签/确认记账/硬预算）、执行环境三级跳（云会话/Managed Agents/Claude Tag）、mods hook 链与 dynamic workflows；7 组官方文档补读对齐口径，五机制原型 + 四次破坏性实验 + 两张 archify 图 |
+| [精读：Harness 到 Harness²](./agent-harness/179-harness-to-harness2.md) | 双源合并精读（Harness-Zero arXiv:2609.24974v1 × Harness² arXiv:2610.14224v1，互不引用、非换代）：同一问题「harness 收益放哪」的两条互补路线——训练期 agent-as-harness 审阅门蒸馏进权重、部署期卸载（23.3→44.3 反超外挂 41.7；监督源消融 K 30 vs oracle 15 vs 错配 3；28 模式恢复 82.3%）与部署期冻结模型的对比式 Propose–Probe–Compose + 双层递归库（单步最高 +11.5、库反哺与跨模型迁移 +17.3）；公式链 (1)-(5)/(1)-(4) 逐条白话拆解、4 张论文原图（CC BY 4.0）、五条规律三个争议与批判边界（均无独立复现）；配套纯标准库原型 harness2_lab.py 与五组破坏性实验实测退化 |
 
 ---
 

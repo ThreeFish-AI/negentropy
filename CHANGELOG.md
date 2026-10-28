@@ -12,6 +12,12 @@
 - 登记面：research readme / knowledge-map / mermaid README / source-figures README / issue I-239。
 - 验收：56 行源稿对账（8 行返工复判收口，COUNTS 全零）+ 增量 Checker 核外行补阙 26 行 + 盲评 3 章（成稿全胜）+ 外行四测四项出闸（LLM 代理作答；两处事实错误经测出并修正：信号别名表无中文、hold 官方中文为「持有」）。
 
+### Harness 到 Harness² 双源精读与通俗拆解入库（agent-harness 179，2026-10-28）
+### Harness 到 Harness² 双源精读与通俗拆解入库（agent-harness 179，2026-10-28）
+
+- [179 精读](docs/research/agent-harness/179-harness-to-harness2.md)：Harness-Zero（arXiv:2609.24974v1，训练期审阅门蒸馏进权重、部署卸载）× Harness²（arXiv:2610.14224v1，部署期冻结模型的对比式 PPC + 双层递归库）合并精讲——互不引用、非换代，按「同一问题的两条互补路线」组织；两篇公式链 (1)-(5)/(1)-(4) 逐条白话拆解，正文 4 张论文原图（CC BY 4.0，TeX 源码包矢量 PDF 渲染入 `docs/assets/source-figures/agent-harness/`），配套纯标准库原型 `harness2_lab.py`（selftest + D1–D5 破坏实验 + 字数门禁 count 模式）。
+- 登记面：research readme 第九节、knowledge-map Research 节、source-figures README（agent-harness 分组）。
+
 ### 信源原图资产库统一：papers/ 迁入 source-figures/（2026-10-26）
 
 - `git mv docs/assets/papers/multimodal-models`（KTP 论文图 1–7，PR #1211 建）→ `docs/assets/source-figures/multimodal-models/`，全仓仅此一个原图库；240 正文的 7 处图片路径同步。

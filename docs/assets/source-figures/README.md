@@ -50,3 +50,14 @@ KTP 论文图 1–7 由 TeX 源码包矢量 PDF 渲染为 PNG，2026-10-26 自 `
 | 8 | [openviking--src-08-readme-benchmark.png](./cognitive-context/openviking--src-08-readme-benchmark.png) | 钉点 [`docs/images/benchmark-dark.svg`](https://github.com/volcengine/OpenViking/blob/6227af5102b3874d162d65a0503bfeef849686c2/docs/images/benchmark-dark.svg)（README 基准图） | AGPL-3.0 | SVG 2× 栅格化，透明底烘暗底 `#020617`，四周留 24px 边距 |
 | 9 | [openviking--src-09-vikingmem-schema.png](./cognitive-context/openviking--src-09-vikingmem-schema.png) | [VikingMem, arXiv:2605.29640v3](https://arxiv.org/html/2605.29640v3#S2.F1) Figure 1（J. Fu *et al.*） | CC BY-NC-SA 4.0 | 原样 |
 | 10 | [openviking--src-10-product-retrieval-claims.png](./cognitive-context/openviking--src-10-product-retrieval-claims.png) | [openviking.ai/product](https://openviking.ai/product)「三层结构，按需加载」与「理解结构的检索」两节（前端 bundle `index-BfoH6ZUa.js`） | 版权归原作者，仅作学习引用 | 无头浏览器暗色 2× 截图，隐藏吸顶导航 |
+
+### agent-harness · Harness 到 Harness² 精读（[179](../../research/agent-harness/179-harness-to-harness2.md)）
+
+抓取基准为 arXiv:2610.14224v1 TeX 源码包（e-print，2026-10-28 下载），矢量 PDF 经 pdftoppm 200dpi 渲染 PNG（RGB 白底，无透明通道）；论文许可 CC BY 4.0。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [harness2--fig2-eight-components.png](./agent-harness/harness2--fig2-eight-components.png) | Harness² 论文 Fig.2（components.pdf） | CC BY 4.0 | 矢量 PDF 渲染 PNG |
+| [harness2--fig3-ppc-pipeline.png](./agent-harness/harness2--fig3-ppc-pipeline.png) | Harness² 论文 Fig.3（harness2_main_new.pdf） | CC BY 4.0 | 矢量 PDF 渲染 PNG |
+| [harness2--fig4-recursion-forms.png](./agent-harness/harness2--fig4-recursion-forms.png) | Harness² 论文 Fig.4（scaling.pdf） | CC BY 4.0 | 矢量 PDF 渲染 PNG |
+| [harness2--fig9-jobbench-case.png](./agent-harness/harness2--fig9-jobbench-case.png) | Harness² 论文 Fig.9（case_jobbench.pdf） | CC BY 4.0 | 矢量 PDF 渲染 PNG |
