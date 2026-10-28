@@ -64,16 +64,26 @@ P2 链：开放任务无真值 → 「让模型判对错」不可靠（重复执
 机制是一条公式链，先摆原文再逐条拆解。记号说人话：h=部署用极简目标 harness；h*=训练任务上演化的专用 harness；K=翻给审阅者的「审阅知识」；π_S 学生、π_H 审阅代理；y=学生提议的动作，ỹ=审阅后实际执行的；c=学生可见信息。
 
 ```math
+h^{\star}=\operatorname{Evolve}(\mathcal{D}_{\mathrm{train}}),\qquad \mathcal{K}=\operatorname{Adapt}(h^{\star};\,h) \tag{1}
+```
+
+```math
+y_{t}\sim\pi_{\theta_{0}}^{h^{\star}}(\cdot\mid c_{t}),\qquad c_{t+1}=T_{h^{\star}}(c_{t},\,y_{t}) \tag{2}\ \text{（基线：code-as-harness）}
+```
+
+```math
 \begin{aligned}
-&h^{\star}=\operatorname{Evolve}(\mathcal{D}_{\mathrm{train}}),\qquad \mathcal{K}=\operatorname{Adapt}(h^{\star};\,h) \tag{1} \\
-&y_{t}\sim\pi_{\theta_{0}}^{h^{\star}}(\cdot\mid c_{t}),\qquad c_{t+1}=T_{h^{\star}}(c_{t},\,y_{t}) \tag{2}\ \text{（基线：code-as-harness）} \\
-&\begin{aligned}
 &y_{t}\sim\pi_{S}(\cdot\mid c_{t}):=\pi_{\theta_{0}}^{h}(\cdot\mid c_{t}),\qquad (d_{t},z_{t})\sim\pi_{H}(\cdot\mid c_{t},y_{t},\mathcal{K},r_{<t}) \\
 &\tilde{y}_{t}=\begin{cases}y_{t}, & d_{t}=\text{pass}\\ z_{t}, & d_{t}=\text{replace}\end{cases},\qquad c_{t+1}=T_{h}(c_{t},\,\tilde{y}_{t})
-\end{aligned} \tag{3}\ \text{（agent-as-harness）} \\
-&\hat{\theta}=\arg\min_{\theta}-\sum_{\tau\in\mathcal{D}_{\mathrm{review}}}\sum_{t=1}^{T_{\tau}}\log\pi_{\theta}^{h}(\tilde{y}_{t}\mid c_{t}) \tag{4}\ \text{（SFT 蒸馏）} \\
-&y_{t}\sim\pi_{\hat{\theta}}^{h}(\cdot\mid c_{t}),\qquad c_{t+1}=T_{h}(c_{t},\,y_{t}) \tag{5}\ \text{（部署：只剩 h）}
-\end{aligned}
+\end{aligned} \tag{3}\ \text{（agent-as-harness）}
+```
+
+```math
+\hat{\theta}=\arg\min_{\theta}-\sum_{\tau\in\mathcal{D}_{\mathrm{review}}}\sum_{t=1}^{T_{\tau}}\log\pi_{\theta}^{h}(\tilde{y}_{t}\mid c_{t}) \tag{4}\ \text{（SFT 蒸馏）}
+```
+
+```math
+y_{t}\sim\pi_{\hat{\theta}}^{h}(\cdot\mid c_{t}),\qquad c_{t+1}=T_{h}(c_{t},\,y_{t}) \tag{5}\ \text{（部署：只剩 h）}
 ```
 
 逐条拆解（编号与论文一致）：
@@ -151,11 +161,15 @@ P2 把 harness 形式化成八个组件，每个是一个文件，编辑即 diff
 P2 的「递归」指改进对象也含改进机制本身，分两层。任务级递归（式 (2)(3)）加预算有两种形态：并行版提 k 个不变式候选和 k 个领域候选、各跑一次，k 个组合会话独立组合，最后由看不到来源的选择者挑交付物（匿名防偏信复杂候选）：
 
 ```math
-\begin{aligned}
-&\mathcal{H}^{\prime}_{j}=\operatorname{Compose}_{j}(q_{t},\mathcal{H},\mathcal{B},\mathcal{P};\,\mathcal{R}_{t}),\quad j=1,\dots,k \tag{2}\ \text{（并行：k 组独立组合）} \\
-&(\mathcal{H}^{(r)},e^{(r)},\xi^{(r)})=\Phi(q_{t},\mathcal{H}^{(r-1)},\mathcal{E}^{(r-1)};\,\mathcal{R}_{t}),\quad r=1,\dots,k \tag{3}\ \text{（串行：链式精化）} \\
-&\mathcal{R}_{t+1}=\operatorname{Update}(\mathcal{R}_{t},\,\mathcal{H}^{\star}_{t},\,\mathcal{D}_{t}) \tag{4}\ \text{（任务后：经验入库）}
-\end{aligned}
+\mathcal{H}^{\prime}_{j}=\operatorname{Compose}_{j}(q_{t},\mathcal{H},\mathcal{B},\mathcal{P};\,\mathcal{R}_{t}),\quad j=1,\dots,k \tag{2}\ \text{（并行：k 组独立组合）}
+```
+
+```math
+(\mathcal{H}^{(r)},e^{(r)},\xi^{(r)})=\Phi(q_{t},\mathcal{H}^{(r-1)},\mathcal{E}^{(r-1)};\,\mathcal{R}_{t}),\quad r=1,\dots,k \tag{3}\ \text{（串行：链式精化）}
+```
+
+```math
+\mathcal{R}_{t+1}=\operatorname{Update}(\mathcal{R}_{t},\,\mathcal{H}^{\star}_{t},\,\mathcal{D}_{t}) \tag{4}\ \text{（任务后：经验入库）}
 ```
 
 ![论文图 4：任务级递归的两种形态](../../assets/source-figures/agent-harness/harness2--fig4-recursion-forms.png)
