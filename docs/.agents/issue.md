@@ -5705,6 +5705,6 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 **后续防范**：pip-audit 的 PyPI advisory DB 滚动滞后于 GitHub Advisory（10-01 的 GHSA 至 10-23 后才进 DB），perceives CI 绿不代表无新债——动 perceives 依赖时本地裸跑一次 pip-audit 对账 ignore 集；uv 裸升会跳 major/跨多 minor（litellm 1.89→1.106、multidict 6→7），安全修复一律收敛到修复版区间再锁；katex 类前缀化破坏面是自定义 CSS 选择器与类名白名单，升级前 grep 20 个改名类。
 
-**同类问题影响**：litellm 双仓残留 GHSA-g5ff-637f-6q2m（High，<1.95.0 任意文件读、1.89.x 无回补）与 GHSA-7hp6-4w63-5g45——需独立任务跳 >=1.95.0 新线；rehype-katex 8 发布后应移除 katex override；google-adk 放开 OTel 上界后 reopen #1013 升整组 OTel。
+**同类问题影响**：litellm 残留 GHSA-7hp6-4w63-5g45（EXPERIMENTAL_UI_LOGIN 条件触发，修复在 1.100.4+）双仓待跳新线；GHSA-g5ff-637f-6q2m 因 Dependency Review 硬门（delta 审查对版本变化的包按新版本评漏洞，fail-on-severity: high）已在收尾轮将 backend litellm 收敛目标从 1.89.7 抬至 1.95.1 清偿（1.89.2 基线同样在 <1.95.0 范围内，「升级引入」是门的行为假象）；rehype-katex 8 发布后应移除 katex override；google-adk 放开 OTel 上界后 reopen #1013 升整组 OTel。另：perceives CI 三平台曾同挂 test_error_logging_and_handling——CI runner 上 stealth 工具可用且 error-test.com 真实可解析使管线真实抓取成功、断言失效（本地过靠工具不可用的环境性通过），已 patch run_webpage_pipeline 强制降级 legacy 路径，用例与运行环境解耦。
 
 **处理注意事项**：mcp 升级必须先核 `mcp.client.stdio` 私有符号存活（mcp_client.py 的 logged_stdio_client 复刻 stdio client）；katex override 期间 rehype-katex 属未声明支持配置（remarkjs/remark-math#121 社区实测通过），katex 0.19 类名与 0.18 相同、跟进成本低；fast-uri 父包 ajv 无版本封顶、override 干净解析，勿在分集 package.json 落直接依赖。
