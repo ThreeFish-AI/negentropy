@@ -245,6 +245,7 @@
 | I-237 | PR #1205 双 failing check 修复：source-map-js GHSA-68fv-2mgg-jv7q 全仓 override（根 + 15 分集）+ perceives 六包安全地板（pillow 13.0.0 等 48 条新报 advisory） | ✅ 已完成 | 2026-10-23 | [详情](#I-237) |
 | I-238 | 014 OpenViking 精读零信源原图：五渠道普查补入 10 张原图（新建 source-figures 资产库）+ 随图更正 §7/§9.1–§9.3 七处时效与出处 | ✅ 已完成 | 2026-10-25 | [详情](#I-238) |
 | I-239 | agent-harness 178 DSA 精读入库：三源首读（repo@4e622643 + 站点 + 论文）+ 五机制原型 + 双 archify 图 + 信源原图 5 张（含交付后增补 4 张批次） | ✅ 已完成 | 2026-10-27 | [详情](#I-239) |
+| I-240 | Dependabot 54 条批量处置：backend 11 包收敛升级（mcp 上界防 2.x）+ katex 0.18 override（rehype-katex 卡 ^0.16）+ fast-uri 全仓 override（根 + 15 分集）+ perceives 七包防 CI 红头 + dismiss 2 条有据告警 | ✅ 已完成 | 2026-10-28 | [详情](#I-240) |
 
 ---
 
@@ -5708,3 +5709,17 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：后续 DSA 换代再精读时按 lecture-format §7 四桶继承审计处理；archify 图按图型管线 SSOT 重走。
 
 **处理注意事项**：67k star/fork 比例异常（fork≈0.83×star）成因材料未解释，正文已按推断标注；`docs/architecture/api_spec.json` 覆盖代码路由约 29% 且手写段滞后，引用路由契约须回代码。
+<a id="I-240"></a>
+## I-240：Dependabot 54 条告警批量处置——backend/katex/fast-uri/perceives 四线并进与 2 条有据 dismiss
+
+**问题描述**：Dependabot 累积 54 条 open 告警（2026-09-18 至 10-23 多批），覆盖 apps/negentropy/uv.lock 34 条（PyJWT×15 含 1 critical、aiohttp×8、anyio×2 含 1 critical 等 11 包）、perceives transformers 1 条、opentelemetry-api 1 条、katex 2 条（ui/wiki）、fast-uri 15 条（全部分集 video lock）。
+
+**表因根因**：分批入库的 advisory 与无 dependabot.yml 自动升级叠加；其中三条有结构性根因——① opentelemetry-api 1.45.1 被 google-adk 全系 `opentelemetry-api<=1.42.1` 硬 pin 堵死（main 分支已抬至 <=1.44，issue google/adk-python#6421 跟踪）；② transformers CVE-2026-80047 上游无修复版（range 覆盖至 5.8.1、first_patched=null），perceives 锁 <5.0.0 根因仍是 marker-pdf/surya 的 pillow<11 冲突；③ katex 0.16 线无修复版（GHSA-238p 修复在 0.18.2），而 rehype-katex 7.0.1/micromark-extension-math 均声明 katex ^0.16.0（rehype-katex 8 无时间表）。
+
+**处理方式**：先对账 master 与 feature/1.x.x manifest 完全一致（7 提交全 docs），排除「已修待发布」幻象后四线并进——① backend：pyproject 地板抬 pyjwt>=2.15.1（一步到 2.15.1：2.14.0 紧凑 base64url 校验误杀尾部 '=' 填充 token）、litellm>=1.89.7、aiohttp>=3.14.4、urllib3>=2.8.0、mako>=1.4.2，新增 anyio>=4.14.2（critical CVE-2026-63374 IDNA TLS 欺骗）与 mcp>=1.30.0,<2.0.0（mcp 2.0.0 已破坏 SDK 表面；logged_stdio_client 引用 mcp.client.stdio 七个私有符号，升级前逐一核验存活），uv lock 收敛升级 11 包（litellm 锁 1.89.7、multidict <7、soupsieve <3 防裸升 major/跨 17 minor）；② katex：根 pnpm-workspace override `katex: '>=0.18.11 <0.19.0'` 压过两处 ^0.16.0，ui/wiki package.json 同步 ^0.18.11，0.18.0 的 20 个内部 CSS 类名加 katex- 前缀唯一命中 ui globals.css 暗色适配四处选择器（.overline-line/.underline-line/.sqrt 子线类不改名），katex.min.css 路径经 exports catch-all 仍可解析、@types/katex 0.16.8 留树不冲突（0.18 起自带 types）；③ fast-uri：根 + 15 分集 pnpm-workspace override `'>=3.1.8 <4.0.0'`（I-237 同型），全仓 lockfile-only 重锁落 3.1.9；④ perceives：pip-audit 本地实跑暴露 CI 尚未见的 10-23 后新入库 advisory（authlib×7、dnspython、fastmcp、filelock×3、msgpack、setuptools——CI push paths 触发必红），升级 fastmcp 3.4.11（主段地板 3.4.10）/authlib 1.9.1/dnspython 2.9.0/filelock 4.2.4/msgpack 1.2.4/setuptools 84.2.1 并补 override 地板，litellm 1.96.2 的 CVE-2026-114612 走 ignore（EXPERIMENTAL_UI_LOGIN 条件触发、默认 false）；dismiss #769/#1013（not_used，评论记根因与解锁条件）。验证：backend 2991 passed、ui lint/typecheck×2/test:coverage 全绿、wiki lint/test 122/build 全绿、perceives pip-audit 剩余 ⊆ ignore 集 + 测试全绿、katex 0.18.11 渲染冒烟前缀类落位。
+
+**后续防范**：pip-audit 的 PyPI advisory DB 滚动滞后于 GitHub Advisory（10-01 的 GHSA 至 10-23 后才进 DB），perceives CI 绿不代表无新债——动 perceives 依赖时本地裸跑一次 pip-audit 对账 ignore 集；uv 裸升会跳 major/跨多 minor（litellm 1.89→1.106、multidict 6→7），安全修复一律收敛到修复版区间再锁；katex 类前缀化破坏面是自定义 CSS 选择器与类名白名单，升级前 grep 20 个改名类。
+
+**同类问题影响**：litellm GHSA-7hp6-4w63-5g45（High，range 覆盖至 <1.100.4，修复 1.100.4+）——backend 已在收尾轮升 1.100.5 清偿（Dependency Review 硬门第二次拦截后收敛至修复线，连带 boto3/botocore 4 个 Bedrock 标配传递包）；perceives 侧 1.96.2 仍在范围但不在 delta、经 pip-audit ignore（EXPERIMENTAL_UI_LOGIN 条件触发）覆盖，随 perceives 生态升级一并清偿；GHSA-g5ff-637f-6q2m 因 Dependency Review 硬门（delta 审查对版本变化的包按新版本评漏洞，fail-on-severity: high）已在收尾轮将 backend litellm 收敛目标从 1.89.7 抬至 1.95.1 清偿（1.89.2 基线同样在 <1.95.0 范围内，「升级引入」是门的行为假象）；rehype-katex 8 发布后应移除 katex override；google-adk 放开 OTel 上界后 reopen #1013 升整组 OTel。另：perceives CI 三平台曾同挂 test_error_logging_and_handling——CI runner 上 stealth 工具可用且 error-test.com 真实可解析使管线真实抓取成功、断言失效（本地过靠工具不可用的环境性通过），已 patch run_webpage_pipeline 强制降级 legacy 路径，用例与运行环境解耦。
+
+**处理注意事项**：mcp 升级必须先核 `mcp.client.stdio` 私有符号存活（mcp_client.py 的 logged_stdio_client 复刻 stdio client）；katex override 期间 rehype-katex 属未声明支持配置（remarkjs/remark-math#121 社区实测通过），katex 0.19 类名与 0.18 相同、跟进成本低；fast-uri 父包 ajv 无版本封顶、override 干净解析，勿在分集 package.json 落直接依赖。本条原编号 I-239，与上游同日合入的 DSA 精读条目（#I-239）撞号后重编为 I-240——本分支 commit message 与 GitHub dismiss 评论中的「I-239」引用均指本条。

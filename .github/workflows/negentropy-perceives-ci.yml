@@ -235,6 +235,12 @@ jobs:
             # transformers 受 pillow 冲突钉死 4.57.6，二者在 docling engine worker 导入链上不兼容
             #（实测 parse-pdf 由 Success 变 Failed: cannot import name AutoProcessor）——见 I-092
             --ignore-vuln CVE-2025-3000
+
+            # litellm 1.96.2 CVE-2026-114612（GHSA-7hp6-4w63-5g45）：仅在显式开启
+            # EXPERIMENTAL_UI_LOGIN=true 时经 salt-key 复用提权 proxy_admin（RCE）——本项目
+            # 未启用 proxy UI 登录（默认 false），攻击向量不可达；修复在 1.100.4+，需跳新线，
+            # 与 apps/negentropy 侧 litellm 残留同口径，随 litellm 新线升级一并清偿（follow-up）
+            --ignore-vuln CVE-2026-114612
           )
           uv run pip-audit "${ignore_args[@]}"
 

@@ -48,3 +48,6 @@ overrides:
   # GHSA-68fv-2mgg-jv7q (high)：source-map-js < 1.2.2 事件循环 DoS；floor 1.2.2、限 <2 避免
   # major 跳跃，与仓库根 pnpm-workspace.yaml 同口径（I-237）。
   source-map-js: '>=1.2.2 <2.0.0'
+  # GHSA-hrr3-gc8f-f4qj (medium)：fast-uri < 3.1.8 decodeURIComponent 回溯。ajv 传递（无版本
+  # 封顶），floor 3.1.8、限 <4 避免 major 跳跃，与仓库根 pnpm-workspace.yaml 同口径。
+  fast-uri: '>=3.1.8 <4.0.0'

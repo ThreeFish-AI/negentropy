@@ -57,4 +57,13 @@ overrides:
   source-map-js: '>=1.2.2 <2.0.0'
   '@babel/core': '>=7.29.6 <8.0.0'   # @vitejs/plugin-react/next/styled-jsx peer ^7.0.0; 限 <8 避免 Babel 8 大版本跳跃破坏兼容 (GHSA low)
   esbuild: '>=0.28.1'         # vite + tsup 传递 (dev, GHSA low)
+  # GHSA-238p-pmpm-9mq7 (low)：katex < 0.18.2 已污染原型可绕过 trust 限制。rehype-katex 7.0.1 与
+  # micromark-extension-math 均声明 katex ^0.16.0（无 0.16 线修复版），全局 override 压到 0.18 线
+  # （renderToString 签名与 KatexOptions 字段集 0.16→0.18 未变，社区实测兼容 remarkjs/remark-math#121）；
+  # 限 <0.19 锁线。0.18.0 将 20 个内部 CSS 类名加 katex- 前缀（ui globals.css 暗色适配已同步）。
+  # rehype-katex 8 发布后应移除此 override。
+  katex: '>=0.18.11 <0.19.0'
+  # GHSA-hrr3-gc8f-f4qj (medium)：fast-uri < 3.1.8 decodeURIComponent 回溯。ajv 传递（无版本封顶），
+  # floor 3.1.8、限 <4 避免 major 跳跃，与各分集 video/pnpm-workspace.yaml 同口径。
+  fast-uri: '>=3.1.8 <4.0.0'
   ts-deepmerge: '>=8.0.0'     # @copilotkitnext/react@1.51.3 传递 (negentropy-ui 运行时); 8.0.0 仅改 Object.prototype 同名键处理 (DoS 修复点), 常规 merge API 不变 — GHSA-87mf-gv2c-c62c CVE-2026-12644 (medium)
