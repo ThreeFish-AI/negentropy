@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a57d0505-012e-469e-9d7a-83d105f3cad5",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/diagrams/memadapter--three-stage-pipeline/memadapter--three-stage-pipeline.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tunis-v4/docs/assets/architecture/cognitive-context/memadapter--three-stage-pipeline.html",
+  "specification": {
+    "sha256": "6d943ab315bd810a12412381133113ead5e71bb64833504e4b5fde891554bb2d",
+    "bytes": 4335
+  },
+  "artifact": {
+    "sha256": "3c00fa4cdb4a80c10d400181186e2ff3fde6cc2f604fb130a1bdb4648252dd39",
+    "bytes": 756379
+  }
+}

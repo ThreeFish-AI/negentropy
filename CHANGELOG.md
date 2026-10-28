@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Memadapter 论文精读入库：记忆诱发谄媚的检索后治理（cognitive-context 015，2026-10-28）
+
+- 新增 `docs/research/cognitive-context/015-memadapter-counterfactual-adaptation.md`（arXiv:2610.05162v1，CC BY 4.0）：受控实验证「准确记忆也诱发谄媚」（96.0%→77.3%）→ 反事实归纳任务无关边界（式1–3）→ 任务条件化使用指令（式4）→ 证据锚定生成＋支撑轨迹核验（式5）；三基准五记忆系统三骨干主结果、消融与运行时，五规律三争议与批判边界五条。
+- 配套纯标准库原型 `assets/memadapter_lab.py`（九场景确定性仿真：变体阶梯 3/9→7/9→8/9→9/9，E1–E4 破坏实验实测退化）；archify 三阶段机制图四件套入库（`memadapter--three-stage-pipeline`）；论文原图 4 张（图1/2a/2b/3）入 source-figures 并登记台账。
+- 登记面同步：research readme、knowledge-map、mermaid README。
+
 ### Daily Stock Analysis（DSA）精读与通俗拆解入库（agent-harness 178，2026-10-27）
 
 - 新增 [178-daily-stock-analysis](docs/research/agent-harness/178-daily-stock-analysis.md)：以 67k star 开源仓 ZhuLinsen/daily_stock_analysis 钉点 `4e622643`（2026-10-25，产品站 v3.33.0-10-g4e622643 同源构建）+ 站点 12 任务指南原生页 + 系统论文 arXiv:2608.26990v1 三源首读：五段证据到报告流水线与双执行路径、八态证据状态与六块质量评分（缺数据≠中性、核心块降级禁高置信）、多源回退三层防护（回退链/熔断/冷却）、模型路由三层配置×两层路由与能力准入（可替换≠等价；13 家 prompt-cache 登记未开门的预留态）、15 策略技能与信号资格分选（无效进诊断、互斥穷尽）、分歧显式化+RiskGuard 只降不升、决策信号 1d–10d 后验与 Beta(15,15) 收缩权重自校准；五条底层规律、三个争议与「论文 1457/596 契约测试只证软件一致性」的批判边界五条。
@@ -12,7 +18,6 @@
 - 登记面：research readme / knowledge-map / mermaid README / source-figures README / issue I-239。
 - 验收：56 行源稿对账（8 行返工复判收口，COUNTS 全零）+ 增量 Checker 核外行补阙 26 行 + 盲评 3 章（成稿全胜）+ 外行四测四项出闸（LLM 代理作答；两处事实错误经测出并修正：信号别名表无中文、hold 官方中文为「持有」）。
 
-### Harness 到 Harness² 双源精读与通俗拆解入库（agent-harness 179，2026-10-28）
 ### Harness 到 Harness² 双源精读与通俗拆解入库（agent-harness 179，2026-10-28）
 
 - [179 精读](docs/research/agent-harness/179-harness-to-harness2.md)：Harness-Zero（arXiv:2609.24974v1，训练期审阅门蒸馏进权重、部署卸载）× Harness²（arXiv:2610.14224v1，部署期冻结模型的对比式 PPC + 双层递归库）合并精讲——互不引用、非换代，按「同一问题的两条互补路线」组织；两篇公式链 (1)-(5)/(1)-(4) 逐条白话拆解，正文 4 张论文原图（CC BY 4.0，TeX 源码包矢量 PDF 渲染入 `docs/assets/source-figures/agent-harness/`），配套纯标准库原型 `harness2_lab.py`（selftest + D1–D5 破坏实验 + 字数门禁 count 模式）。

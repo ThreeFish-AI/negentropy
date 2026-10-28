@@ -8,7 +8,7 @@
 >
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
-> Horizon Context 精读、Context Layer 蓝图与 OpenViking 精读（下表 `cognitive-context/` 分节）、
+> Horizon Context 精读、Context Layer 蓝图、OpenViking 精读与 Memadapter 精读（下表 `cognitive-context/` 分节）、
 > `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
 > `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）、
@@ -281,6 +281,7 @@
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| [memadapter--three-stage-pipeline](./cognitive-context/memadapter--three-stage-pipeline.mmd) | cognitive-context/015-memadapter-counterfactual-adaptation.md §3 机制（arXiv:2610.05162v1 §3） | workflow | ✓ | done | 检索后三阶段主链（记忆→反事实归纳→边界卡→反思→使用指令→证据锚定→答案）；双泳道区分「任务无关·不看当前查询」与「任务条件化·对照当前任务」；三卡：为何不看查询/边界≠过滤/原型实测阶梯 |
 | [context-layer--failure-map](./cognitive-context/context-layer--failure-map.mmd) | cognitive-context/013-context-layer-blueprint.md §1 失效模式登记簿 | architecture | ✓ | done | 十簇蛇形主链×三条问题带；sublabel=代表失效+行数、tag=主要防护；三卡：十簇×五轴对位/绕开测试/回路在线三条件 |
 | [context-layer--five-sources](./cognitive-context/context-layer--five-sources.mmd) | 已退役（013 无正文引用——五源为资产轴子集投影；v4 重制后 pipeline.toml 无引用，资产仅存档） | architecture | ✓ | retired | 退役：投影关系见 013 §4 五源投影注记 |
 | [context-layer-blueprint--industry-landscape](./cognitive-context/context-layer-blueprint--industry-landscape.mmd) | cognitive-context/013-context-layer-blueprint.md §11.1 描述还是执行（2026-10-10 微改重锚） | architecture | ✓ | done | 微改：四路线谱系+Palantir 异类收敛「治理往 SQL 生成之前挪」；+Forrester 双阵营与传输vs含义判词、Gartner 60% projection 带口径注 |
