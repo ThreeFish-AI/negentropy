@@ -1,0 +1,181 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "MemAdapter 检索后三阶段：从记忆边界到证据锚定",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/memadapter--three-stage-pipeline.html"
+  },
+  "lanes": [
+    {
+      "id": "task_agnostic",
+      "label": "任务无关 · 不看当前查询"
+    },
+    {
+      "id": "task_tuned",
+      "label": "任务条件化 · 对照当前任务"
+    }
+  ],
+  "mainPath": [
+    "mem",
+    "s1",
+    "bc",
+    "s2",
+    "ui",
+    "s3",
+    "ans"
+  ],
+  "nodes": [
+    {
+      "id": "mem",
+      "lane": "task_agnostic",
+      "col": 0,
+      "type": "database",
+      "label": "检索记忆集 ℳ",
+      "sublabel": "不增删不改",
+      "icon": "database",
+      "width": 100
+    },
+    {
+      "id": "s1",
+      "lane": "task_agnostic",
+      "col": 1,
+      "type": "backend",
+      "label": "① 反事实归纳",
+      "sublabel": "归纳条件边界（式1–3）",
+      "icon": "active",
+      "width": 135
+    },
+    {
+      "id": "bc",
+      "lane": "task_agnostic",
+      "col": 2,
+      "type": "database",
+      "label": "条件边界卡 ℬ",
+      "sublabel": "任务无关 · 何时可用",
+      "icon": "database",
+      "width": 125
+    },
+    {
+      "id": "qc",
+      "lane": "task_tuned",
+      "col": 0,
+      "type": "external",
+      "label": "当前请求与证据 q, c",
+      "sublabel": "任务目标 · 证据",
+      "icon": "start",
+      "width": 140
+    },
+    {
+      "id": "s2",
+      "lane": "task_tuned",
+      "col": 2,
+      "type": "backend",
+      "label": "② 上下文感知反思",
+      "sublabel": "任务校准（式4）",
+      "icon": "active",
+      "width": 125
+    },
+    {
+      "id": "ui",
+      "lane": "task_tuned",
+      "col": 3,
+      "type": "database",
+      "label": "使用指令 𝒰",
+      "sublabel": "能干什么 · 到哪为止",
+      "icon": "database",
+      "width": 120
+    },
+    {
+      "id": "s3",
+      "lane": "task_tuned",
+      "col": 4,
+      "type": "backend",
+      "label": "③ 证据锚定推理",
+      "sublabel": "证据锚定＋核验（式5）",
+      "icon": "active",
+      "width": 135
+    },
+    {
+      "id": "ans",
+      "lane": "task_tuned",
+      "col": 5,
+      "type": "external",
+      "label": "最终答案 y",
+      "sublabel": "ℒ 内部核验不外露",
+      "icon": "success",
+      "width": 115
+    }
+  ],
+  "edges": [
+    {
+      "id": "mem_s1",
+      "from": "mem",
+      "to": "s1",
+      "label": "整批记忆（不含查询）"
+    },
+    {
+      "id": "s1_bc",
+      "from": "s1",
+      "to": "bc",
+      "label": "归纳"
+    },
+    {
+      "id": "bc_s2",
+      "from": "bc",
+      "to": "s2",
+      "label": "边界输入"
+    },
+    {
+      "id": "qc_s2",
+      "from": "qc",
+      "to": "s2",
+      "label": "当前任务与证据"
+    },
+    {
+      "id": "s2_ui",
+      "from": "s2",
+      "to": "ui",
+      "label": "译成指令"
+    },
+    {
+      "id": "ui_s3",
+      "from": "ui",
+      "to": "s3",
+      "label": "指令约束"
+    },
+    {
+      "id": "s3_ans",
+      "from": "s3",
+      "to": "ans",
+      "label": "核验通过后交卷"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "① 为什么不看当前查询",
+      "items": [
+        "边界要刻画记忆自身的完整风险画像：先看任务只会暴露当前一种任务下的表现，换任务风险照样冒出来",
+        "任务无关归纳的边界可跨任务复用；论文消融实测：单这一步即贡献过半总增益（NaiveRAG 70.25→84.26）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "边界 ≠ 过滤",
+      "items": [
+        "记忆全部保留，治理的是每条的影响范围——支持什么、影响哪部分、不能证成什么",
+        "删「坏记忆」救不了「准确记忆的越界使用」：初步研究只用准确相关记忆，整体准确率仍 96.0%→77.3%"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "玩具原型实测阶梯",
+      "items": [
+        "直接生成 3/9 → +边界卡 7/9 → +任务校准 8/9 → +逐句核验 9/9",
+        "拆任一阶段都有具体坏法：无边界时「相关即放行」，条件性陷阱全数复发"
+      ]
+    }
+  ]
+}

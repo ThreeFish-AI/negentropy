@@ -1,0 +1,17 @@
+%%source: docs/research/cognitive-context/015-memadapter-counterfactual-adaptation.md §3 机制（arXiv:2610.05162v1 §3，MemAdapter 三组件）
+%%slug: cognitive-context/memadapter--three-stage-pipeline
+%%type: workflow
+%%derived: archify workflow v2（检索后三阶段：反事实归纳边界 → 任务条件化指令 → 证据锚定生成；双泳道区分「不看当前查询」与「对照当前任务」两段）
+flowchart LR
+    MEM["检索记忆集 ℳ<br/>记忆系统已给出的候选 · 不增删不改"]
+    S1["① 反事实归纳<br/>枚举假想任务→评估恰当贡献→归并条件边界（式1–3）"]
+    BC["条件边界卡 ℬ<br/>任务无关的使用边界"]
+    S2["② 上下文感知反思<br/>对照当前任务联合校准（式4）"]
+    UI["使用指令 𝒰<br/>支持什么·影响哪部分·到哪为止"]
+    S3["③ 证据锚定推理<br/>证据为锚生成 y＋支撑轨迹 ℒ 逐句核验（式5）"]
+    ANS["最终答案 y<br/>ℒ 只做内部核验不外露"]
+    QC["当前请求与证据 q, c<br/>任务目标·可用证据与约束"]
+    MEM -->|"整批记忆（不含查询）"| S1 -->|"归纳"| BC
+    BC -->|"边界输入"| S2
+    QC -->|"当前任务与证据"| S2
+    S2 -->|"译成指令"| UI -->|"指令约束"| S3 -->|"核验通过后交卷"| ANS

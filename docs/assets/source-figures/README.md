@@ -38,3 +38,14 @@ KTP 论文图 1–7 由 TeX 源码包矢量 PDF 渲染为 PNG，2026-10-26 自 `
 | 8 | [openviking--src-08-readme-benchmark.png](./cognitive-context/openviking--src-08-readme-benchmark.png) | 钉点 [`docs/images/benchmark-dark.svg`](https://github.com/volcengine/OpenViking/blob/6227af5102b3874d162d65a0503bfeef849686c2/docs/images/benchmark-dark.svg)（README 基准图） | AGPL-3.0 | SVG 2× 栅格化，透明底烘暗底 `#020617`，四周留 24px 边距 |
 | 9 | [openviking--src-09-vikingmem-schema.png](./cognitive-context/openviking--src-09-vikingmem-schema.png) | [VikingMem, arXiv:2605.29640v3](https://arxiv.org/html/2605.29640v3#S2.F1) Figure 1（J. Fu *et al.*） | CC BY-NC-SA 4.0 | 原样 |
 | 10 | [openviking--src-10-product-retrieval-claims.png](./cognitive-context/openviking--src-10-product-retrieval-claims.png) | [openviking.ai/product](https://openviking.ai/product)「三层结构，按需加载」与「理解结构的检索」两节（前端 bundle `index-BfoH6ZUa.js`） | 版权归原作者，仅作学习引用 | 无头浏览器暗色 2× 截图，隐藏吸顶导航 |
+
+### cognitive-context · Memadapter 论文精读（[015](../../research/cognitive-context/015-memadapter-counterfactual-adaptation.md)）
+
+Memadapter 论文图 1–3 取自 [arXiv:2610.05162v1](https://arxiv.org/html/2610.05162v1) HTML 版（抓取 2026-10-28；论文摘要页许可 CC BY 4.0，允许署名再分发），编号沿用正文「原文图 N」。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [memadapter--fig1-two-paradigms.png](./cognitive-context/memadapter--fig1-two-paradigms.png) | [arXiv:2610.05162v1](https://arxiv.org/html/2610.05162v1#S1.F1) 原文图 1（R. Ning *et al.*） | CC BY 4.0 | 原样 |
+| [memadapter--fig2a-accuracy-with-memory.png](./cognitive-context/memadapter--fig2a-accuracy-with-memory.png) | [arXiv:2610.05162v1](https://arxiv.org/html/2610.05162v1#S1.F2) 原文图 2(a)（R. Ning *et al.*） | CC BY 4.0 | SVG 无头浏览器 2× 栅格化（白底，595×346 视口） |
+| [memadapter--fig2b-cardiologist-case.png](./cognitive-context/memadapter--fig2b-cardiologist-case.png) | [arXiv:2610.05162v1](https://arxiv.org/html/2610.05162v1#S1.F2) 原文图 2(b)（R. Ning *et al.*） | CC BY 4.0 | 原样 |
+| [memadapter--fig3-pipeline.png](./cognitive-context/memadapter--fig3-pipeline.png) | [arXiv:2610.05162v1](https://arxiv.org/html/2610.05162v1#S2.F3) 原文图 3（R. Ning *et al.*） | CC BY 4.0 | 原样 |

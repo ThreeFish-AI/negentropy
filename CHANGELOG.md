@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Memadapter 论文精读入库：记忆诱发谄媚的检索后治理（cognitive-context 015，2026-10-28）
+
+- 新增 `docs/research/cognitive-context/015-memadapter-counterfactual-adaptation.md`（arXiv:2610.05162v1，CC BY 4.0）：受控实验证「准确记忆也诱发谄媚」（96.0%→77.3%）→ 反事实归纳任务无关边界（式1–3）→ 任务条件化使用指令（式4）→ 证据锚定生成＋支撑轨迹核验（式5）；三基准五记忆系统三骨干主结果、消融与运行时，五规律三争议与批判边界五条。
+- 配套纯标准库原型 `assets/memadapter_lab.py`（九场景确定性仿真：变体阶梯 3/9→7/9→8/9→9/9，E1–E4 破坏实验实测退化）；archify 三阶段机制图四件套入库（`memadapter--three-stage-pipeline`）；论文原图 4 张（图1/2a/2b/3）入 source-figures 并登记台账。
+- 登记面同步：research readme、knowledge-map、mermaid README。
+
 ### 信源原图资产库统一：papers/ 迁入 source-figures/（2026-10-26）
 
 - `git mv docs/assets/papers/multimodal-models`（KTP 论文图 1–7，PR #1211 建）→ `docs/assets/source-figures/multimodal-models/`，全仓仅此一个原图库；240 正文的 7 处图片路径同步。
