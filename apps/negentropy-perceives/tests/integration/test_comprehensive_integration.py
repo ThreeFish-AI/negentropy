@@ -484,7 +484,17 @@ class TestErrorResilience:
         convert_tool = tools["parse_webpage_to_markdown"]
 
         # Simulate various error conditions
-        with patch("negentropy.perceives.tools.markdown.web_scraper") as mock_scraper:
+        # 先隔离 Pipeline 路径：method="auto" 优先走 run_webpage_pipeline（anti_detection
+        # 阶段），CI runner 上 stealth 工具可用且 error-test.com 真实可解析，会使管线
+        # 成功返回、绕开本用例要测的传统路径错误处理——patch 它强制降级到 legacy。
+        with (
+            patch(
+                "negentropy.perceives.pipeline.run_webpage_pipeline",
+                new_callable=AsyncMock,
+                side_effect=Exception("Pipeline unavailable"),
+            ),
+            patch("negentropy.perceives.tools.markdown.web_scraper") as mock_scraper,
+        ):
             # Network error simulation
             mock_scraper.scrape_url = AsyncMock(side_effect=Exception("Network error"))
 
