@@ -72,3 +72,14 @@ Memadapter 论文图 1–3 取自 [arXiv:2610.05162v1](https://arxiv.org/html/26
 | [harness2--fig3-ppc-pipeline.png](./agent-harness/harness2--fig3-ppc-pipeline.png) | Harness² 论文 Fig.3（harness2_main_new.pdf） | CC BY 4.0 | 矢量 PDF 渲染 PNG |
 | [harness2--fig4-recursion-forms.png](./agent-harness/harness2--fig4-recursion-forms.png) | Harness² 论文 Fig.4（scaling.pdf） | CC BY 4.0 | 矢量 PDF 渲染 PNG |
 | [harness2--fig9-jobbench-case.png](./agent-harness/harness2--fig9-jobbench-case.png) | Harness² 论文 Fig.9（case_jobbench.pdf） | CC BY 4.0 | 矢量 PDF 渲染 PNG |
+
+### agent-harness · Agent4Sci 精读（[181](../../research/agent-harness/181-agent4sci-scientific-hills.md)）
+
+抓取基准为 arXiv:2610.28763v1 HTML 版（2026-10-29 下载，字节一致双快照）；图件取 HTML 版引用的原始 PNG，fig2 超单图体积门降采样至 2600px（RGB 无透明，无内容改动）；论文许可 arXiv.org perpetual non-exclusive license（未另附开放许可，按署名学习引用处理）。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [agent4sci--fig1-hillclimb-task-gains.png](./agent-harness/agent4sci--fig1-hillclimb-task-gains.png) | Agent4Sci 论文 Fig.1（intro_hillclimb.png，1774×887） | 版权归原作者，仅作学习引用 | 原样（RGB，1046 KiB） |
+| [agent4sci--fig2-evaluation-protocol.png](./agent-harness/agent4sci--fig2-evaluation-protocol.png) | Agent4Sci 论文 Fig.2（agent4sci_protocol.png，原图 7664×3284） | 版权归原作者，仅作学习引用 | 等比降采样 2600×1114（949 KiB） |
+| [agent4sci--fig3-methods-word-clouds.png](./agent-harness/agent4sci--fig3-methods-word-clouds.png) | Agent4Sci 论文 Fig.3(a)（methods_word_clouds.png，2037×428） | 版权归原作者，仅作学习引用 | 原样（RGB，383 KiB） |
+| [agent4sci--fig5-neurips2025-filtering-funnel.png](./agent-harness/agent4sci--fig5-neurips2025-filtering-funnel.png) | Agent4Sci 论文 Fig.5(a)（neurips2025_filtering_overview.png，3703×579） | 版权归原作者，仅作学习引用 | 原样（RGB，1023 KiB） |

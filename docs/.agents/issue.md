@@ -246,6 +246,7 @@
 | I-238 | 014 OpenViking 精读零信源原图：五渠道普查补入 10 张原图（新建 source-figures 资产库）+ 随图更正 §7/§9.1–§9.3 七处时效与出处 | ✅ 已完成 | 2026-10-25 | [详情](#I-238) |
 | I-239 | agent-harness 178 DSA 精读入库：三源首读（repo@4e622643 + 站点 + 论文）+ 五机制原型 + 双 archify 图 + 信源原图 5 张（含交付后增补 4 张批次） | ✅ 已完成 | 2026-10-27 | [详情](#I-239) |
 | I-240 | Dependabot 54 条批量处置：backend 11 包收敛升级（mcp 上界防 2.x）+ katex 0.18 override（rehype-katex 卡 ^0.16）+ fast-uri 全仓 override（根 + 15 分集）+ perceives 七包防 CI 红头 + dismiss 2 条有据告警 | ✅ 已完成 | 2026-10-28 | [详情](#I-240) |
+| I-241 | agent-harness 181 Agent4Sci 精读入库：信源 URL 伪报核验 + 四原图管线 + 首个「评测协议型」精读 | ✅ 已完成 | 2026-10-29 | [详情](#I-241) |
 
 ---
 
@@ -5723,3 +5724,15 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：litellm GHSA-7hp6-4w63-5g45（High，range 覆盖至 <1.100.4，修复 1.100.4+）——backend 已在收尾轮升 1.100.5 清偿（Dependency Review 硬门第二次拦截后收敛至修复线，连带 boto3/botocore 4 个 Bedrock 标配传递包）；perceives 侧 1.96.2 仍在范围但不在 delta、经 pip-audit ignore（EXPERIMENTAL_UI_LOGIN 条件触发）覆盖，随 perceives 生态升级一并清偿；GHSA-g5ff-637f-6q2m 因 Dependency Review 硬门（delta 审查对版本变化的包按新版本评漏洞，fail-on-severity: high）已在收尾轮将 backend litellm 收敛目标从 1.89.7 抬至 1.95.1 清偿（1.89.2 基线同样在 <1.95.0 范围内，「升级引入」是门的行为假象）；rehype-katex 8 发布后应移除 katex override；google-adk 放开 OTel 上界后 reopen #1013 升整组 OTel。另：perceives CI 三平台曾同挂 test_error_logging_and_handling——CI runner 上 stealth 工具可用且 error-test.com 真实可解析使管线真实抓取成功、断言失效（本地过靠工具不可用的环境性通过），已 patch run_webpage_pipeline 强制降级 legacy 路径，用例与运行环境解耦。
 
 **处理注意事项**：mcp 升级必须先核 `mcp.client.stdio` 私有符号存活（mcp_client.py 的 logged_stdio_client 复刻 stdio client）；katex override 期间 rehype-katex 属未声明支持配置（remarkjs/remark-math#121 社区实测通过），katex 0.19 类名与 0.18 相同、跟进成本低；fast-uri 父包 ajv 无版本封顶、override 干净解析，勿在分集 package.json 落直接依赖。本条原编号 I-239，与上游同日合入的 DSA 精读条目（#I-239）撞号后重编为 I-240——本分支 commit message 与 GitHub dismiss 评论中的「I-239」引用均指本条。
+
+
+<a id="I-241"></a>
+## I-241：agent-harness 181 Agent4Sci 精读入库：信源 URL 伪报核验 + 四原图管线 + 首个「评测协议型」精读
+
+- **问题描述**：arXiv:2610.28763v1 精读入库（agent-harness 181）过程中，宿主 webReader MCP 首次抓取返回幽灵全文（作者与官方 citation 元数据完全不符），若未交叉核验将整篇精读建立在伪信源上。
+- **表因**：抓取通道缓存/错配返回了同名（Agent4Sci）另一篇论文内容，元数据（作者/机构/数字体系）与 arXiv 官方不一致。
+- **根因**：单一抓取通道无元数据交叉核验步骤；「URL 伪报」属已知失败模式但未在流程入口设防。
+- **处理方式**：以 curl 直连抓取 + arXiv abs 页官方 citation 元数据双通道核验（作者/标题/日期逐项比对、双快照字节一致）后才作为 S0 事实基线；事件记入 lab sources.md 探针节。本次交付另含：fig2 超单图 1280 KiB 门的等比降采样处理、LaTeXML 宏残留（λ\lambda 等）对源稿对账摘录命中干扰的 python 等价门禁适配。
+- **后续防范**：arXiv 类信源入库前一律先核官方 citation 元数据（标题/作者/版本）再采信全文抓取结果；对账摘录一律以快照字节级片段为准，不从记忆复写。
+- **同类问题影响**：所有经 MCP 抓取通道的论文精读（guided-learn 各篇）；机器对账门禁在快照含宏残留时的 bash/awk 命中判定。
+- **注意事项**：webReader 通道不可作为唯一事实源；降采样只改分辨率不改内容，登记表须注明处理方式。
