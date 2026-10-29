@@ -4,7 +4,7 @@
   {
    "index": 1,
    "layer": "机制拆解",
-   "title": "Agent Loop：给模型装上手",
+   "title": "Agent Loop：一个循环，让 Agent 开始了心跳",
    "published": false
   }
  ],

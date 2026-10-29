@@ -1,6 +1,6 @@
-# 《Agent Loop：给模型装上手》科普视频工程
+# 《Agent Loop：一个循环，让 Agent 开始了心跳》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-29）——系列 claude-code-chapters（20 章 1:1 拆集）建档首集；Stage ①–⑤ 已完成（信源重钉 + C 型冻结现行 171 + 策划 + 逐字稿 54 句 1229 字 + 双重校验 + 成文优化），机器门 build / pre-tts / check_series / source_ledger verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**文案已审批、制作中**（2026-10-29 审批通过）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）建档首集；Stage ①–⑤ 完成后经用户审批定题并修订三处（P4 归属句改「同学们应该知道」、正文去信源作者痕迹、首尾署源制：片头署源角标 + 片尾署源句 p5-07，豁免登记工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080），现推进 ⑥分镜/建图 → ⑦TTS（本人克隆声）→ ⑧场景 → ⑨QA → ⑩交付。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -55,4 +55,4 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 
 ## 许可
 
-源论文/文档版权归原作者；本工程仅为解读与再创作，画面与口播为原创。
+源课程 [Learn Claude Code](https://github.com/shareAI-lab/learn-claude-code)（MIT）版权归原作者；本工程为解读与再创作，画面与口播为原创，成片首尾部署源说明（2026-10-29 审批定）。

@@ -39,4 +39,7 @@ export const theme = {
   tool: '#64C4C0',
   // warn：判据反例/退化路径（与底座 danger 同族的强调档）
   warn: '#EF6461',
+  // mech：片头「本集之物」授色档（series-intro.tsx 逐字孪生件直读 theme.mech；
+  //    本集 = 执行面青碧（组一「工具与执行」语义），后续集按本集 accents 第二色）
+  mech: '#64C4C0',
 } as const;

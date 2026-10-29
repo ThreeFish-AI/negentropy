@@ -1,7 +1,7 @@
 {
   "name": "claude-code-chapters-loop-video",
   "private": true,
-  "description": "《Agent Loop：给模型装上手》科普视频 Remotion 工程",
+  "description": "《Agent Loop：一个循环，让 Agent 开始了心跳》科普视频 Remotion 工程",
   "scripts": {
     "dev": "remotion studio",
     "test:visual": "node --test tests/unit/visual.test.ts",
