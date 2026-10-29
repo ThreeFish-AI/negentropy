@@ -18,7 +18,7 @@
 - 第 2 集《Tool Use：多加一个工具，只加一行》（s02_tool_use 单章）Stage ①–⑤ 完成、待用户审批：scaffold 建集 + series.json/series.md/集 README 登记 + C 型冻结现行 171（与 ep1 同冻结正文代次，取材 §4 单章主线）。
 - **翻钉决策**：ep2 自系列建档的站点轨规划态钉复核后翻钉 main `7226f555`——站点轨 s02 判据仍写收尾字段（直引必与 ep1 所教「认内容不认字段」自相矛盾）、main 前移新增「Bash 已经能做这些事，为什么还要加工具？」接口论证一节；站点轨 `67a9126c` 降为 s02 独有「深入 CC 源码」附录正源（s02f-* 台账补登，恒【三】级）；source-map 双钉覆盖同步（main 轨 [1,2]、站点轨 [3..20]），站点页 s02 指纹与 2026-10-07 基线零漂移。
 - 实验 2（拔掉 tool_use_id 配对 → pairing_errors 0→2、轮次 10/10 不退化）本集 selftest 复算升【一】级；台账 6 条（s02-* / s02f-* / s02-site / doc-tool-use-overview 两态交替 e382ed 态 WARN 复核确认）verify + audit FAIL 0。
-- 剧本 v1：50 句 1309 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗）；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，工作区 vibe-video.toml `check_series.source_credit` 登记）；本集概念色 core #EFB13C（查表分发）/ warn #EF6461（accents 第二色授 mech），环体恒定锚 #D97757 承系列。
+- 剧本 v1：50 句 1325 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗）；④ 三路校验（A 真实性 0 RISKY / B 外行 1R+6⚠️ 全修 / C 纪律 1⚠️）+ ⑤ 成文优化两轮（独立评审 REWRITE=5 全修 + 4 建议采纳）机器门全绿；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，工作区 vibe-video.toml `check_series.source_credit` 登记）；本集概念色 core #EFB13C（查表分发）/ warn #EF6461（accents 第二色授 mech），环体恒定锚 #D97757 承系列。
 ### Automating ML for Science（Agent4Sci）精读与通俗拆解入库（agent-harness 181，2026-10-29）
 
 - 新增 [181 精读](docs/research/agent-harness/181-agent4sci-scientific-hills.md)：arXiv:2610.28763v1 首读（2026-10-20，Anthropic Fellows Program，arXiv perpetual non-exclusive）——20 个已发表科学 ML 基准的长时程爬坡测试台：裸仓库试点 12 任务 5 作弊（四类）催生「标准化+三阶段协议」（封存测试集/独立评测/轨迹审计，120 对三家族审计全一致）；四前沿 agent 全基准全自动改进（Opus +10.4%）但增益以通用工程招式为主（run 方差分层 σ=1.5 vs 19.6、HPO-only 只回收小部分）；三缺陷三技能近翻倍（10.4→20.1，PFDelta 64.4→91.0 物理洞见）；三天长跑反例（洞见门控不随时间来、CarbonGlobe 过拟 −25%）；五规律三争议五批判边界。
