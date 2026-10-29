@@ -214,7 +214,8 @@ ignore_missing_imports = true
 # filelock>=4.2.1：修复 CVE-2026-112907/112913/112940（传递依赖，fix 仅 4.x；FileLock 公共 API 3→4 兼容）
 # setuptools>=84.1.0：修复 GHSA-xmj3-9gf7-h52w（传递依赖）
 # dnspython>=2.9.0：修复 CVE-2026-114605（email-validator 传递）
-override-dependencies = ["pillow>=13.0.0", "lxml>=6.1.0", "urllib3>=2.8.0", "idna>=3.15", "authlib>=1.9.0", "joserfc>=1.6.7", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.15.0", "docling-core>=2.101.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1", "msgpack>=1.2.3", "click>=8.3.3", "json-repair>=0.60.1", "mcp>=1.30.0", "datasets>=5.0.1", "certifi>=2026.10.19", "opentelemetry-api>=1.45.1", "virtualenv>=21.14.9", "filelock>=4.2.1", "setuptools>=84.1.0", "dnspython>=2.9.0"]
+# opencv-python-headless>=5.0.0.93：非 CVE 驱动的版本对齐 override——surya-ocr 0.17.1 钉 ==4.11.0.86，而 headless 与 opencv-python 同装时 cv2 模块被 headless 侧文件遮蔽（低版本覆盖高版本），仅升 opencv-python 时运行时 cv2 仍为 4.11.0；两变体对齐 5.0.0.93 才能使 cv2 生效升级
+override-dependencies = ["pillow>=13.0.0", "lxml>=6.1.0", "urllib3>=2.8.0", "idna>=3.15", "authlib>=1.9.0", "joserfc>=1.6.7", "transformers>=4.56.1,<5.0.0", "openai>=2.20.0", "pyjwt>=2.15.0", "docling-core>=2.101.1", "starlette>=1.3.1", "python-multipart>=0.0.32", "cryptography>=48.0.1", "msgpack>=1.2.3", "click>=8.3.3", "json-repair>=0.60.1", "mcp>=1.30.0", "datasets>=5.0.1", "certifi>=2026.10.19", "opentelemetry-api>=1.45.1", "virtualenv>=21.14.9", "filelock>=4.2.1", "setuptools>=84.1.0", "dnspython>=2.9.0", "opencv-python-headless>=5.0.0.93"]
 
 [dependency-groups]
 dev = [
