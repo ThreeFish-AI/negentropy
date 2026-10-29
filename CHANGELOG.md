@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### ep1《Agent Loop》制作轮收官交付 v1（claude-code-chapters ep1，2026-10-30）
+
+- ⑥–⑩ 全链路完成：25 镜六幕 storyboard（0-A 冷启动 ~ 5-C 署源卡）+ 六场景组件（P0ColdOpen/P1FiveSteps/P2Walkthrough/P3CriterionDuel/P4ProductionFuse/P5CoreAndRim）+ 系列片头《一个循环》七路径字节孪生挂载（harness-stack 五大组×20 章数据面重塑「集→组」映射，组件零改动）；⑦ IndexTTS 本人克隆声 me-bright/story 档 28 块情绪台本（56 句，句尾英文词 CMU 音素标注）。
+- ⑨ QA 全绿：全幕内容带/尾幕渐黑/beat 头三体检 FAIL 0（唯一 WARN p0-01/02 冻帧疑报经像素差数值裁定良性——2.0% 变化系打字渐进被 16×16 指纹量化）；五帧高风险目检全对（p0-01 终端+署源角标、p5-07 署源卡四行、p3-12 左红右绿 8/10 vs 10/10、1-D 五步环、5-C 渐黑收尾）。
+- ⑩ 终渲 8678 帧 289.3s（4.8 分）落窗 [4.4,5.6]，交付 `claude-code-chapters/Agent Loop：一个循环，让 Agent 开始了心跳 v1.mp4`；series.json/series.md/集 README 状态三面同步为已交付；IndexTTS 服务按纪律关停。
 ### 二十讲系列定题《Claude Code 的 20 个核心机制》+ ep1 文案审批通过与首尾署源制（claude-code-chapters ep1，2026-10-29）
 
 - 用户审批通过 ep1 文案并定题：系列《Claude Code 的 20 个核心机制》、第 1 集《Agent Loop：一个循环，让 Agent 开始了心跳》（series.json/series.md/source-map/集 README/planning/series-layers/package.json 七面同步）。

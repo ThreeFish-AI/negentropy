@@ -400,8 +400,8 @@
             "license": "MIT",
             "accessed": "2026-10-29"
           },
-          "status": "script-review",
-          "statusNote": "系列建档+首集文案轮（2026-10-29）：20 章 1:1 拆集新系列，旧 claude-code-explained 并行保留待退役；Stage ①–⑤ 完成待用户审批（审批前不进入制作）。C 型信源=现行 171（I-234 后代次）冻结；main 钉 7226f555（自 ce8f9f18 前移 13 提交、s01 仅 code.py 空输入守卫 2 行、README.zh.md 逐字一致）、站点轨 67a9126c 沿用（附录经 s01f-* 补登、站点页指纹零漂移）；实验 1 本集复算升【一】级。剧本 v1：55 句 1273 字 6 幕（正文 5.0 分+片头 23.5s≈5.4 分落窗 [4.4,5.6]）；④A 逐句核查 RISKY=0（46✅/6⚠️类比登记在册）、④B 外行评审 4 命中全修、⑤ 四层 pass+独立成文复审 REWRITE=0、改动句复核 RISKY=0；门禁 build/pre-tts/pron（语义未标注 0）/check_series（5 系列 655 文件 FAIL 0）/ledger verify FAIL 0（doc-tool-use-overview 官方页同日两态交替 WARN，复核确认成立、台账与 gl-notes 附录 B.1 落档）",
+          "status": "delivered",
+          "statusNote": "系列建档+首集文案轮（2026-10-29）：20 章 1:1 拆集新系列，旧 claude-code-explained 并行保留待退役；Stage ①–⑤ 完成待用户审批（审批前不进入制作）。C 型信源=现行 171（I-234 后代次）冻结；main 钉 7226f555（自 ce8f9f18 前移 13 提交、s01 仅 code.py 空输入守卫 2 行、README.zh.md 逐字一致）、站点轨 67a9126c 沿用（附录经 s01f-* 补登、站点页指纹零漂移）；实验 1 本集复算升【一】级。剧本 v1：55 句 1273 字 6 幕（正文 5.0 分+片头 23.5s≈5.4 分落窗 [4.4,5.6]）；④A 逐句核查 RISKY=0（46✅/6⚠️类比登记在册）、④B 外行评审 4 命中全修、⑤ 四层 pass+独立成文复审 REWRITE=0、改动句复核 RISKY=0；门禁 build/pre-tts/pron（语义未标注 0）/check_series（5 系列 655 文件 FAIL 0）/ledger verify FAIL 0（doc-tool-use-overview 官方页同日两态交替 WARN，复核确认成立、台账与 gl-notes 附录 B.1 落档）；制作轮收官（2026-10-30）：审批修订版 56 句 1307 字，⑥ 25 镜六场景 + 系列片头孪生挂载（harness-stack 五大组×20 章数据面）、⑦ me-bright/story TTS、⑨ QA 机器门+五帧高风险目检全绿（冻帧 WARN 数值裁定良性）、⑩ 终渲 289.3s（4.8 分）落窗交付 v1",
           "voice": "story + me-bright.wav"
         },
         {
