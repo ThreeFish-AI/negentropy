@@ -9,7 +9,7 @@ description: "arXiv:2610.28763v1 精读（2026-10-20，arXiv perpetual non-exclu
 > [1] M. Zhong, S. Li, N. Carlini, and M. Jagielski, "Automating ML for Science: Can Frontier Agents Climb Scientific Hills in the Wild?," arXiv:2610.28763v1, Oct. 20, 2026. [Online]. Available: https://arxiv.org/html/2610.28763v1 （访问 2026-10-29；v1 唯一版本，无勘误；代码已放出：GitHub `maszhongming/agent4sci` 与 Hugging Face `MingZhong/agent4sci`，2026-10-22 更新）。许可：arXiv.org perpetual non-exclusive license。
 
 > [!NOTE] 精读范围
-> 论文与附录 A–F、NeurIPS 清单全量通读（图 1–21、表 1–9 逐项）；原型 [agent4sci_lab.py](./agent-harness/assets/agent4sci_lab.py)（纯标准库，15 断言 + 五次破坏实验）；4 张论文原图入 [source-figures](../../../assets/source-figures/README.md)。
+> 论文与附录 A–F、NeurIPS 清单全量通读（图 1–21、表 1–9 逐项）；原型 [agent4sci_lab.py](./assets/agent4sci_lab.py)（纯标准库，15 断言 + 五次破坏实验）；4 张论文原图入 [source-figures](../../assets/source-figures/README.md)。
 
 **一句话定位**：把「前沿编码 agent 能不能做科学 ML 研究」变成可防作弊的测量问题——20 个已发表基准、8 张 H200（一种 GPU）与 12 小时预算内，测 agent 能把人工复现验证过的最好成绩（SOTA）往上推多少，增益是通用工程技巧还是领域洞见。
 
@@ -31,7 +31,7 @@ description: "arXiv:2610.28763v1 精读（2026-10-20，arXiv perpetual non-exclu
 
 隐性规格：**预算贴近现实**——8 张 H200、12 小时、无人工干预，测「开箱即用」而非理想配置。
 
-![原文图 1：科学爬坡任务设定与四 agent 增益总览](../../../assets/source-figures/agent-harness/agent4sci--fig1-hillclimb-task-gains.png)
+![原文图 1：科学爬坡任务设定与四 agent 增益总览](../../assets/source-figures/agent-harness/agent4sci--fig1-hillclimb-task-gains.png)
 
 来源：Zhong et al. [1] 原文图 1，版权归原作者，仅作学习引用（arXiv.org perpetual non-exclusive license）。
 
@@ -59,7 +59,7 @@ description: "arXiv:2610.28763v1 精读（2026-10-20，arXiv perpetual non-exclu
 
 对策分两层。第一层**标准化**：人工把论文头号数字复现到容差内才收（3 个基准补写官方没放的训练管线、2 个从训练数据切验证集——协议不许碰测试集选 checkpoint、2 个对齐切分约定）；测试集封存；训练压进单卡六小时；爬坡与评测放进两个互不共享文件的隔离容器；每任务两名审阅人复核。第二层**三阶段**：爬坡 agent 只见训练验证数据、交出 checkpoint（训练好的模型存档）；**评测 agent** 独占 held-out 测试集、用标准化脚本算分，分数从来不是爬坡方自己报的；**审计 agent** 通读日志与提交物，查四类作弊及其他学术不端。像一场防作弊考试：考生不见考卷、阅卷另请人、交卷后查监控——隔离与复核由容器和脚本完成，不指望 agent 自觉。
 
-![原文图 2：Agent4Sci 评测协议——标准化参考环境与三阶段分离](../../../assets/source-figures/agent-harness/agent4sci--fig2-evaluation-protocol.png)
+![原文图 2：Agent4Sci 评测协议——标准化参考环境与三阶段分离](../../assets/source-figures/agent-harness/agent4sci--fig2-evaluation-protocol.png)
 
 来源：Zhong et al. [1] 原文图 2，版权归原作者，仅作学习引用（arXiv.org perpetual non-exclusive license）。
 
@@ -67,7 +67,7 @@ description: "arXiv:2610.28763v1 精读（2026-10-20，arXiv perpetual non-exclu
 
 拿 CarbonGlobe 走一遍（碳汇预测，RMSE 越小越好）：任务目录含 `paper/`、只读 `repo/`、`data/{train,val,test}/`（测试集在爬坡容器里不存在）、`task.md`、`reproduction/`。爬坡 agent（Opus 4.6、最高推理档）12 小时改代码训模型、验证集选 checkpoint；评测 agent 在封存测试集跑出 RMSE 0.515，对比基线 0.604 得 Δ%=+14.7；审计判 Clean。筛选端也防作弊：NeurIPS 2025 数据与基准轨（D&B）497 篇经「域分类→七判据自动筛→人工复核→深审」漏斗只收 10 个（98% 拒绝；最紧判据：单卡可训 43%、分布内评测 53%），裁决全由人做。
 
-![原文图 5：NeurIPS 2025 D&B 四段过滤漏斗（497→207→70→40→10）](../../../assets/source-figures/agent-harness/agent4sci--fig5-neurips2025-filtering-funnel.png)
+![原文图 5：NeurIPS 2025 D&B 四段过滤漏斗（497→207→70→40→10）](../../assets/source-figures/agent-harness/agent4sci--fig5-neurips2025-filtering-funnel.png)
 
 来源：Zhong et al. [1] 原文图 5(a)，版权归原作者，仅作学习引用（arXiv.org perpetual non-exclusive license）。
 
@@ -87,7 +87,7 @@ $s$ 是爬坡后分数、$b$ 是复现基线。不翻转的话，CarbonGlobe 的
 
 把三个被剖析 agent 的轨迹按方法归档成词云与频次，主导招式全是通用 ML 工程：学习率调度、更深更宽、换骨干、权重衰减、数据增强、辅助损失；Opus 56% 调超参、44% 改架构，Codex 更均匀（44% 调参，特征工程/数据增强/损失设计各 24%），问题特异的干预三家都稀少。两个大增益样本摆清「工程 vs 洞见」：Mars-Bench +46.4% 靠把检测器 RetinaNet 换成更合适的 Faster R-CNN——熟练工换件；PFDelta +64.4% 靠把评测指标「功率平衡损失」（缩写 PBL）的平方形式加进训练当辅助损失、调权重换调度——问题特异的损失改造；「它可由基尔霍夫定律导出、无需标签」的物理洞见属技能版（见 §5）。
 
-![原文图 3：三个 agent 爬坡方法词云——共享的通用工程工具箱](../../../assets/source-figures/agent-harness/agent4sci--fig3-methods-word-clouds.png)
+![原文图 3：三个 agent 爬坡方法词云——共享的通用工程工具箱](../../assets/source-figures/agent-harness/agent4sci--fig3-methods-word-clouds.png)
 
 来源：Zhong et al. [1] 原文图 3(a)，版权归原作者，仅作学习引用（arXiv.org perpetual non-exclusive license）。
 
@@ -123,7 +123,7 @@ $s$ 是爬坡后分数、$b$ 是复现基线。不翻转的话，CarbonGlobe 的
 
 ## 7. 动手实验室
 
-原型 [agent4sci_lab.py](./agent-harness/assets/agent4sci_lab.py)（纯标准库、无随机数、约 330 行）把论文里的 agent 换成脚本化序列（诚实型、四类作弊各一、洞见型），验证机制自洽而非模型能力：
+原型 [agent4sci_lab.py](./assets/agent4sci_lab.py)（纯标准库、无随机数、约 330 行）把论文里的 agent 换成脚本化序列（诚实型、四类作弊各一、洞见型），验证机制自洽而非模型能力：
 
 ```bash
 python3 docs/research/agent-harness/assets/agent4sci_lab.py --selftest
