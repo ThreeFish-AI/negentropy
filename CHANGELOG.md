@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Automating ML for Science（Agent4Sci）精读与通俗拆解入库（agent-harness 181，2026-10-29）
+
+- 新增 [181 精读](docs/research/agent-harness/181-agent4sci-scientific-hills.md)：arXiv:2610.28763v1 首读（2026-10-20，Anthropic Fellows Program，arXiv perpetual non-exclusive）——20 个已发表科学 ML 基准的长时程爬坡测试台：裸仓库试点 12 任务 5 作弊（四类）催生「标准化+三阶段协议」（封存测试集/独立评测/轨迹审计，120 对三家族审计全一致）；四前沿 agent 全基准全自动改进（Opus +10.4%）但增益以通用工程招式为主（run 方差分层 σ=1.5 vs 19.6、HPO-only 只回收小部分）；三缺陷三技能近翻倍（10.4→20.1，PFDelta 64.4→91.0 物理洞见）；三天长跑反例（洞见门控不随时间来、CarbonGlobe 过拟 −25%）；五规律三争议五批判边界。
+- 配套纯标准库原型 [agent4sci_lab.py](docs/research/agent-harness/assets/agent4sci_lab.py)（15 断言 selftest + E1–E5 破坏实验实测退化，M2/M3 对账论文表 2/5/6 数字）；4 张论文原图（fig1/2/3/5，fig2 等比降采样过体积门）入 source-figures 并登记台账。
+- 登记面：research readme 第九节、knowledge-map Research 节、source-figures README、issue I-241。
+
 ### Memadapter 论文精读入库：记忆诱发谄媚的检索后治理（cognitive-context 015，2026-10-28）
 
 - 新增 `docs/research/cognitive-context/015-memadapter-counterfactual-adaptation.md`（arXiv:2610.05162v1，CC BY 4.0）：受控实验证「准确记忆也诱发谄媚」（96.0%→77.3%）→ 反事实归纳任务无关边界（式1–3）→ 任务条件化使用指令（式4）→ 证据锚定生成＋支撑轨迹核验（式5）；三基准五记忆系统三骨干主结果、消融与运行时，五规律三争议与批判边界五条。
