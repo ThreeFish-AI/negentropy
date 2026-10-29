@@ -1,0 +1,13 @@
+{
+ "seriesId": "claude-code-chapters",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "机制拆解",
+   "title": "Agent Loop：给模型装上手",
+   "published": false
+  }
+ ],
+ "activeIndex": 1,
+ "next": null
+}

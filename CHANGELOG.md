@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Claude Code 机制二十讲系列建档 + 首集《Agent Loop》文案轮（claude-code-chapters ep1，2026-10-29）
+
+- 课程站点 20 章 1:1 拆集新系列（每章一集、每集约 5 分钟；旧系列 claude-code-explained 并行保留、建成后退役）：series.json/series.md 登记 + source-map/claude-code-chapters.{md,toml}（20 章归属，ep1 钉 main `7226f555`、ep2–ep20 规划态钉站点轨 `67a9126c`）+ vibe-video.toml course_series_ids 增补。
+- 首集 ep1《Agent Loop：给模型装上手》Stage ①–⑤ 文案轮完成、**待用户审批后进入制作**：C 型冻结现行 171（I-234 后代次）+ 台账 6 条（verify FAIL 0/WARN 0、audit FAIL 0）+ 双钉字节归档（7226f555/67a9126c）+ 原型复算（实验 1 升【一】级）；策划（6 幕 ≈5 分钟含片头、钩子矩阵 5 选 1）+ 逐字稿 54 句 1229 字（build 4.8 分落窗 [4.4,5.6]）+ story 档配音台本；机器门 build/pre-tts/pron/check_series 全绿。
 ### Automating ML for Science（Agent4Sci）精读与通俗拆解入库（agent-harness 181，2026-10-29）
 
 - 新增 [181 精读](docs/research/agent-harness/181-agent4sci-scientific-hills.md)：arXiv:2610.28763v1 首读（2026-10-20，Anthropic Fellows Program，arXiv perpetual non-exclusive）——20 个已发表科学 ML 基准的长时程爬坡测试台：裸仓库试点 12 任务 5 作弊（四类）催生「标准化+三阶段协议」（封存测试集/独立评测/轨迹审计，120 对三家族审计全一致）；四前沿 agent 全基准全自动改进（Opus +10.4%）但增益以通用工程招式为主（run 方差分层 σ=1.5 vs 19.6、HPO-only 只回收小部分）；三缺陷三技能近翻倍（10.4→20.1，PFDelta 64.4→91.0 物理洞见）；三天长跑反例（洞见门控不随时间来、CarbonGlobe 过拟 −25%）；五规律三争议五批判边界。

@@ -49,6 +49,17 @@
 [series-assets/claude-code-explained/intro/README.md](./series-assets/claude-code-explained/intro/README.md)，
 台账见 [I-209](../../docs/.agents/issue.md)。
 
+## Claude Code 机制二十讲（文档/代码型选题 · 20 集制）
+
+与上系列同信源的**按章拆集**新系列（2026-10-29 建档）：课程站点 20 章 1:1 拆集、每集约 5 分钟、单章讲透（例：上系列第 1 集《工具与执行》= 本系列前四集 Agent Loop / Tool Use / Permission / Hooks）。两系列并行，本系列建成后旧系列退役；取证纪律与上系列一致（固定提交 + 双指纹 + 证据三级）。
+
+| #   | 作品                                                                          | 一句话主题                   | 视觉契约（主色）      | 信源                                                                        | 状态                                                                          |
+| --- | ----------------------------------------------------------------------------- | ---------------------------- | --------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 1   | [《Agent Loop：给模型装上手》](./episodes/claude-code-chapters-loop-video/README.md) | 三十行循环如何让模型长出手 | core #D97757 / 青碧   | s01 钉 main `7226f555` + 站点轨附录（s01f-*）@ `67a9126c`；C 型=现行 171 冻结 | 🟡 **文案待用户审批**（Stage ①–⑤ 完成态见集 README；审批通过才进入制作） |
+
+> ep2–ep20（s02 Tool Use … s20 Comprehensive）为规划态，章→集归属与双钉唯一登记处见
+> [source-map/claude-code-chapters.md](./source-map/claude-code-chapters.md)；逐集开工时复核钉选。
+
 ## Context Layer · 上下文层系列（doc 型 · 3 集）
 
 信源为本仓研究文档族（B 型 · 固定提交取证）：前两集上游 Snowflake 官方页不直接取证、只经 011 精读笔记的 IEEE 引用链间接可溯；第三集上游 volcengine/OpenViking 官方页与代码仓不直接取证、只经 014 精读笔记的 `path:line@14a7b81` 锚点链间接可溯。系列纪律同前（口播互不引用、无集数序号）。

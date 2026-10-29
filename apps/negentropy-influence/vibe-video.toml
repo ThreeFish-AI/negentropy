@@ -14,7 +14,7 @@ project_globs = ["docs/.agents/knowledge-map.md", "CHANGELOG.md"]
 # 不在列。系列 id 集是内容策略而非机制——规则 7/8 原为 skill 前身
 # check_series.py 里的硬编码，2026-09 机制外置时随内容留在工作区（skill 不
 # 携带任何具体系列的身份）。
-course_series_ids = ["claude-code-explained"]
+course_series_ids = ["claude-code-explained", "claude-code-chapters"]
 
 # 规则 8「下期卡同步」的适用系列：配了「系列身份卡 + 下期预告卡」统一收尾
 # 装置的系列（Harness Engineering 五集）；self-evolution 系是旧版论文型收尾

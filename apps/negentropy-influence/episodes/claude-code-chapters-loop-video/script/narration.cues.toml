@@ -1,0 +1,96 @@
+# story 档配音台本（与 narration.md 同产，2026-10-29）
+# 导演规则：按故事弧分块（铺垫→冲突→转折→揭示→收束），每块 ≤3 句、≤90 字；
+# 块间换情绪——全片一种情绪就是「朗读感」的根因。say 只改标点、去标点后须与正文全等。
+
+# ── P0 铺垫：痛点认领（平静陈述 → 无奈自嘲 → 抛出转机） ──
+[block.p0-01]
+emo = "surprised:0.15"
+
+[block.p0-05]
+emo = "melancholic:0.15"
+
+[block.p0-08]
+emo = "calm:0.12"
+
+# ── P1 机制解构：平实走步 → 细节小发现 → 揭示收点 ──
+[block.p1-01]
+emo = "calm:0.10"
+
+[block.p1-04]
+emo = "calm:0.08"
+
+[block.p1-06]
+emo = "calm:0.08"
+
+[block.p1-08]
+emo = "calm:0.08"
+
+[block.p1-10]
+emo = "surprised:0.12"
+
+[block.p1-12]
+emo = "happy:0.14"
+
+# ── P2 走查：节奏起 → 两轮执行（平稳推进）→ 完成（轻快） ──
+[block.p2-01]
+emo = "calm:0.08"
+
+[block.p2-03]
+emo = "calm:0.08"
+
+[block.p2-05]
+emo = "calm:0.08"
+
+[block.p2-07]
+emo = "happy:0.12"
+
+# ── P3 冲突与转折：设问 → 对峙 → 紧张（流式）→ 类比高点 → 实证裁决 → 教训收点 ──
+[block.p3-01]
+emo = "surprised:0.12"
+
+[block.p3-03]
+emo = "melancholic:0.10"
+
+[block.p3-05]
+emo = "afraid:0.14"
+
+[block.p3-07]
+emo = "afraid:0.12"
+
+[block.p3-09]
+emo = "surprised:0.18"
+
+[block.p3-11]
+emo = "calm:0.12"
+
+[block.p3-14]
+emo = "calm:0.15"
+
+# ── P4 揭示：设问抛落差 → 核心未变（沉稳）→ 保护层对照 → 保险丝收点（会心） ──
+[block.p4-01]
+emo = "surprised:0.15"
+
+[block.p4-04]
+emo = "calm:0.08"
+
+[block.p4-05]
+emo = "calm:0.10"
+
+[block.p4-07]
+emo = "happy:0.12"
+
+# ── P5 收束：金句沉稳 → 护栏克制 → 下期钩子（意犹未尽） ──
+[block.p5-01]
+emo = "calm:0.15"
+
+[block.p5-04]
+emo = "melancholic:0.12"
+
+[say]
+p0-03 = "然后，就没有然后了。"
+p0-06 = "每一个来回，你都在当它的，牛马。"
+p1-02 = "它只认两个信号：模型开口要工具，就继续转；不开口，就停！"
+p2-09 = "三次调用、两次执行——每一步决定，都踩在，喂回的结果上。"
+p3-12 = "十轮只跑完八轮，落地的活儿，七件变五件。"
+p3-14 = "教训一句话：字段晚到时，等字段，就是丢调用！"
+p5-01 = "一句话收束：核心不长大，长大的，是保险丝。"
