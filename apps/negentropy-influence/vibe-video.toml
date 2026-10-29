@@ -21,6 +21,18 @@ course_series_ids = ["claude-code-explained", "claude-code-chapters"]
 # （无身份卡），对其执法是假报——装置在哪个系列落地，规则就管到哪。
 next_card_series_ids = ["claude-code-explained"]
 
+# 规则 7「署源豁免」白名单（RSI I-080，2026-10-29 审批）：观众层信源标识只许
+# 首尾既定署源位——narration_ids 豁免该口播句及其所属 beat 的画面备注、
+# storyboard 同 id 行；scene_stems 豁免具名场景组件（场景文件落地时补登记）。
+# 未登记位置仍全量执法；配置引用不存在的句 id / stem 直接 FAIL。
+[check_series.source_credit."claude-code-chapters-loop-video"]
+narration_ids = ["p0-01", "p5-07"]
+scene_stems = ["P0ColdOpen", "P5CoreAndRim"]
+
+[check_series.source_credit."claude-code-chapters-tooluse-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
 # ── 骨架合法偏离登记(vibe-video 2.0.0 起登记面住工作区,RSI-010)─────────────
 # 自 skill 1.x assets/video-skeleton/skeleton.toml 原样搬迁(表名加 skeleton.
 # 前缀;npmrc-inert-key 代随 .npmrc 退出受门作废未搬)。格式说明与档位语义见
@@ -64,6 +76,11 @@ episode = "self-evolving-coding-agents-video"
 path = "video/src/components/Subtitle.tsx"
 fingerprint = "61df1a5e08e2"
 reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
+[[skeleton.drift]]
+episode = "claude-code-chapters-loop-video"
+path = "video/src/Main.tsx"
+fingerprint = "1c779384d763"
+reason = "系列片头《一个循环》挂载（2026-10-29，用户审批沿用）：Intro Sequence 压 leadIn 23.5s + 章节条片头静默 wrapper（chromeIn）——与旧系列五集 78664c3010fd 同族挂载形态，指纹差异仅一处注释措辞（本集末幕为 P5，尾幕渐黑由末幕场景从末 beat 推导）。孪生组件 seeds 见 series-assets/claude-code-explained/intro/（七路径字节孪生，check_twin_files series-intro-seed 组）。撤销条件=skill 模板吸纳挂载点或片头退役"
 # 顶部进度条分代（2026-09-22）：模板 Main.tsx 归一化指纹 179be60ed605 为分代前
 # 模板值（10 个既有集此前已收敛对齐、零历史登记——均已发布），与上方 Subtitle
 # 分代同构；新 frozen 的 ChapterProgress.tsx 既有集尚无此

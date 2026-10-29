@@ -49,15 +49,16 @@
 [series-assets/claude-code-explained/intro/README.md](./series-assets/claude-code-explained/intro/README.md)，
 台账见 [I-209](../../docs/.agents/issue.md)。
 
-## Claude Code 机制二十讲（文档/代码型选题 · 20 集制）
+## Claude Code 的 20 个核心机制（文档/代码型选题 · 20 集制）
 
 与上系列同信源的**按章拆集**新系列（2026-10-29 建档）：课程站点 20 章 1:1 拆集、每集约 5 分钟、单章讲透（例：上系列第 1 集《工具与执行》= 本系列前四集 Agent Loop / Tool Use / Permission / Hooks）。两系列并行，本系列建成后旧系列退役；取证纪律与上系列一致（固定提交 + 双指纹 + 证据三级）。
 
 | #   | 作品                                                                          | 一句话主题                   | 视觉契约（主色）      | 信源                                                                        | 状态                                                                          |
 | --- | ----------------------------------------------------------------------------- | ---------------------------- | --------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| 1   | [《Agent Loop：给模型装上手》](./episodes/claude-code-chapters-loop-video/README.md) | 三十行循环如何让模型长出手 | core #D97757 / 青碧   | s01 钉 main `7226f555` + 站点轨附录（s01f-*）@ `67a9126c`；C 型=现行 171 冻结 | 🟡 **文案待用户审批**（Stage ①–⑤ 完成态见集 README；审批通过才进入制作） |
+| 1   | [《Agent Loop：一个循环，让 Agent 开始了心跳》](./episodes/claude-code-chapters-loop-video/README.md) | 三十行循环如何让模型长出手 | core #D97757 / 青碧   | s01 钉 main `7226f555` + 站点轨附录（s01f-*）@ `67a9126c`；C 型=现行 171 冻结 | 🟡 **制作中**（2026-10-29 文案审批通过：定题 + 首尾署源制修订，⑥ 分镜 → ⑩ 交付推进中） |
+| 2   | [《Tool Use：多加一个工具，只加一行》](./episodes/claude-code-chapters-tooluse-video/README.md) | 查表分发与编号配对：加能力不动核心 | core #EFB13C（查表）/ #EF6461 | s02 翻钉 main `7226f555`（判据措辞与 ep1 同口径 + 接口论证新节）+ 站点轨附录（s02f-*）@ `67a9126c`；C 型=现行 171 同代次冻结；实验 2 复算【一】 | 🔵 **文案轮待审批**（2026-10-29：Stage ①–⑤ 完成，首尾署源制沿用） |
 
-> ep2–ep20（s02 Tool Use … s20 Comprehensive）为规划态，章→集归属与双钉唯一登记处见
+> ep3–ep20（s03 Permission … s20 Comprehensive）为规划态，章→集归属与双钉唯一登记处见
 > [source-map/claude-code-chapters.md](./source-map/claude-code-chapters.md)；逐集开工时复核钉选。
 
 ## Context Layer · 上下文层系列（doc 型 · 3 集）

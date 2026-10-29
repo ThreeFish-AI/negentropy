@@ -1,4 +1,4 @@
-# 系列信源地图——《Claude Code 机制二十讲》（claude-code-chapters）
+# 系列信源地图——《Claude Code 的 20 个核心机制》（claude-code-chapters）
 
 > 机读版：[claude-code-chapters.toml](./claude-code-chapters.toml)；与 [series.json](../series.json)（机器）/ [series.md](../series.md)（人读）同一配对纪律。本文件是本系列**章→集归属与钉选的唯一登记处**，各集 `research/gl-notes.md` 只链接、永不重述。
 
@@ -13,16 +13,16 @@
 
 | 钉 | ref | 覆盖 | 理由 |
 |---|---|---|---|
-| main（17 章整合版，README.zh.md） | `7226f555`（2026-10-27） | ep1 | 判据之争记忆点「看内容块别信停止标记」正源是 main 修正后的写法（认内容块、不追加空 tool_result）；2026-10-29 复核：自旧钉 `ce8f9f18` 前移 13 提交，s01 仅 code.py 改 2 行空输入守卫（无叙事影响），README.zh.md 逐字一致 |
-| 站点同源修订（20 章版，README.md） | `67a9126c`（2026-07-29） | ep2–ep20 | 20 章版是本系列集制骨架；分支 HEAD 至 2026-10-29 未动，站点 s01 页复验一致。ep2–ep20 为**规划态**钉，逐集开工时按当章内容复核是否翻钉 main |
+| main（17 章整合版，README.zh.md） | `7226f555`（2026-10-27） | ep1、ep2 | ep1：判据之争记忆点「看内容块别信停止标记」正源是 main 修正后的写法（认内容块、不追加空 tool_result）；2026-10-29 复核：自旧钉 `ce8f9f18` 前移 13 提交，s01 仅 code.py 改 2 行空输入守卫（无叙事影响），README.zh.md 逐字一致。ep2（2026-10-29 开工翻钉）：站点轨 s02 判据仍写 stop_reason，直引必与 ep1 所教「认内容不认字段」自相矛盾；main 前移新增「Bash 已经能做这些事，为什么还要加工具？」接口论证一节（ep2 叙事正源）；code.py 仅空输入守卫 2 行差异（与 s01 同款） |
+| 站点同源修订（20 章版，README.md） | `67a9126c`（2026-07-29） | ep3–ep20 | 20 章版是本系列集制骨架；分支 HEAD 至 2026-10-29 未动，站点 s01/s02 页复验零漂移。ep3–ep20 为**规划态**钉，逐集开工时按当章内容复核是否翻钉 main |
 
-ep1 需要的站点轨独有材料——「深入 CC 源码」附录（needsFollowUp / State 10 字段 / 多条退出路径 / StreamingToolExecutor）——经本集台账 `s01f-readme` / `s01f-code` 条目补登（字节归档随集），断言恒【三】级、口播带归属句。
+ep1/ep2 需要的站点轨独有材料——各章「深入 CC 源码」附录（ep1：needsFollowUp / State 10 字段 / 多条退出路径 / StreamingToolExecutor；ep2：isConcurrencySafe 按输入判定 / partitionToolCalls 连续批分区 / 五步验证 / 结果落盘与读文件无穷大特例）——经各集台账 `s01f-*` / `s02f-*` 条目补登（字节归档随集），断言恒【三】级、归属由首尾署源位承接。
 
 修订分叉全叙事（站点 20 章版 ↔ main 17 章整合版的章号不共用、I-165 根因）登记在[旧系列地图](./claude-code-explained.md)，本文件不重述。
 
 ## 三、章→集归属（20 章 × 20 集）
 
-见机读版 `[[chapter]]` 表：`s01_agent_loop`→ep1 … `s20_comprehensive`→ep20，一集一章。ep2–ep20 规划态（未脚手架、未登记 series.json），开工时逐集复核。
+见机读版 `[[chapter]]` 表：`s01_agent_loop`→ep1 … `s20_comprehensive`→ep20，一集一章。ep2 已开工（2026-10-29 脚手架 + 文案轮）；ep3–ep20 规划态（未脚手架、未登记 series.json），开工时逐集复核。
 
 ## 四、口径与纪律（沿用并链接）
 

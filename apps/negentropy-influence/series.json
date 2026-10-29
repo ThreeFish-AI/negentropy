@@ -377,15 +377,15 @@
     },
     {
       "id": "claude-code-chapters",
-      "title": "Claude Code 机制二十讲",
+      "title": "Claude Code 的 20 个核心机制",
       "sourceKind": "course",
-      "rule": "与全部既有系列（含同信源的 claude-code-explained）互相独立：口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约按系列内判定（规则 2/3/4）。集制=课程站点 20 章 1:1 拆集、每集约 5 分钟（拆集只是编导结构，观众层零课程/站点/章号痕迹——规则 7）；章→集归属与双钉唯一登记处 source-map/claude-code-chapters.md。信源沿用 agent-harness 精读族（171–176，C 型冻结进各集 gl-notes），证据三级纪律同旧系列（CC 源码级断言恒【三】级、口播带归属句）。下期卡装置（规则 8）待制作期落地时再入 vibe-video.toml next_card_series_ids。",
+      "rule": "与全部既有系列（含同信源的 claude-code-explained）互相独立：口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约按系列内判定（规则 2/3/4）。集制=课程站点 20 章 1:1 拆集、每集约 5 分钟（拆集只是编导结构；观众层信源标识只许首尾既定署源位（片头署源角标 + 片尾署源句，豁免白名单登记 vibe-video.toml check_series.source_credit，RSI I-080），其余位置零课程/站点/章号痕迹——规则 7）；章→集归属与双钉唯一登记处 source-map/claude-code-chapters.md。信源沿用 agent-harness 精读族（171–176，C 型冻结进各集 gl-notes），证据三级纪律同旧系列（CC 源码级断言恒【三】级、口播带归属句）。下期卡装置（规则 8）待制作期落地时再入 vibe-video.toml next_card_series_ids。",
       "episodes": [
         {
           "episode": 1,
           "slug": "claude-code-chapters-loop-video",
           "path": "episodes/claude-code-chapters-loop-video",
-          "title": "Agent Loop：给模型装上手",
+          "title": "Agent Loop：一个循环，让 Agent 开始了心跳",
           "topic": "Agent Loop：主循环——模型获得手的唯一通路（s01 单章）",
           "cardSub": "机制拆解 · 循环",
           "accents": [
@@ -402,6 +402,29 @@
           },
           "status": "script-review",
           "statusNote": "系列建档+首集文案轮（2026-10-29）：20 章 1:1 拆集新系列，旧 claude-code-explained 并行保留待退役；Stage ①–⑤ 完成待用户审批（审批前不进入制作）。C 型信源=现行 171（I-234 后代次）冻结；main 钉 7226f555（自 ce8f9f18 前移 13 提交、s01 仅 code.py 空输入守卫 2 行、README.zh.md 逐字一致）、站点轨 67a9126c 沿用（附录经 s01f-* 补登、站点页指纹零漂移）；实验 1 本集复算升【一】级。剧本 v1：55 句 1273 字 6 幕（正文 5.0 分+片头 23.5s≈5.4 分落窗 [4.4,5.6]）；④A 逐句核查 RISKY=0（46✅/6⚠️类比登记在册）、④B 外行评审 4 命中全修、⑤ 四层 pass+独立成文复审 REWRITE=0、改动句复核 RISKY=0；门禁 build/pre-tts/pron（语义未标注 0）/check_series（5 系列 655 文件 FAIL 0）/ledger verify FAIL 0（doc-tool-use-overview 官方页同日两态交替 WARN，复核确认成立、台账与 gl-notes 附录 B.1 落档）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 2,
+          "slug": "claude-code-chapters-tooluse-video",
+          "path": "episodes/claude-code-chapters-tooluse-video",
+          "title": "Tool Use：多加一个工具，只加一行",
+          "topic": "Tool Use：工具分发——加一个工具只加两行（s02 单章）",
+          "cardSub": "机制拆解 · 工具",
+          "accents": [
+            "#EFB13C",
+            "#EF6461"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Tool Use（s02）",
+            "site": "https://learn.shareai.run/zh/s02/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-29"
+          },
+          "status": "script-review",
+          "statusNote": "ep2 文案轮（2026-10-29）：s02 单章拆集（规划态钉站点轨，开工复核翻钉 main 7226f555——站点轨 s02 判据仍 stop_reason、直引必与 ep1 所教判据自相矛盾，且 main 前移新增「为什么还要加工具」接口论证一节；站点轨独有 CC 附录经 s02f-* 台账补登、站点页零漂移）。C 型信源=现行 171（I-234 后代次，与 ep1 同冻结正文代次）；实验 2（拔掉 tool_use_id 配对）本集复算升【一】级（pairing_errors 0→2、轮次 10/10 不退化）。剧本 v1：50 句 1315 字 6 幕（正文 ≈5.1 分+片头 23.5s≈5.5 分落窗 [4.4,5.6]）；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
           "voice": "story + me-bright.wav"
         }
       ]
