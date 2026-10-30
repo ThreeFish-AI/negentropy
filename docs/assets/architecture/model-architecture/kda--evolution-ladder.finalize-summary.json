@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/.archify/workflow-kda--evolution-ladder-20261030-150635/candidate.json",
+    "sha256": "30fcbe7bc582764f4c9338d8af7fe696c26768ec3de0347e9ddf50aa7cfdc808",
+    "bytes": 4373
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--evolution-ladder.html",
+    "sha256": "f01e89e0dc50ae2ae56388ef8014632fad1d1725943bbe82208a68f473fa4093",
+    "bytes": 757775
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--evolution-ladder.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--evolution-ladder.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--evolution-ladder.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1991
+}

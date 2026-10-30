@@ -247,6 +247,7 @@
 | I-239 | agent-harness 178 DSA 精读入库：三源首读（repo@4e622643 + 站点 + 论文）+ 五机制原型 + 双 archify 图 + 信源原图 5 张（含交付后增补 4 张批次） | ✅ 已完成 | 2026-10-27 | [详情](#I-239) |
 | I-240 | Dependabot 54 条批量处置：backend 11 包收敛升级（mcp 上界防 2.x）+ katex 0.18 override（rehype-katex 卡 ^0.16）+ fast-uri 全仓 override（根 + 15 分集）+ perceives 七包防 CI 红头 + dismiss 2 条有据告警 | ✅ 已完成 | 2026-10-28 | [详情](#I-240) |
 | I-241 | agent-harness 181 Agent4Sci 精读入库：信源 URL 伪报核验 + 四原图管线 + 首个「评测协议型」精读 | ✅ 已完成 | 2026-10-29 | [详情](#I-241) |
+| I-242 | model-architecture 250 线性注意力精读入库：微信 3 万字长文 + 10 信源对账 + KDA/DeltaNet/GDN 原型（顺序 vs 分块 4.4e-16）+ 双 archify 图 + 新开分组 | ✅ 已完成 | 2026-10-30 | [详情](#I-242) |
 
 ---
 
@@ -5736,3 +5737,20 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：arXiv 类信源入库前一律先核官方 citation 元数据（标题/作者/版本）再采信全文抓取结果；对账摘录一律以快照字节级片段为准，不从记忆复写。
 - **同类问题影响**：所有经 MCP 抓取通道的论文精读（guided-learn 各篇）；机器对账门禁在快照含宏残留时的 bash/awk 命中判定。
 - **注意事项**：webReader 通道不可作为唯一事实源；降采样只改分辨率不改内容，登记表须注明处理方式。
+
+<a id="I-242"></a>
+## I-242：model-architecture 250 线性注意力精读入库（新开分组）
+
+**问题描述**：腾讯技术工程《AI Infra进阶：3万字深入理解线性注意力机制》（2026-10-29）需精读入库：机制密度高（公式 190+ 条内嵌图片 alt、21 配图为懒加载 blob 不可取）、仓库无任何线性注意力既有笔记（需新开分组）、字数门 6000 硬约束。
+
+**表因**：微信公式以图片内嵌且配图不可下载，公式保真与图例保留两难；vLLM/模型表细节全部出自单信源转述，有失真风险。
+
+**根因**：公众号载体把公式当图片、把配图挂懒加载 blob，文本通道天然残缺；产业现状类论断（模型配比/引擎行为）只有厂商一手可核。
+
+**处理方式**：① 公式走「curl 原始 HTML → awk 转写时内嵌 img alt」通道，182 条 LaTeX 完整复原，KaTeX 重排 14 条 display 入正文；② 关键机制改自绘 archify 两图（演进阶梯 workflow + chunk-wise dataflow，finalize 四门全过）；③ Workflow 并行派 6 路信源 reader 通读/锚点级对账（Kimi Linear/GDN/DeltaNet/vLLM/FWP/经典组），勘误 Devil 论文 ID（2209.07482→2210.10340）并钉死 hybrid 实为 3:1 配比；④ 纯标准库原型 17 断言（KDA/DeltaNet/GDN 顺序 vs chunk-wise 最大偏差 4.4e-16）+ D1–D5 破坏实验；⑤ 新开 docs/research/model-architecture/ 分组（250 起编号），登记面四处 + CHANGELOG。
+
+**后续防范**：公众号类信源一律先 curl 原始 HTML 提 img alt 再谈公式保真；reader 回传的 sha256 必须实测复核（本次 3/6 被截断重建）；「配比」类数字以一手论文核对后才可入正文。
+
+**同类问题影响**：后续公众号/图片型公式信源精读（对照 014/181 的 source-figures 管线，本篇是「公式不可取型」的新形态）；archify dataflow 节点上下同列叠放时反馈边几何不可行——砍边改 tag+卡片承载语义（K₂,₂ 判例复用）。
+
+**注意事项**：250 是 model-architecture 分组首篇；lab 字数门沿用 179 的 count_words（上限 6000）。

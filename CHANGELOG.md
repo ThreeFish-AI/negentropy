@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### 线性注意力机制精读与通俗拆解入库：新开 model-architecture 分组（250，2026-10-30）
+
+- 新增 [250 精读](docs/research/model-architecture/250-linear-attention-kda.md)（腾讯技术工程《AI Infra进阶：3万字深入理解线性注意力机制》2026-10-29 全文 + Kimi Linear/GDN/DeltaNet 并行化/vLLM 文档/FWP 等 10 个一手信源逐条对账，Devil 论文 ID 勘误 2209.07482→2210.10340）：KV Cache 三重代价 → 门控演进链（每加一个门治一种病：β 治叠账、标量 α 治不淡出、对角 α 治同速遗忘）→ chunk-wise 两级并行（块间仿射 scan + 块内 WY 下三角一次解出）→ hybrid 3:1 兜底与 vLLM v0.32.0 落地三件事（page 对齐 640/前缀缓存块边界/推测解码回退一块）；五规律三争议，字数门 6000 内（5993）。
+- 新开 `docs/research/model-architecture/` 分组（_category_.json position 11）；配套纯标准库原型 [linear_attention_lab.py](docs/research/model-architecture/assets/linear_attention_lab.py)（17 断言全绿：KDA/DeltaNet/GDN 顺序 vs chunk-wise 最大偏差 4.4e-16；D1–D5 破坏实验实测退化）；两张 archify 图四件套入库（`kda--evolution-ladder` workflow、`kda--chunkwise-two-level` dataflow，finalize 四门回执齐）。
+- 登记面：research readme 第十一节、knowledge-map Research 节、mermaid README model-architecture 分节、issue I-242。
+
+
 ### ep1 走查句改写交付 v3：p2-03 拆两句（claude-code-chapters ep1，2026-10-30）
 
 - 用户 Conductor 评论修订：p2-03「第一轮，回答带一个工具调用：写文件，参数是路径和新内容。」拆为 p2-03「第一轮，模型要求调用「写文件」这个工具。」+ p2-03b「「写文件」的参数是文件写入路径和待写入的内容。」（字幕翻页，56→57 句）。
@@ -32,8 +39,7 @@
 - 第 2 集《Tool Use：多加一个工具，只加一行》（s02_tool_use 单章）Stage ①–⑤ 完成、待用户审批：scaffold 建集 + series.json/series.md/集 README 登记 + C 型冻结现行 171（与 ep1 同冻结正文代次，取材 §4 单章主线）。
 - **翻钉决策**：ep2 自系列建档的站点轨规划态钉复核后翻钉 main `7226f555`——站点轨 s02 判据仍写收尾字段（直引必与 ep1 所教「认内容不认字段」自相矛盾）、main 前移新增「Bash 已经能做这些事，为什么还要加工具？」接口论证一节；站点轨 `67a9126c` 降为 s02 独有「深入 CC 源码」附录正源（s02f-* 台账补登，恒【三】级）；source-map 双钉覆盖同步（main 轨 [1,2]、站点轨 [3..20]），站点页 s02 指纹与 2026-10-07 基线零漂移。
 - 实验 2（拔掉 tool_use_id 配对 → pairing_errors 0→2、轮次 10/10 不退化）本集 selftest 复算升【一】级；台账 6 条（s02-* / s02f-* / s02-site / doc-tool-use-overview 两态交替 e382ed 态 WARN 复核确认）verify + audit FAIL 0。
-- 剧本 v1：50 句 1325 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗）；④ 三路校验（A 真实性 0 RISKY / B 外行 1R+6⚠️ 全修 / C 纪律 1⚠️）+ ⑤ 成文优化两轮（独立评审 REWRITE=5 全修 + 4 建议采纳）机器门全绿；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，工作区 vibe-video.toml `check_series.source_credit` 登记）；本集概念色 core #EFB13C（查表分发）/ warn #EF6461（accents 第二色授 mech），环体恒定锚 #D97757 承系列。
-### Automating ML for Science（Agent4Sci）精读与通俗拆解入库（agent-harness 181，2026-10-29）
+- 剧本 v1：50 句 1325 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗）；④ 三路校验（A 真实性 0 RISKY / B 外行 1R+6⚠️ 全修 / C 纪律 1⚠️）+ ⑤ 成文优化两轮（独立评审 REWRITE=5 全修 + 4 建议采纳）机器门全绿；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，工作区 vibe-video.toml `check_series.source_credit` 登记）；本集概念色 core #EFB13C（查表分发）/ warn #EF6461（accents 第二色授 mech），环体恒定锚 #D97757 承系列。### Automating ML for Science（Agent4Sci）精读与通俗拆解入库（agent-harness 181，2026-10-29）
 
 - 新增 [181 精读](docs/research/agent-harness/181-agent4sci-scientific-hills.md)：arXiv:2610.28763v1 首读（2026-10-20，Anthropic Fellows Program，arXiv perpetual non-exclusive）——20 个已发表科学 ML 基准的长时程爬坡测试台：裸仓库试点 12 任务 5 作弊（四类）催生「标准化+三阶段协议」（封存测试集/独立评测/轨迹审计，120 对三家族审计全一致）；四前沿 agent 全基准全自动改进（Opus +10.4%）但增益以通用工程招式为主（run 方差分层 σ=1.5 vs 19.6、HPO-only 只回收小部分）；三缺陷三技能近翻倍（10.4→20.1，PFDelta 64.4→91.0 物理洞见）；三天长跑反例（洞见门控不随时间来、CarbonGlobe 过拟 −25%）；五规律三争议五批判边界。
 - 配套纯标准库原型 [agent4sci_lab.py](docs/research/agent-harness/assets/agent4sci_lab.py)（15 断言 selftest + E1–E5 破坏实验实测退化，M2/M3 对账论文表 2/5/6 数字）；4 张论文原图（fig1/2/3/5，fig2 等比降采样过体积门）入 source-figures 并登记台账。
