@@ -24,6 +24,18 @@ ep1/ep2 需要的站点轨独有材料——各章「深入 CC 源码」附录�
 
 见机读版 `[[chapter]]` 表：`s01_agent_loop`→ep1 … `s20_comprehensive`→ep20，一集一章。ep2 已开工（2026-10-29 脚手架 + 文案轮）；ep3–ep20 规划态（未脚手架、未登记 series.json），开工时逐集复核。
 
+### 五大组归属（片头站点/进度点数据面的登记源）
+
+组名与片头音频「五种核心机制」逐词对位（音频是系列级固定资产）；归属按章节主题定，在集轴上**不连续**——`harness-stack.tsx` 的 `EPISODE_GROUPS` 查表实现与本表同步：
+
+| 组 | 章节 | 集号 |
+|---|---|---|
+| 工具与执行 | s01–s04 | 1–4 |
+| 规划与协调 | s05–s07、s10、s11 | 5–7、10、11 |
+| 记忆管理 | s08、s09 | 8、9 |
+| 并发 | s13、s14 | 13、14 |
+| 多 Agent | s12、s15–s20 | 12、15–20 |
+
 ## 四、口径与纪律（沿用并链接）
 
 - 证据三级、数字复算、活数据不进口播：vibe-video skill [01-source-extraction](https://github.com/ThreeFish-AI/vibe-video/blob/main/references/01-source-extraction.md) B/C 型；各集 `research/gl-notes.md` 头部冻结登记。

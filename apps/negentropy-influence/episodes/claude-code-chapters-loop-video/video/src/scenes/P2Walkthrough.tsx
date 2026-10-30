@@ -99,8 +99,6 @@ const SLOT_CONTENT: {role: RoleKey; node: React.ReactNode}[] = [
 // ── Stage：act 级舞台（清单卡 + 消息格 + 环体 + 出口门 + 计数角标）─────────
 
 type StageProps = {
-  /** 幕总长（act 局部帧；巡游上限推导） */
-  span: number;
   /** 清单卡角标「+ 牛奶 · 朗读」（p2-02「念给我听」词落位） */
   atTag: number;
   /** 清单长出「牛奶」行（p2-04「清单多了一行牛奶」词落位） */
@@ -121,7 +119,7 @@ type StageProps = {
   flashAt: [number, number, number];
 };
 
-const Stage: React.FC<StageProps> = ({span, atTag, atRow, atScan, fillAt, activeFrom, atGate, atStop, atCounter, flashAt}) => {
+const Stage: React.FC<StageProps> = ({atTag, atRow, atScan, fillAt, activeFrom, atGate, atStop, atCounter, flashAt}) => {
   const frame = useCurrentFrame();
   const card = useEnter('slideL', {at: 0, dur: DUR.f5, dist: 36});
   const slots = useStagger(5, {at: 4, stride: 3, dur: DUR.f3});
@@ -690,7 +688,6 @@ export const P2Walkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
     <AbsoluteFill>
       <SceneTag chapter="Worked Example" tagline="购物清单 · 一次往返" accent={theme.core} />
       <Stage
-        span={bD.from + bD.durationInFrames}
         atTag={tagAt}
         atRow={rowAt}
         atScan={exec2}
