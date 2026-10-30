@@ -10,7 +10,8 @@ slug = "claude-code-chapters-tooluse-video"
 
 [narration]
 # 单章集制：成片 ~5 分钟（含系列片头 leadIn 23.5s 口径，承 ep1 同款含片头窗先例）；
-# 正文预算 1100–1220 字（story 档 254 字/分含停顿等效口径，字数是硬约束）。
+# 正文预算 ≈1305 字（幕预算上限分配见 planning.md §四；story 档 254 字/分含停顿等效口径）。
+# 硬约束是 target_minutes 落窗（本集剧本 v1 1325 字 ≈5.2 分在窗内、超幕预算 20 字），超窗须删句。
 target_minutes = [4.4, 5.6]
 chars_per_min = 254
 

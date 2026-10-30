@@ -21,12 +21,12 @@
 ### 二十讲系列定题《Claude Code 的 20 个核心机制》+ ep1 文案审批通过与首尾署源制（claude-code-chapters ep1，2026-10-29）
 
 - 用户审批通过 ep1 文案并定题：系列《Claude Code 的 20 个核心机制》、第 1 集《Agent Loop：一个循环，让 Agent 开始了心跳》（series.json/series.md/source-map/集 README/planning/series-layers/package.json 七面同步）。
-- 审批修订三处：P4 归属句「拆解过 Claude Code 源码的作者数过」→「拆解过 Claude Code 源码的同学们应该知道」（p4-06 同步去掉悬空指代「按这份核查」）；正文去信源作者痕迹（原 p5-03 护栏句并入片尾署源块）；**首尾署源制**——片头署源角标（p0-01 beat 视觉层）+ 片尾署源句 p5-07/p5-08（「这套视频改编自开源课程 Learn Claude Code」+ 数字漂移警示），其余观众层维持零信源痕迹；逐字稿 54→55 句、1229→1256 字（仍在预算窗内）。
+- 审批修订三处：P4 归属句「拆解过 Claude Code 源码的作者数过」→「拆解过 Claude Code 源码的同学们应该知道」（p4-06 同步去掉悬空指代「按这份核查」）；正文去信源作者痕迹（原 p5-03 护栏句并入片尾署源块）；**首尾署源制**——片头署源角标（p0-01 beat 视觉层）+ 片尾署源句 p5-07/p5-08（「这套视频改编自开源课程 Learn Claude Code」+ 数字漂移警示），其余观众层维持零信源痕迹；逐字稿 55→56 句、1273→1307 字（仍在预算窗内）。
 - 配套机制：vibe-video.toml 增 `[check_series.source_credit]` 署源豁免白名单（规则 7 有界豁免，RSI [I-080](https://github.com/ThreeFish-AI/vibe-video/blob/main/docs/.agents/issue.md)）；制作流程 ⑥→⑩ 随 PR 启动（⑦ 配音用本人克隆声）。
 ### Claude Code 机制二十讲系列建档 + 首集《Agent Loop》文案轮（claude-code-chapters ep1，2026-10-29）
 
 - 课程站点 20 章 1:1 拆集新系列（每章一集、每集约 5 分钟；旧系列 claude-code-explained 并行保留、建成后退役）：series.json/series.md 登记 + source-map/claude-code-chapters.{md,toml}（20 章归属，ep1 钉 main `7226f555`、ep2–ep20 规划态钉站点轨 `67a9126c`）+ vibe-video.toml course_series_ids 增补。
-- 首集 ep1《Agent Loop：给模型装上手》Stage ①–⑤ 文案轮完成、**待用户审批后进入制作**：C 型冻结现行 171（I-234 后代次）+ 台账 6 条（verify FAIL 0/WARN 0、audit FAIL 0）+ 双钉字节归档（7226f555/67a9126c）+ 原型复算（实验 1 升【一】级）；策划（6 幕 ≈5 分钟含片头、钩子矩阵 5 选 1）+ 逐字稿 54 句 1229 字（build 4.8 分落窗 [4.4,5.6]）+ story 档配音台本；机器门 build/pre-tts/pron/check_series 全绿。
+- 首集 ep1《Agent Loop：给模型装上手》Stage ①–⑤ 文案轮完成、**待用户审批后进入制作**：C 型冻结现行 171（I-234 后代次）+ 台账 6 条（verify FAIL 0/WARN 0、audit FAIL 0）+ 双钉字节归档（7226f555/67a9126c）+ 原型复算（实验 1 升【一】级）；策划（6 幕 ≈5 分钟含片头、钩子矩阵 5 选 1）+ 逐字稿 55 句 1273 字（build 5.0 分落窗 [4.4,5.6]）+ story 档配音台本；机器门 build/pre-tts/pron/check_series 全绿。
 ### 《Tool Use》文案轮：ep2 建档 + 翻钉 main + 实验 2 复算（claude-code-chapters ep2，2026-10-29）
 
 - 第 2 集《Tool Use：多加一个工具，只加一行》（s02_tool_use 单章）Stage ①–⑤ 完成、待用户审批：scaffold 建集 + series.json/series.md/集 README 登记 + C 型冻结现行 171（与 ep1 同冻结正文代次，取材 §4 单章主线）。
