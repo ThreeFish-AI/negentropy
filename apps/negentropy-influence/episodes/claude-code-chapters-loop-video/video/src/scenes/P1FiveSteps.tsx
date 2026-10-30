@@ -854,9 +854,9 @@ const MinimalCore: React.FC<{replayAt: number; breathAt: number; plateA: number;
           {STATIONS.map((s, i) => (
             <StationMark key={`m-${s.label}`} anchor={RING_WS} index={i} glowAt={replayAt + i * 5} />
           ))}
-          {/* 分工铭牌（环心，两行随 p1-13 逐行落定；模型=决策 陶土橙 / 装置=执行 青碧） */}
+          {/* 分工铭牌（环心，两行随 p1-13 逐行落定；模型=决策 陶土橙 / 程序=执行 青碧） */}
           <NameRow at={plateA} color={theme.core} text="模型 = 决策" top={466} />
-          <NameRow at={plateB} color={theme.tool} text="装置 = 执行" top={540} />
+          <NameRow at={plateB} color={theme.tool} text="程序 = 执行" top={540} />
         </div>
       </div>
       <Footnote delay={breathAt}>{'≈30 行 · 最小内核'}</Footnote>

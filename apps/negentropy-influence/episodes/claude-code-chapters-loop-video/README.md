@@ -1,6 +1,6 @@
 # 《Agent Loop：一个循环，让 Agent 开始了心跳》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-10-30 制作轮收官，`~/Documents/video/claude-code-chapters/Agent Loop：一个循环，让 Agent 开始了心跳 v1.mp4`，终渲 289.3s/4.8 分落窗）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）建档首集；文案经用户审批定题并修订三处（P4 归属句改「同学们应该知道」、正文去信源作者痕迹、首尾署源制：片头署源角标 + 片尾署源句 p5-07，豁免登记工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）；制作轮：⑥ 25 镜六场景 + 系列片头《一个循环》孪生挂载（harness-stack 五大组×20 章数据面）→ ⑦ me-bright/story 本人克隆声 TTS（56 句）→ ⑨ QA 机器门（全幕内容带/尾幕渐黑/beat 头全 FAIL 0）+ 五帧高风险目检全绿 → ⑩ 终渲交付。发布顺序见 [../../series.json](../../series.json)（工作区根）。
+> 交付状态：**已交付 v2**（v1 2026-10-30 制作轮收官；v2 同日术语修订：p1-13「装置管执行」→「程序管执行」四面同步重制，`~/Documents/video/claude-code-chapters/Agent Loop：一个循环，让 Agent 开始了心跳 v2.mp4`，终渲 4.8 分落窗）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）建档首集；文案经用户审批定题并修订三处（P4 归属句改「同学们应该知道」、正文去信源作者痕迹、首尾署源制：片头署源角标 + 片尾署源句 p5-07，豁免登记工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）；制作轮：⑥ 25 镜六场景 + 系列片头《一个循环》孪生挂载（harness-stack 五大组×20 章数据面）→ ⑦ me-bright/story 本人克隆声 TTS（56 句）→ ⑨ QA 机器门（全幕内容带/尾幕渐黑/beat 头全 FAIL 0）+ 五帧高风险目检全绿 → ⑩ 终渲交付。发布顺序见 [../../series.json](../../series.json)（工作区根）。
 
 ## 目录结构
 

@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### ep1 术语修订交付 v2：p1-13「装置管执行」→「程序管执行」（claude-code-chapters ep1，2026-10-30）
+
+- 用户指出后裁定改词：口播层「程序」已作执行者主语出现 4 次（p0-08/p1-05/p2-04/p3-07），p1-13 的「装置」为全片唯一异名、听众视角系凭空引入——四面同步：narration.md p1-13 + storyboard 1-F 铭牌（连带 0-C 保持列备注）+ P1FiveSteps.tsx 铭牌 NameRow 文字与注释。
+- 重制链全绿：build/check FAIL 0 → tts_resume 幂等重配（仅 p1-12/p1-13 块重合成，story 档签名一致）→ 草渲 + P1 内容带 FAIL 0 → 铭牌帧目检「程序 = 执行」落位无残留 → 终渲交付 v2（实测 4.8 分落窗不变）。
 ### ep1《Agent Loop》制作轮收官交付 v1（claude-code-chapters ep1，2026-10-30）
 
 - ⑥–⑩ 全链路完成：25 镜六幕 storyboard（0-A 冷启动 ~ 5-C 署源卡）+ 六场景组件（P0ColdOpen/P1FiveSteps/P2Walkthrough/P3CriterionDuel/P4ProductionFuse/P5CoreAndRim）+ 系列片头《一个循环》七路径字节孪生挂载（harness-stack 五大组×20 章数据面重塑「集→组」映射，组件零改动）；⑦ IndexTTS 本人克隆声 me-bright/story 档 28 块情绪台本（56 句，句尾英文词 CMU 音素标注）。
