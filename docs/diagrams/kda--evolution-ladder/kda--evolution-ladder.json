@@ -1,0 +1,204 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "线性注意力门控演进阶梯：每加一个门，治一种病",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/model-architecture/kda--evolution-ladder.html"
+  },
+  "phases": [
+    {
+      "id": "de_softmax",
+      "label": "去 softmax 化（2020–2022）",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "gating",
+      "label": "门控化（2021–2025）",
+      "fromCol": 3,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "main",
+      "label": "演进主线"
+    },
+    {
+      "id": "parallel",
+      "label": "平行路线"
+    },
+    {
+      "id": "converge",
+      "label": "产业收敛"
+    }
+  ],
+  "mainPath": [
+    "sm",
+    "la",
+    "cv",
+    "dn",
+    "gdn",
+    "kda"
+  ],
+  "nodes": [
+    {
+      "id": "sm",
+      "lane": "main",
+      "col": 0,
+      "type": "database",
+      "label": "Softmax 注意力",
+      "sublabel": "精确但全量留底",
+      "icon": "database",
+      "width": 128
+    },
+    {
+      "id": "la",
+      "lane": "main",
+      "col": 1,
+      "type": "backend",
+      "label": "线性注意力 2020",
+      "sublabel": "S←S+vkᵀ · 推理 O(1)",
+      "icon": "active",
+      "width": 138
+    },
+    {
+      "id": "cv",
+      "lane": "main",
+      "col": 2,
+      "type": "backend",
+      "label": "+短卷积 2022",
+      "sublabel": "去分母 · 补局部",
+      "icon": "flag",
+      "width": 128
+    },
+    {
+      "id": "dn",
+      "lane": "main",
+      "col": 3,
+      "type": "backend",
+      "label": "DeltaNet",
+      "sublabel": "写入门 β · 只写差额",
+      "icon": "security",
+      "width": 138
+    },
+    {
+      "id": "gdn",
+      "lane": "main",
+      "col": 4,
+      "type": "backend",
+      "label": "GDN 2024",
+      "sublabel": "标量遗忘门 α",
+      "icon": "clock",
+      "width": 120
+    },
+    {
+      "id": "kda",
+      "lane": "main",
+      "col": 5,
+      "type": "backend",
+      "label": "KDA 2025",
+      "sublabel": "按通道遗忘 α",
+      "tag": "本文主角",
+      "icon": "active",
+      "width": 132
+    },
+    {
+      "id": "rwkv",
+      "lane": "parallel",
+      "col": 2,
+      "type": "external",
+      "label": "RWKV 平行路线",
+      "sublabel": "通道衰减 + 累加写入",
+      "width": 150
+    },
+    {
+      "id": "hyb",
+      "lane": "converge",
+      "col": 5,
+      "type": "cloud",
+      "label": "Hybrid 收敛",
+      "sublabel": "每 4 层 3 线性 + 1 完整",
+      "icon": "cloud",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "sm",
+      "to": "la",
+      "label": "去掉 softmax 分母"
+    },
+    {
+      "id": "e2",
+      "from": "la",
+      "to": "cv",
+      "label": "补稳定性与局部"
+    },
+    {
+      "id": "e3",
+      "from": "cv",
+      "to": "dn",
+      "label": "+写入门 β"
+    },
+    {
+      "id": "e4",
+      "from": "dn",
+      "to": "gdn",
+      "label": "+标量 α"
+    },
+    {
+      "id": "e5",
+      "from": "gdn",
+      "to": "kda",
+      "label": "α 升维通道级",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e6",
+      "from": "kda",
+      "to": "hyb",
+      "label": "固定容量兜底"
+    },
+    {
+      "id": "e7",
+      "from": "la",
+      "to": "rwkv",
+      "label": "平行演进",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "门控粒度的天花板",
+      "items": [
+        "按通道遗忘保持「对角阵+秩一修正」结构，分块并行算法才成立",
+        "细到逐元素遗忘即失去共享结构——表达力与并行效率在粒度上直接交换"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "训练视角：门不是装饰",
+      "items": [
+        "状态矩阵＝在线训练的线性模型",
+        "写入门 β＝学习率，遗忘门 α=1−ηλ＝权重衰减",
+        "delta 修正＝残差上的一步梯度下降"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "2026 年产业收敛",
+      "items": [
+        "Kimi K3：69 KDA + 24 MLA（NoPE）",
+        "GLM-5.3-Flash：34 KDA + 11 DSA（NoPE）",
+        "Qwen3.8 系：GDN 混合（RoPE）",
+        "共同档位：每 4 层 3 线性 + 1 完整注意力"
+      ]
+    }
+  ]
+}

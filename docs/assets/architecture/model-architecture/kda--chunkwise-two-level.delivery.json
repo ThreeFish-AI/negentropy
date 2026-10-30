@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "80a2dc64-dae9-4640-8a13-042e61c85de4",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/.archify/dataflow-kda--chunkwise-two-level-20261030-150635/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--chunkwise-two-level.html",
+  "specification": {
+    "sha256": "604726a3dc9041b6b7a7bffc5d28598fd6b39caadc95e9d23322e5fdaa503832",
+    "bytes": 3481
+  },
+  "artifact": {
+    "sha256": "acd6433de1d14131e6df8440c81a1043c43243ca53d9cf98dec7991290735bd1",
+    "bytes": 753986
+  }
+}
