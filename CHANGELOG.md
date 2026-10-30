@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 线性注意力机制精读与通俗拆解入库：新开 model-architecture 分组（250，2026-10-30）
+
+- 新增 [250 精读](docs/research/model-architecture/250-linear-attention-kda.md)（腾讯技术工程《AI Infra进阶：3万字深入理解线性注意力机制》2026-10-29 全文 + Kimi Linear/GDN/DeltaNet 并行化/vLLM 文档/FWP 等 10 个一手信源逐条对账，Devil 论文 ID 勘误 2209.07482→2210.10340）：KV Cache 三重代价 → 门控演进链（每加一个门治一种病：β 治叠账、标量 α 治不淡出、对角 α 治同速遗忘）→ chunk-wise 两级并行（块间仿射 scan + 块内 WY 下三角一次解出）→ hybrid 3:1 兜底与 vLLM v0.32.0 落地三件事（page 对齐 640/前缀缓存块边界/推测解码回退一块）；五规律三争议，字数门 6000 内（5993）。
+- 新开 `docs/research/model-architecture/` 分组（_category_.json position 11）；配套纯标准库原型 [linear_attention_lab.py](docs/research/model-architecture/assets/linear_attention_lab.py)（17 断言全绿：KDA/DeltaNet/GDN 顺序 vs chunk-wise 最大偏差 4.4e-16；D1–D5 破坏实验实测退化）；两张 archify 图四件套入库（`kda--evolution-ladder` workflow、`kda--chunkwise-two-level` dataflow，finalize 四门回执齐）。
+- 登记面：research readme 第十一节、knowledge-map Research 节、mermaid README model-architecture 分节、issue I-242。
+
 ### Trustworthy RSI 精读与通俗拆解入库（self-evolution 145，2026-10-30）
 
 - 新增 [145 精读](docs/research/self-evolution/145-trustworthy-rsi.md)：arXiv:2610.35193v1 首读（2026-10-26，人大高瓴 Jiayue Pu 等 12 人综述，301 引文）——把 RSI 变成可审计对象：归纳偏置 B / 偏置更新函数 U / 递归算子 RI 形式化（式 1–3 与表 2 三问判据）、S1–S4 改进环与三层主张（一层证据只撑一层）、四主题 × S1–S4/RI 风险-保障矩阵（四类已证失效与 Hyperagents 基准投毒 HTTPS 案）、成对延续 + 总成本核算 + 联合判据的评估协议（26 篇 RSI 标签研究仅 4 篇做过严格比较）；五规律三争议五批判边界。

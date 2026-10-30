@@ -136,3 +136,9 @@
 ---
 
 > 阅读建议：首次按一→六段论顺序通读；选型查阅直接跳到对应分组。各子目录的 `_category_.json` 提供分组级描述，wiki 左栏可折叠展开。
+
+## 十一、模型架构 · `model-architecture/`
+
+| 文档 | 主旨 |
+|:---|:---|
+| [线性注意力机制精读与通俗拆解（AI Infra 进阶）](./model-architecture/250-linear-attention-kda.md) | 腾讯技术工程 3 万字长文精读（2026-10-29）+ 10 个一手信源对账：KV Cache 三重代价 → 记忆矩阵 S 与门控演进链（Linear→+conv→DeltaNet→GDN→KDA，β=学习率/α=权重衰减的训练视角统一解释）→ chunk-wise 两级并行（仿射化 + WY 表示，顺序 vs 分块原型逐位一致 4.4e-16）→ 固定容量 hybrid 兜底与 vLLM v0.32.0 落地（block 640 对齐/[9,9,8,8] 分组/Marconi/ReplaySSM/EAGLE block drop）；五规律三争议五批判边界；配套 [linear_attention_lab.py](./model-architecture/assets/linear_attention_lab.py)（17 断言 + D1–D5 破坏实验）与两张 archify 图（演进阶梯/chunk-wise 两级并行） |

@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "chunk-wise 两级并行：块间仿射 scan 与块内 WY 汇于同一份块末状态",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/model-architecture/kda--chunkwise-two-level.html"
+  },
+  "stages": [
+    {
+      "label": "输入 · 按块切开"
+    },
+    {
+      "label": "两级并行准备（各块同时）"
+    },
+    {
+      "label": "汇合"
+    },
+    {
+      "label": "产出"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "tk",
+      "type": "messagebus",
+      "label": "Token 流切成 64 一块",
+      "sublabel": "每块的 k, v, α, β",
+      "tag": "块内已知",
+      "stage": 0,
+      "row": 1,
+      "width": 150
+    },
+    {
+      "id": "mac",
+      "type": "backend",
+      "label": "块间 · 宏观并行",
+      "sublabel": "各块独立算 Transition / Δ",
+      "tag": "仿射可组合",
+      "stage": 1,
+      "row": 0,
+      "width": 152
+    },
+    {
+      "id": "mic",
+      "type": "backend",
+      "label": "块内 · 微观并行",
+      "sublabel": "解下三角系统 (I+A)X=B",
+      "tag": "WY 表示",
+      "stage": 1,
+      "row": 2,
+      "width": 152
+    },
+    {
+      "id": "e",
+      "type": "security",
+      "label": "实际写入差额 E",
+      "sublabel": "E = U − W·S₀ᵀ",
+      "tag": "旧状态只在此进入",
+      "stage": 2,
+      "row": 1,
+      "width": 140
+    },
+    {
+      "id": "sc",
+      "type": "database",
+      "label": "块末状态 S_C",
+      "sublabel": "S₀·Transition + Δ",
+      "tag": "传给下一块 · 唯一串行",
+      "stage": 3,
+      "row": 0,
+      "width": 150
+    },
+    {
+      "id": "out",
+      "type": "cloud",
+      "label": "块内输出 O",
+      "sublabel": "Q̂_in·S₀ᵀ + M·E",
+      "tag": "全部 token",
+      "stage": 3,
+      "row": 2,
+      "width": 150
+    }
+  ],
+  "flows": [
+    {
+      "id": "f1",
+      "from": "tk",
+      "to": "mac",
+      "label": "本块系数",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f2",
+      "from": "tk",
+      "to": "mic",
+      "label": "因果折扣 A, B"
+    },
+    {
+      "id": "f3",
+      "from": "mic",
+      "to": "e",
+      "label": "U, W"
+    },
+    {
+      "id": "f4",
+      "from": "mac",
+      "to": "sc",
+      "label": "Transition / Δ",
+      "variant": "emphasis",
+      "route": "top-channel"
+    },
+    {
+      "id": "f6",
+      "from": "e",
+      "to": "out",
+      "label": "M·E 块内因果读出",
+      "labelAt": [
+        635,
+        315
+      ]
+    },
+    {
+      "id": "f7",
+      "from": "e",
+      "to": "sc",
+      "label": "参与块末合成",
+      "labelAt": [
+        649,
+        201
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两级并行各管什么",
+      "items": [
+        "宏观（块间）：转移与增量只由本块 token 决定，可全部并行预先算好",
+        "微观（块内）：64 步「先读后写」依赖打包成一次解下三角方程组",
+        "块间顺序传表是唯一串行环节——递推链只剩 O(块数) 步"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "重写是精确的",
+      "items": [
+        "无近似、无省略 token 交叉项",
+        "原型实测：顺序递推与分块公式输出最大偏差 4.4e-16",
+        "C 是插值旋钮：C=1 退化逐步递推，C=全长退化全并行形式，实用 64/128"
+      ]
+    }
+  ]
+}

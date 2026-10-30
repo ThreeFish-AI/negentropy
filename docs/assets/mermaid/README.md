@@ -12,7 +12,7 @@
 > `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
 > `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）、
-> `docs/research/multimodal-models/` 的 KTP 精读（240，下表 `multimodal-models/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/multimodal-models/` 的 KTP 精读（240，下表 `multimodal-models/` 分节）、`docs/research/model-architecture/` 的线性注意力精读（250，下表 `model-architecture/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -337,6 +337,8 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [ktp--intervention-ladder](./multimodal-models/ktp--intervention-ladder.mmd) | [240 §2](../../research/multimodal-models/240-visual-generation-knowledge-transfer.md) | workflow | ✓ | done | 干预阶梯：画图出口落差 → 直接迁移 / 文本对齐 / 交错对齐 / 先画再读四级三模型均值 + 遮掉图像损失消融支线；candidate JSON 入 `docs/diagrams/ktp--intervention-ladder/` |
 | [ktp--protocol](./multimodal-models/ktp--protocol.mmd) | [240 §5](../../research/multimodal-models/240-visual-generation-knowledge-transfer.md) | workflow | ✓ | done | 训练与评测协议：数据构造 → 对齐集 / 测试集同一次训练 → 只在测试集算分（文字问答 + 重画）；虚线标「跨实体迁移？」；candidate JSON 入 `docs/diagrams/ktp--protocol/` |
+| [kda--evolution-ladder](./model-architecture/kda--evolution-ladder.mmd) | [250 §3](../../research/model-architecture/250-linear-attention-kda.md) | workflow | ✓ | done | 门控演进阶梯：Softmax→线性注意力→+短卷积→DeltaNet→GDN→KDA 五档（每档加一个门治一种病）+ RWKV 平行路线 + Hybrid 产业收敛分支；三卡：粒度天花板/训练视角/2026 产业配比；candidate JSON 入 `docs/diagrams/kda--evolution-ladder/` |
+| [kda--chunkwise-two-level](./model-architecture/kda--chunkwise-two-level.mmd) | [250 §4](../../research/model-architecture/250-linear-attention-kda.md) | dataflow | ✓ | done | chunk-wise 两级并行数据流：Token 切块 → 块间宏观（Transition/Δ 各块独立）与块内微观（WY 解下三角得 U/W）两路 → 汇合 E=U−WS₀ᵀ → 产出块末状态 S_C 与全部输出 O；两卡：两级分工/重写精确性；candidate JSON 入 `docs/diagrams/kda--chunkwise-two-level/` |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 

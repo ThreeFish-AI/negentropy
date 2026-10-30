@@ -1,0 +1,16 @@
+%%source: docs/research/model-architecture/250-linear-attention-kda.md §2–§3（信源：腾讯技术工程《AI Infra进阶》+ arXiv:2510.26692/2412.06464/2406.06484/2102.11174）
+%%slug: model-architecture/kda--evolution-ladder
+%%type: workflow
+%%derived: archify workflow v2（五档门控演进：线性注意力→+短卷积→DeltaNet→GDN→KDA，每档加一个门治一种病；RWKV 平行路线与 hybrid 产业收敛分支）
+flowchart LR
+    SM["Softmax 注意力<br/>精确但按 token 全量留底"]
+    LA["线性注意力 2020<br/>S ← S + vkᵀ · 推理 O(1)"]
+    CV["+短卷积 2022<br/>去分母·输出归一化·局部混合"]
+    DN["DeltaNet<br/>写入门 β·先查旧账只写差额"]
+    GDN["GDN 2024<br/>标量遗忘门 α（每头一个）"]
+    KDA["KDA 2025<br/>按通道遗忘 α（每列一个）"]
+    HYB["Hybrid 产业收敛<br/>每 4 层 3 线性 + 1 完整注意力"]
+    RWKV["RWKV 平行路线<br/>通道衰减 + 累加写入"]
+    SM -->|"去掉 softmax 分母"| LA -->|"补局部细节与稳定性"| CV -->|"+写入门 β"| DN -->|"+标量 α"| GDN -->|"α 升维到通道级"| KDA
+    KDA -->|"固定容量兜底"| HYB
+    LA -.->|"平行演进"| RWKV

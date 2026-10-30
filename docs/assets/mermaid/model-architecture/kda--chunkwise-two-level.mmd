@@ -1,0 +1,19 @@
+%%source: docs/research/model-architecture/250-linear-attention-kda.md §4（信源：腾讯技术工程《AI Infra进阶》+ arXiv:2406.06484 Eq.10-11 / 2412.06464）
+%%slug: model-architecture/kda--chunkwise-two-level
+%%type: dataflow
+%%derived: archify dataflow v1（chunk-wise 两级并行：块间仿射 scan 各块独立算 Transition/Δ、块内 WY 下三角一次解出 U/W，汇合成 E 后产出块末状态 S_C 与全部 token 输出 O；S_C 顺序传下一块是唯一串行环节）
+flowchart LR
+    TK["Token 流按块切开<br/>每块 64 个 k,v,α,β"]
+    MAC["块间·宏观并行<br/>各块独立算 Transition/Δ"]
+    MIC["块内·微观并行<br/>解下三角系统 (I+A)X=B"]
+    E["实际写入差额 E = U − W·S₀ᵀ"]
+    SC["块末状态 S_C = S₀·Transition + Δ"]
+    OUT["块内输出 O = Q̂_in·S₀ᵀ + M·E"]
+    TK -->|"本块系数"| MAC
+    TK -->|"因果折扣 A,B"| MIC
+    MIC -->|"U,W"| E
+    MAC -->|"Transition/Δ"| SC
+    MAC -->|"衰减查询"| OUT
+    E -->|"M·E 块内因果"| OUT
+    E -->|"参与块末合成"| SC
+    SC -.->|"作为下一块 S₀（唯一顺序环节）"| E
