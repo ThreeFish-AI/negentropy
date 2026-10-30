@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 线性注意力机制精读与通俗拆解入库：新开 model-architecture 分组（250，2026-10-30）
+
+- 新增 [250 精读](docs/research/model-architecture/250-linear-attention-kda.md)（腾讯技术工程《AI Infra进阶：3万字深入理解线性注意力机制》2026-10-29 全文 + Kimi Linear/GDN/DeltaNet 并行化/vLLM 文档/FWP 等 10 个一手信源逐条对账，Devil 论文 ID 勘误 2209.07482→2210.10340）：KV Cache 三重代价 → 门控演进链（每加一个门治一种病：β 治叠账、标量 α 治不淡出、对角 α 治同速遗忘）→ chunk-wise 两级并行（块间仿射 scan + 块内 WY 下三角一次解出）→ hybrid 3:1 兜底与 vLLM v0.32.0 落地三件事（page 对齐 640/前缀缓存块边界/推测解码回退一块）；五规律三争议，字数门 6000 内（5993）。
+- 新开 `docs/research/model-architecture/` 分组（_category_.json position 11）；配套纯标准库原型 [linear_attention_lab.py](docs/research/model-architecture/assets/linear_attention_lab.py)（17 断言全绿：KDA/DeltaNet/GDN 顺序 vs chunk-wise 最大偏差 4.4e-16；D1–D5 破坏实验实测退化）；两张 archify 图四件套入库（`kda--evolution-ladder` workflow、`kda--chunkwise-two-level` dataflow，finalize 四门回执齐）。
+- 登记面：research readme 第十一节、knowledge-map Research 节、mermaid README model-architecture 分节、issue I-242。
+
 ### Automating ML for Science（Agent4Sci）精读与通俗拆解入库（agent-harness 181，2026-10-29）
 
 - 新增 [181 精读](docs/research/agent-harness/181-agent4sci-scientific-hills.md)：arXiv:2610.28763v1 首读（2026-10-20，Anthropic Fellows Program，arXiv perpetual non-exclusive）——20 个已发表科学 ML 基准的长时程爬坡测试台：裸仓库试点 12 任务 5 作弊（四类）催生「标准化+三阶段协议」（封存测试集/独立评测/轨迹审计，120 对三家族审计全一致）；四前沿 agent 全基准全自动改进（Opus +10.4%）但增益以通用工程招式为主（run 方差分层 σ=1.5 vs 19.6、HPO-only 只回收小部分）；三缺陷三技能近翻倍（10.4→20.1，PFDelta 64.4→91.0 物理洞见）；三天长跑反例（洞见门控不随时间来、CarbonGlobe 过拟 −25%）；五规律三争议五批判边界。

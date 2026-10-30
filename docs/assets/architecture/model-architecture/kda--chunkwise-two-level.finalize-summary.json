@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/.archify/dataflow-kda--chunkwise-two-level-20261030-150635/candidate.json",
+    "sha256": "604726a3dc9041b6b7a7bffc5d28598fd6b39caadc95e9d23322e5fdaa503832",
+    "bytes": 3481
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--chunkwise-two-level.html",
+    "sha256": "acd6433de1d14131e6df8440c81a1043c43243ca53d9cf98dec7991290735bd1",
+    "bytes": 753986
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--chunkwise-two-level.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--chunkwise-two-level.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--chunkwise-two-level.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2069,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "f4",
+            "from": "mac",
+            "to": "sc",
+            "label": "Transition / Δ",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 2,
+          "stretch": 1.38
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "mac → sc needs 2 bends: move node mac or sc so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

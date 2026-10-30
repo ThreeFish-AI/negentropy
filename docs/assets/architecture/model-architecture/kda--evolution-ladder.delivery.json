@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "385c9b48-27ac-4eb3-967d-b807c714ce0f",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/.archify/workflow-kda--evolution-ladder-20261030-150635/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/almaty-v3/docs/assets/architecture/model-architecture/kda--evolution-ladder.html",
+  "specification": {
+    "sha256": "30fcbe7bc582764f4c9338d8af7fe696c26768ec3de0347e9ddf50aa7cfdc808",
+    "bytes": 4373
+  },
+  "artifact": {
+    "sha256": "f01e89e0dc50ae2ae56388ef8014632fad1d1725943bbe82208a68f473fa4093",
+    "bytes": 757775
+  }
+}
