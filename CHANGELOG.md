@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Trustworthy RSI 精读与通俗拆解入库（self-evolution 145，2026-10-30）
+
+- 新增 [145 精读](docs/research/self-evolution/145-trustworthy-rsi.md)：arXiv:2610.35193v1 首读（2026-10-26，人大高瓴 Jiayue Pu 等 12 人综述，301 引文）——把 RSI 变成可审计对象：归纳偏置 B / 偏置更新函数 U / 递归算子 RI 形式化（式 1–3 与表 2 三问判据）、S1–S4 改进环与三层主张（一层证据只撑一层）、四主题 × S1–S4/RI 风险-保障矩阵（四类已证失效与 Hyperagents 基准投毒 HTTPS 案）、成对延续 + 总成本核算 + 联合判据的评估协议（26 篇 RSI 标签研究仅 4 篇做过严格比较）；五规律三争议五批判边界。
+- 配套纯标准库原型 [trustworthy_rsi_lab.py](docs/research/self-evolution/assets/trustworthy_rsi_lab.py)（朴素贝叶斯对数似然比（NB-LLR）玩具世界 S1–S4+RI 全链 + E1–E5 破坏实验实测：假提升、约束违规 0→158、同源过拟合、假 meta 被成对延续揭穿、无护栏停摆）；5 张论文原图（fig10 等比降采样过体积门）入 source-figures 并登记台账。
+- 登记面：research readme 第六节、knowledge-map Research 节、source-figures README。
+
 ### Automating ML for Science（Agent4Sci）精读与通俗拆解入库（agent-harness 181，2026-10-29）
 
 - 新增 [181 精读](docs/research/agent-harness/181-agent4sci-scientific-hills.md)：arXiv:2610.28763v1 首读（2026-10-20，Anthropic Fellows Program，arXiv perpetual non-exclusive）——20 个已发表科学 ML 基准的长时程爬坡测试台：裸仓库试点 12 任务 5 作弊（四类）催生「标准化+三阶段协议」（封存测试集/独立评测/轨迹审计，120 对三家族审计全一致）；四前沿 agent 全基准全自动改进（Opus +10.4%）但增益以通用工程招式为主（run 方差分层 σ=1.5 vs 19.6、HPO-only 只回收小部分）；三缺陷三技能近翻倍（10.4→20.1，PFDelta 64.4→91.0 物理洞见）；三天长跑反例（洞见门控不随时间来、CarbonGlobe 过拟 −25%）；五规律三争议五批判边界。

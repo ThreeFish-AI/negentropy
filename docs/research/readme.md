@@ -87,6 +87,7 @@
 | [Skill 进化闭环 × 自我改进评测](./self-evolution/141-skills-evolution-and-si-measurement.md) | Skills 三阶段进化 + SI 六目标度量 |
 | [Procedural Graph 论文精读](./self-evolution/142-procedural-graphs.md) | arXiv:2609.09153：程序性知识外置为带 condition/guidance/pitfalls 属性的有向图 + 邻域定位软指导 + 过验证门的自进化，含最小原型与破坏性实验 |
 | [Dream-RSI 论文精读](./self-evolution/144-dream-rsi.md) | arXiv:2609.14858：发现历史即重放模拟器、离线「做梦」确定性重放评估改进探索策略、argmax 含当前策略防回退、只改策略层不动底座，含最小原型与五次破坏性实验 |
+| [Trustworthy RSI 精读与通俗拆解](./self-evolution/145-trustworthy-rsi.md) | arXiv:2610.35193：可信递归自我改进综述——B/U/RI 形式化 + S1–S4 改进环 + 四主题三层主张风险-保障矩阵 + 成对延续评估协议，含最小原型与五次破坏实验 |
 
 ## 七、量化与投资科学 · `quant-finance/`
 
