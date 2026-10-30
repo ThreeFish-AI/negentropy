@@ -714,8 +714,8 @@ export const P2Walkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
           params={[{k: '路径', v: 'list.txt'}, {k: '新内容', milk: true}]}
           mode="write"
           atStrip={2}
-          atCall={word('p2-03', 0.5) - bB.from}
-          atParam={word('p2-03', 0.74) - bB.from}
+          atCall={word('p2-03', 0.5) - bB.from} // 「写文件」：调用块弹出（新句该词约 0.5 处）
+          atParam={word('p2-03b', 0.32) - bB.from} // 「参数是…」：参数签弹出（拆句后词移至 p2-03b）
           atExec={exec1 - bB.from}
           atFeed={feed1 - bB.from}
           slotIdx={1}
