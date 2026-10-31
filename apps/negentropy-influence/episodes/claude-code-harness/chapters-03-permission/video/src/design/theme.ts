@@ -31,8 +31,22 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（planning §三；accents 与系列层 series.json 登记同值 #7C6FF0/#4E9EFF，
-  //    系列内与 ep1 #D97757/#64C4C0、ep2 #EFB13C/#EF6461 无精确撞色）──
-  core: '#7C6FF0', // 裁决紫：三道闸门、裁决不变式、生产裁决面板（对 bg 实测 4.9:1）
-  boundary: '#4E9EFF', // 边界蓝：路径越界检测框、规则关键词标签（对 bg 实测 6.9:1）
+  // ── 本集概念色（⑧ 轮定稿，storyboard「本集视觉契约」= planning §三）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与
+  //    ep1/ep2 逐像素同值即「描边色/线宽承锁定值全片不变」的落地）；代码之手
+  //    同用 core 描边（0-A/5-B 首尾同款拦截面）
+  core: '#D97757',
+  // mech：本集之物 = 裁决闸卡（裁决紫）——三道闸门/裁决不变式/生产裁决面板
+  //    的装置结构色（对 bg 4.9:1；「本集之物」授色，series-intro 孪生件直读）
+  mech: '#7C6FF0',
+  // edge：边界蓝 = 规则/越界检测（规则卡衬底、路径检测框、关键词标签；
+  //    对 bg 6.9:1）
+  edge: '#4E9EFF',
+  // tool：执行面/结果回喂流（青碧承 ep1/ep2 同语义——含「权限被拒」拒绝回执
+  //    帧的回喂通路；非本集 accents——系列恒定环体伴色）
+  tool: '#64C4C0',
+  // warn 槽位不设：反例/硬拒绝命中/否决方向动作统一走底座 danger #FF5C5C
+  //    （G1 核验 V6 方案 A 定色——警示红即底座常量，不再造同族第二红）。
+  // series.json accents = [#7C6FF0, #4E9EFF]（mech + edge；check_series 规则 4
+  // 执法），core/tool 为系列恒定色不占本集 accents 槽。
 } as const;

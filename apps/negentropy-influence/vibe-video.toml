@@ -97,6 +97,12 @@ episode = "chapters-02-tooluse"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
 reason = "系列片头挂载承 chapters-01-loop 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + 章节条 chromeIn 静默 wrapper——Main.tsx 与 ep1 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+
+[[skeleton.drift]]
+episode = "chapters-03-permission"
+path = "video/src/Main.tsx"
+fingerprint = "1c779384d763"
+reason = "系列片头挂载承 chapters-01/02 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper。撤销条件=skill 模板吸纳挂载点或片头退役"
 # 顶部进度条分代（2026-09-22）：模板 Main.tsx 归一化指纹 179be60ed605 为分代前
 # 模板值（10 个既有集此前已收敛对齐、零历史登记——均已发布），与上方 Subtitle
 # 分代同构；新 frozen 的 ChapterProgress.tsx 既有集尚无此
@@ -262,7 +268,7 @@ reason = "remotion 全家桶 4.0.529→4.0.533（2026-10-06 同 major 整组追�
 # p0-01 = 片头署源角标 beat（视觉层）；p5-XX = 片尾课程名署源句。scene_stems 制作期场景落地后补登记。
 [check_series.source_credit."chapters-03-permission"]
 narration_ids = ["p0-01", "p5-06"]
-scene_stems = []
+scene_stems = ["P0ColdStop", "P5GateAndNext"]
 
 [check_series.source_credit."chapters-04-hooks"]
 narration_ids = ["p0-01", "p5-07"]
