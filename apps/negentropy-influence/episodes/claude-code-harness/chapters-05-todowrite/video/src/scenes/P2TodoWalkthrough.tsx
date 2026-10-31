@@ -48,6 +48,63 @@ const STAGE = {
   axis: {x: 190, y: 880, w: 1500},
 } as const;
 
+/** 用户任务卡（三签 + snake_case 角标）。⑨ QA W2：提升为 P2 幕级常驻层——
+ *  原 2-A Sequence 内实现导致 2-A→2-B 切点任务卡消失、左轨条目硬跳；现三镜
+ *  共用同一位（leftTop+34，入场动画幕级锚），快照条/消息条 y 跨镜对齐。 */
+const TaskCardLayer: React.FC<{atTask: number; dim?: number}> = ({atTask, dim = 0}) => {
+  const taskIn = useProgress(atTask, DUR.f5, 'decelerate');
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: STAGE.leftX,
+        top: STAGE.leftTop + 34 - 60 * (1 - taskIn),
+        width: STAGE.leftW,
+        opacity: taskIn * (1 - dim),
+      }}
+    >
+      <div
+        style={{
+          boxSizing: 'border-box',
+          borderRadius: 12,
+          border: `2.5px solid ${withAlpha(theme.dim, 0.85)}`,
+          background: theme.panel,
+          padding: '12px 18px',
+          position: 'relative',
+        }}
+      >
+        <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>{'user · task'}</span>
+        <div style={{display: 'flex', gap: 10, marginTop: 8}}>
+          {['改下划线命名', '跑测试', '写报告'].map((t) => (
+            <span
+              key={t}
+              style={{
+                fontFamily: theme.sans,
+                fontSize: 19,
+                fontWeight: 600,
+                color: theme.text,
+                border: `2px solid ${withAlpha(theme.text, 0.55)}`,
+                borderRadius: 7,
+                padding: '3px 10px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+        <div style={{position: 'absolute', right: 14, bottom: 8, fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>
+          {'snake_case'}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** 左轨条目基准位（⑨ QA W2/N2 跨镜对齐）：快照条 onBand = 窗带上缘内侧
+ *  （绝对 470），2-A 建单落位与 2-B 挤出前同位；2-C rebuild 回窗带内 518。 */
+const SNAP = {y: STAGE.leftTop + 260, inBand: STAGE.leftTop + 308, outBand: STAGE.leftTop + 158} as const;
+
 /** 环体顶角小件（挂点微光恒驻；2-C 闪亮） */
 const StageRing: React.FC<{pulse?: number}> = ({pulse = 0}) => {
   const frame = useCurrentFrame();
@@ -67,20 +124,19 @@ const StageRing: React.FC<{pulse?: number}> = ({pulse = 0}) => {
 
 const TwoA: React.FC<{
   atBoard: number;
-  atTask: number;
   atMorph: number;
   atBuild: number;
   atFirst: number;
   atSnap: number;
   atWork: number;
-}> = ({atBoard, atTask, atMorph, atBuild, atFirst, atSnap, atWork}) => {
+}> = ({atBoard, atMorph, atBuild, atFirst, atSnap, atWork}) => {
   const frame = useCurrentFrame();
   // 口径标牌亮起（「教学版」——为讲清机制搭的简化版，设计走查例口径签）
   const board = useProgress(atBoard, DUR.f5);
-  // 任务卡携三签落至消息列顶格（「那三步」）
-  const taskIn = useProgress(atTask, DUR.f5, 'decelerate');
   // morph（1-D→2-A）：装置自画面中央（1-D 全貌位）移驻走查舞台侧位——
-  // 位移中两半排布、刻度盘形制不变；清单行清空建单发生在落位后（回退判据规避）
+  // 位移中两半排布、刻度盘形制不变；清单行清空建单发生在落位后（回退判据规避）。
+  // ⑨ QA W1：atMorph 提前至 wa('p2-01',0.06) 且两半 lit 恒 1——原 0.3 档锚
+  // 装置 2.3s 全隐后空中显形（两头不靠）；现真滑移承接（1-D 末帧位起全程可见）
   const morph = useProgress(atMorph, DUR.f6, 'decelerate');
   // 建单：三行依次成文（改命名/跑测试/写报告关键词签——不预写句）
   const buildRows = [
@@ -95,10 +151,13 @@ const TwoA: React.FC<{
   const snapIn = useProgress(atSnap, DUR.f4, 'decelerate');
   // 开工：改文件调用块自消息列弹出执行（青碧）
   const work = useProgress(atWork, DUR.f4, 'decelerate');
-  const cardX = STAGE.rightX - 640 * morph;
-  const cardY = STAGE.rightTop + 60 - 120 * morph;
-  const cntX = STAGE.rightX + 480 - 480 * morph;
-  const cntScale = 0.68 + 0.32 * morph;
+  // W1：morph 插值两端 = 1-D 末帧全貌位（清单卡 560/320、计数器 990/540）→
+  // 走查舞台侧位；全程 lit=1 真滑移
+  const cardX = 560 + (STAGE.rightX - 560) * morph;
+  const cardY = 320 + (STAGE.rightTop + 60 - 320) * morph;
+  const cntX = 990 + (STAGE.rightX + 480 - 990) * morph;
+  const cntY = 540 + (STAGE.rightTop + 330 - 540) * morph;
+  const cntScale = 0.75 + 0.25 * morph;
   return (
     <AbsoluteFill>
       {/* 口径标牌（舞台顶部——教学版口径） */}
@@ -130,75 +189,31 @@ const TwoA: React.FC<{
       <div style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop - 30, fontFamily: theme.mono, fontSize: 16, color: theme.dim}}>
         {'messages'}
       </div>
-      {/* 用户任务卡（携三签落顶格 + snake_case 角标小注——命名风格只进角标） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: STAGE.leftX,
-          top: STAGE.leftTop + 34 - 60 * (1 - taskIn),
-          width: STAGE.leftW,
-          opacity: taskIn,
-        }}
-      >
-        <div
-          style={{
-            boxSizing: 'border-box',
-            borderRadius: 12,
-            border: `2.5px solid ${withAlpha(theme.dim, 0.85)}`,
-            background: theme.panel,
-            padding: '12px 18px',
-            position: 'relative',
-          }}
-        >
-          <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>{'user · task'}</span>
-          <div style={{display: 'flex', gap: 10, marginTop: 8}}>
-            {['改下划线命名', '跑测试', '写报告'].map((t) => (
-              <span
-                key={t}
-                style={{
-                  fontFamily: theme.sans,
-                  fontSize: 19,
-                  fontWeight: 600,
-                  color: theme.text,
-                  border: `2px solid ${withAlpha(theme.text, 0.55)}`,
-                  borderRadius: 7,
-                  padding: '3px 10px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-          <div style={{position: 'absolute', right: 14, bottom: 8, fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>
-            {'snake_case'}
-          </div>
-        </div>
-      </div>
-      {/* 清单快照条（以消息身份插列尾——规划蓝行） */}
-      <div style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop + 150, opacity: snapIn}}>
+      {/* 清单快照条（以消息身份插列尾——规划蓝行；W2：y 对齐 SNAP 基准位
+          （= 2-B 窗带上缘内侧），跨镜零跳变） */}
+      <div style={{position: 'absolute', left: STAGE.leftX, top: SNAP.y - 26 * (1 - snapIn), opacity: snapIn}}>
         <MsgBar x={0} y={0} w={STAGE.leftW} h={54} label={'待办清单快照'} sub={'todo_write'} color={theme.mech} lit={snapIn} />
       </div>
       {/* 改文件调用块（开工——青碧执行） */}
-      <div style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop + 226 - 30 * (1 - work), opacity: work}}>
+      <div style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop + 330 - 30 * (1 - work), opacity: work}}>
         <MsgBar x={0} y={0} w={STAGE.leftW} label={'改文件 · 执行中'} sub={'edit_file'} color={theme.tool} lit={work} flash={work > 0.6 ? 1 : 0} />
       </div>
-      {/* ── 右轨：清单卡 + 计数器（1-D morph 落位；建单前空骨架） ── */}
+      {/* ── 右轨：清单卡 + 计数器（1-D morph 落位；W1：lit 恒 1 真滑移承接） ── */}
       <TodoListCard
         x={cardX}
         y={cardY}
         w={470}
         rowStates={states}
         rowLit={buildRows.map((b) => Math.max(0.35, b))}
-        lit={morph}
-        showTag={morph}
+        lit={1}
+        showTag={1}
       />
-      <div style={{position: 'absolute', left: cntX, top: STAGE.rightTop + 330, transform: `scale(${cntScale})`, transformOrigin: 'left top', opacity: morph}}>
-        <NagCounter x={0} y={0} w={330} count={0} lit={morph} watch={1} />
+      <div style={{position: 'absolute', left: cntX, top: cntY, transform: `scale(${cntScale})`, transformOrigin: 'left top', opacity: 1}}>
+        <NagCounter x={0} y={0} w={330} count={0} lit={1} watch={1} />
       </div>
       <StageRing />
       {/* 底部 t 刻度轴（t 游标进 t1 → t2；刻度不逐格标字防抢字幕） */}
-      <TAxis x={STAGE.axis.x} y={STAGE.axis.y} w={STAGE.axis.w} n={11} cursor={taskIn > 0.5 ? (snapIn > 0.4 ? 1 : 0) : 0} lit={board} />
+      <TAxis x={STAGE.axis.x} y={STAGE.axis.y} w={STAGE.axis.w} n={11} cursor={snapIn > 0.4 ? 1 : 0} lit={board} />
     </AbsoluteFill>
   );
 };
@@ -229,14 +244,19 @@ const TwoB: React.FC<{
   const rush = [0, 1, 2].map((i) => clamp01(progress(frame, atRush + i * 10, DUR.f4)));
   // 清单快照条被挤出可见区渐暗（0-C 视窗语义回扣——渐暗非删除；发生在计数前）
   const squeeze = useProgress(atSqueeze, DUR.f6);
-  // 「一，二，三」：三个数字音节与三格步进同拍（逐格爬升）
-  const climb = [clamp01(progress(frame, atCount, DUR.f3)), clamp01(progress(frame, atCount + 9, DUR.f3)), clamp01(progress(frame, atCount + 18, DUR.f3))];
+  // 「一，二，三」：三个数字音节与三格步进同拍（逐格爬升）。⑨ QA W3：步进
+  // 偏移 +0/+13/+28——按 TTS 实测音节帧对齐（一≈f4465、二≈f4483、三≈f4490
+  // 起持续至 4506），原 +0/+9/+18 第三格抢在「三」字前亮
+  const CLIMB_OFF = [0, 13, 28];
+  const climb = CLIMB_OFF.map((o) => clamp01(progress(frame, atCount + o, DUR.f3)));
   const count = climb[0] + climb[1] + climb[2];
   // 爬到 3 时刻度盘紫色脉冲蓄势一拍悬停（注入前一拍）
   const holdPulse = useProgress(atHold, DUR.f4);
-  // 可见区亮带几何（左轨列内——窗内=尾段）
+  // 可见区亮带几何（左轨列内——窗内=尾段）。⑨ QA W2：左轨条目 y 跨镜对齐
+  // （任务卡幕级常驻底 = leftTop+152；done 条 leftTop+170 起、失败条 440 绝对、
+  // 窗带 510-700、rush 三条带内 566-654——互不叠印、与 2-A/2-C 同轨）
   const WINBAND = {top: STAGE.leftTop + 300, h: 190};
-  const failCy = STAGE.leftTop + 386;
+  const failCy = 440 + 32;
   const failCx = STAGE.leftX + STAGE.leftW / 2;
   return (
     <AbsoluteFill>
@@ -244,18 +264,16 @@ const TwoB: React.FC<{
       <div style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop - 30, fontFamily: theme.mono, fontSize: 16, color: theme.dim}}>
         {'messages'}
       </div>
-      <div style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop + 40, opacity: 0.85}}>
+      <div style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop + 170, opacity: 0.85}}>
         <MsgBar x={0} y={0} w={STAGE.leftW} label={'改文件 · 完成'} sub={'edit_file'} color={theme.tool} lit={1} />
       </div>
       {/* 测试失败条（插入放大 + 警示红描边——速差转折点） */}
       <div
         style={{
           position: 'absolute',
-          left: STAGE.leftX + STAGE.leftW / 2 - (STAGE.leftW / 2) * failBig,
-          top: failCy - 30 * failBig,
-          width: STAGE.leftW * failBig,
-          transform: `scale(${failBig})`,
-          transformOrigin: 'center',
+          left: STAGE.leftX,
+          top: 440,
+          width: STAGE.leftW,
         }}
       >
         <div
@@ -279,7 +297,7 @@ const TwoB: React.FC<{
       </div>
       {/* 修测试条连刷（慢镜——扎进修测试） */}
       {rush.map((p, i) => (
-        <div key={i} style={{position: 'absolute', left: STAGE.leftX, top: WINBAND.top + 60 + i * 44, opacity: p * 0.9}}>
+        <div key={i} style={{position: 'absolute', left: STAGE.leftX, top: WINBAND.top + 56 + i * 44, opacity: p * 0.9}}>
           <div
             style={{
               width: STAGE.leftW,
@@ -300,12 +318,14 @@ const TwoB: React.FC<{
           </div>
         </div>
       ))}
-      {/* 清单快照条（挤出窗外变灰——渐暗非删除；0-C 视窗同款窗形） */}
+      {/* 清单快照条（挤出窗外变灰——渐暗非删除；0-C 视窗同款窗形）。⑨ QA N2：
+          squeeze=0 时贴窗带上缘内侧（SNAP.y=470 绝对，与 2-A 建单落位同点），
+          squeeze 后上移出窗顶（368）灰化——窗内→窗外的可见轨迹 */}
       <div
         style={{
           position: 'absolute',
           left: STAGE.leftX,
-          top: WINBAND.top - 96 - 46 * squeeze,
+          top: SNAP.y - (SNAP.y - SNAP.outBand) * squeeze,
           filter: `saturate(${1 - 0.6 * squeeze})`,
         }}
       >
@@ -388,7 +408,10 @@ const TwoC: React.FC<{atInject: number; atHook: number; atRelease: number; atReb
   // 疑问钩字卡浮起（半拍收暗——不给答案）
   const hookCard = useProgress(atHook2, DUR.f5);
   const dimAll = useProgress(atDim, DUR.f4);
-  const snapTop = STAGE.leftTop + 204;
+  // ⑨ QA W2/N2：左轨跨镜对齐——修测试条 leftTop+170/216（2-B done 位续排）、
+  // 提醒条插窗带底部（leftTop+430）、快照条自 2-B 末态挤出位（outBand）rebuild
+  // 回窗带内（inBand）
+  const snapTop = STAGE.leftTop + 430;
   return (
     <AbsoluteFill>
       {/* 左轨：提醒条插入尾部（沿紫色脉冲线自挂点方向落入） */}
@@ -396,7 +419,7 @@ const TwoC: React.FC<{atInject: number; atHook: number; atRelease: number; atReb
         {'messages'}
       </div>
       {['修测试 · 第 3 轮', '修测试 · 第 4 轮'].map((t, i) => (
-        <div key={t} style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop + 60 + i * 46, opacity: 0.75}}>
+        <div key={t} style={{position: 'absolute', left: STAGE.leftX, top: STAGE.leftTop + 170 + i * 46, opacity: 0.75}}>
           <div
             style={{
               width: STAGE.leftW,
@@ -443,8 +466,8 @@ const TwoC: React.FC<{atInject: number; atHook: number; atRelease: number; atReb
       <div style={{position: 'absolute', left: STAGE.leftX, top: snapTop, opacity: inject}}>
         <MsgBar x={0} y={0} w={STAGE.leftW} h={56} label={'更新你的待办'} sub={'reminder'} color={theme.nag} lit={inject} flash={injectPulse} />
       </div>
-      {/* 失败条（滑回清单卡——拉回动作的可追轨迹） */}
-      <div style={{position: 'absolute', left: STAGE.leftX + (STAGE.rightX - STAGE.leftX) * 0.5 * release, top: STAGE.leftTop + 180 + 60 * release, opacity: 0.85 * (1 - release)}}>
+      {/* 失败条（滑回清单卡——拉回动作的可追轨迹；起点=2-B 失败条位 440） */}
+      <div style={{position: 'absolute', left: STAGE.leftX + (STAGE.rightX - STAGE.leftX) * 0.5 * release, top: 440 + 60 * release, opacity: 0.85 * (1 - release)}}>
         <div
           style={{
             width: STAGE.leftW * 0.7,
@@ -465,8 +488,16 @@ const TwoC: React.FC<{atInject: number; atHook: number; atRelease: number; atReb
           {'测试失败'}
         </div>
       </div>
-      {/* 清单快照条重入窗内（重建——灰度恢复；窗框沿用） */}
-      <div style={{position: 'absolute', left: STAGE.leftX, top: snapTop - 132 + 36 * (1 - rebuild), filter: `saturate(${0.4 + 0.6 * rebuild})`}}>
+      {/* 清单快照条重入窗内（重建——灰度恢复；窗框沿用）。⑨ QA N2：自 2-B 末态
+          挤出位（outBand）回窗带内（inBand）——窗内亮带是 0-C 语义的收束回扣 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: STAGE.leftX,
+          top: SNAP.outBand + (SNAP.inBand - SNAP.outBand) * rebuild,
+          filter: `saturate(${0.4 + 0.6 * rebuild})`,
+        }}
+      >
         <MsgBar x={0} y={0} w={STAGE.leftW} h={50} label={'待办清单快照'} sub={'todo_write'} color={theme.mech} lit={rebuild} ghost={1 - rebuild} />
       </div>
       {/* 右轨：清单卡重建态 → 三勾全亮（三勾在「任务完成」词前不预亮） */}
@@ -554,11 +585,12 @@ export const P2TodoWalkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   return (
     <AbsoluteFill>
+      {/* 任务卡（幕级常驻层——W2：三镜共用，切点不消失；入场锚幕级帧域） */}
+      <TaskCardLayer atTask={wa('p2-01', 0.62)} />
       <Sequence {...bA} name="2-A">
         <TwoA
           atBoard={wa('p2-01', 0.08) - bA.from}
-          atTask={wa('p2-01', 0.62) - bA.from}
-          atMorph={wa('p2-01', 0.3) - bA.from}
+          atMorph={wa('p2-01', 0.06) - bA.from}
           atBuild={wa('p2-02', 0.16) - bA.from}
           atFirst={wa('p2-02', 0.72) - bA.from}
           atSnap={wa('p2-03', 0.12) - bA.from}

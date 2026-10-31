@@ -182,6 +182,10 @@ const OneA: React.FC<{atMorph: number; atCard1: number; atCard2: number; atCard3
   const recW = CARD_W + (srcW - CARD_W) * (1 - morph);
   const recH = CARD_H + (640 - CARD_H) * (1 - morph);
   const recY = CARD_Y - (CARD_Y - 190) * (1 - morph);
+  // ⑨ QA N1：morph 源（=0-C 视窗几何 x620/w680）与目标卡槽逐帧插值——
+  // 起帧逐像素对齐 0-C 末帧（身份线索不断档）；尾段亮带恒亮（bandLit 不随
+  // morph 淡出——亮带是对话记录卡的固有语义面）
+  const recX = (620 - dstX) * (1 - morph);
   return (
     <AbsoluteFill>
       {/* 模型脑图标居左 */}
@@ -194,7 +198,7 @@ const OneA: React.FC<{atMorph: number; atCard1: number; atCard2: number; atCard3
       ].map((c) => (
         <div key={c.en} style={{position: 'absolute', left: c.x, top: CARD_Y, width: CARD_W, height: CARD_H}}>
           {c.kind === 'record' ? (
-            <RecordCard x={0} y={recY - CARD_Y} w={recW} h={recH} lit={c.lit} bandLit={morph} rowLit={drop} rolling={rolling} />
+            <RecordCard x={recX} y={recY - CARD_Y} w={recW} h={recH} lit={c.lit} bandLit={1} rowLit={drop} rolling={rolling} />
           ) : (
             <div
               style={{
@@ -419,8 +423,10 @@ const OneC: React.FC<{atVoidF: number; atVoidC: number; atGlow: number; atRow: n
           <div style={{textAlign: 'center', fontFamily: theme.mono, fontSize: 13, color: theme.dim}}>{'no access'}</div>
         </div>
       ))}
-      {/* ── 下半：工程账（对照表增行 + 环体缩悬表侧「循环不改」） ── */}
-      <DispatchTableMini x={140} y={470} w={560} scale={0.98} newIn={newRow} fuse={fuse} counterLit={newRow} />
+      {/* ── 下半：工程账（对照表增行 + 环体缩悬表侧「循环不改」）。⑨ QA
+          RISKY-2 配套：表 scale 0.92（底 874）让位单行标尺（y884 起），
+          两件垂直分离不再叠印。 */}
+      <DispatchTableMini x={140} y={470} w={560} scale={0.92} newIn={newRow} fuse={fuse} counterLit={newRow} />
       {/* 定义卡（贴上对照表侧——①定义） */}
       <div style={{position: 'absolute', left: 730, top: 500, opacity: defCard}}>
         <div
@@ -499,8 +505,9 @@ const OneC: React.FC<{atVoidF: number; atVoidC: number; atGlow: number; atRow: n
       <div style={{position: 'absolute', left: 1530, top: 470, fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>
         {'环体 +0'}
       </div>
-      {/* 底部工具数 5→6 增长条标尺（基线恒常驻；定格不越 6） */}
-      <GrowthRuler x={140} y={880} w={560} six={six} lit={1} />
+      {/* 底部工具数 5→6 增长条标尺（基线恒常驻；定格不越 6）。⑨ QA RISKY-2：
+          单行装置收口 y884-914，全件在字幕安全带 920 之上（读数行不再下沉） */}
+      <GrowthRuler x={140} y={884} w={560} six={six} lit={1} />
     </AbsoluteFill>
   );
 };

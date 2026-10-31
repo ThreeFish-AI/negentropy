@@ -657,11 +657,12 @@ export const NagCounter: React.FC<{
             {String(shown)}
           </span>
         </div>
-        {/* 四格刻度（0–3 恒四格；数到三即注入即清零——永不越 3） */}
+        {/* 四格刻度（0–3 恒四格；数到三即注入即清零——永不越 3）。
+            ⑨ QA W6：格标改 0..3 且水位式点亮（亮到当前读数位）——原 1..4 格标
+            与 0–3 读数域错一，第 4 格亮被读作「数到 4」；现第 4 格=触发位 3。 */}
         <div style={{display: 'flex', gap: 10, marginTop: 8}}>
           {[0, 1, 2, 3].map((i) => {
-            const on = clamp01(c - i);
-            const num = i + 1;
+            const on = clamp01(c + 1 - i);
             return (
               <div
                 key={i}
@@ -686,7 +687,7 @@ export const NagCounter: React.FC<{
                     fontVariantNumeric: 'tabular-nums',
                   }}
                 >
-                  {num}
+                  {i}
                 </span>
               </div>
             );
@@ -1082,20 +1083,25 @@ export const DispatchTableMini: React.FC<{
         >
           <span style={{width: 300, fontFamily: theme.sans, fontSize: 25, fontWeight: 700, color: theme.text}}>{'工具'}</span>
           <span style={{fontFamily: theme.sans, fontSize: 25, fontWeight: 700, color: theme.text}}>{'处理器'}</span>
-          <span
-            style={{
-              marginLeft: 'auto',
-              fontFamily: theme.mono,
-              fontSize: 15,
-              color: theme.text,
-              border: `2px solid ${withAlpha(AMBER_TABLE, 0.5)}`,
-              borderRadius: 7,
-              padding: '2px 10px',
-              opacity: clamp01(counterLit),
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {'TOOLS · 5→6'}
+          {/* ⑨ QA N4：回指小箭头（琥珀表=前讲同构签名的图形自明——琥珀与环体
+              陶土橙同暖域易误读为本集新表；无文字，避观众层序数词） */}
+          <span style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, opacity: clamp01(counterLit)}}>
+            <svg width={16} height={16} viewBox="0 0 16 16">
+              <path d="M 13 8 L 6 8 M 9 4 L 5 8 L 9 12" fill="none" stroke={theme.dim} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span
+              style={{
+                fontFamily: theme.mono,
+                fontSize: 15,
+                color: theme.text,
+                border: `2px solid ${withAlpha(AMBER_TABLE, 0.5)}`,
+                borderRadius: 7,
+                padding: '2px 10px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {'TOOLS · 5→6'}
+            </span>
           </span>
         </div>
         {/* 行（前 5 行恒亮在位；新行 6 滑入 + 接点闪合） */}
@@ -1145,7 +1151,9 @@ export const DispatchTableMini: React.FC<{
 };
 
 /** 工具数 5→6 增长条标尺（1-C 底部——基线标尺恒常驻：前 5 格恒亮、第 6 格
- *  随新行同步点亮；读数随格子落地同步递增）。`six` 0..1 第 6 格点亮。 */
+ *  随新行同步点亮；读数随格子落地同步递增）。`six` 0..1 第 6 格点亮。
+ *  ⑨ QA RISKY-2：单行装置（格子高 30、读数内联格子行右侧）——两行版读数行
+ *  下沉至 y958 侵入字幕安全带 38px；单行收口 = y 调用处 ≤917（920 之上）。 */
 export const GrowthRuler: React.FC<{x: number; y: number; w?: number; six?: number; lit?: number}> = ({
   x,
   y,
@@ -1154,40 +1162,44 @@ export const GrowthRuler: React.FC<{x: number; y: number; w?: number; six?: numb
   lit = 1,
 }) => {
   const s = clamp01(six);
+  const READ_W = 118; // 读数内联区宽（含基线小签）
+  const cellW = (w - READ_W - 12 - 5 * 7) / 6;
   return (
-    <div style={{position: 'absolute', left: x, top: y, width: w, opacity: clamp01(lit)}}>
-      <div style={{display: 'flex', gap: 7}}>
-        {Array.from({length: 6}, (_, i) => {
-          const on = i < 5 ? 1 : s;
-          return (
-            <div
-              key={i}
-              style={{
-                width: (w - 5 * 7) / 6,
-                height: 40,
-                borderRadius: 6,
-                border: `2.5px solid ${on > 0.5 ? AMBER_TABLE : theme.panelBorder}`,
-                background: on > 0.5 ? withAlpha(AMBER_TABLE, 0.16) : 'transparent',
-                opacity: 0.5 + 0.5 * on,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: theme.mono,
-                fontSize: 15,
-                color: on > 0.5 ? theme.text : theme.dim,
-              }}
-            >
-              {i + 1}
-            </div>
-          );
-        })}
-      </div>
-      {/* 读数行 + 基线标签（基线恒常驻——5 为基线值） */}
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 14, marginTop: 8}}>
-        <span style={{fontFamily: theme.mono, fontSize: 26, fontWeight: 700, color: theme.text, fontVariantNumeric: 'tabular-nums'}}>
-          {`工具数 ${5 + Math.round(s)}`}
-        </span>
-        <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>{'基线 5 · ep2 口径'}</span>
+    <div style={{position: 'absolute', left: x, top: y, width: w, height: 30, opacity: clamp01(lit)}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+        <div style={{display: 'flex', gap: 7}}>
+          {Array.from({length: 6}, (_, i) => {
+            const on = i < 5 ? 1 : s;
+            return (
+              <div
+                key={i}
+                style={{
+                  width: cellW,
+                  height: 30,
+                  borderRadius: 6,
+                  border: `2.5px solid ${on > 0.5 ? AMBER_TABLE : theme.panelBorder}`,
+                  background: on > 0.5 ? withAlpha(AMBER_TABLE, 0.16) : 'transparent',
+                  opacity: 0.5 + 0.5 * on,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: theme.mono,
+                  fontSize: 13,
+                  color: on > 0.5 ? theme.text : theme.dim,
+                }}
+              >
+                {i + 1}
+              </div>
+            );
+          })}
+        </div>
+        {/* 读数 + 基线标签（内联单行——基线恒常驻，5 为基线值） */}
+        <div style={{width: READ_W, display: 'flex', flexDirection: 'column', lineHeight: 1.1}}>
+          <span style={{fontFamily: theme.mono, fontSize: 22, fontWeight: 700, color: theme.text, fontVariantNumeric: 'tabular-nums'}}>
+            {`工具数 ${5 + Math.round(s)}`}
+          </span>
+          <span style={{fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>{'基线 5'}</span>
+        </div>
       </div>
     </div>
   );
@@ -1256,11 +1268,18 @@ export const AblationLane: React.FC<{
           {cond}
         </span>
       </div>
-      {/* 轮次带（11 格——两轨同款格位同拍演化） */}
-      <TurnStrip x={0} y={0} w={w - 36} n={11} rounds={rounds} accent={accent} exhausted={exhausted} lit={1} />
-      {/* 任务步进带 + 三计数位（提醒/漂移/收尾——四指标逐项对照） */}
+      {/* 轮次带（11 格——两轨同款格位同拍演化）。⑨ QA RISKY-1①：absolute 件须
+          落 relative 槽位 wrapper 内（裸 (0,0) 会锚到场景根叠轨名头行——对照帧
+          不可读的根因；wrapper 即真实偏移：头行下方一档）。 */}
+      <div style={{position: 'relative', width: '100%', height: 44, marginTop: 12}}>
+        <TurnStrip x={0} y={0} w={w - 36} n={11} rounds={rounds} accent={accent} exhausted={exhausted} lit={1} />
+      </div>
+      {/* 任务步进带 + 三计数位（提醒/漂移/收尾——四指标逐项对照）。TaskSteps
+          同走 relative 槽位 wrapper（⑨ QA RISKY-1① 同根因）。 */}
       <div style={{display: 'flex', alignItems: 'center', gap: 22, marginTop: 14}}>
-        <TaskSteps x={0} y={0} w={190} states={task} lit={1} grayFlash={taskFlash} accent={accent} />
+        <div style={{position: 'relative', width: 190, height: 40}}>
+          <TaskSteps x={0} y={0} w={190} states={task} lit={1} grayFlash={taskFlash} accent={accent} />
+        </div>
         <div style={{display: 'flex', gap: 20, alignItems: 'center'}}>
           {/* 提醒计数位（紫色注入位——在场一轨闪现） */}
           <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3}}>
@@ -1452,7 +1471,9 @@ export const ThresholdRow: React.FC<{
             {`nag_threshold=${isBase ? 3 : mode === 'chatty' ? 1 : 999}`}
           </span>
         </div>
-        {/* 四指标位 + 任务带缩微（同款对齐） */}
+        {/* 四指标位 + 任务带缩微（同款对齐）。⑨ QA RISKY-1②：TaskSteps 走
+            relative 槽位 wrapper（裸 absolute(0,0) 叠行头压死三档读数）；
+            N3：未点亮档（lit<0.5）数值以 '—' 占位——三档一次全亮的假读防范。 */}
         <div style={{display: 'flex', alignItems: 'center', gap: 14, marginTop: 10}}>
           {cells.map((c) => (
             <div key={c.label} style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 64}}>
@@ -1467,18 +1488,20 @@ export const ThresholdRow: React.FC<{
                   textShadow: c.label === '提醒' && nagFlash > 0.01 ? `0 0 ${12 * clamp01(nagFlash)}px ${withAlpha(theme.nag, 0.7)}` : 'none',
                 }}
               >
-                {c.val}
+                {clamp01(lit) < 0.5 ? '—' : c.val}
               </span>
             </div>
           ))}
-          <TaskSteps
-            x={0}
-            y={0}
-            w={150}
-            states={isBase ? ['done', 'done', 'done'] : mode === 'chatty' ? ['done', 'done', 'done'] : ['done', 'done', 'todo']}
-            lit={Math.max(taskDone, red)}
-            grayFlash={isDead ? red : 0}
-          />
+          <div style={{position: 'relative', width: 150, height: 40}}>
+            <TaskSteps
+              x={0}
+              y={0}
+              w={150}
+              states={isBase ? ['done', 'done', 'done'] : mode === 'chatty' ? ['done', 'done', 'done'] : ['done', 'done', 'todo']}
+              lit={Math.max(taskDone, red)}
+              grayFlash={isDead ? red : 0}
+            />
+          </div>
         </div>
         {/* chatty 档：六枚紫色注入位密集闪现（啰嗦的具象） */}
         {mode === 'chatty' ? (

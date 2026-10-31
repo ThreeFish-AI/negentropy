@@ -86,7 +86,9 @@ const FourA: React.FC<{atOut: number; atLine: number; atGlowMid: number; atGlowR
               {/* 教学版卡内部：承 P2 走查舞台缩微（紫色计数器 + 「固定三轮」签在位） */}
               {i === 0 ? (
                 <>
-                  <div style={{marginTop: 22, opacity: outline}}>
+                  {/* ⑨ QA RISKY-1③：absolute 件须落 relative 槽位 wrapper（裸 (0,0)
+                      锚到卡片容器原点、叠「教学版」卡头）；槽位=卡头下方真实偏移 */}
+                  <div style={{position: 'relative', width: 330, height: 118, marginTop: 22, opacity: outline}}>
                     <NagCounter x={0} y={0} w={330} count={3} lit={outline} scale={0.92} />
                   </div>
                   {/* 「固定三轮」签（划线打在「三轮」上） */}
@@ -261,7 +263,8 @@ const FourB: React.FC<{
           }}
         >
           <span style={{fontFamily: theme.sans, fontSize: 26, color: theme.dim}}>{'教学版（已讲）'}</span>
-          <div style={{marginTop: 24, opacity: 0.8}}>
+          {/* ⑨ QA RISKY-1③（4-B 同构）：relative 槽位 wrapper 防 (0,0) 叠卡头 */}
+          <div style={{position: 'relative', width: 330, height: 118, marginTop: 24, opacity: 0.8}}>
             <NagCounter x={0} y={0} w={330} count={3} lit={1} scale={0.85} />
           </div>
         </div>

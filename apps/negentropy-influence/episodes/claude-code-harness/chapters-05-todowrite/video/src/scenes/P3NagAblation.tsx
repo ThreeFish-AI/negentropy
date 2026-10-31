@@ -80,7 +80,9 @@ const ThreeA: React.FC<{atLeftRounds: number; atLeftTask: number; atLeftNag: num
   const LANES = {y: 130, w: 820};
   return (
     <AbsoluteFill>
-      {/* 左轨（提醒在位——本集镜像构图：左=绿） */}
+      {/* 左轨（提醒在位——本集镜像构图：左=绿）。⑨ QA RISKY-3：nag 徽标锁存
+          （nag={leftNag > 0 || stats > 0 ? 1 : 0}）——impulse 闪完回落 0 与定格
+          窗 StatBar「提醒 1」同帧矛盾；闪现过或定格窗开即恒 1 */}
       <AblationLane
         x={100}
         y={LANES.y}
@@ -91,7 +93,7 @@ const ThreeA: React.FC<{atLeftRounds: number; atLeftTask: number; atLeftNag: num
         lit={1}
         rounds={leftRounds}
         task={leftTask > 0.5 ? ['done', 'done', 'done'] : ['todo', 'todo', 'todo']}
-        nag={leftNag > 0.3 ? 1 : 0}
+        nag={leftNag > 0 || stats > 0 ? 1 : 0}
         nagFlash={leftNag}
         drift={0}
         finish={leftTask > 0.5 ? 1 : 0}
@@ -140,11 +142,12 @@ const ThreeB: React.FC<{atSpin: number; atCount: number; atNoExit: number; atRep
   atPush,
 }) => {
   const frame = useCurrentFrame();
-  // 漂移环转起（动作卡每过一圈计数 +1 跳到 7——环上只此一卡）
-  const spin = clamp01(progress(frame, atSpin, 9999)) * ((frame - atSpin) / 26);
-  const lapCount = Math.min(7, Math.floor((frame - atSpin) / 26) + (frame >= atSpin ? 1 : 0));
-  const countJump = useProgress(atCount, DUR.f5);
-  const driftCount = Math.round(Math.min(7, Math.max(lapCount * 0, 7 * countJump)));
+  // 漂移环转起（动作卡绕环——环上只此一卡）。⑨ QA W4：圈速提至 13f/圈（原
+  // 26f 慢一档），计数与转圈解耦——删 lapCount*0 作废项，自「七个重复」词窗
+  // （atCount）起按圈 tick：driftCount = min(7, lapsSinceWord)，逐圈爬到 7
+  const spin = clamp01(progress(frame, atSpin, 9999)) * ((frame - atSpin) / 13);
+  const lapsSinceWord = frame >= atCount ? Math.floor((frame - atCount) / 13) + 1 : 0;
+  const driftCount = Math.min(7, lapsSinceWord);
   const noExit = useProgress(atNoExit, DUR.f5);
   // 视窗回放慢镜（0-C 同款装置复现——窗形/照亮方向逐镜一致）
   const replay = useProgress(atReplay, DUR.f5);

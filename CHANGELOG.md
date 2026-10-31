@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》后 ep5《TodoWrite：把计划摆回模型眼前》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 20 镜六场景分镜（零建图；G1 核验修 1 RISKY+3 WARN 后放行：3-D 规律金句卡补 caption-dup-ok 豁免、两处 @pushIn 从画面列归位动效列、片头注记改组号口径并连坐修正 ep4 同句）+ 文案微改进 4 句（v2→v3：丢了的计划→看不见的计划/重命名→改命名/阈值→数到三的阈值/更新的模型→较新的模型——含一处 judge 转写笔误实测纠正）。
+- ⑦ me-bright/story TTS 55 句实测 4.9 分落窗；⑧ 六场景 3316 行 + bespoke 19 件装置（TodoListCard 三态/NagCounter/VisibilityWindow/DriftLoop/DebateScale 等）+ 片头孪生挂载（实现者自办 toml 双负担）。
+- ⑨ QA 三路目检抓到 4 RISKY（absolute(0,0) 无 relative 父级的布局叠印根因三处——3-A 消融对照帧/3-C 阈值行/4-A 卡头；GrowthRuler 读数行真侵入安全带 38px；3-A 徽标 impulse 未锁存与数字条同帧矛盾）+ 6 WARN + 4 NOTE，修复轮 14 项全落地；定点核验 5/5 像素级实证（三层分离 27/32px 间隙/徽标恒读 1/「—」占位/标尺收口 884-914/切点任务卡 y 恒定）。机器门 FAIL 0 WARN 0。
+- ⑩ 终渲 155.5s、manifest 4.9 分 + 片头 23.5s ≈ 5.3 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/TodoWrite：把计划摆回模型眼前 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》后 ep4《Hooks：扩展不进循环》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 22 镜六场景分镜（零建图；G1 对抗核验 10/10 全过零 RISKY——系列第二次一次过，QA 教训清单注入实现者的复利显现）；⑦ me-bright/story TTS 55 句实测 4.8 分落窗；⑧ 六场景 3399 行 + bespoke 十四件装置（VoteBoard 承 ep3 同构复用、GateCard 裁决紫跨集签名登记）+ 片头孪生挂载（实现者自办 scene_stems/drift 登记——同族指纹 1c779384d763）。
