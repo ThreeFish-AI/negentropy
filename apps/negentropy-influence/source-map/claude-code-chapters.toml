@@ -9,14 +9,28 @@
 # 本系列自己的钉选决策。
 #
 # ── 双钉 ────────────────────────────────────────────────────────────────────
-# ep1 钉 main（判据之争记忆点「看内容块别信停止标记」依赖 main 修正后的写法；
-# 站点轨 s01 独有的「深入 CC 源码」附录经本集台账 s01f-* 条目补登，见
-# 各集 research/sources.toml——附录断言恒【三】级）。
-# ep2 翻钉 main（2026-10-29 开工复核：站点轨 s02 判据仍写 stop_reason，直引必与
-# ep1 所教「认内容不认字段」自相矛盾；main 前移新增「为什么还要加工具」接口论证
-# 一节；站点轨独有「深入 CC 源码」附录经本集台账 s02f-* 条目补登）。
-# ep3–ep20 规划态钉站点同源修订（20 章版是本系列的集制骨架），逐集脚手架时按
-# 当章内容复核是否翻钉。
+# 逐集开工复核钉选（文案轮 2026-10-31 全量完成 ep3–ep20）。翻钉 main 的六集：
+# ep1 判据之争记忆点「看内容块别信停止标记」依赖 main 修正后的写法；
+# ep2 站点轨 s02 判据仍写 stop_reason（同 ep1 口径硬伤）+ main 新增「为什么还要
+#   加工具」接口论证一节；
+# ep3/ep4 站点轨 s03/s04 判据/括注同款口径硬伤（stop_reason 判据、强制续跑归属
+#   说反），且 main 各有正源级增量（s03 词边界正则+测试点 5；s04 Stop 续跑写进
+#   教学正文）；
+# ep6 main s06 为本集叙事正源级修订（详见该集 gl-notes 附录 B.1）；
+# ep8/ep9 main s08/s09 压缩管线与记忆机制有正源级更新（冻结正文 §3.7/§4.5 所引
+#   CC 实现对照的现行口径）；
+# ep19 main s14_mcp_plugin 为 MCP 章现行扩写版。
+# 维持站点轨的十二集：ep5/ep7（main 仅注释中文化与空输入守卫，站点轨独有「深入
+# CC 源码」附录族是【三】级断言正源）、ep10/ep11（main 无独立章，深潜只在站点轨）、
+# ep12–ep18（改号不改内容或系列决策单章成集，main 对照经 {slug}m-* 登记）、
+# ep20（综合章按 20 章版集制骨架收束）。
+# 各集翻钉/维持的完整证据链：各集 research/gl-notes.md 附录 B.1；站点轨独有
+# 附录一律经 {slug}f-* 条目补登（字节归档随集），断言恒【三】级。
+# ⚠ 已知偏差：ep19 翻钉 main 后目录名跨轨不共用（章节表 id=s19_mcp_plugin 为站点
+# 轨目录名，main 轨目录为 s14_mcp_plugin）——sync 按章节表 id 机械拼 URL 会 404
+# 报 FAIL 2，属机制表达力缺口非台账错误：本集 s19-readme/-code 已按 main 真实
+# 路径手工登记（指纹可 verify），audit 期望/在册/pin 三断言全过。跑 sync 跳过
+# 本集、以 audit+verify 为准。
 #
 # 用法：
 #   uv run --no-project $R/source_ledger.py --project $P sync --map <本文件> --episode 1
@@ -34,10 +48,10 @@ siteBase = "https://learn.shareai.run/zh"
 [[pin]]
 ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
 date = "2026-10-27"
-label = "仓库 main（17 章整合版；本系列 ep1 判据正源 / ep2 主线正源）"
+label = "仓库 main（17 章整合版；ep1–ep4/ep6/ep8/ep9/ep19 正源）"
 readmeFile = "README.zh.md"
 codeFile = "code.py"
-episodes = [1, 2]
+episodes = [1, 2, 3, 4, 6, 8, 9, 19]
 
 [[pin]]
 ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
@@ -45,11 +59,12 @@ date = "2026-07-29"
 label = "站点同源修订（20 章版，分支 fix/s08-s20-sync-frontmatter-parser；本系列集制骨架）"
 readmeFile = "README.md"
 codeFile = "code.py"
-episodes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+episodes = [5, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20]
 
 # 章节表：id=仓库目录名（判据轨身份）· slug=台账条目名前缀 · episode=归属集 ·
-# sitePaths=站点路径段。ep2–ep20 为规划态（未脚手架、未登记 series.json），
-# 逐集开工时复核钉选与章节内容。ep1 的 s01 两轨目录名相同，readmeFile 随 pin 走。
+# sitePaths=站点路径段。ep3–ep20 已于 2026-10-31 完成文案轮开工复核（钉选见上）。
+# ep1 的 s01 两轨目录名相同，readmeFile 随 pin 走；main 无独立章的集（s10/s11）
+# 以站点轨为钉、main s15_integrated_harness 经 {slug}m-* 对照登记。
 
 [[chapter]]
 id = "s01_agent_loop"
@@ -146,7 +161,7 @@ id = "s16_team_protocols"
 slug = "s16"
 episode = 16
 sitePaths = ["s16"]
-note = "main 轨 17 章版已并入 s13_agent_teams；本系列按 20 章版单章成集（钉站点轨），开工时复核。"
+note = "main 轨 17 章版已并入 s13_agent_teams；本系列按 20 章版单章成集（钉站点轨，2026-10-31 开工复核维持）。"
 
 [[chapter]]
 id = "s17_autonomous_agents"

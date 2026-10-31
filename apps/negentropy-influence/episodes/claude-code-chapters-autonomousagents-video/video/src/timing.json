@@ -1,0 +1,8 @@
+{
+  "fps": 30,
+  "sentenceGapSec": 0.32,
+  "sceneGapSec": 0.9,
+  "leadInSec": 0.6,
+  "tailSec": 2.0,
+  "sceneCrossFadeSec": 0.4
+}

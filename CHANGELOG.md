@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 二十讲 ep3–ep20 全 18 集文案轮批量完成（claude-code-chapters，2026-10-31）
+
+- **Stage ① 信源取证 ×18**：每集双轨取证（main `7226f555` ↔ 站点轨 `67a9126c`）+ 钉选开工复核——**翻钉 main 六集**（ep3/ep4/ep6/ep8/ep9/ep19：站点轨 stop_reason 判据与 ep1 所教口径冲突 / main 有正源级增量——s03 词边界正则、s04 Stop 续跑入正文、s08 全重写、s14_mcp 宿主策略节等）、维持站点轨十二集（ep5/ep7 附录族正源、ep10/ep11 独立章只在站点轨、ep12–ep14 改号不改内容复核成立、ep15–ep18 系列决策单章成集、ep20 终章叙件只在站点轨）；source-map 双钉覆盖重排（main [1..4,6,8,9,19] / 站点轨 [5,7,10..18,20]）+ 各集台账（sync/audit/verify 全 FAIL 0，ep19 跨轨目录名致 sync 404 的机制缺口已在地图登记、audit 为准）+ 双轨字节归档随集；C 型冻结现行 171/172/173/175/176（附录 A 类比承袭 + 附录 B 钉点复核/复算/口播纪律）；原型 lab selftest 全 18 集复算、核心消融实验升【一】级（ep3 用户放行压过硬拒绝、ep4 Stop 续跑、ep5 拆提醒注入、ep6 全量回传 18 倍、ep7 全文常驻 8.3 倍、ep8 换序毁原文、ep9 拆写入门控、ep10 关键词误注入、ep11 一刀切重试 10 撞墙、ep12 坏依赖放行、ep13 拆启发式兜底、ep14 硬注入打断、ep15 拆统一消费入口、ep16 关类型校验、ep17 拆认领原子性、ep18 拆守卫沙箱、ep19 旧池 Unknown tool、ep20 动态池失效）。
+- **Stage ②–⑤ ×18**：策划（六节齐 + 钩子矩阵 5 选 1 + 系列色彩契约——恒定锚陶土橙环体 + 每集双色，18 集 36 色零精确撞色〔ep6/7/8/10 系列层对账去撞色微调〕）+ 逐字稿（49–56 句/1280–1403 字/6 幕，全落 [4.4,5.6] 窗；首尾署源制沿用：片头角标 beat + 片尾课程名句）+ ④ 三路校验（A 逐句核查 RISKY=0 / B 外行评审 / C 纪律镜头，发现全修）+ ⑤ 四层 pass + 独立成文评审循环（REWRITE 收敛至 0，ep3/ep16 收尾轮残项经改动句复核按 ④ 口径定案 RISKY=0）+ 改动句复核；机器门每集 build/pre-tts/pron 零 FAIL。
+- **系列登记面**：series.json/series.md ep3–ep20 登记（status=script-review，工作题随审批落定）+ vibe-video.toml `[check_series.source_credit]` 18 集署源豁免（p0-01 + 片尾署源句）+ 各集 README/pipeline.toml/theme.ts 收口；全局门 check_series（5 系列 35 集 1290 文件）FAIL 0、verify_skeleton 与基线一致零新增漂移。
+- 钩子链全系列贯通：ep2 片尾「加一道门」由 ep3 开门兑现，ep3–ep19 每集片尾只点问题式下期钩子顺次衔接，ep20 终章「机制很多，循环一个」回扣系列开篇主线收束。
 ### 线性注意力机制精读与通俗拆解入库：新开 model-architecture 分组（250，2026-10-30）
 
 - 新增 [250 精读](docs/research/model-architecture/250-linear-attention-kda.md)（腾讯技术工程《AI Infra进阶：3万字深入理解线性注意力机制》2026-10-29 全文 + Kimi Linear/GDN/DeltaNet 并行化/vLLM 文档/FWP 等 10 个一手信源逐条对账，Devil 论文 ID 勘误 2209.07482→2210.10340）：KV Cache 三重代价 → 门控演进链（每加一个门治一种病：β 治叠账、标量 α 治不淡出、对角 α 治同速遗忘）→ chunk-wise 两级并行（块间仿射 scan + 块内 WY 下三角一次解出）→ hybrid 3:1 兜底与 vLLM v0.32.0 落地三件事（page 对齐 640/前缀缓存块边界/推测解码回退一块）；五规律三争议，字数门 6000 内（5993）。

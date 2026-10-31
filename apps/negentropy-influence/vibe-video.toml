@@ -33,6 +33,16 @@ scene_stems = ["P0ColdOpen", "P5CoreAndRim"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
+[check_series.source_credit."claude-code-chapters-skillloading-video"]
+narration_ids = ["p0-01", "p5-07"]
+scene_stems = []
+
+# ep14 文案轮补登（2026-10-31 ⑤）：p5-06「开源课程」命中规则 7 裸词，署源位
+# 豁免同 ep2 形态；文案轮无场景件，scene_stems 制作期署源角标落场景文件后补。
+[check_series.source_credit."claude-code-chapters-cronscheduler-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
 # ── 骨架合法偏离登记(vibe-video 2.0.0 起登记面住工作区,RSI-010)─────────────
 # 自 skill 1.x assets/video-skeleton/skeleton.toml 原样搬迁(表名加 skeleton.
 # 前缀;npmrc-inert-key 代随 .npmrc 退出受门作废未搬)。格式说明与档位语义见
@@ -241,3 +251,69 @@ episode = "agent-skills-video"
 path = "video/package.json"
 fingerprint = "2ca436199aee"
 reason = "remotion 全家桶 4.0.529→4.0.533（2026-10-06 同 major 整组追新，npm view 4.0.533 为当日最新）；verify_skeleton 当期未点名本文件，此条为版本基线留痕。structured 档：指纹口径=结构化归一 md5[:12]（2026-10-02 评审修正，原登记值非本文件任何口径的指纹）"
+
+# ── claude-code-chapters ep3–ep20 文案轮署源豁免（2026-10-31 批量登记，首尾署源制同 ep1/ep2）──
+# p0-01 = 片头署源角标 beat（视觉层）；p5-XX = 片尾课程名署源句。scene_stems 制作期场景落地后补登记。
+[check_series.source_credit."claude-code-chapters-permission-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-hooks-video"]
+narration_ids = ["p0-01", "p5-07"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-todowrite-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-subagent-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-contextcompact-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-memory-video"]
+narration_ids = ["p0-01", "p5-07"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-systemprompt-video"]
+narration_ids = ["p0-01", "p5-07"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-errorrecovery-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-tasksystem-video"]
+narration_ids = ["p0-01", "p5-05"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-backgroundtasks-video"]
+narration_ids = ["p0-01", "p5-08"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-agentteams-video"]
+narration_ids = ["p0-01", "p5-05"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-teamprotocols-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-autonomousagents-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-worktreeisolation-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-mcpplugin-video"]
+narration_ids = ["p0-01", "p5-06"]
+scene_stems = []
+
+[check_series.source_credit."claude-code-chapters-comprehensive-video"]
+narration_ids = ["p0-01", "p5-08"]
+scene_stems = []
