@@ -1,6 +1,6 @@
 # 《综合回合：机制很多，循环一个》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 20 集（s20_comprehensive 单章 · 系列终章）；Stage ①–⑤ 已完成（信源复核维持站点轨钉选 + C 型冻结现行 175（附录 A 类比表承袭旧系列 ep5 冻结件）+ 策划 + 逐字稿 56 句 1334 字 + 三路双重校验 + 成文优化四层 pass·修正三轮），机器门 build / pre-tts / ledger audit+verify 全绿（check_series 由主代理系列层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../series.json](series.json)（工作区根）。
+> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 20 集（s20_comprehensive 单章 · 系列终章）；Stage ①–⑤ 已完成（信源复核维持站点轨钉选 + C 型冻结现行 175（附录 A 类比表承袭旧系列 ep5 冻结件）+ 策划 + 逐字稿 56 句 1334 字 + 三路双重校验 + 成文优化四层 pass·修正三轮），机器门 build / pre-tts / ledger audit+verify 全绿（check_series 由主代理系列层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
 
 ## 目录结构
 

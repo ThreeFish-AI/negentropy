@@ -1,6 +1,6 @@
 # 《Autonomous Agents：自己看板，自己认领》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 17 集（s17_autonomous_agents 单章）；Stage ①–⑤ 已完成（信源钉选复核·默认钉成立 + C 型冻结现行 175（§6 自治主线）+ 策划 + 逐字稿 56 句 1343 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / 台账 audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../series.json](series.json)（工作区根）。
+> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 17 集（s17_autonomous_agents 单章）；Stage ①–⑤ 已完成（信源钉选复核·默认钉成立 + C 型冻结现行 175（§6 自治主线）+ 策划 + 逐字稿 56 句 1343 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / 台账 audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
 
 ## 目录结构
 

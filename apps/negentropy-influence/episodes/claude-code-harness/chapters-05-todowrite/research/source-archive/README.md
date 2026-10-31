@@ -13,5 +13,5 @@
 | 指纹台账 | 同目录 `../sources.toml`（repo 条目 `source_ledger.py fetch` 逐条登记；系列地图钉值同步属编排者层） |
 
 章→集归属与钉选不在此重述：唯一登记处为系列信源地图
-[../../../../source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+[../../../../../source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
 归档文件用 `.md.txt`/`.py` 后缀（避免上游原文相对链接被 check_series 规则 5 误判）。

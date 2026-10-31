@@ -1,6 +1,6 @@
 # 《MCP 与插件：发现、命名、组装》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 19 集（s19_mcp_plugin 单章，正源翻钉 main 轨 s14_mcp_plugin）；Stage ①–⑤ 已完成（信源翻钉 main + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1319 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / pron / ledger audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../series.json](series.json)（工作区根）。
+> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 19 集（s19_mcp_plugin 单章，正源翻钉 main 轨 s14_mcp_plugin）；Stage ①–⑤ 已完成（信源翻钉 main + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1319 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / pron / ledger audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
 
 ## 目录结构
 

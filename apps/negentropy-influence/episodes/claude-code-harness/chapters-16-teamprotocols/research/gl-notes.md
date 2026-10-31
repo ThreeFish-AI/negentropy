@@ -11,7 +11,7 @@
 >   - 官方文档补读（B 型·site）：Anthropic「Agent teams」（实验特性默认关闭 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` / 建议 3-5 队友 / mailbox 路径 `~/.claude/teams/{team-name}/inboxes/{agent-name}.json` 与读时逐条校验 / 关机「请求-批准或拒绝附理由」官方表述——与冻结正文 §5/§10 互证）——台账 `doc-agent-teams` 指纹存证（无字节副本）；Anthropic 工程博客「Building effective agents」（规律 2「简单、可组合的模式，而不是复杂框架」引句）——台账 `doc-building-effective-agents` 指纹存证。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s16 附录中标「材料对 CC 源码的核查 / 真实源码 / 真实 CC」的断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`lcc_multiagent_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest 18 断言全绿 + E2/E3 实测退化 + S2 防重探针三组复跑，见附录 B.2），按 **【一】** 级引用；「同一状态机服务两种协议、加新协议只加类型分支」「三道核验在 code.py 在场（unknown_id / type_mismatch / duplicate 三返回值）」「教学版无执行闸门、main 轨对照版有闸门」均为钉点 code.py 直接可数事实，按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-31（站点轨分支 HEAD 仍为 `67a9126c` 未动，s16 双件与站点页指纹同旧系列基线零漂移；main 轨钉点 `7226f555` 即当前 main HEAD，s13_agent_teams 最近触碰为钉内 `2f8cfb0`（#569 空输入 REPL 守卫，与 ep1/ep2 所记同款）——台账五源存证，见附录 B.1）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `../../assets/` 相对链接（共 4 处）已统一改写为 `../../../../../docs/assets/`（目标实测在场），文字内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `../../assets/` 相对链接（共 4 处）已统一改写为 `../../../../../../docs/assets/`（目标实测在场），文字内容零改动。
 > - **术语两层口径**：笔记层随 175 终版用 LLM / Harness / JSON / 状态机 / worktree（利于回溯）；口播恒用中文常用词（模型 / 运行装置 / 结构化记录等），口播英文例外清单不变（= Claude Code + Harness）——两层口径不传导。
 > - **信源补充**：官方页两处增量印证（关机握手官方表述 / mailbox 读时校验与已知限制）已按 C 型 §五 追加至文末「信源补充」节，每条标一手出处，不回写 GL 原产物。
 

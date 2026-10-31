@@ -434,7 +434,7 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 
 ## 14. 与本仓的关联
 
-机制 ↔ negentropy 的映射与最大真增量结论见 [机制映射汇总](../mapping-negentropy.md) OV 域（随本次换代按四桶重验：检索类条目改判、身份/两阶段/分层类保留、网关/peer 为新增候选）；设计蓝图层面对位见 [013 Context Layer 蓝图](./013-context-layer-blueprint.md)（其 §6/§6.3 引用的提交点与身份判据小节编号在本版保持不变）；Agent Skills 规范侧先例见 [Agent Skills 规范精读](../agent-infra/230-agent-skills-standard.md)；据旧版笔记制成的科普视频见 [OpenViking 篇](../../../apps/negentropy-influence/episodes/openviking/README.md)（2026-09 制作、基于旧钉点与旧检索机制，早于 #5450 换代——视频中的「目录递归」叙事为当时的准确史实）。
+机制 ↔ negentropy 的映射与最大真增量结论见 [机制映射汇总](../mapping-negentropy.md) OV 域（随本次换代按四桶重验：检索类条目改判、身份/两阶段/分层类保留、网关/peer 为新增候选）；设计蓝图层面对位见 [013 Context Layer 蓝图](./013-context-layer-blueprint.md)（其 §6/§6.3 引用的提交点与身份判据小节编号在本版保持不变）；Agent Skills 规范侧先例见 [Agent Skills 规范精读](../agent-infra/230-agent-skills-standard.md)；据旧版笔记制成的科普视频见 [OpenViking 篇](../../../apps/negentropy-influence/episodes/context-layer/openviking/README.md)（2026-09 制作、基于旧钉点与旧检索机制，早于 #5450 换代——视频中的「目录递归」叙事为当时的准确史实）。
 
 ## 换代对账（旧版结论去向速查）
 

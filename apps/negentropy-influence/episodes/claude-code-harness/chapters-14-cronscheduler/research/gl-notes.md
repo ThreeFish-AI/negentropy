@@ -11,7 +11,7 @@
 >   - 官方文档补读（B 型·site）：Anthropic「Run prompts on a schedule」台账 `doc-scheduled-tasks`（冻结正文 §4.2 OR 语义官方确认 / §6 对照表官方列 / §5 官方边界，【二】级口径）；「Schedule recurring tasks in Claude Code Desktop」台账 `doc-desktop-scheduled-tasks`（§5 catch-up 补跑引文）。2026-10-31 语义面复核：两页与冻结正文引述全部一致（jitter 措辞演化为「至多间隔之半且至多 30 分钟」并新增 */5 豁免，数值面不变；详见附录 B.1）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s14「深入 CC 源码」附录中标「材料对 CC 源码的核查 / 课程转述 / 源码分析」的断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`cc_async_scheduling_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest，与冻结正文 §8 表逐项互证，SELFTEST PASSED），按 **【一】** 级引用；两轨 code.py 的机制事实（date-aware minute_marker、DOM/DOW OR 实现、1 秒 / 0.2 秒节拍、pending_delivery / os.replace 加固）为钉选文件直接可读事实，按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-31（站点轨 s14 双件与站点页指纹均与旧系列 2026-10-07 基线逐字一致；main 轨 s14m-readme 与旧钉 `ce8f9f18` 逐字一致、s14m-code 仅空输入守卫 3 行差异；官方两页语义面复核成立——台账七源存证，verify FAIL 0 / WARN 0）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `../../assets/` 相对链接（6 处）已改写为 `../../../../../docs/assets/`、`[174]` 同目录链接改写为 `../../../../../docs/research/agent-harness/174-claude-code-concurrency.md`，文字内容零改动（7 处目标逐条 test -e 验证通过）。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `../../assets/` 相对链接（6 处）已改写为 `../../../../../../docs/assets/`、`[174]` 同目录链接改写为 `../../../../../../docs/research/agent-harness/174-claude-code-concurrency.md`，文字内容零改动（7 处目标逐条 test -e 验证通过）。
 > - **术语两层口径**：笔记层随 176 终版用 LLM / Harness / daemon 线程 / token（利于回溯）；口播恒用「模型 / Harness（英文例外清单内）/ 守护线程 / 字数计量」，cron 为机制专名两层同形——两层口径不传导。
 > - **信源补充**：无增量（Stage ① 时点无下游产物；后续阶段出现 GL 外事实时按 01 C 型§五在本节补登）。
 

@@ -1,6 +1,6 @@
 # 《Task System：从执行清单到可认领的契约》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 12 集（s12_task_system 单章）；Stage ①–⑤ 已完成（双轨钉选复核钉站点轨 67a9126c + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1403 字 + 三路双重校验 + 成文优化 v1→v2），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 系列统一门由主代理跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../series.json](series.json)（工作区根）。
+> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 12 集（s12_task_system 单章）；Stage ①–⑤ 已完成（双轨钉选复核钉站点轨 67a9126c + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1403 字 + 三路双重校验 + 成文优化 v1→v2），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 系列统一门由主代理跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
 
 ## 目录结构
 

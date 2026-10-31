@@ -1,6 +1,6 @@
 # 《Error Recovery：报错先分类，循环不亡》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 11 集（s11_error_recovery 单章）；Stage ①–⑤ 已完成（开工复核维持站点轨钉 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 56 句 1331 字（v2） + 三路双重校验 + 成文优化一轮收敛），机器门 build / pre-tts / ledger sync·audit·verify 全绿（check_series 由系列层统一跑；正文 est ≈5.2 分在窗 [4.4,5.6]、超幕预算 26 字，+片头 23.5s ≈5.6 分贴窗上沿——承 ep2 同款四舍五入口径，TTS 实测超上沿则删句）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../series.json](series.json)（工作区根）。
+> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 11 集（s11_error_recovery 单章）；Stage ①–⑤ 已完成（开工复核维持站点轨钉 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 56 句 1331 字（v2） + 三路双重校验 + 成文优化一轮收敛），机器门 build / pre-tts / ledger sync·audit·verify 全绿（check_series 由系列层统一跑；正文 est ≈5.2 分在窗 [4.4,5.6]、超幕预算 26 字，+片头 23.5s ≈5.6 分贴窗上沿——承 ep2 同款四舍五入口径，TTS 实测超上沿则删句）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
 
 ## 目录结构
 

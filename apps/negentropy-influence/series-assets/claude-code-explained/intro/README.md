@@ -50,7 +50,7 @@ NARRATION/SUBS/T 表三容器是口播与帧位 SSOT）——本 README 只写�
 ## 评审面宿主 = E1
 
 五集变体评审面 `intro-gallery.tsx`（独立 Remotion 入口，IntroEp1–5）住在
-`episodes/claude-code-explained/video/src/`——借 E1 渲染环境渲各集
+`episodes/claude-code-explained/claude-code-explained/video/src/`——借 E1 渲染环境渲各集
 mech/activeIndex 变体定格。其 VARIANTS 五色取自 series.json accents 的实占值，
 是与 series.json 的第二事实源（长期待办：改读 series-layers.json）。
 

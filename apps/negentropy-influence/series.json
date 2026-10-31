@@ -9,7 +9,7 @@
         {
           "episode": 1,
           "slug": "experience-era-agents",
-          "path": "episodes/experience-era-agents",
+          "path": "episodes/self-evolution/experience-era-agents",
           "title": "上线之后，AI 才开始上学",
           "topic": "部署之后经验怎么攒",
           "cardSub": "经验 · 怎么攒",
@@ -32,7 +32,7 @@
         {
           "episode": 2,
           "slug": "self-improving-agents",
-          "path": "episodes/self-improving-agents",
+          "path": "episodes/self-evolution/self-improving-agents",
           "title": "AI 如何自己变强？",
           "topic": "自我进化改什么",
           "cardSub": "自我进化 · 改什么",
@@ -54,7 +54,7 @@
         {
           "episode": 3,
           "slug": "self-evolving-coding-agents",
-          "path": "episodes/self-evolving-coding-agents",
+          "path": "episodes/self-evolution/self-evolving-coding-agents",
           "title": "会写代码的 AI，开始给自己写代码",
           "topic": "代码领域全图",
           "cardSub": "代码田野 · 全图",
@@ -76,7 +76,7 @@
         {
           "episode": 4,
           "slug": "dream-rsi",
-          "path": "episodes/dream-rsi",
+          "path": "episodes/self-evolution/dream-rsi",
           "title": "翻旧账不花钱：AI 在梦里改章程",
           "topic": "元探索策略怎么改",
           "cardSub": "元探索 · 做梦",
@@ -107,7 +107,7 @@
         {
           "episode": 1,
           "slug": "claude-code-explained",
-          "path": "episodes/claude-code-explained",
+          "path": "episodes/claude-code-explained/claude-code-explained",
           "title": "工具与执行：一个循环，三层装置",
           "topic": "工具与执行：把模型装进Harness",
           "cardSub": "工具与执行 · 循环",
@@ -131,7 +131,7 @@
         {
           "episode": 2,
           "slug": "claude-code-planning",
-          "path": "episodes/claude-code-planning",
+          "path": "episodes/claude-code-explained/claude-code-planning",
           "title": "规划与协调：视野错位的五种修正手法",
           "topic": "规划与协调：视野错位怎么修",
           "cardSub": "规划与协调 · 视野",
@@ -153,7 +153,7 @@
         {
           "episode": 3,
           "slug": "claude-code-memory",
-          "path": "episodes/claude-code-memory",
+          "path": "episodes/claude-code-explained/claude-code-memory",
           "title": "记忆管理：会丢的和不能丢的",
           "topic": "记忆管理：窗口内外的两本账",
           "cardSub": "记忆管理 · 两套机制",
@@ -175,7 +175,7 @@
         {
           "episode": 4,
           "slug": "claude-code-concurrency",
-          "path": "episodes/claude-code-concurrency",
+          "path": "episodes/claude-code-explained/claude-code-concurrency",
           "title": "并发与调度：一张回执和四层钟",
           "topic": "并发与调度：谁替它看表",
           "cardSub": "并发 · 调度",
@@ -198,7 +198,7 @@
         {
           "episode": 5,
           "slug": "claude-code-multiagent",
-          "path": "episodes/claude-code-multiagent",
+          "path": "episodes/claude-code-explained/claude-code-multiagent",
           "title": "多 Agent 平台：七件设施，一条走廊",
           "topic": "多 Agent 协作：谁持有计划",
           "cardSub": "多 Agent 平台 · 协作",
@@ -228,7 +228,7 @@
         {
           "episode": 1,
           "slug": "horizon-context",
-          "path": "episodes/horizon-context",
+          "path": "episodes/context-layer/horizon-context",
           "title": "拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？",
           "topic": "Snowflake Horizon Context：怎么治理 Agent Context",
           "cardSub": "上下文层 · 治理",
@@ -251,7 +251,7 @@
         {
           "episode": 2,
           "slug": "context-layer",
-          "path": "episodes/context-layer",
+          "path": "episodes/context-layer/context-layer",
           "title": "拆解 Agent Context Layer：上下文怎么供给、治理、装配",
           "topic": "Context Layer：三面蓝图怎么拆解（2026-10-16 v4 零类比重制）",
           "cardSub": "上下文层 · 蓝图",
@@ -274,7 +274,7 @@
         {
           "episode": 3,
           "slug": "openviking",
-          "path": "episodes/openviking",
+          "path": "episodes/context-layer/openviking",
           "title": "给 AI 一座图书馆：OpenViking 上下文数据库",
           "topic": "OpenViking：文件系统范式怎么做上下文",
           "cardSub": "上下文层 · 文件系统范式",
@@ -305,7 +305,7 @@
         {
           "episode": 1,
           "slug": "agent-skills",
-          "path": "episodes/agent-skills",
+          "path": "episodes/agent-infra/agent-skills",
           "title": "目录常驻，正文按需：Agent Skills 开放标准",
           "topic": "Agent Skills：目录常驻、正文按需的领域知识打包开放标准",
           "cardSub": "开放标准 · 渐进披露",
@@ -329,7 +329,7 @@
         {
           "episode": 2,
           "slug": "jev-decision-model",
-          "path": "episodes/jev-decision-model",
+          "path": "episodes/agent-infra/jev-decision-model",
           "title": "只填格的判读员：Jev 决策模型",
           "topic": "Jev：小判断的交付方式怎么变",
           "cardSub": "判断 · 概率表",
@@ -353,7 +353,7 @@
         {
           "episode": 3,
           "slug": "skills-supply-chain",
-          "path": "episodes/skills-supply-chain",
+          "path": "episodes/agent-infra/skills-supply-chain",
           "title": "没有海关的港口：Skills 的签名、分发与版本战争",
           "topic": "Agent Skills：签名/分发/版本三战场",
           "cardSub": "供应链 · 三战场",
