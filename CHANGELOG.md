@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 二十讲系列目录重组：episodes/claude-code-harness/ 系列子文件夹 + 集目录改名 chapters-NN-*（claude-code-chapters，2026-10-31）
+
+- 布局重组（用户决策）：20 集自 episodes/ 平面挪入 `episodes/claude-code-harness/` 系列子文件夹，集目录 `claude-code-chapters-<tag>-video` → `chapters-<NN>-<tag>-video`（NN=章节号 01–20 零填充）；系列 id `claude-code-chapters` 不变。
+- 引用面全量同步：series.json（20 集 slug+path）/series.md（行链接）/vibe-video.toml（source_credit 21 键 + skeleton.drift 条目）/scripts/check_twin_files.py + .pre-commit-config.yaml（孪生路径）/series-assets intro README/各集 pipeline.toml·README·package.json；搬移集内全部跨集相对链接加深一层（60 个 md + 2 个 .temp 快照，规则 5 死链 312→0）。
+- 机制适配走 RSI（RSI-20261031-01，vibe-video）：check_series 一级 glob 与 parts[1] 归因、verify_skeleton 的 slug 直拼路径与孤儿发现均假设单层布局——嵌套集对 glob 规则成静默盲区，RSI PR 补嵌套支持后才恢复全覆盖执法；本仓 pre-commit 输出在 RSI PR 合并并同步安装副本前属部分覆盖态（rule 4/manifest 经 path 字段仍生效）。
+- 抽查：ep1 新路径 build + pre-tts FAIL 0；check_twin_files series-intro-seed 7 副本逐字节一致；ledger audit 逐集（新 --project 路径）FAIL 0。
 ### 二十讲 ep3–ep20 全 18 集文案轮批量完成（claude-code-chapters，2026-10-31）
 
 - **Stage ① 信源取证 ×18**：每集双轨取证（main `7226f555` ↔ 站点轨 `67a9126c`）+ 钉选开工复核——**翻钉 main 六集**（ep3/ep4/ep6/ep8/ep9/ep19：站点轨 stop_reason 判据与 ep1 所教口径冲突 / main 有正源级增量——s03 词边界正则、s04 Stop 续跑入正文、s08 全重写、s14_mcp 宿主策略节等）、维持站点轨十二集（ep5/ep7 附录族正源、ep10/ep11 独立章只在站点轨、ep12–ep14 改号不改内容复核成立、ep15–ep18 系列决策单章成集、ep20 终章叙件只在站点轨）；source-map 双钉覆盖重排（main [1..4,6,8,9,19] / 站点轨 [5,7,10..18,20]）+ 各集台账（sync/audit/verify 全 FAIL 0，ep19 跨轨目录名致 sync 404 的机制缺口已在地图登记、audit 为准）+ 双轨字节归档随集；C 型冻结现行 171/172/173/175/176（附录 A 类比承袭 + 附录 B 钉点复核/复算/口播纪律）；原型 lab selftest 全 18 集复算、核心消融实验升【一】级（ep3 用户放行压过硬拒绝、ep4 Stop 续跑、ep5 拆提醒注入、ep6 全量回传 18 倍、ep7 全文常驻 8.3 倍、ep8 换序毁原文、ep9 拆写入门控、ep10 关键词误注入、ep11 一刀切重试 10 撞墙、ep12 坏依赖放行、ep13 拆启发式兜底、ep14 硬注入打断、ep15 拆统一消费入口、ep16 关类型校验、ep17 拆认领原子性、ep18 拆守卫沙箱、ep19 旧池 Unknown tool、ep20 动态池失效）。

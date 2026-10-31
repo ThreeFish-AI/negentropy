@@ -1,0 +1,37 @@
+# 本集可执行参数的**唯一来源**（ISSUE-161：可执行参数不落散文文档，README 只引用配置）。
+# 编排入口：uv run --no-project $T/scripts/pipeline.py --project $P <cmd>（$T/$W/$P/$V 见 vibe-video skill 的 references/PIPELINE.md）
+#
+# 只写**本集偏离**：机制常数（chars_per_min / lang / draft_scale / draft_jpeg_quality）
+# 的默认值在 skill 仓 scripts/config.py，不要抄回这里。字段表见 skill 的
+# references/PIPELINE.md，跑 `pipeline.py doctor` 可打印带来源标注的生效配置全表。
+
+[episode]
+slug = "chapters-17-autonomousagents-video"
+
+[narration]
+# 单章集制：成片 ~5 分钟（含系列片头 leadIn 23.5s 口径，承 ep1/ep2 同款含片头窗先例）；
+# 正文预算 ≈1305 字（幕预算上限分配见 planning.md §四；story 档 254 字/分含停顿等效口径）。
+# 硬约束是 target_minutes 落窗（本集剧本 v2 1343 字 ≈5.3 分在窗内、超幕预算和 38 字——④⑤ 修稿净增 29 字、评审修正轮净减 5 字所致，窗上限 1422 字余 79），超窗须删句。
+target_minutes = [4.4, 5.6]
+chars_per_min = 254
+
+[tts]
+# 两档策略（I-034）：全程（含终渲与交付）edge 草声（免费、秒级、需联网、免样本）——未点名重配即以 edge 成片交付；
+# 整集评审通过后由用户显式触发用 IndexTTS-2.5 + 本人声音重配（references/07 §重配）。
+engine = "indextts"
+# 终声档锚点：edge 期间不参与合成，仅作预算门估算口径（story=254 字/分）
+# 与重配预置；重配时把 engine 改 "indextts" 并补下方两项即生效。
+style = "story"
+# TODO（重配前补齐，非建集前置）：样本路径**工作区根相对**；ref_sha1 取 12 位
+# （同 tts.py 口径），用 `uv run --no-project $T/scripts/refs.py list` 查当前清单。
+# ⚠️ 风格预设的 alpha 是在**特定选段**上标定的，换选段即失效（见 $V/refs.toml）。
+ref = "voices/me-bright.wav"
+ref_sha1 = "54b699cce97f"
+# story 档（默认）＝段落演绎：同幕连续句按块合成、块间情绪由配音台本驱动。
+# 台本（可选）：script/narration.cues.toml——写稿阶段产出，见 $T/references/VOICE-CLONING.md §4.5。
+# 语速校准（可选，I-044）：重配后全片实测时长偏离硬窗时取消注释并填值（0.5–2.0，
+# >1 变慢）——显式值进缓存摘要，改值＝整集重配，故首配即定值；缺省沿用风格预设 df。
+#duration_factor = 1.24
+# 重配（引擎/风格/样本任一变化＝整集重录）须显式 --allow-voice-switch；首次上 story 补写台本。
+# 实跑（非 --plan）另须 --final-voice：本人显式点名的具名授权（I-040 人为触发，
+# 见 references/07-tts-voice.md）——agent 不得主动建议升档，其余一律 edge 草声。
