@@ -3,7 +3,12 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一份全记在模型脑子里的计划：做完一步，忘两步。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.15"
+    },
+    "ttsText": "这是一份，全记在模型脑子里的计划——做完一步，忘两步。"
   },
   {
     "id": "p0-02",
@@ -19,7 +24,11 @@
     "id": "p0-04",
     "scene": "P0",
     "text": "计划明明还在，说了等于没说。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p0-05",
@@ -34,18 +43,27 @@
   {
     "id": "p0-07",
     "scene": "P0",
-    "text": "根子：模型每一步决策，只看这一轮摆在眼前的文本——这一段，就是可见区。"
+    "text": "根子：模型每一步决策，只看这一轮摆在眼前的文本——这一段，就是可见区。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    },
+    "ttsText": "根子：模型每一步决策，只看这一轮摆在眼前的文本——这一段，就是，可见区。"
   },
   {
     "id": "p0-08",
     "scene": "P0",
-    "text": "那，丢了的计划怎么找回来？"
+    "text": "那，看不见的计划怎么找回来？"
   },
   {
     "id": "p1-01",
     "scene": "P1",
     "text": "模型每轮看到什么？身份规则、对话记录、工具清单——就这三样。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-02",
@@ -56,7 +74,11 @@
     "id": "p1-03",
     "scene": "P1",
     "text": "装置分两半。前一半，待办清单工具。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-04",
@@ -71,18 +93,27 @@
   {
     "id": "p1-06",
     "scene": "P1",
-    "text": "有意思的是，这个工具什么都不干：读不了文件，跑不了命令。"
+    "text": "有意思的是，这个工具什么都不干：读不了文件，跑不了命令。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    }
   },
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "它增加的不是执行能力，是规划能力。"
+    "text": "它增加的不是执行能力，是规划能力。",
+    "ttsText": "它增加的，不是执行能力——是规划能力。"
   },
   {
     "id": "p1-08",
     "scene": "P1",
     "text": "又是两处改动：一条定义、一行注册；循环，一行没改。",
-    "ttsText": "又是两处改动：一条定义、一<行|HANG2>注册；循环，一<行|HANG2>没改。"
+    "ttsText": "又是两处改动：一条定义、一<行|HANG2>注册；循环——一<行|HANG2>没改。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-09",
@@ -93,7 +124,11 @@
   {
     "id": "p1-10",
     "scene": "P1",
-    "text": "这轮调用里出现待办工具，计数清零；没出现，加一。"
+    "text": "这轮调用里出现待办工具，计数清零；没出现，加一。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p1-11",
@@ -109,17 +144,25 @@
     "id": "p2-01",
     "scene": "P2",
     "text": "拿教学版的演示走一遍——为讲清机制搭的简化版——还是那三步：改下划线命名，跑测试，写报告。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-02",
     "scene": "P2",
-    "text": "模型先建清单：重命名、跑测试、写报告，首条标进行中。"
+    "text": "模型先建清单：改命名、跑测试、写报告，首条标进行中。"
   },
   {
     "id": "p2-03",
     "scene": "P2",
-    "text": "清单进了对话，第一步开工。"
+    "text": "清单进了对话，第一步开工。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p2-04",
@@ -130,7 +173,11 @@
   {
     "id": "p2-05",
     "scene": "P2",
-    "text": "跑测试，失败冒出来了。"
+    "text": "跑测试，失败冒出来了。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p2-06",
@@ -146,7 +193,11 @@
     "id": "p2-08",
     "scene": "P2",
     "text": "下轮调用前，那条提醒插了进来。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-09",
@@ -156,13 +207,21 @@
   {
     "id": "p2-10",
     "scene": "P2",
-    "text": "收尾，报告，任务完成——这条提醒，真有那么要紧吗？"
+    "text": "收尾，报告，任务完成——这条提醒，真有那么要紧吗？",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p3-01",
     "scene": "P3",
     "text": "教学原型复刻全程：十一轮，三步全完成，一条提醒，零跑偏。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p3-02",
@@ -173,7 +232,11 @@
     "id": "p3-03",
     "scene": "P3",
     "text": "更扎眼的是漂移：七个重复的格式化动作，全在原地打转。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.14"
+    }
   },
   {
     "id": "p3-04",
@@ -183,13 +246,22 @@
   {
     "id": "p3-05",
     "scene": "P3",
-    "text": "提醒不是客套，是把计划顶回眼前的唯一外力。"
+    "text": "提醒不是客套，是把计划顶回眼前的唯一外力。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "提醒不是客套——是把计划，顶回眼前的唯一外力。"
   },
   {
     "id": "p3-06",
     "scene": "P3",
-    "text": "把阈值改成一轮没碰就提醒：任务照常完成，代价是六次提醒、更啰嗦的对话。",
-    "beatStart": true
+    "text": "把数到三的阈值改成一轮没碰就提醒：任务照常完成，代价是六次提醒、更啰嗦的对话。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p3-07",
@@ -200,7 +272,12 @@
     "id": "p3-08",
     "scene": "P3",
     "text": "背后一条规律：可见性即影响力——在场才有影响，被稀释等于缺席。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "背后一条规律：可见性即影响力——在场才有影响，被稀释，等于缺席。"
   },
   {
     "id": "p3-09",
@@ -216,7 +293,11 @@
     "id": "p4-01",
     "scene": "P4",
     "text": "那真实的 Claude Code 呢？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p4-02",
@@ -227,23 +308,32 @@
     "id": "p4-03",
     "scene": "P4",
     "text": "三轮是教学设定；真实触发是待办全完成、验证还缺着。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p4-04",
     "scene": "P4",
-    "text": "官方文档，截至2026年10月31日：较新的模型默认不启用这套任务工具。"
+    "text": "官方文档，截至2026年10月31日：较新的模型默认不启用这套任务工具。",
+    "ttsText": "官方文档，截至2026年10月31日：较新的模型，默认不启用这套任务工具。"
   },
   {
     "id": "p4-05",
     "scene": "P4",
-    "text": "更新的模型不需要书面清单，也能做多步任务。"
+    "text": "较新的模型不需要书面清单，也能做多步任务。"
   },
   {
     "id": "p4-06",
     "scene": "P4",
     "text": "争议来了：计划摆到眼前，是补丁，还是必需？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p4-07",
@@ -259,17 +349,26 @@
     "id": "p5-01",
     "scene": "P5",
     "text": "把解法收成一句话：状态外置——计划写进外部结构，再灌回每轮眼前。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
   },
   {
     "id": "p5-02",
     "scene": "P5",
-    "text": "认知科学管这叫延展心智；工程的版本更朴素：别考验记忆，考验摆放。"
+    "text": "认知科学管这叫延展心智；工程的版本更朴素：别考验记忆，考验摆放。",
+    "ttsText": "认知科学管这叫，延展心智；工程的版本更朴素——别考验记忆，考验摆放。"
   },
   {
     "id": "p5-03",
     "scene": "P5",
-    "text": "小任务的计划治好了，大任务还有新麻烦。"
+    "text": "小任务的计划治好了，大任务还有新麻烦。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p5-04",
@@ -286,7 +385,11 @@
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-07",

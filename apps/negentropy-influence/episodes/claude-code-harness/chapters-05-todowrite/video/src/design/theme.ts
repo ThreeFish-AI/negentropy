@@ -1,12 +1,9 @@
 /**
- * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
+ * 本集视觉契约（⑧ 轮定稿，storyboard 前言「本集视觉契约」= planning §三）。
  *
- * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
- * references/08-remotion-implementation.md：
- *   - 2–3 个概念色，映射「深度轴」而非枚举条目
- *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
- *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
- *     运行时打印的 occupied-hex INFO 行）
+ * 底座常量跨集通用、不要改；概念色规则见 references/08-remotion-implementation.md：
+ *   - 概念色映射「深度轴」而非枚举条目；对 bg (#0E1116) 对比度 ≥ 4.5:1
+ *   - 色相不与系列已用色撞值（check_series.py occupied-hex INFO 行为准）
  *   - 覆写任何底座 token 须在 theme.ts / planning.md / README 三处留决策记录
  */
 export const theme = {
@@ -16,9 +13,9 @@ export const theme = {
   panelBorder: '#2A3242',
   text: '#F2F5FA',
   dim: '#9AA7B8',
-  // danger 曾缺席本 seed（既有四集 theme.ts 全都有、场景代码读 theme.danger，
-  // scaffold 出的新集开箱即 TS2339）——补齐即与四集现状对齐。
+  // danger：漂移反例/吸收窗口/轮数耗尽（恒配 ✗，仅失败态）
   danger: '#FF5C5C',
+  // ok：机制在位/任务收尾（确认绿）
   ok: '#7ED321',
 
   // ── 字体族（跨集通用，勿改）──
@@ -31,9 +28,23 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
-  // ── 本集概念色（planning §三；accents 与系列层 series.json 登记同值 #6E9BFF/#B48CF2，
-  //    2026-10-31 文案轮定稿——去撞色微调后值；制作期场景按 planning §三语义展开）──
-  core: '#6E9BFF', // 规划蓝——清单/计划常驻可见锚
-  sub: '#B48CF2', // 提醒紫——reminder 注入外力强调
+  // ── 本集概念色（planning §三；series.json accents 登记 [#6E9BFF, #B48CF2]，
+  //    2026-10-31 文案轮定稿去撞色微调后值）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与
+  //    ep1/ep2/ep3/ep4 逐像素同值即「描边色/线宽承锁定值全片不变」的落地）
+  core: '#D97757',
+  // mech：本集之物 = 待办清单（规划蓝）——todo 清单卡、三态行、「摆在眼前的
+  //    计划」常驻可见语义（对 bg 6.0:1；「本集之物」授色，series-intro 孪生件
+  //    的授色站直读本值）。色相自证：≈221°，与系列已用蓝 #4E9EFF≈213°（ep3
+  //    边界蓝）/ #58A6FF≈212°（ep4 回调蓝）均差 ≥8°、亮度阶差可辨，非同槽。
+  mech: '#6E9BFF',
+  // nag：提醒注入/外力顶回（提醒紫）——计数器刻度、数到 3 的注入瞬间、顶回
+  //    动作、环上「调用前」挂点（注入时点=挂点，挂点色与计数器同源）
+  //    （对 bg 5.6:1；色相 ≈262°，与 ep3 裁决紫 #7C6FF0≈249°/ep4 挂点紫
+  //    #8B7CF6≈247° 差 ≥13°，更冷更蓝的紫、非同槽）
+  nag: '#B48CF2',
+  // tool：执行面/结果回喂流（青碧承 ep1–ep4 同语义——系列恒定环体伴色）
+  tool: '#64C4C0',
+  // warn 槽位不设：漂移/耗尽/越界等反例统一走底座 danger（承 ep3 G1 定色
+  //    先例）；机制在位/三勾全亮/收尾走底座 ok。
 } as const;
