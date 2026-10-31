@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters ep2–20 文案审批落定与制作轮启动（2026-10-31）
+
+- 用户确认：ep2–20 文案「暂时算作审批通过」，允许在该版本基础上做有界微改进（≤15% 句、五准入五禁止，随 ⑥ 分镜走查驱动）；制作轮 ⑥ 分镜/建图 → ⑦ 配音 → ⑧ 场景 → ⑨ QA → ⑩ 交付全程全自动交付，配音用本人克隆声（IndexTTS story + me-bright，RSI-040 授权成立）。
+- 登记面：series.json 19 集条目 statusNote 前缀审批与制作轮启动标记（status 词面不动）；series.md 19 行状态由「文案轮待审批」改「制作轮进行中」；knowledge-map 二十讲子条目同步（批量完成 + 六集翻钉 main 事实）。
+- 编排：双车道（机器道 TTS/渲染/录制全局串行，创作道 Workflow fan-out）、每集三提交（分镜冻结/场景落地/交付）、Wave 0 = ep2 全链试产固化单集生产套件后按波放量（ep3–6/7–10/11–14/15–17/18–20）。
+
 ### episodes 五系列分组归位：全部系列各自独占子文件夹（2026-10-31）
 
 - 用户决策：episodes/ 顶层收敛为五个系列组目录——`self-evolution/`（4 集）、`claude-code-explained/`（5 集）、`context-layer/`（3 集）、`agent-infra/`（3 集）、`claude-code-harness/`（20 集，此前已入组）；15 个平面集目录全部入组，series.json 35 集 path 逐集对账一致。
