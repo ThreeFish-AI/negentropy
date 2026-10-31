@@ -25,7 +25,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {LoopRing, Panel, TABLE_ROWS} from '../components/motifs';
-import {DUR, clamp01, progress, useBreathe, useEnter, useFadeOut, useImpulse, useProgress} from '../motion';
+import {DUR, clamp01, progress, useBreathe, useEnter, useFadeOut, useFlowDash, useImpulse, useProgress} from '../motion';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
 
@@ -203,9 +203,15 @@ const FingersShot: React.FC<{atFingers: number; atBound: number; atOpen: number;
   // bash 指尖无界光晕（「还全开着」——径向呼吸）
   const openO = useProgress(atOpen, DUR.f4);
   const halo = useBreathe({period: 90, amp: 0.3, base: 0.6, offset: atOpen});
-  // 删盘命令影（「删盘命令」——珊瑚红淡影自 bash 指尖掠过，警示不落地）
-  const dangerU = useProgress(atDanger, 14, 'linear');
+  // ⑨ QA RISKY-2：rm -rf / 改「未拦截」活态——珊瑚红警示叹号 + 命令字符逐字
+  // 跑动（打字光标闪 + 行进虚线）；去边框、无封禁符（框住/斜杠语汇会反向读作
+  // 「已被拦下」，此刻无门可拦、命令是活的——警示不落地）
+  const dangerU = useProgress(atDanger, 26, 'linear');
   const dangerO = Math.sin(Math.PI * Math.min(1, Math.max(0, dangerU))) * (dangerU > 0 && dangerU < 1 ? 1 : 0);
+  const DANGER_CMD = 'rm -rf /';
+  const cmdChars = Math.min(DANGER_CMD.length, Math.floor(clamp01(dangerU * 1.45) * (DANGER_CMD.length + 2)));
+  const cursorOn = Math.floor(frame / 8) % 2 === 0;
+  const dangerFlow = useFlowDash({dash: 12, gap: 10, period: 8});
   const DX0 = 560;
   const DX1 = 250;
   return (
@@ -263,7 +269,7 @@ const FingersShot: React.FC<{atFingers: number; atBound: number; atOpen: number;
           }}
         />
       ) : null}
-      {/* 删盘命令影（自 bash 指尖掠过——警示不落地，非成功执行态） */}
+      {/* 删盘命令（⑨ QA RISKY-2：未拦截活态——叹号示警 + 字符跑动，自 bash 指尖掠过） */}
       {dangerO > 0.01 ? (
         <div
           style={{
@@ -271,13 +277,23 @@ const FingersShot: React.FC<{atFingers: number; atBound: number; atOpen: number;
             left: DX0 + (DX1 - DX0) * dangerU,
             top: 560,
             opacity: dangerO,
-            padding: '6px 14px',
-            borderRadius: 8,
-            border: `2px solid ${withAlpha(theme.warn, 0.7)}`,
-            background: withAlpha(theme.bg, 0.7),
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
           }}
         >
-          <span style={{fontFamily: theme.mono, fontSize: 22, color: theme.warn, whiteSpace: 'nowrap'}}>{'rm -rf /'}</span>
+          <div style={{width: 34, height: 34, borderRadius: 8, background: theme.warn, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <span style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 800, color: theme.bg}}>{'!'}</span>
+          </div>
+          <div>
+            <div style={{fontFamily: theme.mono, fontSize: 24, fontWeight: 600, color: theme.warn, whiteSpace: 'nowrap', letterSpacing: 1}}>
+              {DANGER_CMD.slice(0, cmdChars)}
+              <span style={{opacity: cursorOn ? 1 : 0.15}}>{'▌'}</span>
+            </div>
+            <svg width={128} height={10} style={{overflow: 'visible', display: 'block'}}>
+              <line x1={0} y1={5} x2={124} y2={5} stroke={withAlpha(theme.warn, 0.8)} strokeWidth={3} {...dangerFlow} />
+            </svg>
+          </div>
         </div>
       ) : null}
       <div style={{position: 'absolute', left: 0, right: 0, top: 210, textAlign: 'center', fontFamily: theme.mono, fontSize: 21, color: theme.dim, opacity: boundO}}>

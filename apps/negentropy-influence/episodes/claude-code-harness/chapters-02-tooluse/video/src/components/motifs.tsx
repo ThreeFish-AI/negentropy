@@ -512,6 +512,12 @@ export const TableRegistry: React.FC<{
   const HEAD = 56;
   const RH = 60;
   const GAP = 10;
+  // ⑨ QA N4：角标计数随行落地同步递增（rowAts 有锚的行入场后才计入——
+  // 1-B 长行过程中读 2→3→4→5 行，非开帧即终值；无 rowAts 处恒为 rows）
+  const landedRows = TABLE_ROWS.slice(0, rows).reduce((n, _, i) => {
+    const a = rowAts?.[i] ?? null;
+    return n + (a === null || frame >= a ? 1 : 0);
+  }, 0);
   return (
     <div
       style={{
@@ -581,17 +587,26 @@ export const TableRegistry: React.FC<{
                     {r.zh}
                   </span>
                 </span>
-                {/* 接点连线（名字↔部件）：fuseAt 闪合（虚线拧成实线一拍） */}
+                {/* ⑨ QA N2：名字↔部件连接改短箭头（原 3/5 点线在帧上读作一串
+                    省略号）；fuseAt 闪合=箭头瞬间加粗一拍 */}
                 <svg width={70} height={RH} style={{flexShrink: 0}}>
                   <line
                     x1={4}
                     y1={RH / 2}
-                    x2={66}
+                    x2={54}
                     y2={RH / 2}
                     stroke={theme.mech}
-                    strokeWidth={3}
+                    strokeWidth={fuse > 0.05 ? 4.5 : 3}
                     opacity={0.85}
-                    strokeDasharray={fuse > 0.05 ? undefined : '3 5'}
+                  />
+                  <path
+                    d={`M52 ${RH / 2 - 6} L64 ${RH / 2} L52 ${RH / 2 + 6}`}
+                    fill="none"
+                    stroke={theme.mech}
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity={0.85}
                   />
                 </svg>
                 <span
@@ -623,7 +638,7 @@ export const TableRegistry: React.FC<{
         />
       ) : null}
       <div style={{position: 'absolute', right: -4, top: -30, fontFamily: theme.mono, fontSize: 18, color: theme.dim}}>
-        {`TOOL_HANDLERS · ${rows} 行`}
+        {`TOOL_HANDLERS · ${landedRows} 行`}
       </div>
     </div>
   );

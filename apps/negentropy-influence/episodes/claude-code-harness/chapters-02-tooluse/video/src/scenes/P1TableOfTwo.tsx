@@ -407,7 +407,8 @@ const ShotC: React.FC<{atArc: number; atLens: number}> = ({atArc, atLens}) => {
         <circle cx={26} cy={26} r={19} fill="none" stroke={theme.text} strokeWidth={4} />
         <line x1={40} y1={40} x2={58} y2={58} stroke={theme.text} strokeWidth={5} strokeLinecap="round" />
       </svg>
-      {/* 能力弧线：左右各一条、顶齐 y=270（等高裁决） */}
+      {/* 能力弧线：左右各一条、顶齐 y=270（等高裁决）。
+          ⑨ QA N3：改中性灰虚线（原实线太具宣言感；词落位改为淡入） */}
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
         <path
           d="M 445 430 Q 445 270 280 270"
@@ -415,9 +416,8 @@ const ShotC: React.FC<{atArc: number; atLens: number}> = ({atArc, atLens}) => {
           stroke={theme.dim}
           strokeWidth={5}
           strokeLinecap="round"
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={1 - arc}
+          strokeDasharray="16 12"
+          opacity={0.9 * arc}
         />
         <path
           d="M 1075 330 Q 1075 270 1240 270 L 1610 270"
@@ -425,20 +425,18 @@ const ShotC: React.FC<{atArc: number; atLens: number}> = ({atArc, atLens}) => {
           stroke={theme.dim}
           strokeWidth={5}
           strokeLinecap="round"
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={1 - arc}
+          strokeDasharray="16 12"
+          opacity={0.9 * arc}
         />
       </svg>
-      {/* 弧顶等高基线（淡）：等高裁决的读法锚 */}
+      {/* 弧顶等高基线（⑨ QA N3：同步改灰虚线）：等高裁决的读法锚 */}
       <div
         style={{
           position: 'absolute',
           left: 250,
           right: 250,
           top: 268,
-          height: 2,
-          background: withAlpha(theme.dim, 0.35),
+          borderTop: `2px dashed ${withAlpha(theme.dim, 0.45)}`,
           opacity: arc,
         }}
       />
@@ -484,7 +482,10 @@ const ShotD: React.FC<{atFrame: number; atBounce: number; atLock: number}> = ({a
     <AbsoluteFill>
       {/* 对照表驻屏右（承 1-B 末态：5 行全在场、琥珀描边；四件文件工具即表 2–5 行） */}
       <TableRegistry x={SHOTD_TABLE.x} y={SHOTD_TABLE.y} scale={SHOTD_TABLE.scale} rows={5} />
-      {/* 工作目录范围框（琥珀虚线单一带状，收拢框住表 2–5 行；点亮收拢） */}
+      {/* 工作目录范围框（琥珀虚线单一带状，收拢框住表 2–5 行；点亮收拢）。
+          ⑨ QA W6：框几何钉表内第 2–5 行（y 426..700 含 ~10px 缓冲、绕开 bash
+          首行带 371..427）；越界卡行程 (1880,760)→(1510,556) 终点驻表右缘
+          行带内，全程不穿 bash 首行 */}
       <div
         style={{
           position: 'absolute',

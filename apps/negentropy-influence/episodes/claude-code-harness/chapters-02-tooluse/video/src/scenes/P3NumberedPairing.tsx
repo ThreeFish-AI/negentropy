@@ -22,7 +22,7 @@ import {theme} from '../design/theme';
 import {FPS, beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, NumberTag, Panel, SceneTag, TableRegistry} from '../components/motifs';
-import {DUR, clamp01, progress, useCount, useDim, useEnter, useFlowDash, useImpulse, useProgress, usePushIn} from '../motion';
+import {DUR, clamp01, progress, useCount, useEnter, useFlowDash, useImpulse, useProgress, usePushIn} from '../motion';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
 
@@ -95,10 +95,13 @@ const ShotA: React.FC<{
   const parcelIn = useProgress(atParcel, DUR.f4);
   const backU = [0, 1, 2].map((i) => clamp01(progress(frame, atBack + i * 6, DUR.f5)));
   const greenO = useProgress(atBack + DUR.f5 + 4, DUR.f4);
-  // 快递插曲（≤2s 即收）：dim 全场 + 插曲卡组退场
-  const exDim = useDim({at: atExpress, to: 0.3, dur: DUR.f3});
-  const exOutEnd = Math.min(2 * FPS - 6, atBounds - 4);
+  // 快递插曲（≤2s 即收）：dim 全场（只在插曲在场窗内 0.3，随插曲退场回亮）
+  // ⑨ QA RISKY-1：exOutEnd 锚 atExpress（原写死幕首 2s，exOut 在 p3-01/02 就把
+  // 全景乘成 0 → 整镜空台）；退场只作用插曲层自身，全景容器不再乘 (1-exOut)
+  const exIn = useProgress(atExpress, DUR.f3);
+  const exOutEnd = Math.min(atExpress + 2 * FPS - 6, atBounds - 4);
   const exOut = useProgress(exOutEnd, DUR.f3);
+  const exDim = 1 - 0.7 * Math.min(exIn, 1 - exOut);
   // 边界小签（对照闪现即收）
   const b1 = useImpulse({at: atBounds, dur: DUR.f6, peak: 1});
   const bO = useProgress(atBounds, DUR.f3) * (1 - useProgress(atBounds + DUR.f5 + DUR.f4, DUR.f3));
@@ -110,7 +113,8 @@ const ShotA: React.FC<{
         <TableRegistry x={1560} y={100} scale={0.42} rows={5} dim={0.12} />
       </div>
       <AbsoluteFill style={{transform: push}}>
-        <div style={{position: 'absolute', inset: 0, opacity: vistaO * exDim * (1 - exOut)}}>
+        {/* ⑨ QA RISKY-1②：全景不再随插曲退场清零（exOut 只作用于插曲层自身） */}
+        <div style={{position: 'absolute', inset: 0, opacity: vistaO * exDim}}>
           {/* 模型侧铭牌（决策脑恒在模型侧） */}
           <div style={{position: 'absolute', left: 260, top: 330, display: 'flex', alignItems: 'center', gap: 18}}>
             <BrainGlyph color={theme.text} />
@@ -441,8 +445,9 @@ const ShotC: React.FC<{atRun: number; atSwap: number; atWrong: number; atVerdict
   // 模型侧脑图标收到错签（边角闪珊瑚红）
   const wrongIn = useProgress(atWrong, DUR.f3);
   const wrongFlash = useImpulse({at: atWrong + DUR.f2, dur: DUR.f5, peak: 1});
-  // 错绑计数跳 0→2（useCount 钳制）
-  const misCount = useCount({to: 2, at: atWrong + DUR.f2, dur: DUR.f5});
+  // ⑨ QA W4：错绑计数改与双计数条同拍起跑（原在 p3-08 内爬完、条亮出时已是
+  // 终值 2 vs 0——两侧从未同值起步）；现两侧同值 0 起跑，左轨当场爬升至 2
+  const misCount = useCount({to: 2, at: atVerdict, dur: DUR.f5});
   // p3-09：双计数定格对照 + 教训短签
   const verdictO = useProgress(atVerdict, DUR.f4);
   // p3-10：右轨天然对位 + 编号签悬空未用；左轨整轨泛红一沉
@@ -504,12 +509,14 @@ const ShotC: React.FC<{atRun: number; atSwap: number; atWrong: number; atVerdict
           </Panel>
         </div>
         {/* 模型侧脑图标收到错签（「别人的答案」） */}
-        <div style={{position: 'absolute', left: 60, top: 760, opacity: wrongIn, display: 'flex', alignItems: 'center', gap: 20}}>
-          <BrainGlyph color={theme.text} s={0.9} />
+        {/* ⑨ QA W2：说明行上移 20px（760→742）+ 行高收紧（签 44→38 / 脑 0.9→0.75），
+            底部让开字幕盒（盒顶 ≈943）并与互换插帧（底 ≈880）保持净空 */}
+        <div style={{position: 'absolute', left: 60, top: 742, opacity: wrongIn, display: 'flex', alignItems: 'center', gap: 20}}>
+          <BrainGlyph color={theme.text} s={0.75} />
           <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-            <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.dim}}>{'模型收到'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 21, color: theme.dim}}>{'模型收到'}</span>
             <div style={{position: 'relative', boxShadow: `0 0 ${22 * wrongFlash}px ${theme.warn}`}}>
-              <NumberTag n={2} size={44} color={theme.warn} />
+              <NumberTag n={2} size={38} color={theme.warn} />
               <div
                 style={{
                   position: 'absolute',
@@ -523,7 +530,7 @@ const ShotC: React.FC<{atRun: number; atSwap: number; atWrong: number; atVerdict
                 }}
               />
             </div>
-            <span style={{fontFamily: theme.sans, fontSize: 22, color: theme.warn}}>{'别人的答案'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 21, color: theme.warn}}>{'别人的答案'}</span>
           </div>
         </div>
       </div>

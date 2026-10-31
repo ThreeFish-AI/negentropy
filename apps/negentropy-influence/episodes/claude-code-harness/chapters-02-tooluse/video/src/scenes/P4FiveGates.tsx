@@ -199,7 +199,9 @@ const ShotC: React.FC<{atRough: number; atStrike: number; atVerdicts: number; at
   const dropOut = useProgress(atVerdicts + 8, DUR.f5, 'decelerate');
   // 建任务三卡同批并列（各带文件小签——改了状态也并发的证据形态）
   const tasks = [0, 1, 2].map((i) => clamp01(progress(frame, atTasks + i * 3, DUR.f3)));
-  // 整列切三批定格（批框 + 批内并发箭头 + 批间顺序箭头）
+  // 整列切三批定格（批框 + 批内并发箭头 + 批间顺序箭头）。
+  // ⑨ QA N5：批标签/批框随「连续批」词落位同步浮现（原 0.18 偏早、词未到
+  // 标签先现；押后至 0.32——由组装层 atSplit 传入）
   const split = useProgress(atSplit, DUR.f5);
   return (
     <AbsoluteFill>
@@ -225,10 +227,18 @@ const ShotC: React.FC<{atRough: number; atStrike: number; atVerdicts: number; at
           {'按具体输入判 →'}
         </div>
       </div>
-      {/* 六枚调用小方块（暗态幕首在场；判定/点亮由词位驱动） */}
+      {/* 六枚调用小方块（暗态幕首在场；判定/点亮由词位驱动）。
+          ⑨ QA W5：列目录/删除卡随各自判定签词落位点亮、找文件卡随批定格
+          （原非任务三卡幕首即全亮=词落位前就位）；卡名 c.zh 全程恒定不变 */}
       {CHAIN.map((c) => {
         const isTask = c.k.startsWith('task');
-        const lit = isTask ? tasks[Number(c.k.slice(5)) - 1] : 1;
+        const lit = isTask
+          ? tasks[Number(c.k.slice(5)) - 1]
+          : c.k === 'ls'
+            ? okSign.opacity
+            : c.k === 'rm'
+              ? noSign.opacity
+              : split;
         const dropped = c.k === 'rm' ? dropOut : 0;
         return (
           <div
@@ -486,7 +496,7 @@ export const P4FiveGates: React.FC<{scene: SceneRange}> = ({scene}) => {
           atStrike={wa('p4-04', 0.35) - bC.from}
           atVerdicts={wa('p4-04', 0.52) - bC.from}
           atTasks={wa('p4-05', 0.35) - bC.from}
-          atSplit={wa('p4-06', 0.18) - bC.from}
+          atSplit={wa('p4-06', 0.32) - bC.from}
         />
       </Sequence>
       <Sequence {...bD} name="4-D">

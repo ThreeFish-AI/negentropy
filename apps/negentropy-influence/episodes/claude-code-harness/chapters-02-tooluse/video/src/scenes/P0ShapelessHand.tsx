@@ -125,14 +125,16 @@ const ZeroA: React.FC<{atType: number; atBash: number}> = ({atType, atBash}) => 
   const bash = useEnter('pop', {at: atBash, dur: DUR.f4, springPreset: 'settle'});
   return (
     <AbsoluteFill>
+      {/* ⑨ QA W1：手掌垫到终端窗后（原画在窗上、指尖伸进窗内盖住命令区）；
+          cy 795→765 使掌缘下沿 885，距字幕盒顶（≈943）≥16 半尺寸 px */}
+      <div style={{position: 'absolute', left: 0, top: 0, opacity: handIn.opacity, transform: handIn.transform}}>
+        <PalmHand cx={960} cy={765} glow={glow} sink={sink} />
+      </div>
       <div style={{position: 'absolute', left: 960 - 490, top: 340, ...termIn}}>
         <Terminal lines={[{text: CMD_A, delay: atType, prompt: '$ '}]} cps={11} width={980} height={360} />
       </div>
-      <div style={{position: 'absolute', left: 0, top: 0, opacity: handIn.opacity, transform: handIn.transform}}>
-        <PalmHand cx={960} cy={795} glow={glow} sink={sink} />
-      </div>
-      {/* p0-02「一件」：bash 单卡贴上掌心（唯一家什） */}
-      <div style={{position: 'absolute', left: 960 - 105, top: 806, ...bash}}>
+      {/* p0-02「一件」：bash 单卡贴上掌心（唯一家什；随掌上移 806→780） */}
+      <div style={{position: 'absolute', left: 960 - 105, top: 780, ...bash}}>
         <Panel accent={withAlpha(theme.dim, 0.9)} style={{padding: '10px 22px'}}>
           <span style={{fontFamily: theme.mono, fontSize: 28, whiteSpace: 'nowrap'}}>
             <span style={{color: theme.core}}>{'$ '}</span>
@@ -168,6 +170,11 @@ const ZeroB: React.FC<{atRead: number; atWrite: number; atEdit: number; atIntent
   const line = useProgress(atLine, DUR.f5, 'decelerate');
   return (
     <AbsoluteFill style={{transform: push}}>
+      {/* ⑨ QA W1：手掌垫到终端窗后（原画在窗上、指尖盖住窗内三条命令行）；
+          cy 805→765 使掌缘下沿 885，距字幕盒顶（≈943）间隙 ≥16 半尺寸 px */}
+      <div style={{position: 'absolute', left: 0, top: 0, opacity: handO * 0.9}}>
+        <PalmHand cx={960} cy={765} glow={0.5} />
+      </div>
       <div style={{position: 'absolute', left: 960 - 590, top: 300, opacity: termIn.opacity}}>
         <Terminal
           lines={CMDS_B.map((c) => ({text: c.d, delay: c.prompt ? (c.d.startsWith('cat') ? atRead : c.d.startsWith('echo') ? atWrite : atEdit) : atEdit + 14, prompt: c.prompt}))}
@@ -175,9 +182,6 @@ const ZeroB: React.FC<{atRead: number; atWrite: number; atEdit: number; atIntent
           width={1180}
           height={430}
         />
-      </div>
-      <div style={{position: 'absolute', left: 0, top: 0, opacity: handO * 0.9}}>
-        <PalmHand cx={960} cy={805} glow={0.5} />
       </div>
       {/* p0-04「想的是」：意图气泡浮起（文件图标 +「读」动作小签） */}
       <div style={{position: 'absolute', left: 640, top: 158, ...intent}}>

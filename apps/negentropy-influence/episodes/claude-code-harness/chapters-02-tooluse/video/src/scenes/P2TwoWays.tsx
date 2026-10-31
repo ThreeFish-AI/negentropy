@@ -135,8 +135,10 @@ const ShotA: React.FC<{atDrop: number; atTags: number; atHand: number; atSpell: 
         {'专用工具'}
       </div>
       <RingCorner dim={0.9} />
-      {/* 对照表缩微驻右上角（同形缩微，行数接 1-B 末态 5 行） */}
-      <TableRegistry x={1560} y={100} scale={0.42} rows={5} dim={0.12} />
+      {/* 对照表缩微驻右上角（同形缩微，行数接 1-B 末态 5 行）。
+          ⑨ QA W3：dim 0.12→0.42——走查主舞台在左半，缩微表退为连续性水印
+          （原近全亮抢焦；2-B 联动位恢复亮态不随动） */}
+      <TableRegistry x={1560} y={100} scale={0.42} rows={5} dim={0.42} />
       {/* 指令气泡（三枚任务签随落位依次显形；「交给 bash」滑向左半） */}
       <div style={{position: 'absolute', left: bubbleX, top: bubbleY, transform: 'translate(-50%, -50%)'}}>
         <Panel style={{padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 18}}>
@@ -259,7 +261,8 @@ const ShotB: React.FC<{
         <line x1={PATH.from.x} y1={PATH.from.y} x2={PATH.to.x} y2={PATH.to.y} stroke={withAlpha(theme.tool, 0.55)} strokeWidth={4} />
         <path d="M1232 616 L1240 600 L1248 616 Z" fill={theme.tool} opacity={0.8} />
       </svg>
-      <RingCorner dim={0.55} spin={spin} />
+      {/* ⑨ QA W7：环体角标 0.55→0.85（执行段查表链是本镜语义主角，原太淡） */}
+      <RingCorner dim={0.85} spin={spin} />
       {/* 对照表缩微联动位（右上；只点亮读/找两行） */}
       <TableRegistry
         x={1560}

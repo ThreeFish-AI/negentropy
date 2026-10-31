@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》后 ep2《Tool Use》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 22 镜六场景分镜 v1（零建图原生路线：对照表装置逐句生长→原生优于录制回放，判据承 ep1/ep2 系列；G1 对抗核验 1 RISKY + 4 WARN 全修：片头组位查表、beat 内加切声明补全、3-C 计数位写序、1-D 对照表在场、贴底装置字幕带通则）+ 文案有界微改进 5 句（v1→v2：标注级 ×2 + 口径词 ×1 + 词窗词级 ×2，0 删句）+ story 台本。
+- ⑦ IndexTTS 本人克隆声 TTS 50 句（story + me-bright，ref_sha1 54b699cce97f）：首跑 17 句后 MPS 水位击穿（15.98 GiB OOM），按端口冷重启 + `--mps-mem-limit-gib 0` 根治续跑；续跑漏传 `--style story` 致 neutral 全量误档，带 `--allow-voice-switch` 全量重配 story；实测 4.9 分落窗。
+- ⑧ 六场景 3225 行 + motifs 尾追 bespoke 装置族（TableRegistry/ToolCard/NumberTag/DispatchChain/GateCard 等）+ 系列片头孪生挂载（series-intro.tsx 字节孪生七路径、harness-stack 数据面、Main.tsx 指纹 1c779384d763 与 ep1 同族，skeleton.drift 已登记）+ theme 概念色（mech 琥珀 #EFB13C）；scene_stems 回填 vibe-video.toml。
+- ⑨ QA 三路目检（Visual Lock / 小白走查 / 系列一致性）+ 修复轮 13 项：2 RISKY（3-A 快递插曲退场锚以幕首为锚致整镜空台三连表现、p5-04 禁令圈与「照样跑得到」口播语义反向）+ 7 WARN + 4 NOTE；修复帧级核验 5 直证 + 3 补帧确证（句中点采样与瞬态窗口结构性错位，经 draft.mp4 补帧证实修复在片）。机器门全 FAIL 0。
+- ⑩ 终渲 162s / 8742 帧 @30fps = 4 分 51.4 秒落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Tool Use：多加一个工具，只加一行 v1.mp4`（deliver 根自拼系列层：须传 ~/Documents/video 而非系列目录，嵌套错误件已清）。
+
 ### claude-code-chapters ep2–20 文案审批落定与制作轮启动（2026-10-31）
 
 - 用户确认：ep2–20 文案「暂时算作审批通过」，允许在该版本基础上做有界微改进（≤15% 句、五准入五禁止，随 ⑥ 分镜走查驱动）；制作轮 ⑥ 分镜/建图 → ⑦ 配音 → ⑧ 场景 → ⑨ QA → ⑩ 交付全程全自动交付，配音用本人克隆声（IndexTTS story + me-bright，RSI-040 授权成立）。
