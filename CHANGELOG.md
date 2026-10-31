@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》后 ep3《Permission》制作轮收官交付 v1（2026-11-01）
+
+- 继《Agent Loop》《Tool Use》后 ep3 交付：⑥ 23 镜六场景分镜（零建图原生路线；G1 对抗核验 9 OK/1 WARN/0 RISKY 一次过——否决章定色方案 A：否决/拒绝方向动作=警示红、装置结构=裁决紫，storyboard/planning 双面登记）；⑦ me-bright/story TTS 53 句实测 4.9 分落窗；⑧ 六场景 3043 行 + 十件 bespoke 装置 + 片头孪生挂载（Main 指纹同族 1c779384d763，drift 登记；scene_stems 回填）。
+- ⑨ QA 三路目检 + 修复轮 9 项全验：1-A morph 三重违约（聚拢压暗/身份色漂移/空窗）连续降档交接根治（一次回炉：展开→点火真空期 0.73s 以 0.45 底线亮度消除，still 定帧全帧紫系连续性复核通过）；P4 八层来源压暗方向反转；5-A 金句强调字钉裁决紫；2-D 脑标对齐；4-C 第二站放行绿；「判定 ✓ 不危险 · 放行」文案纠偏；立场卡占位字改呼吸提示；摇头签 5:1 对齐口播；六模式卡角标补足。机器门全 FAIL 0。
+- ⑩ 终渲 211.5s / 8903 帧 @30fps = 4 分 57 秒落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Permission：三道闸门，动手之前的裁决 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》后 ep2《Tool Use》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 22 镜六场景分镜 v1（零建图原生路线：对照表装置逐句生长→原生优于录制回放，判据承 ep1/ep2 系列；G1 对抗核验 1 RISKY + 4 WARN 全修：片头组位查表、beat 内加切声明补全、3-C 计数位写序、1-D 对照表在场、贴底装置字幕带通则）+ 文案有界微改进 5 句（v1→v2：标注级 ×2 + 口径词 ×1 + 词窗词级 ×2，0 删句）+ story 台本。

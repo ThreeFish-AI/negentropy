@@ -9,6 +9,8 @@
 | `research/` | Stage ① 取证产物：全部口播断言须可回溯至此（gl-notes.md = C 型冻结件；source-archive/ = 双钉字节归档） |
 | `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
 | `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
+| `script/storyboard.md` | Stage ⑥ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效 ↔ Visual Lock） |
+| `script/narration.cues.toml` | story 档配音台本（块情绪 + say 覆写） |
 | `scripts/*.py` | 薄包装 → vibe-video skill 的 scripts/（解析器定位，保 CLI 契约） |
 | `video/` | Remotion 独立 pnpm 工程（嵌套 workspace 自锚隔离） |
 | `out/` | 渲染产物（gitignored） |

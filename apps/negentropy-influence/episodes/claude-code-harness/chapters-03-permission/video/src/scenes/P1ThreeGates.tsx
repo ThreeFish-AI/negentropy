@@ -93,10 +93,17 @@ const ShotA: React.FC<{atSlot: number; atInsert: number; atSpread: number; atDen
   // @pushIn：p1-01 急推闸卡插入点——本集装置立轴
   const push = usePushIn(DUR.f3, {scale: 0.06, dur: DUR.f6});
   // morph 段1：单卡自 0-C 末帧位（闸卡中心 1185,550）spring 到插卡位中心（执行段
-  // 入口之前）；描边色/轮廓逐帧不变，仅位移+点亮（lit 0.3→1）
-  const morph = useSpring('settle', {at: atInsert, dur: DUR.f5});
-  const gateLit = 0.3 + 0.7 * useProgress(DUR.f2, DUR.f4);
-  // morph 段2：到位后一分为三——三卡自插卡位向上展开成列队（spread 与上移同窗）
+  // 入口之前）；描边色/轮廓逐帧不变，仅位移+点亮。
+  // ⑨ QA RISKY-1（场景侧三处）：① morph 弹簧窗拉长至「插卡→列队展开」整段
+  // （atInsert → atSpread+f5）——原 12 帧 settle 完成后到 atSpread 之间有 ~0.5s
+  // 位移静止空窗、随后队列骤现；单窗连续后位移与分裂交叠进行，符合分镜中间态
+  // 「仅位置/亮度/数量变化」。② gateLit 起步 0.9（原 0.3 起步把位移期主体压到
+  // 近隐——与 motifs 侧撤聚拢压暗配套，位移期 lit≥0.9）。③ 展开仍锚「三道门」
+  // 词位（atSpread），三卡点火语义不动。
+  const spreadDur = Math.max(DUR.f5, atSpread + DUR.f5 - atInsert);
+  const morph = useSpring('settle', {at: atInsert, dur: spreadDur});
+  const gateLit = 0.9 + 0.1 * useProgress(DUR.f2, DUR.f4);
+  // morph 段2：位移收尾中一分为三——三卡自插卡位向上展开成列队（spread 与上移同窗）
   const spread = useProgress(atSpread, DUR.f5);
   const chainCx = 975;
   const chainSpacing = 232;
@@ -106,11 +113,20 @@ const ShotA: React.FC<{atSlot: number; atInsert: number; atSpread: number; atDen
   const cx = 1185 + (chainCx - 1185) * morph;
   const cy = 550 + (635 - 550) * morph - 305 * spread;
   const gx = cx - cardW / 2 - chainSpacing * spread;
-  // 三词各点火一卡（列队次序 = 口播次序：硬拒绝→规则→问人）
+  // 三词各点火一卡（列队次序 = 口播次序：硬拒绝→规则→问人）。
+  // ⑨ QA RISKY-1② 回炉：lit 交接不回零——原 `spread<0.5 ? [gateLit×3] : [点火×3]`
+  // 在展开完成(f~1908)与首卡点火 atDeny(f~1926)之间切换到 [0,0,0]，GateCard
+  // lit=0 时描边 dashoffset=1/名牌/衬底全关，造成 22 帧三卡全隐真空。改为：
+  // 展开完成后整队缓降（5 帧）到待点火底线亮度 0.45（描边 45% 在场、名牌降
+  // 透明不撤），每卡 lit = max(底线, 点火进度)——f1697–2014 全窗任何时刻三卡
+  // 至少暗态可见，点火时自底线跃升 1（点亮跃迁语义保留）
+  const LIT_FLOOR = 0.45;
+  // 基线自 gateLit（位移期 0.9→1 渐亮）连续降档到底线——无任何二态跳变
+  const dimGate = gateLit - (gateLit - LIT_FLOOR) * useProgress(atSpread + DUR.f5, DUR.f3);
   const lit = [
-    clamp01(progress(frame, atDeny, DUR.f3)),
-    clamp01(progress(frame, atRule, DUR.f3)),
-    clamp01(progress(frame, atAsk, DUR.f3)),
+    Math.max(dimGate, clamp01(progress(frame, atDeny, DUR.f3))),
+    Math.max(dimGate, clamp01(progress(frame, atRule, DUR.f3))),
+    Math.max(dimGate, clamp01(progress(frame, atAsk, DUR.f3))),
   ];
   // 环体整环静止一拍（静止即陈述；定格 dot + 辉光一次不过冲）
   const still = frame >= atStill;
@@ -173,7 +189,7 @@ const ShotA: React.FC<{atSlot: number; atInsert: number; atSpread: number; atDen
         spacing={chainSpacing}
         spread={spread}
         connect={spread}
-        lit={spread < 0.5 ? [gateLit, gateLit, gateLit] : [lit[0], lit[1], lit[2]]}
+        lit={lit}
       />
       {/* 「一行不改」静止辉光（环体整环静止一拍） */}
       {stillGlow > 0.01 ? (

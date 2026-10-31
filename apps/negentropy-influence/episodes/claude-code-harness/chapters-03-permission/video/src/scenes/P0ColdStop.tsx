@@ -472,7 +472,18 @@ const ZeroC: React.FC<{atPaper: number; atBlocked: number; atCard: number; atSol
             boxShadow: solidFlash > 0.01 ? `0 0 ${28 * solidFlash}px ${withAlpha(theme.text, 0.4)}` : 'none',
           }}
         >
-          <span style={{fontFamily: theme.serif, fontSize: 30, color: withAlpha(theme.text, 0.3)}}>{'（立场卡）'}</span>
+          {/* ⑨ QA N1：占位字不上屏（原「（立场卡）」直渲）——空白卡 +「…」呼吸
+              提示（帧驱动正弦，落字留 5-A 的设计不变） */}
+          <span
+            style={{
+              fontFamily: theme.serif,
+              fontSize: 34,
+              letterSpacing: 10,
+              color: withAlpha(theme.text, 0.22 + 0.16 * (0.5 + 0.5 * Math.sin(frame / 18))),
+            }}
+          >
+            {'…'}
+          </span>
         </div>
       </div>
       {/* 三门轮廓（闸卡后缘裂出列队——P1 预告；自左至右各微亮一次） */}

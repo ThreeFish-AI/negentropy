@@ -32,7 +32,11 @@ const withAlpha = (hex: string, a: number): string =>
     .toString(16)
     .padStart(2, '0')}`;
 
-/** 金句关键词：重读排版（字重/字号差）+ 词落位各压一拍（一次性脉冲 + 常驻辉光） */
+/** 金句关键词：重读排版（字重/字号差）+ 词落位各压一拍（一次性脉冲 + 常驻辉光）。
+ *  ⑨ QA RISKY-2：强调字色钉裁决紫 theme.mech（#7C6FF0），依据 = storyboard 头部
+ *  视觉契约「裁决链/三道闸门 = 裁决紫（本集主题色）」——收束金句强调词「机制」
+ *  即闸门机制的收束指称；color 为常量、不随词窗相位变化（draft 帧实测的陶土橙
+ *  为旧 theme 布线的陈旧渲，非现行代码态），辉光只改强度不改色相。 */
 const KeyWord: React.FC<{at: number; children: React.ReactNode}> = ({at, children}) => {
   const pop = useImpulse({at, dur: DUR.f6, peak: 0.07});
   const glow = useProgress(at, DUR.f5);

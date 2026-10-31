@@ -362,7 +362,8 @@ const ShotD: React.FC<{atYes: number; atFeedL: number; atNo: number; atFeedR: nu
           </div>
         </div>
       ) : null}
-      <div style={{position: 'absolute', left: LX - 32, top: 890, opacity: splitL, display: 'flex', alignItems: 'center', gap: 16}}>
+      {/* ⑨ QA W2：模型脑行统一 top 878（原 890——左右支路镜像错位 12px 且压字幕安全带） */}
+      <div style={{position: 'absolute', left: LX - 32, top: 878, opacity: splitL, display: 'flex', alignItems: 'center', gap: 16}}>
         <BrainGlyph color={modelGoL > 0.5 ? theme.text : theme.dim} s={0.85} />
         <span style={{fontFamily: theme.sans, fontSize: 22, color: modelGoL > 0.5 ? theme.text : theme.dim}}>{'接着干'}</span>
       </div>
@@ -396,16 +397,18 @@ const ShotD: React.FC<{atYes: number; atFeedL: number; atNo: number; atFeedR: nu
           </div>
         </div>
       ) : null}
-      {/* 模型侧岔路标（换条路——两支岔出的新路） */}
+      {/* 模型侧岔路标（换条路——两支岔出的新路）。
+          ⑨ QA W2：岔路 svg 上提（top -12→-30）、「换条路」签移至 svg 右侧
+          （top 878+14=892）——整组守住字幕清线上方（top≤900），消除压线 */}
       <div style={{position: 'absolute', left: RX - 130, top: 878, opacity: splitR}}>
         <BrainGlyph color={theme.text} s={0.85} />
-        <svg width={190} height={70} style={{position: 'absolute', left: 60, top: -12, overflow: 'visible', opacity: fork}}>
+        <svg width={190} height={70} style={{position: 'absolute', left: 60, top: -30, overflow: 'visible', opacity: fork}}>
           <path d="M 10 46 Q 70 20, 120 8" fill="none" stroke={theme.mech} strokeWidth={3.5} strokeDasharray="8 7" opacity={branchA} />
           <path d="M 10 46 Q 80 52, 150 50" fill="none" stroke={theme.mech} strokeWidth={3.5} strokeDasharray="8 7" opacity={branchB} />
           <path d="M 114 2 L 128 8 L 118 18 Z" fill={theme.mech} opacity={branchA} />
           <path d="M 144 44 L 158 50 L 146 58 Z" fill={theme.mech} opacity={branchB} />
         </svg>
-        <span style={{position: 'absolute', left: 66, top: 52, fontFamily: theme.sans, fontSize: 21, color: theme.mech, opacity: fork}}>换条路</span>
+        <span style={{position: 'absolute', left: 262, top: 14, fontFamily: theme.sans, fontSize: 21, color: theme.mech, opacity: fork, whiteSpace: 'nowrap'}}>换条路</span>
       </div>
       <Foot2>{'是 · 结果回喂 ｜ 否 · 拒绝也是信息'}</Foot2>
     </AbsoluteFill>

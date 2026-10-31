@@ -274,6 +274,8 @@ const ShotC: React.FC<{atRuin: number; atZero: number; atWrite: number; atGrey: 
   const writeFlash = useImpulse({at: atWrite + DUR.f4, dur: DUR.f5, peak: 1});
   const greyAsk = useProgress(atGrey, DUR.f3);
   // 右轨基线数字帧（十轮 · 拦 2 · 问 2 · 越界 0——重音镜）
+  // ⑨ QA W1：基线帧锚同时驱动左轨 sudo 落地卡退场（归档，消除同屏混读）
+  const sudoFade = useProgress(atBase, DUR.f4);
   const baseRows = [0, 1, 2, 3].map((i) => clamp01(progress(frame, atBase + i * 5, DUR.f4)));
   const baseGlow = useImpulse({at: atBase + DUR.f4, dur: DUR.f5, peak: 1});
   // 教训短签定格
@@ -333,10 +335,25 @@ const ShotC: React.FC<{atRuin: number; atZero: number; atWrite: number; atGrey: 
           />
         ))}
       </div>
-      {/* 左轨 sudo 落地帧（实验 3 复现态——落地 1 承 3-A 口播锚，常驻） */}
-      <div style={{position: 'absolute', left: 680, top: 310, opacity: 0.92}}>
+      {/* 左轨 sudo 落地帧（实验 3 复现态——落地 1 承 3-A 口播锚）。
+          ⑨ QA W1：atBase（基线帧）时退场淡出归档（残位虚线留痕），镜末左轨
+          只剩实验 4 终态——与右轨四项基线数字不再同屏混读（原同屏约 6s） */}
+      <div style={{position: 'absolute', left: 680, top: 310, opacity: 0.92 * (1 - sudoFade)}}>
         <CallCard x={0} y={0} en="sudo …" w={190} h={64} accent={theme.danger} landed={1} />
       </div>
+      {/* sudo 落地残位虚线（归档留痕——实验 3 证据位，不与数字混读） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 680,
+          top: 310,
+          width: 190,
+          height: 64,
+          borderRadius: 11,
+          border: `2px dashed ${theme.panelBorder}`,
+          opacity: sudoFade * 0.8,
+        }}
+      />
       {/* 左轨双计数器（拦截/询问同拍齐落 0——数字带基线标尺） */}
       <div style={{position: 'absolute', left: 130, top: 480, display: 'flex', gap: 110}}>
         <CountCell label="拦截" value={blockN} color={theme.danger} base="基线 2" />

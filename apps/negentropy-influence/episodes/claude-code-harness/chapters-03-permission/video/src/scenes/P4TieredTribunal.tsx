@@ -239,7 +239,13 @@ const ShotC: React.FC<{atStations: number; atCrack: number; atHurt: number; atWo
             fontSize: 38,
             color: theme.text,
             background: theme.panel,
-            border: `3px solid ${judged > 0.5 ? theme.ok : release > 0.5 && moveTo2 > 0.9 ? theme.edge : theme.panelBorder}`,
+            // ⑨ QA W3：第二站整词放行（release && moveTo2>0.5）即转确认绿——原
+            // 边框绿延迟到第三站 judged 锚（p4-08c 尾），与「改成只认整个词→
+            // model 词卡放行（确认绿）」的镜内时序错位；第三站判定再叠加绿框
+            // 加粗（borderWidth 3→4.5，判定语义层级不丢）
+            border: `${judged > 0.5 ? 4.5 : 3}px solid ${
+              release > 0.3 && moveTo2 > 0.5 ? theme.ok : theme.panelBorder
+            }`,
             borderRadius: 10,
             padding: '10px 26px',
             position: 'relative',
@@ -325,7 +331,9 @@ const ShotC: React.FC<{atStations: number; atCrack: number; atHurt: number; atWo
           opacity: judged,
         }}
       >
-        {'判定 ✓ 危险'}
+        {/* ⑨ QA W4：model 是被误伤的好词——分类器判定其不危险、放行；绿字承载
+            「不危险 · 放行」语义（原「危险」拧巴：非危险词判危险与画面放行矛盾） */}
+        {'判定 ✓ 不危险 · 放行'}
       </div>
       <Foot4>{'认危险命令 · 三步演进'}</Foot4>
     </AbsoluteFill>
@@ -379,7 +387,13 @@ const ShotD: React.FC<{atRow: number; atCards: number; atPull: number; atShell: 
               }}
             >
               <span style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim}}>{`mode 0${i + 1}`}</span>
-              <span style={{width: 120, height: 14, borderRadius: 7, background: theme.panelBorder, opacity: 0.7}} />
+              {/* ⑨ QA N3：中性灰条改「标签页/刻度」图形（三条递减刻度——settings
+                  页签隐喻，不具名）；名目由底部角标补足（含 default） */}
+              <span style={{display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'center'}}>
+                <span style={{width: 120, height: 8, borderRadius: 4, background: theme.panelBorder, opacity: 0.85}} />
+                <span style={{width: 86, height: 8, borderRadius: 4, background: theme.panelBorder, opacity: 0.6}} />
+                <span style={{width: 56, height: 8, borderRadius: 4, background: theme.panelBorder, opacity: 0.4}} />
+              </span>
             </div>
           </div>
         );
@@ -437,7 +451,7 @@ const ShotD: React.FC<{atRow: number; atCards: number; atPull: number; atShell: 
           ) : null}
         </div>
       </div>
-      <Foot4>{'acceptEdits · plan · auto · bypassPermissions …'}</Foot4>
+      <Foot4>{'default · acceptEdits · plan · auto · bypassPermissions …'}</Foot4>
     </AbsoluteFill>
   );
 };

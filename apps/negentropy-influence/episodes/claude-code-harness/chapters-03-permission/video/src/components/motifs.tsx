@@ -721,7 +721,9 @@ export const GateChain: React.FC<{
         top: y,
         width: chainW,
         height: cardH,
-        opacity: (1 - dim) * (1 - 0.72 * (1 - clamp01(spread))),
+        // ⑨ QA RISKY-1：撤聚拢压暗（原 (1-0.72*(1-spread)) 把聚拢单卡压到 0.28
+        // 近隐——morph 位移期主体不可见即身份线索断裂）；容器透明度只由 dim 承载
+        opacity: 1 - dim,
         transform: `scale(${scale})`,
         transformOrigin: 'left top',
       }}
@@ -750,7 +752,11 @@ export const GateChain: React.FC<{
         : null}
       {kinds.map((k, i) => {
         const off = (i - 1) * spacing * clamp01(spread);
-        const sideFade = i === 1 || clamp01(spread) > 0.3 ? 1 : clamp01(spread) / 0.3;
+        // ⑨ QA RISKY-1：sideFade 偏置 i=0——聚拢态（spread<0.25）唯一可见主卡 =
+        // deny（裁决紫），morph 身份线索「裁决紫描边」全程成立（原 i===1 偏置
+        // 让聚拢可见卡是 rule 边界蓝——身份色漂移，盲读判「新主体」）；rule/ask
+        // 两卡随展开渐次显形，展开完成（spread→1）三卡全可见
+        const sideFade = i === 0 ? 1 : clamp01((spread - (i === 1 ? 0.25 : 0.55)) / 0.3);
         return (
           <div key={k} style={{position: 'absolute', left: off, top: 0, opacity: sideFade}}>
             <GateCard
@@ -1300,7 +1306,7 @@ export const SwitchPanel: React.FC<{x: number; y: number; lit?: number; closed?:
 
 /**
  * 裁决不变式投票装置（主体裁决紫）。点头签（ok「允」）×5 与摇头签（danger
- * 「否」）×2 分列；计票器居间；「一票否决」章悬顶。`press` 摇头签沉压行程
+ * 「否」）×1 分列；计票器居间；「一票否决」章悬顶。`press` 摇头签沉压行程
  * （自上压过整排点头签——重者在下压〔X-001〕）；`kill` 点头签全灭；
  * `counterRetire` 计票器划掉退役；`stamp` 红章砸落行程（0..1，含落定定格）。
  */
@@ -1388,7 +1394,9 @@ export const VoteBoard: React.FC<{
         }}
       >
         <span style={{position: 'relative'}}>
-          {'计票 5 : 2'}
+          {/* ⑨ QA N2：5 : 1 与「一方摇头就拦下」对齐（摇头签一枚——上方压签即
+              「一方」，不再有第二枚造成数字错位） */}
+          {'计票 5 : 1'}
           <span
             style={{
               position: 'absolute',
