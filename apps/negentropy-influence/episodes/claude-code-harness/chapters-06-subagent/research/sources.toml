@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s06-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s06_subagent/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "bd02fd5b3ed9fce7"
+text_sha256 = "b484fb54f11f8272"
+bytes = 4376
+lines = 115
+via = "pinned commit, MIT; main 轨（本集钉选轨，README.zh.md 中文）"
+
+[s06-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s06_subagent/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "59f6adbfe81aa48c"
+text_sha256 = "bca7893f7776c347"
+bytes = 12946
+lines = 385
+via = "pinned commit, MIT; 内容块判据正源与五决策表实测依据"
+
+[s06f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s06_subagent/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "c67db30314ee57c1"
+text_sha256 = "781cdfd1d0916339"
+bytes = 9511
+lines = 193
+via = "pinned commit, MIT; 站点轨对照（s06 独有「深入 CC 源码」附录六小节，【三】级断言正源；判据仍写 stop_reason 故不钉）"
+
+[s06f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s06_subagent/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "2e32b9791c1308f9"
+text_sha256 = "8bdb647e246c42be"
+bytes = 16558
+lines = 381
+via = "pinned commit, MIT; 站点轨对照"
+
+[s06-site]
+url = "https://learn.shareai.run/zh/s06/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "f73b509cd83671d0"
+text_sha256 = "5485fb25c5a7b75c"
+bytes = 65334
+lines = 236
+via = "站点实况（集制骨架对照）"
+
+[doc-sub-agents]
+url = "https://code.claude.com/docs/en/sub-agents"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "ab773fe150dfce44"
+text_sha256 = "a4c591c01d88720e"
+bytes = 967735
+lines = 1402
+via = "官方补读（172 参考 [2]；子代理独立上下文只回摘要 / 15,000 tokens 描述告警线）"

@@ -8,8 +8,8 @@
       "episodes": [
         {
           "episode": 1,
-          "slug": "experience-era-agents-video",
-          "path": "episodes/experience-era-agents-video",
+          "slug": "experience-era-agents",
+          "path": "episodes/self-evolution/experience-era-agents",
           "title": "上线之后，AI 才开始上学",
           "topic": "部署之后经验怎么攒",
           "cardSub": "经验 · 怎么攒",
@@ -31,8 +31,8 @@
         },
         {
           "episode": 2,
-          "slug": "self-improving-agents-video",
-          "path": "episodes/self-improving-agents-video",
+          "slug": "self-improving-agents",
+          "path": "episodes/self-evolution/self-improving-agents",
           "title": "AI 如何自己变强？",
           "topic": "自我进化改什么",
           "cardSub": "自我进化 · 改什么",
@@ -53,8 +53,8 @@
         },
         {
           "episode": 3,
-          "slug": "self-evolving-coding-agents-video",
-          "path": "episodes/self-evolving-coding-agents-video",
+          "slug": "self-evolving-coding-agents",
+          "path": "episodes/self-evolution/self-evolving-coding-agents",
           "title": "会写代码的 AI，开始给自己写代码",
           "topic": "代码领域全图",
           "cardSub": "代码田野 · 全图",
@@ -75,8 +75,8 @@
         },
         {
           "episode": 4,
-          "slug": "dream-rsi-video",
-          "path": "episodes/dream-rsi-video",
+          "slug": "dream-rsi",
+          "path": "episodes/self-evolution/dream-rsi",
           "title": "翻旧账不花钱：AI 在梦里改章程",
           "topic": "元探索策略怎么改",
           "cardSub": "元探索 · 做梦",
@@ -106,8 +106,8 @@
       "episodes": [
         {
           "episode": 1,
-          "slug": "claude-code-explained-video",
-          "path": "episodes/claude-code-explained-video",
+          "slug": "claude-code-explained",
+          "path": "episodes/claude-code-explained/claude-code-explained",
           "title": "工具与执行：一个循环，三层装置",
           "topic": "工具与执行：把模型装进Harness",
           "cardSub": "工具与执行 · 循环",
@@ -130,8 +130,8 @@
         },
         {
           "episode": 2,
-          "slug": "claude-code-planning-video",
-          "path": "episodes/claude-code-planning-video",
+          "slug": "claude-code-planning",
+          "path": "episodes/claude-code-explained/claude-code-planning",
           "title": "规划与协调：视野错位的五种修正手法",
           "topic": "规划与协调：视野错位怎么修",
           "cardSub": "规划与协调 · 视野",
@@ -152,8 +152,8 @@
         },
         {
           "episode": 3,
-          "slug": "claude-code-memory-video",
-          "path": "episodes/claude-code-memory-video",
+          "slug": "claude-code-memory",
+          "path": "episodes/claude-code-explained/claude-code-memory",
           "title": "记忆管理：会丢的和不能丢的",
           "topic": "记忆管理：窗口内外的两本账",
           "cardSub": "记忆管理 · 两套机制",
@@ -174,8 +174,8 @@
         },
         {
           "episode": 4,
-          "slug": "claude-code-concurrency-video",
-          "path": "episodes/claude-code-concurrency-video",
+          "slug": "claude-code-concurrency",
+          "path": "episodes/claude-code-explained/claude-code-concurrency",
           "title": "并发与调度：一张回执和四层钟",
           "topic": "并发与调度：谁替它看表",
           "cardSub": "并发 · 调度",
@@ -197,8 +197,8 @@
         },
         {
           "episode": 5,
-          "slug": "claude-code-multiagent-video",
-          "path": "episodes/claude-code-multiagent-video",
+          "slug": "claude-code-multiagent",
+          "path": "episodes/claude-code-explained/claude-code-multiagent",
           "title": "多 Agent 平台：七件设施，一条走廊",
           "topic": "多 Agent 协作：谁持有计划",
           "cardSub": "多 Agent 平台 · 协作",
@@ -227,8 +227,8 @@
       "episodes": [
         {
           "episode": 1,
-          "slug": "horizon-context-video",
-          "path": "episodes/horizon-context-video",
+          "slug": "horizon-context",
+          "path": "episodes/context-layer/horizon-context",
           "title": "拆解 Snowflake Horizon Context：怎么治理 Agent Context？怎么验证 Agent 交付结果？",
           "topic": "Snowflake Horizon Context：怎么治理 Agent Context",
           "cardSub": "上下文层 · 治理",
@@ -250,8 +250,8 @@
         },
         {
           "episode": 2,
-          "slug": "context-layer-video",
-          "path": "episodes/context-layer-video",
+          "slug": "context-layer",
+          "path": "episodes/context-layer/context-layer",
           "title": "拆解 Agent Context Layer：上下文怎么供给、治理、装配",
           "topic": "Context Layer：三面蓝图怎么拆解（2026-10-16 v4 零类比重制）",
           "cardSub": "上下文层 · 蓝图",
@@ -273,8 +273,8 @@
         },
         {
           "episode": 3,
-          "slug": "openviking-video",
-          "path": "episodes/openviking-video",
+          "slug": "openviking",
+          "path": "episodes/context-layer/openviking",
           "title": "给 AI 一座图书馆：OpenViking 上下文数据库",
           "topic": "OpenViking：文件系统范式怎么做上下文",
           "cardSub": "上下文层 · 文件系统范式",
@@ -304,8 +304,8 @@
       "episodes": [
         {
           "episode": 1,
-          "slug": "agent-skills-video",
-          "path": "episodes/agent-skills-video",
+          "slug": "agent-skills",
+          "path": "episodes/agent-infra/agent-skills",
           "title": "目录常驻，正文按需：Agent Skills 开放标准",
           "topic": "Agent Skills：目录常驻、正文按需的领域知识打包开放标准",
           "cardSub": "开放标准 · 渐进披露",
@@ -328,8 +328,8 @@
         },
         {
           "episode": 2,
-          "slug": "jev-decision-model-video",
-          "path": "episodes/jev-decision-model-video",
+          "slug": "jev-decision-model",
+          "path": "episodes/agent-infra/jev-decision-model",
           "title": "只填格的判读员：Jev 决策模型",
           "topic": "Jev：小判断的交付方式怎么变",
           "cardSub": "判断 · 概率表",
@@ -352,8 +352,8 @@
         },
         {
           "episode": 3,
-          "slug": "skills-supply-chain-video",
-          "path": "episodes/skills-supply-chain-video",
+          "slug": "skills-supply-chain",
+          "path": "episodes/agent-infra/skills-supply-chain",
           "title": "没有海关的港口：Skills 的签名、分发与版本战争",
           "topic": "Agent Skills：签名/分发/版本三战场",
           "cardSub": "供应链 · 三战场",
@@ -372,6 +372,474 @@
           "status": "final-review",
           "statusNote": "E3 成片交付 v1（~/Documents/video/agent-infra/）：13:57（25112 帧÷30fps 复算）· 101 句 4358 字 · archify 20 图/79 cue/锚定 78.2%/密度 5.7 每分/5 图型 · story 段落演绎 me-bright.wav · 机器门全绿：check_series/build/--pre-tts/check --check-scenes/tsc/qa --check（WARN 0）/--check-theme WCAG/亮度扫描/接缝 4 组/13 帧目检 · 信源 16 条三钉点 verify FAIL 0 · Stage ④ 复修 13 句（含 p2-08 静默失配补落盘）· 待 48h 信源复核（#254/#380/#546 状态与冻结天数）",
           "voice": "story 段落演绎档 + me-bright.wav"
+        }
+      ]
+    },
+    {
+      "id": "claude-code-chapters",
+      "title": "Claude Code 的 20 个核心机制",
+      "sourceKind": "course",
+      "rule": "与全部既有系列（含同信源的 claude-code-explained）互相独立：口播互不引用（校验器规则 1 跨系列全局生效），发布顺序与视觉契约按系列内判定（规则 2/3/4）。集制=课程站点 20 章 1:1 拆集、每集约 5 分钟（拆集只是编导结构；观众层信源标识只许首尾既定署源位（片头署源角标 + 片尾署源句，豁免白名单登记 vibe-video.toml check_series.source_credit，RSI I-080），其余位置零课程/站点/章号痕迹——规则 7）；章→集归属与双钉唯一登记处 source-map/claude-code-chapters.md。信源沿用 agent-harness 精读族（171–176，C 型冻结进各集 gl-notes），证据三级纪律同旧系列（CC 源码级断言恒【三】级、口播带归属句）。下期卡由各集 P5 场景内联承载（无 P6 统一收尾装置，不适用规则 8、不入 next_card_series_ids；后续集若改采 P6 统一装置，再翻写此句并同步登记）。",
+      "episodes": [
+        {
+          "episode": 1,
+          "slug": "chapters-01-loop",
+          "path": "episodes/claude-code-harness/chapters-01-loop",
+          "title": "Agent Loop：一个循环，让 Agent 开始了心跳",
+          "topic": "Agent Loop：主循环——模型获得手的唯一通路（s01 单章）",
+          "cardSub": "机制拆解 · 循环",
+          "accents": [
+            "#D97757",
+            "#64C4C0"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Agent Loop（s01）",
+            "site": "https://learn.shareai.run/zh/s01/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-29"
+          },
+          "status": "delivered",
+          "statusNote": "系列建档+首集文案轮（2026-10-29）：20 章 1:1 拆集新系列，旧 claude-code-explained 并行保留待退役；Stage ①–⑤ 完成待用户审批（审批前不进入制作）。C 型信源=现行 171（I-234 后代次）冻结；main 钉 7226f555（自 ce8f9f18 前移 13 提交、s01 仅 code.py 空输入守卫 2 行、README.zh.md 逐字一致）、站点轨 67a9126c 沿用（附录经 s01f-* 补登、站点页指纹零漂移）；实验 1 本集复算升【一】级。剧本 v1：55 句 1273 字 6 幕（正文 5.0 分+片头 23.5s≈5.4 分落窗 [4.4,5.6]）；④A 逐句核查 RISKY=0（46✅/6⚠️类比登记在册）、④B 外行评审 4 命中全修、⑤ 四层 pass+独立成文复审 REWRITE=0、改动句复核 RISKY=0；门禁 build/pre-tts/pron（语义未标注 0）/check_series（5 系列 655 文件 FAIL 0）/ledger verify FAIL 0（doc-tool-use-overview 官方页同日两态交替 WARN，复核确认成立、台账与 gl-notes 附录 B.1 落档）；制作轮收官（2026-10-30）：审批修订版 56 句 1307 字，⑥ 25 镜六场景 + 系列片头孪生挂载（harness-stack 五大组×20 章数据面）、⑦ me-bright/story TTS、⑨ QA 机器门+五帧高风险目检全绿（冻帧 WARN 数值裁定良性）、⑩ 终渲 289.3s（4.8 分）落窗交付 v1；同日 v2（p1-13「装置→程序」术语修订四面同步）+ v3（p2-03 拆两句 56→57 句/1322 字、词锚迁移、TTS 幂等重配）修订重渲交付（4.8 分落窗不变）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 2,
+          "slug": "chapters-02-tooluse",
+          "path": "episodes/claude-code-harness/chapters-02-tooluse",
+          "title": "Tool Use：多加一个工具，只加一行",
+          "topic": "Tool Use：工具分发——加一个工具只加两行（s02 单章）",
+          "cardSub": "机制拆解 · 工具",
+          "accents": [
+            "#EFB13C",
+            "#EF6461"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Tool Use（s02）",
+            "site": "https://learn.shareai.run/zh/s02/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-29"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep2 文案轮（2026-10-29）：s02 单章拆集（规划态钉站点轨，开工复核翻钉 main 7226f555——站点轨 s02 判据仍 stop_reason、直引必与 ep1 所教判据自相矛盾，且 main 前移新增「为什么还要加工具」接口论证一节；站点轨独有 CC 附录经 s02f-* 台账补登、站点页零漂移）。C 型信源=现行 171（I-234 后代次，与 ep1 同冻结正文代次）；实验 2（拔掉 tool_use_id 配对）本集复算升【一】级（pairing_errors 0→2、轮次 10/10 不退化）。剧本 v1：50 句 1325 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗 [4.4,5.6]）；④A 逐句核查 RISKY=0（47✅/3⚠️全修）、④B 外行评审 1 RISKY+6⚠️ 全修（正交白话注/乱序前提/因果环/函数→部件/落盘→存成文件/指代两处）、④C 纪律 21✅/1⚠️（账单小卡→计数小卡）；⑤ 四层 pass + 独立成文评审 REWRITE=5 全修（Z9 标点双停顿×3/朗读回归/Python 出口播/顿号×5/被字句×4）+ 4 建议采纳 + 复审收口；机器门 build/pre-tts（读法 0、字幕宽度 0）/check_series（17 集 FAIL 0）/ledger verify+audit FAIL 0/verify_skeleton 零漂移全绿。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 3,
+          "slug": "chapters-03-permission",
+          "path": "episodes/claude-code-harness/chapters-03-permission",
+          "title": "Permission：三道闸门，动手之前的裁决",
+          "topic": "Permission：三道闸门——动手之前的裁决（s03 单章）",
+          "cardSub": "机制拆解 · 权限",
+          "accents": [
+            "#7C6FF0",
+            "#4E9EFF"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Permission：三道闸门——动手之前的裁决（s03）",
+            "site": "https://learn.shareai.run/zh/s03/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep3 文案轮（2026-10-31）：s03 单章拆集（规划态钉站点轨，开工复核翻钉 main 7226f555——站点轨 s03 判据仍 stop_reason、直引必与 ep1 所教「认内容块」自相矛盾，且 main 前移新增闸门 2 词边界正则＋测试点 5 与 SYSTEM「裁决在执行之前」代码级正源；站点轨独有 CC 附录经 s03f-* 台账补登、站点页零漂移）。C 型信源=现行 171（I-234 后代次，与 ep1/ep2 同冻结正文代次）；实验 3（用户放行压过硬拒绝）本集复算升【一】级（deny_listed_executed 0→1、落地 7→8、轮次 10/10 不退化；次级实验 4 拆门 outside_writes 0→1 亦升【一】级）。剧本 v2：53 句 1363 字 6 幕（正文 est ≈5.4 分落窗 [4.4,5.6]；v1 51 句 1304 字落预算内，⑤ 修稿插句 2 句〔p4-08b/p4-08c〕后超幕预算 58 字、含片头口径 ≈5.8 分超窗顶 0.2 分——est 口径偏保守，ep1 实配基线成片快于 est 约 0.4 分，TTS 实测门兜底）；④A 逐句核查 RISKY=0（45✅/5⚠️类比登记在册/1 REWRITE 全修）、④B 外行评审 RISKY=0（45✅/5⚠️ 含幕级 I-032 走查缺口/2 REWRITE 全修）、④C 纪律 RISKY=0（50✅/4⚠️：句级多音字 1 已标、登记层 2 移交系列层批、策划层 1 已回改）；⑤ 四层 pass＋独立成文评审 REWRITE 轮迹 2→2→1→1（R4 尾项 p4-07 L3-2 风格项被轮次上限截留、字数不变留审批裁量）＋改动句复核 RISKY=0（16 句）；机器门 build/pre-tts（读法 0、字幕宽度 0、pron 语义未标注 0）/ledger audit+verify FAIL 0（site WARN 0；check_series 由主代理系列层登记后统一执跑）全绿。首尾署源制沿用（片头角标 p0-01＋片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 4,
+          "slug": "chapters-04-hooks",
+          "path": "episodes/claude-code-harness/chapters-04-hooks",
+          "title": "Hooks：扩展不进循环",
+          "topic": "Hooks：钩子注册表——扩展不进循环（s04 单章）",
+          "cardSub": "机制拆解 · 钩子",
+          "accents": [
+            "#8B7CF6",
+            "#58A6FF"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Hooks：钩子注册表——扩展不进循环（s04）",
+            "site": "https://learn.shareai.run/zh/s04/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep4 文案轮（2026-10-31）：s04 单章拆集（规划态钉站点轨，开工复核翻钉 main 7226f555——站点轨 s04 判据仍 stop_reason、且把 Stop 强制续跑括注成「CC 还支持」归属说反；main 把续跑写进教学正文 :80「返回非 None 时循环继续」即本集记忆点正源；站点轨独有 CC 附录经 s04f-* 台账补登、站点页零漂移、官方 hooks 页当日重钉基线）。C 型信源=现行 171（I-234 后代次，与 ep1/ep2 同冻结正文代次）；实验 5（忽略 Stop 续跑）本集复算升【一】级（stop_continued 1→0、turns 10/10→8/10、checkpoints 5/5→4/5），实验 4（注销权限回调）同升【一】级（越界写出 0→1、问询 2→0）。剧本 v3：55 句 1305 字 6 幕（正文 ≈5.1 分 + 片头 23.5s ≈ 5.5 分落窗 [4.4,5.6]，恰收幕预算上限 1305）；④ 三路全修——句级 12 处（A2/B8/C3、p3-03 跨镜头；REWRITE 5 + WARN 采纳 7）另头注 2 处 + planning 回改 1 处（计数自 .temp/prose-changelog.md 改动表复算）；⑤ 两轮——四层 pass（v1→v2，54 句零增删）+ 成文评审轮 1（v2→v3，唯一插句 p4-08b 补 P4 幕尾钩、重过 ④ 零新发现），改动句复核 RISKY=0；机器门 build/pre-tts（读法 0、字幕宽度 0）/pron-candidates（语义未标注 0）/ledger sync 幂等 + audit + verify 受检 6 FAIL 0 全绿（check_series 由主代理统一跑：规则 4 series.json 登记与规则 7 source_credit 补登本集条目两项编排层待办）。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 5,
+          "slug": "chapters-05-todowrite",
+          "path": "episodes/claude-code-harness/chapters-05-todowrite",
+          "title": "TodoWrite：把计划摆回模型眼前",
+          "topic": "TodoWrite：计划外显——把计划摆回模型眼前（s05 单章）",
+          "cardSub": "机制拆解 · 规划",
+          "accents": [
+            "#6E9BFF",
+            "#B48CF2"
+          ],
+          "source": {
+            "title": "Learn Claude Code · TodoWrite：计划外显——把计划摆回模型眼前（s05）",
+            "site": "https://learn.shareai.run/zh/s05/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep5 文案轮（2026-10-31）：s05 单章拆集（规划态钉站点轨，开工钉复核维持 67a9126c 未翻钉——main 轨 s05 自旧钉 ce8f9f18 前移 13 提交仅 2 行注释中文化 + 空输入守卫 2 行、无 ep2 式正源增量节，且 main HEAD 即钉点 7226f555（compare ahead 0、s05 零触碰）；反向差距成立：s05 独有「深入 CC 源码」附录（V1/V2 双任务系统/isTodoV2Enabled/activeForm/verification nudge/Task System 五项增量）只在站点轨＝本集【三】级断言正源；main 轨 7226f555 为对照轨，TodoManager 三限校验/reminder 进 tool results/渲染清单回填经 s05m-* 补登，站点页与旧系列 2026-10-07 基线零漂移）。C 型信源=现行 172（2026-10-23 I-235 缩写首现注解轮后代次 git 4876f80d3，晚于旧系列所冻 2026-10-14 第五次冻结，两代差异仅随文括注与「拆除→破坏」措辞、无断言面变化）；实验 E1（拆掉 nag reminder 注入）本集复算升【一】级（基线 3/3 步·提醒 1·漂移 0·收尾 True → 拆后 2/3 步·漂移 0→7·收尾 False；阈值 1＝提醒 6 次·消息 28 对 23、阈值 999 与拆掉逐项相同）。剧本 v2 终稿：55 句 1358 字 6 幕（v1 55 句 1305 字，④⑤ 修稿净增 53 字、幕预算 1305 为上限分配；正文 ≈5.3 分@254 字/分含停顿等效，片头 23.5s 承 ep1/ep2 含片头窗先例，硬门 target_minutes [4.4,5.6]≈1118–1422 字在窗内）；④A 逐句核查 RISKY=0（48✅/6⚠️〔3 合规类比 p0-05/p0-06/p5-02＋3 WARN p1-12/p3-06/p5-03〕/1 REWRITE p4-03 采视觉层「3+」方案②，全修）、④B 外行评审 RISKY=0（47✅/7⚠️＋1 REWRITE 全修：三步枚举口径统一、可见区口播首释、可见性通道闭环、指代具名、「这套」换名桥、漂移撞词、断句歧义）、④C 纪律 55✅/4⚠️（term-density P4 beat 拆分与 planning 前置概念列名回改已修全绿；余 2 ⚠️ 为工作区级登记项——vibe-video.toml source_credit 豁免与 series.json ep5 条目，由编排层处理）；⑤ 四层 pass＋独立成文评审 REWRITE 初值 2→修正→复审 0（p1-08 beat 并组四-8/p5-01 口语收束引子四-3）＋改动句复核 RISKY=0（15 改动单元·11 口播句全 VERIFIED）；机器门 build（55 句/1358 字/beat 17 段）/pre-tts（读法 0、字幕宽度 0、term-density 全绿）/pron（候选 33·语义未标注 0）/ledger sync 幂等全 skip＋audit FAIL 0＋verify 受检 6 FAIL 0 WARN 0 全绿（check_series 由主代理统一跑）；首尾署源制沿用（片头角标 p0-01＋片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 6,
+          "slug": "chapters-06-subagent",
+          "path": "episodes/claude-code-harness/chapters-06-subagent",
+          "title": "Subagent：过程隔离，只回结论",
+          "topic": "Subagent：过程隔离——子任务独立上下文干活，只回结论（s06 单章）",
+          "cardSub": "机制拆解 · 子代理",
+          "accents": [
+            "#9B8AFB",
+            "#4EA8DE"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Subagent：过程隔离——子任务独立上下文干活，只回结论（s06）",
+            "site": "https://learn.shareai.run/zh/s06/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep6 文案轮（2026-10-31）：s06 单章拆集（规划态钉站点轨，开工复核翻钉 main 7226f555——站点轨 s06 判据仍 stop_reason、直引必与 ep1 所教判据自相矛盾，且 main 版五决策表与「隔离的是消息，不是进程或文件系统」措辞正面服务本集边界叙事；站点轨独有「深入 CC 源码」附录经 s06f-* 台账补登、站点页零漂移）。C 型信源=现行 172（I-234 整改后代次，与 ep1/ep2 同冻结正文代次纪律；附录 A 类比登记表自旧系列 planning 冻结件逐字承袭，#3 会议室+共用白板为本集核心喻）；实验 E2（子代理改回传全部子历史）本集复算升【一】级（只回结论主对话 4 条/147 字符 vs 回传全史 16 条/2649 字符≈18.0 倍，direct 对照 14 条/2626、子代理内部 15 条/2617 自生自灭、blocked_in_sub 1）。剧本 v2：54 句 1331 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗 [4.4,5.6]，超幕预算 26 字=④⑤ 修稿采纳项累加、ep1 口径 1345 上限内）；④A 逐句核查 RISKY=0、2⚠️ 全修（「全是」全称断言/「装不下」即时误读）、④B 外行评审 1 REWRITE+5⚠️ 全修（「调用链」未释/数字叠放 4+15≠16/「对照在位」双术语/「自建的」先行概念断线/「上下文」首释零解释/「父级」词系脱钩）、④C 纪律 1 RISKY+5⚠️ 全修（头注英文全名/未登记喻「用完即焚」/十八倍易误算条数比/「机关」词表外/备注「下期」越位/兜底句口径漂移）；⑤ 四层 pass + 独立成文评审 REWRITE=1 全修 + 三处 beat 拆分（16→19 段）+ 复审收口（句 id 冻结 54 不增不删、改动句复核 RISKY=0）；机器门 build/pre-tts（读法 0、字幕宽度 0）/pron（语义未标注 0）/ledger sync 幂等·audit FAIL 0·verify FAIL 0 WARN 0 全绿（check_series 由主代理统一跑不写入）。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit——ep6 条目属编排者层补登）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 7,
+          "slug": "chapters-07-skillloading",
+          "path": "episodes/claude-code-harness/chapters-07-skillloading",
+          "title": "Skill Loading：目录常驻，全文按需",
+          "topic": "Skill Loading：两级加载——目录常驻、全文按需（s07 单章）",
+          "cardSub": "机制拆解 · 技能",
+          "accents": [
+            "#7E77E8",
+            "#4E9DF5"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Skill Loading：两级加载——目录常驻、全文按需（s07）",
+            "site": "https://learn.shareai.run/zh/s07/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep7 文案轮（2026-10-31）：s07 单章拆集（规划态钉站点轨，开工复核维持不翻——本集全部叙事数字锚〔三摞文档 2000/1500/3000 行、6500 行开场白 99% 无关、两层设计表 ~100/~2000〕与「深入 CC 源码」附录四节【三】级正源只在站点轨 README 在场，main 7226f555 前移 13 提交后 README.zh.md 逐字节一致、code.py 仅空输入守卫 2 行，与 ep2 翻钉 main 互为镜像；main 轨 SkillLoader/OS-aware 对照经 s07m-* 补登、站点页 fetch 零漂移）。C 型信源=现行 172（I-234/I-235 后整改代次，冻结自 2026-10-23 现行版，与 ep1/ep2 冻结的 171 同谱系）；实验 3（技能全文全量拼进开场白）本集复算升【一】级（三轮总输入 3059→25323、多付 22264、8.3 倍随轮数放大；episode C 基线 system 281、三轮 323/352/2384、目录四行约两百字符载四技能）。剧本 v2（④⑤ 定稿，句集与 v1 一致无增删重排）：54 句 1364 字 6 幕（正文 est ≈5.4 分在窗 [4.4,5.6]；超幕预算 59 字〔+20 界超 39，④⑤ 修复净增 43 字〕、est+片头 23.5s ≈5.8 分超含片头窗上沿约 0.2 分——参照 ep1 实测语速 ≈298 字/分推算成片 ≈5.0 分在窗中段，压窗删句或放行随审批裁决）；④ 三路全修（A 1 REWRITE：p1-09「两千→上千」数字口径三重风险；B 9 WARN：先释后用门/核心对象首现锚/听觉歧义/近义白话撞名/换单位桥接/同一物两名与术语统一×3/新对象无桥接；C 3 RISKY+1 REWRITE+6 WARN：规则 7 头部三连禁词×3/「活得」断词/数字汉字化/多音字/系列兜底句/豁免登记缺失，planning 6 处连坐回改）；⑤ 四层 pass REWRITE 初值 0 收口（18 处改动全为 ④ 修复落笔 v1→v2、无改动登记 3 条裁量：A#7 合规/术语密度误计/p2-08 保留，改动句复核无 RISKY 遗留）；机器门 build/pre-tts（读法 0、字幕宽度 0）/pron（候选 20 处、语义规则未标注 0）/ledger sync 幂等全 skip+audit 期望 3 在册 3+verify 受检 6 FAIL 0 WARN 0（doc-skills 官方页较旧基线漂移属构建产物常态轮替、语义面复核成立、1536 按「默认上限」口径）全绿。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-07/p5-08，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 8,
+          "slug": "chapters-08-contextcompact",
+          "path": "episodes/claude-code-harness/chapters-08-contextcompact",
+          "title": "Context Compact：先整理，再总结",
+          "topic": "Context Compact：上下文压缩——四步管线腾地方，便宜的先跑贵的后跑（s08 单章）",
+          "cardSub": "机制拆解 · 压缩",
+          "accents": [
+            "#4E9FFF",
+            "#7C6BE8"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Context Compact：上下文压缩——四步管线腾地方，便宜的先跑贵的后跑（s08）",
+            "site": "https://learn.shareai.run/zh/s08/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep8 文案轮（2026-10-31）：s08 单章拆集（规划态钉站点轨，开工复核翻钉 main 7226f555——自旧钉 ce8f9f18 前移 13 提交，s08 全重写正源：顺序论证两节新增 + 压前落盘占位带路径/seen-unseen 未读豁免/批次闭合等机制级演进全在 main，snip 触发/目标分离 50/30 新钉口径、旧钉 3＋46 禁引；站点轨独有 CC 源码附录经 s08f-* 台账补登、站点页零漂移；官方两页同日 re-fetch 已改版、「先清旧工具输出再摘要」顺序句消失——口播不引该快照句，顺序主张由【一】级钉选 code.py 执行序承担）。C 型信源=现行 173 精读冻结（2026-10-31；ep1/ep2 为 171，本集为其后续现行代次）；核心消融 order_swap（budget 与 micro 换序）本集复算升【一】级（完整落盘 1→0 份、死占位 11 处——顺序即数据生死主线实证；基线 selftest 21 断言全绿、t4 走查 6.3 万→16155）。剧本 v1：55 句 1325 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗 [4.4,5.6]）；④ 三路全修 RISKY=0（A 2/B 8/C 6 处；未采纳 3 处备档：p2-03 对账句/p3-08 归属消歧预算无余额、p4-09 低危镜头明示维持）；⑤ 一轮 v1→v2 落地 ④ 全修复（REWRITE 级 9 处清零：落盘→存盘一族 5/纸字撞喻/P4 幕 2/窗口首现插句 p4-08b；④ 净增 26 字、⑤ 修剪 22 字抵扣，明细 .temp/prose-changelog.md）+ 复审收口、改动句复核 RISKY=0；机器门 build/pre-tts（读法 0、字幕宽度 0）/pron（语义未标注 0）/ledger sync 幂等+audit 在册 3/3+verify 受检 7 全 FAIL 0 WARN 0（check_series 由主代理统一跑）。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 9,
+          "slug": "chapters-09-memory",
+          "path": "episodes/claude-code-harness/chapters-09-memory",
+          "title": "Memory：索引与按需加载",
+          "topic": "Memory：持久记忆——索引常驻与正文按需（s09 单章）",
+          "cardSub": "机制拆解 · 记忆",
+          "accents": [
+            "#8B7EC8",
+            "#5FA8E0"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Memory：持久记忆——索引常驻与正文按需（s09）",
+            "site": "https://learn.shareai.run/zh/s09/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep9 文案轮（2026-10-31）：s09_memory 单章拆集（规划态钉 main 旧钉，开工复核自 ce8f9f18 前移 13 提交翻钉 7226f555——站点轨 s09 判据仍 stop_reason、直引必与 ep1 所教「认内容不认字段」自相矛盾，且站点轨 code.py 内嵌 s08 压缩管线而 main 轨架构分家正合 ep8/ep9 一章一集，「记忆不能脏」机制正源（五重检查/路径防御三道闸/召回两万字符预算/快照回滚）只在 main 做厚；站点轨独有「深入 CC 源码」附录经 s09f-* 台账补登恒【三】级、站点页指纹零漂移、官方 doc-memory/doc-context-window 2026-10-31 语义面复核在场、指纹钉当日态）。C 型冻结源=现行 173 精读（I-235 缩写首现注解后代次 4876f80d3，与 ep1 冻结 171 同属 I-234/I-235 整改后代次族，s09 单章取材）；核心消融「关掉写入门控」本集复算升【一】级（两轮提取落盘 3→5 条、「这次别建文件」类临时嘱咐入库变永久规矩、同偏好重复 +1；辅证消融「去掉整理回滚」2→0 条，selftest 21 项全绿）。剧本 v1 55 句 1323 字 → ⑤ 后 v2 55 句 1355 字 6 幕（正文 ≈5.3 分 + 片头 23.5s，机器门正文估算口径 5.3 分落窗 [4.4,5.6]、含片头字符口径 ≈5.7 分贴窗顶但估算偏保守承 ep1 实测 4.8 分先例，制作期 manifest 实测复跑）；④ 三路 RISKY=0 全修——④A 真实性句级 2（索引在库内非目录之外、五道检查序数按源码检查序归组）+ 位置级 2（P1 角标补英文对照、P3 门装置备注同步）、④B 外行评审句级 7（目录→文件夹消歧、制表符先释锚空格、开场白句内先释、指代先行立对象、取回动词统一、对照系锚定真实产品、收束专名回收一页索引，p1-08 双属 A/B）+ 位置级 1、④C 类比准入 2 句（家安在哪→存在哪、这张图纸→这套设计）+ ep8 草稿纸对表判 OK 不回调 + 3 位置级 WARN 落档跨阶段待办（TTS 多音字复听 4 词、署源豁免系列层登记、ep10「开场说明→开场白」对表）；⑤ 四层 pass 一轮 v1→v2（净 +32 字、句 id 集合与顺序零变化）+ 独立成文复审 REWRITE=0 + 改动句复核 RISKY=0（事实冻结面数字/单位/归属句式/走查与消融步骤零触碰）；机器门 build（55 句/1355 字/6 幕/5.3 分）/pre-tts（读法陷阱 0、字幕宽度 0、FAIL 0 WARN 0）/pron（候选 13 处非门、语义规则未标注 0）/ledger sync 幂等全 skip + audit FAIL 0 + verify 受检 7 FAIL 0 WARN 0 全绿（check_series 由系列层统一跑）；首尾署源制沿用（片头角标 p0-01 视觉层 + 片尾署源句 p5-07/p5-08，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 10,
+          "slug": "chapters-10-systemprompt",
+          "path": "episodes/claude-code-harness/chapters-10-systemprompt",
+          "title": "System Prompt：提示是拼出来的，不是写死的",
+          "topic": "System Prompt：按真实状态组装——分段、拼装、缓存三步（s10 单章）",
+          "cardSub": "机制拆解 · 系统提示",
+          "accents": [
+            "#A78BFA",
+            "#5CA8FF"
+          ],
+          "source": {
+            "title": "Learn Claude Code · System Prompt：按真实状态组装——分段、拼装、缓存三步（s10）",
+            "site": "https://learn.shareai.run/zh/s10/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep10 文案轮（2026-10-31）：s10 System Prompt 单章拆集（钉站点轨 67a9126c——机制唯一独立章形态：四段 PROMPT_SECTIONS「三恒加一按需」+ get_system_prompt 进程内缓存完整教学实现与「深入 CC 源码」【三】级深潜附录只在站点轨，main 17 章版无 s10 目录双 404 实测；main 轨 7226f555 对照登记 s10m-*——s15 七段每轮重建作「两轨分歧、都对目标不同」叙事支点，自冻结正文所记 ce8f9f18 前移 13 提交复核、assemble_system_prompt 函数体与七键字典两钉 cmp 逐字一致；站点实况零漂移）。C 型信源=现行 172（2026-10-23 I-235 缩写首现注解后代次，此前 10-14/10-22 两轮均为文字面演进、机制与实测数字零变动）；episode D 走查与消融 E4 本集复算升【一】级（闲聊提记忆零误注入+缓存命中 113 恒稳；判据改猜关键词误注入 0→1、提示 113→147 字符跳变）。剧本 v2：56 句 1372 字 6 幕（正文 ≈5.4 分 + 片头 23.5s 估算 ≈5.8 分——机器门 254 字/分正文口径 5.4 分落窗 [4.4,5.6]，含片头加法口径超上沿 0.2 分；story 实配历史实测 ≈298 字/分（ep1 1322 字含片头终渲 4.8 分先例）折算 ≈5.0 分在窗，⑦TTS 后 manifest 实测口径复跑本门定谳）；④A 逐句核查 RISKY=0、命中 4 句全修（p0-07/p1-09 REWRITE、p3-02/p4-09 WARN）、④B 外行评审命中 4 句全修（p0-04 加锚/p1-06 带值微例/p1-09 两坑拆拍/p4-08 计费锚；p1-06b/p1-09b/p4-08b 三句字母后缀插句为超 40 字合规拆行）、④C 纪律命中 1 句全修（p4-10「相差」）、p5-07 署源豁免登记移交系列层；⑤ 四层 pass REWRITE=0（L1–L4 零改动层留档）+10 处改动/新增句朗读复核 RISKY=0；机器门 build/pre-tts（读法 0、字幕宽度 0、pron 语义未标注 0）/ledger sync 幂等+audit+verify（受检 5）FAIL 0 全绿（check_series 由系列层统一跑不写入）；首尾署源制沿用（片头角标 p0-01 视觉层 + 片尾署源句 p5-07/p5-08，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 11,
+          "slug": "chapters-11-errorrecovery",
+          "path": "episodes/claude-code-harness/chapters-11-errorrecovery",
+          "title": "Error Recovery：报错先分类，循环不亡",
+          "topic": "Error Recovery：分类恢复——报错先分类走三条有界退路，循环不亡（s11 单章）",
+          "cardSub": "机制拆解 · 恢复",
+          "accents": [
+            "#6C8CFF",
+            "#B48EF5"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Error Recovery：分类恢复——报错先分类走三条有界退路，循环不亡（s11）",
+            "site": "https://learn.shareai.run/zh/s11/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep11 文案轮（2026-10-31）：s11 单章拆集（钉站点轨 67a9126c——main 轨无 s11 独立章、恢复仅并入 s15「压缩和恢复」4 项压缩改写列表，三路径分步走查与六节「深入 CC 源码」深潜【三】级正源只在站点轨，教学取值 64K/续写3/压缩1/重试10/529×3 即站点轨 code.py 常量区逐行可数零换算直引；main 7226f555 对照轨 16K/重试3/529×2 逐项复算成立、台账 s11m-* 补登，站点页与双分支 HEAD 零漂移）。C 型信源=现行 172（I-234 词族整改+缩写首现注解代次，仓内 commit 4876f80d3 实测，与 ep1/ep2 同一冻结正文代次族）；实验 5（分类恢复改一刀切重试）本集复算升【一】级（10 次全撞墙白等 175.6s·standalone 口径 vs 分类路径压缩一次 0.0s 恢复；episode E 基线齐复算：3.7s 恢复不切换/三连 529 切 model-backup 4.1s/压缩 9→6/token 8000→64000 续写 3/3）。剧本 v2 终稿：56 句 1331 字 6 幕（v1 55 句 1316 字＋④⑤ 修缮净增 15、插句 p4-02b；正文 ≈5.2 分 + 片头 23.5s ≈5.6 分落窗 [4.4,5.6]）；④A 逐句核查 1 RISKY（p2-04 与原型实测相反）全修＋1⚠️维持（p0-03 类比在册 1 句引述即收）、④B 外行评审 7 处全修（1 REWRITE＋6⚠️：额度先释/术语密度拆 beat/教学版标签/重试上界首现/三层嵌套拆句/称名漂移/行话落盘）、④C 纪律 7 处全修（未登记喻×3/裸小数读法×2/多音字消歧/planning 前置概念 SSOT 回改）；⑤ 成文优化四层 pass 一轮收敛 v1→v2（REWRITE=0）＋改动句复核 RISKY=0；机器门 build（56 句 1331 字 est 5.2 分）/pre-tts（读法 0、字幕宽度 0）/pron（候选 24、语义未标注 0）/ledger sync 幂等全 skip·audit FAIL 0·verify 受检 5 FAIL 0 WARN 0 全绿。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit narration_ids=[p0-01,p5-06] 随系列层交付统一补登记）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 12,
+          "slug": "chapters-12-tasksystem",
+          "path": "episodes/claude-code-harness/chapters-12-tasksystem",
+          "title": "Task System：从执行清单到可认领的契约",
+          "topic": "Task System：任务板契约——大目标拆卡落盘、依赖挡在认领前（s12 单章）",
+          "cardSub": "机制拆解 · 任务",
+          "accents": [
+            "#9B8CFF",
+            "#58B7FF"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Task System：任务板契约——大目标拆卡落盘、依赖挡在认领前（s12）",
+            "site": "https://learn.shareai.run/zh/s12/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep12 文案轮（2026-10-31）：s12_task_system 单章拆集、钉站点轨 67a9126c 不翻钉（main 前移复核 7226f555 ahead 13 提交：README.zh.md diff 0 行、code.py 仅空输入守卫 2 行、无正源级增量；「深入 CC 源码」附录五小节只在站点轨——TaskRecord 九字段/认领锁五步/30 次重试 5–100ms/高水位标【三】级正源，钉 main 即失靶；main 副本 s12m-* 台账对照，两阶段建图与归属人校验面已落冻结正文 §3 覆盖内）。C 型信源=现行 175 多 Agent 平台精读冻结（去比喻整改后代次；口播类比唯一准入表自旧系列 ep5 冻结件承袭，本集实引「任务墙」一行、失配边界句随行）；实验 E1（坏依赖放行）本集复算升【一】级（基线 Blocked by: ['task_999'] → 拆后 Claimed task_005 (ghost)；selftest 18 断言全绿 · 128 行日志）。剧本 v2：54 句 1403 字 6 幕（正文估算 ≈5.5 分落窗 [4.4,5.6]、门余量 0.1 分；+片头 23.5s 名义 ≈5.9 分由 story 实测语速快于 254 字/分保守口径消化——ep1 先例 1307 字终渲 4.8 分含片头，TTS 实测复跑 pre-tts 为执法点、超窗按预案回收四幕 ⑤ 增字；v1 1300 字＋⑤ 先释/承接增字 ≈100）；④A 逐句核查 RISKY=0（54✅/0⚠️）、④B 外行评审 2 RISKY+8⚠️ 全修（依赖/归属/依赖列表/解锁/下游白话先释、初稿→排版开工实例、工具主语锚、锁承接句、p4-06 教学版锚/p4-07 调用白话两 REWRITE）、④C 纪律 1⚠️ 全修（narration 头部事实源删章号「s12」与「站点」token——规则 7 整文件执法、头部不可豁免）；⑤ 四层 pass + 改动句复核 RISKY=0、复审 REWRITE=0（v1→v2 明细 .temp/prose-changelog.md）；机器门 build/pre-tts（读法陷阱 0、字幕宽度 0）/pron（候选 9 处、语义未标注 0）/ledger audit（期望 3 在册 3）+verify（受检 5、site 当日 fetch 零漂移 WARN 0）全绿，check_series 系列统一门由主代理跑。首尾署源制沿用（片头署源角标 p0-01 视觉层 + 片尾署源句 p5-05/p5-06，p5-05 豁免待随审批登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 13,
+          "slug": "chapters-13-backgroundtasks",
+          "path": "episodes/claude-code-harness/chapters-13-backgroundtasks",
+          "title": "Background Tasks：慢命令丢后台，结果走通知",
+          "topic": "Background Tasks：慢命令后台化——占位回执与通知回注（s13 单章）",
+          "cardSub": "机制拆解 · 并发",
+          "accents": [
+            "#7C9EFF",
+            "#C084FC"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Background Tasks：慢命令后台化——占位回执与通知回注（s13）",
+            "site": "https://learn.shareai.run/zh/s13/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep13 文案轮（2026-10-31）：s13 Background Tasks 单章拆集（钉站点轨 67a9126c——s13 独有六段「深入 CC 源码」附录为本集【三】级断言正源、分派双闸门口径与 176 冻结正文主讲一致；main 轨 s11 已删关键词兜底、作「这条演化」对照，前移 13 提交仅 code.py +6/-1 无正源级增量不翻钉，副本落 s13m-* 对照；站点实况页与站点轨双件较 2026-10-07 基线零漂移）。C 型信源=现行 176 精读冻结（2026-10-13 生成、现行代次 2026-10-23 词族/缩写整改均为措辞层、机制内容未变）；实验 e5（拔掉启发式兜底）本集复算升【一】级（pip 分派 heuristic→sync、主循环阻塞 0s→600s；教学版后台复用 120 秒超时与摘要截 200 字同场实测）。剧本 v1：53 句 1308 字 6 幕（正文 5.1 分 + 片头 23.5s ≈ 5.5 分落窗 [4.4,5.6]）；④A 逐句核查 53 句全判 RISKY=0（1 REWRITE【三】级归属错挂 + 3⚠️ 全修，3 组类比句附录 A 在册、失配边界句随行）、④B 外行评审 RISKY=0（1 REWRITE + 7⚠️ 全修：闸门口播锚/术语栈×2/听觉卡顿/「漏」双解/任务撞名/幕 P1 超密/版本行）、④C 纪律镜头无 RISKY（前置概念列按 narration 单向回改 planning、gl-notes 链接说明行规避规则 5 假报；termsDeclared 供 --term-density 声明词全命中，唯一 WARN 为 p5-08 署源专名、承 ep1/ep2 先例豁免）；⑤ 四层 pass + 独立成文评审 REWRITE=6（Z9 破折号簇）全修 + 改动句复核 RISKY=0（p4-01/p4-02 超时上限口径回锚后台路径再修后 VERIFIED）；机器门 build（53 句/1308 字/5.1 分）/pre-tts（读法 0、字幕宽度 0）/pron（16 候选 0 语义未标）/ledger audit（期望 3 在册 3）+ verify（受检 9 FAIL 0 WARN 0）全绿；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-08/p5-09，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 14,
+          "slug": "chapters-14-cronscheduler",
+          "path": "episodes/claude-code-harness/chapters-14-cronscheduler",
+          "title": "Cron Scheduler：按时间表生产工作",
+          "topic": "Cron Scheduler：定时调度——到点与有空，分给四个角色（s14 单章）",
+          "cardSub": "机制拆解 · 调度",
+          "accents": [
+            "#8B93F8",
+            "#56C8FF"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Cron Scheduler：定时调度——到点与有空，分给四个角色（s14）",
+            "site": "https://learn.shareai.run/zh/s14/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep14 文案轮（2026-10-31）：s14 单章拆集（规划态钉站点轨 67a9126c，开工复核默认钉成立不翻钉——冻结源 176 §4 四层解耦与 s14 README「四层模型」节逐节对应、DOM/DOW OR 明文与本集【三】级唯一正源「深入 CC 源码」附录均只在站点轨；main 前移增量=至少一次交付工程加固四件，冻结正文定位 §5 注记/§9.2 争议三对照位非主线依赖，翻钉要件不成立，main 7226f555 以 s14m-* 对照台账在册；站点页与两官方页零漂移/语义面一致）。C 型信源=现行 176 精读冻结（承旧系列并发集 174 重学代次；实验复算对象按冻结源 §8 = cc_async_scheduling_lab，任务文本旧名 lcc 实验室属 174 代次不采）；实验 e3/e4 本集复算升【一】级（2026-10-31 selftest：e3 或改且『0 9 1 * 1』@周一 True→False 静默漏触发；e4 核心消融无视忙锁硬注入 inj_busy False→True、walk_aways 5→0）。剧本 v1：49 句 1324 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈5.6 分顶格落窗 [4.4,5.6]）；④A 逐句核查 49 句 1 RISKY 全修（p5-02「循环一行没改」与钉选 code.py 相悖→「照常收活」；类比 4 喻 9 句附录 A 登记在册）、④B 外行评审 7⚠️ 全修（e3 规则值前移口播/「循环」双指两处加所有具名/称谓回对齐/新术语 beat 超载拆拍/「两个开关」承诺视觉兑现/P1 带值走查幕级联合满足零字豁免）、④C 纪律 4 项全修（未登记形象词→「最后一问」/p3-05 CHONG2 读音标注/p5-06 署源豁免补登 vibe-video.toml/planning 前置概念列回改）；⑤ 四层 pass（全部加字修法等量对冲）+ 独立成文评审 REWRITE 2 全修（p1-10 幕尾钩子断档→「？先记着。」跨幕开环、p2-04 破折号特征簇→三动作小句，实稿 1325→1324）+ 改动句复核 RISKY=0 零回退；机器门 build（49 句/1324 字/估算 5.2 分）/pre-tts（读法 0、字幕宽度 0、FAIL 0 WARN 0）/pron-candidates（候选 11 处、语义未标注 0）/ledger sync 幂等全 skip + audit 期望 3 在册 3 + verify 受检 7 FAIL 0 WARN 0/verify_skeleton 本集零漂移全绿。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 15,
+          "slug": "chapters-15-agentteams",
+          "path": "episodes/claude-code-harness/chapters-15-agentteams",
+          "title": "Agent Teams：文件收件箱与持久队友",
+          "topic": "Agent Teams：文件收件箱——队友不共享对话，只递信（s15 单章）",
+          "cardSub": "机制拆解 · 团队",
+          "accents": [
+            "#D946EF",
+            "#3EB6E8"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Agent Teams：文件收件箱——队友不共享对话，只递信（s15）",
+            "site": "https://learn.shareai.run/zh/s15/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep15 文案轮（2026-10-31）：s15 单章拆集（钉站点轨 67a9126c 维持——s15 恰为「团队」单章（MessageBus 文件收件箱 / spawn_teammate_thread 持久队友 / Lead inbox 注入三件套），章属「深入 CC 源码」附录为本集【三】级断言正源且 main 已删；main 7226f555 s13_agent_teams 系四课整合章、第 6–12 节吞并 s16/s17/s18 三章正源，降对照登记 s15m-*、真增量不进主线防泄题 ep16–18；站点页 s15 零漂移）。C 型信源=现行 175（2026-10-07 换代重写代次，旧系列 ep5 冻结件所据为换代前版——附录 A 楼域类比表自旧冻结件逐字承袭、本集仅启用「递话口」行三段机制语义）。实验 E3（拆统一消费入口）本集复算升【一】级（2026-10-31 selftest 18 断言全绿：工具直读后 req_000001 永远 pending、再读 0 条；入口统一对照侧两单关机全办成）。剧本 v2：53 句 1280 字 6 幕（正文 ≈5.0 分 + 片头 23.5s ≈ 5.4 分落窗 [4.4,5.6]，幕预算 1305 内）；④A 事实镜头 ⚠️2 全修（E3 两侧等量齐观 /「退避」串词超登记面）RISKY=0、④B 外行镜头 REWRITE 2+⚠️10 全修 RISKY=0、④C 纪律镜头 REWRITE 1+RISKY 1（「临时工」未登记喻改工程直陈）+⚠️6 全修（明细 .temp/prose-changelog.md）；⑤ 成文优化 v1→v2 一轮 REWRITE 收敛至 0 + 改动句复核 RISKY=0；机器门 build（53 句 1280 字）/pre-tts（FAIL 0·WARN 0，读法 0、字幕宽度 0）/pron-candidates（候选 7、语义规则未标注 0）/ledger sync 幂等全 skip+audit 期望 3 在册 3 FAIL 0+verify 受检 6 FAIL 0·WARN 0；check_series 由主代理统一跑。首尾署源制沿用（片头角标 p0-01 视觉层 + 片尾署源句 p5-05/p5-06，豁免登记工作区 vibe-video.toml check_series.source_credit，RSI I-080）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 16,
+          "slug": "chapters-16-teamprotocols",
+          "path": "episodes/claude-code-harness/chapters-16-teamprotocols",
+          "title": "Team Protocols：对上号，才改状态",
+          "topic": "Team Protocols：请求-响应协议——对上号才改状态（s16 单章）",
+          "cardSub": "机制拆解 · 协议",
+          "accents": [
+            "#7D91FF",
+            "#C792EA"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Team Protocols：请求-响应协议——对上号才改状态（s16）",
+            "site": "https://learn.shareai.run/zh/s16/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep16 文案轮（2026-10-31）：s16 单章拆集（站点 20 章版唯一独立协议章，维持建档规划钉站点轨 67a9126c——main 轨 s13_agent_teams 为团队四课合并章、协议仅剩 §11/§12 且删尽 CC 附录，降为对照轨 s16m-* 登记取用不改钉；站点页 s16 与旧系列基线零漂移）。C 型信源=现行 175（2026-10-07 换代重写 PR #1189 经 I-234 词族整改代次，2026-10-31 冻结；附录 A 类比登记表自旧系列 ep5 冻结件逐字承袭，本集实引回执簿一喻）。实验 E2 关掉类型校验本集复算升【一】级（selftest 18 断言全绿：一条关机回复把 pending 的计划审批硬改成 approved；配套 E3 去掉统一消费入口——关机单永 pending、二读 0 条，S2 防重探针——改写计数 1→2、反话副本翻案至 3，三件皆复算）。剧本 v2：55 句 1402 字 6 幕（正文 ≈5.5 分机器窗 [4.4,5.6] 正文口径在窗、含片头 23.5s 估算口径 ≈5.9 分压上限——承 ep1 实测先例 story 档实配语速快于 254 字/分估算，TTS 后 manifest 实测口径复跑定窗，超窗须删句即回 ③）；④A 逐句核查 RISKY=0（47✅/6⚠️全修，含 REWRITE×2：p3-05 E2 口径、p4-09 裸词「课程」；另画面备注称谓 3 处随修＋回执簿回扣插句 p5-03b）、④B 外行评审 RISKY=0（1 REWRITE+10⚠️全修：p2-06b「协议状态机」先释后用插句、类型/品类词面统一、「主循环」→「循环本身」、p4-05 命名设问桥接、P4 拆两 beat 等）、④C 纪律 1 RISKY+1 REWRITE+4⚠️全修（头注 s16×2＋「站点」规则 7 隐患清零、p4-09 裸词、termsDeclared×2）；⑤ 成文优化＋独立评审三轮收敛（REWRITE 初值 6→0：L4 顿号×1、Z9 破折号簇×4、beat 单句组归并×1），改动句逐句回④复核 RISKY=0；机器门 build/pre-tts（读法 0、字幕宽度 0、FAIL 0·WARN 0）/pron-candidates（语义未标注 0）/ledger sync 幂等＋audit＋verify（FAIL 0、site WARN 面为零）全绿。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 17,
+          "slug": "chapters-17-autonomousagents",
+          "path": "episodes/claude-code-harness/chapters-17-autonomousagents",
+          "title": "Autonomous Agents：自己看板，自己认领",
+          "topic": "Autonomous Agents：空闲自认领与认领原子性——没人派活，活也能分下去（s17 单章）",
+          "cardSub": "机制拆解 · 自治",
+          "accents": [
+            "#38BDF8",
+            "#E879F9"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Autonomous Agents：空闲自认领与认领原子性——没人派活，活也能分下去（s17）",
+            "site": "https://learn.shareai.run/zh/s17/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep17 文案轮（2026-10-31）：s17 单章拆集（规划钉站点轨 67a9126c，开工复核默认钉成立不翻钉——自治单章仅存于站点轨〔main 轨 s17=Goal Loop 撞号异物、自治已并入 s13_agent_teams 团队整合章〕，单章机制面全覆盖且独有「深入 CC 源码」附录=【三】级断言正源，s17-site 与旧系列 multiagent 基线零漂移；main 7226f555 登记对照轨 s17m-*，承接冻结正文「main 轨把这步补齐了」：发现与认领两步化＋task_store_lock 进程锁/文件锁双重临界区＋锁内重读防 TOCTOU＋无固定超时，钉点可数【一】级；官方页 doc-agent-teams 时点快照「文件锁防同时抢任务」句在场【二】级）。C 型信源=现行 175「多 Agent 平台」（2026-10-07 换代重写后代次，§6 自治即本集单章主线；附录 A 类比准入表自旧系列 ep5 冻结件逐字承袭＋补登电影院线上选座与场景专名内容工厂豁免）；实验 E4（去掉认领原子性）本集复算升【一】级（撤锁无锁交错双方假成功、终值归后写者；装锁同场景仅一人成功；selftest 18 断言全绿）。剧本 v2：56 句 1343 字 6 幕（正文 ≈5.3 分，机器门口径 1343÷254 落窗 [4.4,5.6]、窗上限 1422 字余 79；含片头 23.5s 估算 ≈5.68 分——双口径同 planning §四尾注登记）。④A 逐句核查 RISKY=0（1⚠️ p0-01「从不停工」按 H1 选定一致性门保留不改）；④B 外行评审 1 REWRITE＋5⚠️ 全修（p1-08 清单先释锚/p3-03 快照时间限定/p4-01「另一版」补锚/p4-02 beat 术语密度/p4-06 归属句去重/p4-10 补宾语）；④C 纪律 2 修＋1 登记豁免＋发音候选 11 处处置（p1-05 未登记俗语→工程直陈、p4-09「五百毫秒一级」→「一轮」，p2-01「内容工厂」场景专名登记豁免口播零改动，候选留 TTS 复听不改稿）。⑤ 四层 pass 修 8 句净增 29 字（v1 1319→1348）＋独立成文评审 REWRITE 2→0 全修（净减 5 字至 1343：p4-01 删宣示语、p4-10 悬案改两难对照）＋改动句护栏复核 RISKY=0（句 id 集 56 不变、零增删零重排零插句、事实冻结面逐字未动）＋机器门复跑全绿。机器门 build（56 句 1343 字 5.3 分落窗）/pre-tts（读法 0、字幕宽度 0、FAIL 0·WARN 0）/pron-candidates（候选 11、语义规则未标注 0）/ledger sync 幂等＋audit 期望 3 在册 3＋verify 受检 6 全 FAIL 0·WARN 0。首尾署源制沿用（片头角标 p0-01＋片尾署源句 p5-06/p5-07，豁免拟登记 vibe-video.toml check_series.source_credit 随系列层统一落）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 18,
+          "slug": "chapters-18-worktreeisolation",
+          "path": "episodes/claude-code-harness/chapters-18-worktreeisolation",
+          "title": "Worktree Isolation：一个任务，一个房间",
+          "topic": "Worktree Isolation：目录隔离——一个任务一间房、收尾默认拒绝（s18 单章）",
+          "cardSub": "机制拆解 · 隔离",
+          "accents": [
+            "#C15AE8",
+            "#3FA4C4"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Worktree Isolation：目录隔离——一个任务一间房、收尾默认拒绝（s18）",
+            "site": "https://learn.shareai.run/zh/s18/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep18 文案轮（2026-10-31）：s18 单章拆集（钉站点轨 67a9126c——s18 为 20 章版独有单章、main 无 s18+（团队四课并入 s13_agent_teams 的 §9/§10），单章叙事完整 +「深入 CC 源码」附录为本集【三】级断言正源；main 轨 7226f555 对照不钉、三处语义加固（宿主侧移除/assignment lease/绑定损坏认领即失败）作生产化方向【二】级；官方 worktrees 页增量补证台账 doc-worktrees）。C 型冻结源=现行 175《多 Agent 平台》精读（2026-10-07 换代重写后代次；与旧系列 ep5 冻结的换代前代次在「认领是否自动切目录」表述分歧，已按钉点源码定案两条路径并存——口播 p2-04 限定「用认领工具接走」）。本集核心消融复算升【一】级（2026-10-31 钉点 s18 code.py 守卫沙箱探针 18 项断言全绿：守卫在位、房内 1 个未提交文件 remove_worktree 默认拒绝且房线俱在 ↔ discard_changes=true 旁路强删→未提交文件无声蒸发 + wt/auth 分支 branch -D 连坐删除；lcc 原型零 worktree 代码、E1–E5 无一消融本集机制，selftest 18 断言全绿仅作整体复算口径）。剧本 v2：50 句 1363 字 6 幕（正文 1363÷254 ≈5.4 分落窗 [4.4,5.6] + 片头 23.5s 含窗口径承 ep1/ep2——est_min 距窗顶 0.2 分，ep1 实配基线 ≈0.20s/字外推成片 ≈5.0 分在窗，TTS 后实测口径门复跑）；④A 逐句核查 RISKY=0（47✅/3⚠️全修 + 登记面 2⚠️：「这堵墙」补入 P4 一次性白话对照清单，narration 头部与 planning §二同步）、④B 外行评审 3 RISKY+7⚠️ 全修（先释白话同位语/指代先行词/实验术语与未释术语白话化/I-032 微走查具象/动作枚举回锚）、④C 纪律扫描 RISKY=0（5⚠️全修：发音预防标注×3 +【三】级归属句式前移收编计数断言 + termsDeclared 对账回改）；⑤ 四层 pass + 独立成文评审 REWRITE 2 项全修（P3 beat 重划消单句组、Z9 幕内破折号×2 改逗号回吐 2 字）→ 复审 REWRITE=0、改动句复核 RISKY=0（句 id/事实/标注三冻结守住）。机器门 build（50 句 1363 字/6 幕派生）/pre-tts（读法陷阱 0、字幕宽度 0、est 5.4 分落窗）/ledger sync 幂等全 skip + audit 期望 3 在册 3 + verify 受检 6 FAIL 0/WARN 0 全绿；check_series 由主代理统一跑、不写入本注。首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit 随系列层补录——④A/④C 系列层移交项）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 19,
+          "slug": "chapters-19-mcpplugin",
+          "path": "episodes/claude-code-harness/chapters-19-mcpplugin",
+          "title": "MCP 与插件：发现、命名、组装",
+          "topic": "MCP 与插件：外部工具接入——发现、命名、组装，池变缓存作废（s19 单章）",
+          "cardSub": "机制拆解 · 接入",
+          "accents": [
+            "#A855F7",
+            "#3B82F6"
+          ],
+          "source": {
+            "title": "Learn Claude Code · MCP 与插件：外部工具接入——发现、命名、组装，池变缓存作废（s19）",
+            "site": "https://learn.shareai.run/zh/s19/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "7226f555d48900076eba126acf37c9ed5f002b5d",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep19 文案轮（2026-10-31）：s19 单章拆集（开工复核翻钉 main 7226f555——main s14_mcp_plugin 有三节机制级正源增量：§6 宿主权限策略〔MCP_HOST_POLICY 4 条、readOnlyHint 不作授权依据〕/§4 规范化撞名报错+全名 64 字符线〔教学版口径〕/§7 工具输入错误留在边界内，175 §8 收束原则「外部服务的自我描述不能当授权依据」唯一教学载体在 main 轨；站点轨 s19 独有「深入 CC 源码」八小节附录与「无缓存」叙事经 s19f-* 台账补登、站点页零漂移）。C 型信源=现行 175（2026-10-07 换代重写后主干代次；旧系列 ep5 冻结的是换代前 0ecf6527c 版）；实验 E5（连接后不重建工具池）本集复算升【一】级（不重建 → Unknown tool: mcp__docs__search ↔ 重建后正常返回，selftest 18 断言全绿、128 行日志）。剧本 v1：54 句 1319 字 6 幕（正文 ≈5.2 分 + 片头 23.5s ≈ 5.6 分落窗 [4.4,5.6]，超幕预算 14 字 = 白话先释补课与成文评审的既定代价〔P1+4/P3+7/P4+37、他幕回吐〕）；④ 三路（A 真实性逐句/B 外行易懂/C 纪律）RISKY=0、finding 全修——A 计数闭合（口播四形态盖满六种传输、角标补 IDE），B 九项白话修复（p1-04 全名锚/p1-06 具名输入/命名 beat 拆镜降密/「规范化」退角标/p3-08 证据句行话/p4-02 传输白话先释/p4-07 触发部署点破/p4-09 同物双名统一「全名」/p4-10 插件白话锚），三镜头合议 REWRITE p3-03 缓存首现白话，C 四项（附录 A 轻修辞登记/planning 前置概念回改①–④/署源豁免随系列层批次登记与 MCP 口播例外待审批勾决两项移交）；⑤ 四层 pass + 独立成文评审两轮 REWRITE=3 全修（p4-11 幕尾脚手架 Z11+L4、p4-06/p4-07 Z9 破折号簇解除）+ 复审收口 REWRITE=0、改动句复核 RISKY=0；机器门 build/pre-tts（读法 0、字幕宽度 0）/pron（候选 21、语义未标注 0）/ledger audit+verify FAIL 0·WARN 0（doc-mcp-io 同日变更 WARN 复核「开放标准」定位句语义一致、指纹钉新态；sync 对本集结构性 FAIL 2 = 翻钉后目录名跨轨不共用，地图 SSOT 已登记、以 audit+verify 为准；check_series 由主代理统一跑）；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-06/p5-07，豁免登记 vibe-video.toml check_series.source_credit 随系列层批次）",
+          "voice": "story + me-bright.wav"
+        },
+        {
+          "episode": 20,
+          "slug": "chapters-20-comprehensive",
+          "path": "episodes/claude-code-harness/chapters-20-comprehensive",
+          "title": "综合回合：机制很多，循环一个",
+          "topic": "Comprehensive：机制挂点——全部机制挂回同一个循环（s20 单章）",
+          "cardSub": "机制拆解 · 挂点",
+          "accents": [
+            "#8260E8",
+            "#5B8DEF"
+          ],
+          "source": {
+            "title": "Learn Claude Code · Comprehensive：机制挂点——全部机制挂回同一个循环（s20）",
+            "site": "https://learn.shareai.run/zh/s20/",
+            "repo": "https://github.com/shareAI-lab/learn-claude-code",
+            "pinnedRef": "67a9126c6435a8654ba7a6f68c0fd2130f00a462",
+            "license": "MIT",
+            "accessed": "2026-10-31"
+          },
+          "status": "script-review",
+          "statusNote": "文案已审批（2026-10-31 用户确认「暂时算作审批通过」，允许有界微改进）→ 制作轮（⑥–⑩）2026-10-31 启动、全程全自动交付、配音本人克隆声（story + me-bright）。ep20 文案轮（2026-10-31）：s20_comprehensive 单章拆集·系列终章（开工复核维持站点轨 67a9126c 不翻钉——终章叙事件「结束亦是开始」收束节与「相对 s19 的变化」11 行全量回归表仅此轨在册，main 前移增量属 ep8/ep15 集面非本集正源级、两轨判据句同向（认 tool_use block 不认收尾字段）无 ep2 型翻钉被迫性；站点页零漂移，main 对照 7226f555 经 s20m-* 台账登记）。C 型信源=现行 175《Learn Claude Code 多 Agent 平台》精读（2026-10-07 换代重写代次冻结；附录 A 类比表自旧系列 ep5 冻结件逐字承袭，本集实引 #7 环形走廊、其余六条属兄弟集不借喻）；实验 E5（连接后不重建工具池）本集复算升【一】级（沿用旧名册→Unknown tool: mcp__docs__search ↔ 每轮重组→结果到手成对实测），selftest 18 断言全绿/128 行日志与冻结正文逐字互证、内置工具 27 件逐项可数（main 对照 26 件经 B.2 复算校正弃用不引）。剧本 v2：56 句 1334 字 6 幕（正文 ≈5.3 分 + 片头 23.5s ≈5.64 分落窗 [4.4,5.6] 贴窗顶、距窗顶余 88 字；超幕预算 29 字承 ep2 1325 字落窗先例 +9 字）；④A 真实性 3⚠️ 全修（p5-01 本地原型口径/P2 角标换 permission/【三】级 p3-05+p3-06 配对登记面）、④B 易懂性 10⚠️ 全修（具象化×2/白话化×4/家什名册指代锚定/Harness 首现就地锚定/20−18 口径字幕+画面联动）、④C 纪律 6 处处置（未登记类比「地图」清零/「四道准备」同词两口径对齐/画面·planning 联动×2/p5-07「长」多音字零改动试听登记/系列层待办移交），三路 RISKY=0；⑤ 四层 pass + 成文评审修正 3 轮 7 项全修（幕间承接 p4-01/冷启动路标 p4-06/朗读断歧 p3-07/Z9 承接位标点降密 10 处含破折号降逗×2），复核 REWRITE 归 0、改动句复核 RISKY=0（字数 1291→1334，改动表 .temp/prose-changelog.md）；机器门 build（56 句/1334 字/5.3 分）/pre-tts（读法陷阱 0、字幕宽度 0）/pron-candidates（候选 18 处、语义规则未标注 0）/ledger sync 幂等全 skip + audit 期望 3 在册 3 + verify 受检 5 全 FAIL 0 WARN 0（check_series 由主代理系列层统一跑不写入）；首尾署源制沿用（片头角标 p0-01 + 片尾署源句 p5-08/p5-09，narration_ids=[\"p0-01\",\"p5-08\"] 待系列层登记 vibe-video.toml check_series.source_credit）",
+          "voice": "story + me-bright.wav"
         }
       ]
     }

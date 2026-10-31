@@ -1,0 +1,80 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s16-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s16_team_protocols/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "4afa758a1b8d40d4"
+text_sha256 = "2546486854024d70"
+bytes = 11140
+lines = 243
+via = "pinned commit, MIT; 钉选轨（站点 20 章版单章成集，协议独立章 + 独有深入 CC 源码附录）"
+
+[s16-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s16_team_protocols/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "64bbf40ff37db22b"
+text_sha256 = "f94efbf83b2875e9"
+bytes = 34329
+lines = 882
+via = "pinned commit, MIT; 协议机制实测依据（ProtocolState/match_response/consume_lead_inbox）"
+
+[s16m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s13_agent_teams/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "cd529d72deee856d"
+text_sha256 = "3c7272c59e23fa9b"
+bytes = 18980
+lines = 448
+via = "pinned commit, MIT; main 轨对照（17 章整合版，团队四课并入 s13；协议=§11 类型与 request_id/§12 计划审批约束执行）"
+
+[s16m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s13_agent_teams/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "f8880aaaaedbd5c8"
+text_sha256 = "646b68c61a0e602d"
+bytes = 71053
+lines = 1891
+via = "pinned commit, MIT; main 轨对照（执行闸门 _run_teammate_tool / work_version 旧审批失效）"
+
+[s16-site]
+url = "https://learn.shareai.run/zh/s16/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "bff6e11ec1ad7ed1"
+text_sha256 = "212537c5606f766b"
+bytes = 91727
+lines = 245
+via = "站点实况（集制骨架对照）"
+
+[doc-agent-teams]
+url = "https://code.claude.com/docs/en/agent-teams"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "cdb04bf7a76bcd2d"
+text_sha256 = "ef2d6f697fc47d8f"
+bytes = 461460
+lines = 762
+via = "官方补读（175 参考 [6]；Agent teams 实验特性默认关闭/文件收件箱路径互证）"
+
+[doc-building-effective-agents]
+url = "https://www.anthropic.com/engineering/building-effective-agents"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "33d80af9dbb229d6"
+text_sha256 = "964ede6ad0587a12"
+bytes = 222891
+lines = 0
+via = "官方补读（175 参考 [8]；规律 2「简单、可组合的模式，而不是复杂框架」引句）"

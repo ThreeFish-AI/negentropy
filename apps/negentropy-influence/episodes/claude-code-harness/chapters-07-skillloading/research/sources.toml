@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s07-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s07_skill_loading/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "304bfc987dccc3a4"
+text_sha256 = "272b7cd29aebf77f"
+bytes = 8343
+lines = 182
+via = "pinned commit, MIT; 钉选轨（本集叙事正源：6500 行账 + 两层设计表 + 深入 CC 源码附录）"
+
+[s07-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s07_skill_loading/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "82ff856cbe43bcfa"
+text_sha256 = "a9b93f7964049bd5"
+bytes = 18508
+lines = 424
+via = "pinned commit, MIT; 钉选轨 code 实测依据（SKILL_REGISTRY/load_skill/dispatch）"
+
+[s07-site]
+url = "https://learn.shareai.run/zh/s07/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "41b64ba94eb69c7f"
+text_sha256 = "9e3ffa1b6ec6622e"
+bytes = 65779
+lines = 222
+via = "站点实况（集制骨架对照）"
+
+[s07m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s07_skill_loading/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "c32991ef9e6e205e"
+text_sha256 = "1b887a62d238c983"
+bytes = 5151
+lines = 151
+via = "pinned commit, MIT; main 轨对照（SkillLoader 类封装 + OS-aware 环境段；数字锚与深读附录已删）"
+
+[s07m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s07_skill_loading/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "0246964af87bfcc0"
+text_sha256 = "b759d2f543acfbe5"
+bytes = 13710
+lines = 401
+via = "pinned commit, MIT; main 轨对照（内容块判据；自 ce8f9f18 仅空输入守卫 2 行）"
+
+[doc-skills]
+url = "https://code.claude.com/docs/en/skills"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "97e9cf09e94c7b59"
+text_sha256 = "5b1cd5a863859059"
+bytes = 926882
+lines = 1245
+via = "官方补读（172 参考 [3]；正文按需加载 + description/when_to_use 1536 字符截断）"

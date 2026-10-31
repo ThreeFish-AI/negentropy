@@ -1,0 +1,60 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s10-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s10_system_prompt/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "dc371732be160b36"
+text_sha256 = "d1ebfe020a4fa065"
+bytes = 10173
+lines = 255
+via = "pinned commit, MIT; 站点轨（本集主线正源，README.md 中文默认；四段组装+json.dumps 缓存键实测依据）"
+
+[s10-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s10_system_prompt/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "05e0888550029fdd"
+text_sha256 = "e9bcb497aebe392c"
+bytes = 7486
+lines = 219
+via = "pinned commit, MIT; 站点轨（PROMPT_SECTIONS 组装机制实测依据）"
+
+[s10m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s15_integrated_harness/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "5de3adc14055c877"
+text_sha256 = "3604fdd48412c495"
+bytes = 12470
+lines = 245
+via = "pinned commit, MIT; main 轨对照（s15_integrated_harness 隐式吸收 assemble_system_prompt 形态所在）"
+
+[s10m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s15_integrated_harness/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "257edee2483550e2"
+text_sha256 = "2b9341cffa883fb4"
+bytes = 128230
+lines = 3330
+via = "pinned commit, MIT; main 轨对照（七段 PROMPT_SECTIONS 每轮重建实测依据）"
+
+[s10-site]
+url = "https://learn.shareai.run/zh/s10/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "d5a5e8a3c3df61c4"
+text_sha256 = "98e21a327954ee17"
+bytes = 65283
+lines = 266
+via = "站点实况（集制骨架对照）"

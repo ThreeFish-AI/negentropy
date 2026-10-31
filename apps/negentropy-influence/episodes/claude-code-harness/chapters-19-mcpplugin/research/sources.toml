@@ -1,0 +1,80 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s19-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s14_mcp_plugin/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "14a2775ea110a5d1"
+text_sha256 = "30cc488a2a21eece"
+bytes = 6557
+lines = 207
+via = "pinned commit, MIT; 翻钉 main（宿主权限策略/撞名报错+64 字符/错误留边界三节为机制级正源增量）"
+
+[s19-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s14_mcp_plugin/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "92227912b0cfbf15"
+text_sha256 = "7f4f2babe829c44f"
+bytes = 18721
+lines = 551
+via = "pinned commit, MIT; MCP 机制实测依据（MCP_HOST_POLICY 4 条/64 字符守卫/撞名 raise）"
+
+[s19f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s19_mcp_plugin/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "4f77add32afd790f"
+text_sha256 = "a50094854595c327"
+bytes = 11719
+lines = 282
+via = "pinned commit, MIT; 站点轨对照（s19 独有「深入 CC 源码」八小节附录+无缓存叙事，【三】级断言正源）"
+
+[s19f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s19_mcp_plugin/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "303f0e185c1c29ce"
+text_sha256 = "1f28491b8c548bbd"
+bytes = 38675
+lines = 1026
+via = "pinned commit, MIT; 站点轨对照（BUILTIN_TOOLS 18 实测依据）"
+
+[s19-site]
+url = "https://learn.shareai.run/zh/s19/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "2d7a8cc14a0f0f1d"
+text_sha256 = "cc3009bddeb4b61f"
+bytes = 96895
+lines = 302
+via = "站点实况（集制骨架对照）"
+
+[doc-mcp]
+url = "https://code.claude.com/docs/en/mcp"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "540b36e89829a403"
+text_sha256 = "567e903ef2466cc1"
+bytes = 1287849
+lines = 1591
+via = "官方补读（175 参考 [7]；命名归一规则/权限按 mcp__全名书写/.mcp.json 需用户批准）"
+
+[doc-mcp-io]
+url = "https://modelcontextprotocol.io"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "94624dc40a7e1753"
+text_sha256 = "a1267e30050b1130"
+bytes = 147011
+lines = 445
+via = "官方补读（175 参考 [9]；MCP 开放标准定位）。2026-10-31 收口复核：同日正文变更（d48ba9a0 → a1267e3e，Version 2026-07-28 构建态）；本集仅引『开放标准』定位句，现行首句 open-source standard 语义一致、无计数依赖，WARN 确认成立，指纹钉新态（ep1 doc-tool-use-overview 先例同款）"

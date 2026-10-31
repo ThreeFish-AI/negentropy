@@ -31,5 +31,5 @@ added = "2026-10-08"
 path = "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh.mp3"
 sha256 = "bcc6fb889e810946caf2adad5048d50dfe8adaa3078b388c27f2be7b19a306eb"
 bytes = 135243
-reason = "CC 系列片头《一个循环》统一口播音轨（IndexTTS 合成产物，非本人声源样本；系列级固定资产入种子目录，五集 video/public/audio/ 副本仍为本地放置件、按 intro/README.md 校验同字节）。当前为 edge 草声 take，终声重配后须更新本条 sha256/bytes"
+reason = "CC 系列片头《一个循环》统一口播音轨（IndexTTS 合成产物，非本人声源样本；系列级固定资产入种子目录，六集 video/public/audio/ 副本仍为本地放置件、按 intro/README.md 校验同字节）。当前为 edge 草声 take，终声重配后须更新本条 sha256/bytes"
 added = "2026-10-08"

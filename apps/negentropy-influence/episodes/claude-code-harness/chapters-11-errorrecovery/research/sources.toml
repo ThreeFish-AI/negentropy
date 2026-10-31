@@ -1,0 +1,60 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s11-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s11_error_recovery/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "6a30a8811fac86f4"
+text_sha256 = "1da188f91b5708e7"
+bytes = 11317
+lines = 277
+via = "pinned commit, MIT; 站点轨（本集主线正源，README.md 中文默认；三路径叙事 + 六节「深入 CC 源码」深潜）"
+
+[s11-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s11_error_recovery/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "7c1a4bed40a88226"
+text_sha256 = "a36b456ffd9da029"
+bytes = 13848
+lines = 365
+via = "pinned commit, MIT; 站点轨（附录 B.1/B.2 取值复算依据：64K/续写3/压缩1/重试10/529×3/尾部5条/Retry-After 优先）"
+
+[s11-site]
+url = "https://learn.shareai.run/zh/s11/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "8567c9997071b3ac"
+text_sha256 = "77e6afc501af27f9"
+bytes = 71179
+lines = 360
+via = "站点实况（集制骨架对照）"
+
+[s11m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s15_integrated_harness/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "5de3adc14055c877"
+text_sha256 = "3604fdd48412c495"
+bytes = 12470
+lines = 245
+via = "pinned commit, MIT; main 轨对照（错误恢复无独立章、并入 s15_integrated_harness「压缩和恢复」小节；对照取值 16K/重试3/529×2）"
+
+[s11m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s15_integrated_harness/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "257edee2483550e2"
+text_sha256 = "2b9341cffa883fb4"
+bytes = 128230
+lines = 3330
+via = "pinned commit, MIT; main 轨对照（附录 B.1 双轨差异证据：ESCALATED 16000/MAX_RETRIES 3/MAX_CONSECUTIVE_529 2 逐项复算）"

@@ -1,0 +1,127 @@
+{
+ "seriesId": "claude-code-chapters",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "机制拆解",
+   "title": "Agent Loop：一个循环，让 Agent 开始了心跳",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "机制拆解",
+   "title": "Tool Use：多加一个工具，只加一行",
+   "published": false
+  },
+  {
+   "index": 3,
+   "layer": "机制拆解",
+   "title": "Permission：三道闸门，动手之前的裁决",
+   "published": false
+  },
+  {
+   "index": 4,
+   "layer": "机制拆解",
+   "title": "Hooks：扩展不进循环",
+   "published": false
+  },
+  {
+   "index": 5,
+   "layer": "机制拆解",
+   "title": "TodoWrite：把计划摆回模型眼前",
+   "published": false
+  },
+  {
+   "index": 6,
+   "layer": "机制拆解",
+   "title": "Subagent：过程隔离，只回结论",
+   "published": false
+  },
+  {
+   "index": 7,
+   "layer": "机制拆解",
+   "title": "Skill Loading：目录常驻，全文按需",
+   "published": false
+  },
+  {
+   "index": 8,
+   "layer": "机制拆解",
+   "title": "Context Compact：先整理，再总结",
+   "published": false
+  },
+  {
+   "index": 9,
+   "layer": "机制拆解",
+   "title": "Memory：索引与按需加载",
+   "published": false
+  },
+  {
+   "index": 10,
+   "layer": "机制拆解",
+   "title": "System Prompt：提示是拼出来的，不是写死的",
+   "published": false
+  },
+  {
+   "index": 11,
+   "layer": "机制拆解",
+   "title": "Error Recovery：报错先分类，循环不亡",
+   "published": false
+  },
+  {
+   "index": 12,
+   "layer": "机制拆解",
+   "title": "Task System：从执行清单到可认领的契约",
+   "published": false
+  },
+  {
+   "index": 13,
+   "layer": "机制拆解",
+   "title": "Background Tasks：慢命令丢后台，结果走通知",
+   "published": false
+  },
+  {
+   "index": 14,
+   "layer": "机制拆解",
+   "title": "Cron Scheduler：按时间表生产工作",
+   "published": false
+  },
+  {
+   "index": 15,
+   "layer": "机制拆解",
+   "title": "Agent Teams：文件收件箱与持久队友",
+   "published": false
+  },
+  {
+   "index": 16,
+   "layer": "机制拆解",
+   "title": "Team Protocols：对上号，才改状态",
+   "published": false
+  },
+  {
+   "index": 17,
+   "layer": "机制拆解",
+   "title": "Autonomous Agents：自己看板，自己认领",
+   "published": false
+  },
+  {
+   "index": 18,
+   "layer": "机制拆解",
+   "title": "Worktree Isolation：一个任务，一个房间",
+   "published": false
+  },
+  {
+   "index": 19,
+   "layer": "机制拆解",
+   "title": "MCP 与插件：发现、命名、组装",
+   "published": false
+  },
+  {
+   "index": 20,
+   "layer": "机制拆解",
+   "title": "综合回合：机制很多，循环一个",
+   "published": false
+  }
+ ],
+ "activeIndex": 10,
+ "next": "Error Recovery：报错先分类，循环不亡"
+}

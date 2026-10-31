@@ -1,0 +1,188 @@
+# 系列信源地图（机器可读 SSOT）——《Claude Code 的 20 个核心机制》的 章→集 归属唯一登记处。
+# 人读版：claude-code-chapters.md；与 series.json（机器）/ series.md（人读）同一配对纪律。
+#
+# ── 系列定位 ────────────────────────────────────────────────────────────────
+# 站点 20 章 1:1 拆集（2026-10-29 用户决策）：每章一集、每集约 5 分钟，
+# 与《Claude Code Harness Engineering》（claude-code-explained，5 集制）并行；
+# 旧系列待本系列建成后退役。修订分叉叙事（站点 20 章版 ↔ main 17 章整合版）
+# 见旧地图 source-map/claude-code-explained.toml 头注——本地图不重述，只登记
+# 本系列自己的钉选决策。
+#
+# ── 双钉 ────────────────────────────────────────────────────────────────────
+# 逐集开工复核钉选（文案轮 2026-10-31 全量完成 ep3–ep20）。翻钉 main 的六集：
+# ep1 判据之争记忆点「看内容块别信停止标记」依赖 main 修正后的写法；
+# ep2 站点轨 s02 判据仍写 stop_reason（同 ep1 口径硬伤）+ main 新增「为什么还要
+#   加工具」接口论证一节；
+# ep3/ep4 站点轨 s03/s04 判据/括注同款口径硬伤（stop_reason 判据、强制续跑归属
+#   说反），且 main 各有正源级增量（s03 词边界正则+测试点 5；s04 Stop 续跑写进
+#   教学正文）；
+# ep6 main s06 为本集叙事正源级修订（详见该集 gl-notes 附录 B.1）；
+# ep8/ep9 main s08/s09 压缩管线与记忆机制有正源级更新（冻结正文 §3.7/§4.5 所引
+#   CC 实现对照的现行口径）；
+# ep19 main s14_mcp_plugin 为 MCP 章现行扩写版。
+# 维持站点轨的十二集：ep5/ep7（main 仅注释中文化与空输入守卫，站点轨独有「深入
+# CC 源码」附录族是【三】级断言正源）、ep10/ep11（main 无独立章，深潜只在站点轨）、
+# ep12–ep18（改号不改内容或系列决策单章成集，main 对照经 {slug}m-* 登记）、
+# ep20（综合章按 20 章版集制骨架收束）。
+# 各集翻钉/维持的完整证据链：各集 research/gl-notes.md 附录 B.1；站点轨独有
+# 附录一律经 {slug}f-* 条目补登（字节归档随集），断言恒【三】级。
+# ⚠ 已知偏差：ep19 翻钉 main 后目录名跨轨不共用（章节表 id=s19_mcp_plugin 为站点
+# 轨目录名，main 轨目录为 s14_mcp_plugin）——sync 按章节表 id 机械拼 URL 会 404
+# 报 FAIL 2，属机制表达力缺口非台账错误：本集 s19-readme/-code 已按 main 真实
+# 路径手工登记（指纹可 verify），audit 期望/在册/pin 三断言全过。跑 sync 跳过
+# 本集、以 audit+verify 为准。
+#
+# 用法：
+#   uv run --no-project $R/source_ledger.py --project $P sync --map <本文件> --episode 1
+#   uv run --no-project $R/source_ledger.py --project $P audit --map <本文件> --episode 1
+
+seriesId = "claude-code-chapters"
+repo = "https://github.com/shareAI-lab/learn-claude-code"
+rawBase = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code"
+license = "MIT"
+siteBase = "https://learn.shareai.run/zh"
+
+# 2026-10-29 建图首钉：main 轨自 ce8f9f18 前移 13 提交至 7226f555，
+# s01 仅 code.py 改 2 行（空输入 continue 不再退出，无叙事影响），
+# README.zh.md 逐字一致；站点轨分支 HEAD 未动（67a9126c）。
+[[pin]]
+ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+date = "2026-10-27"
+label = "仓库 main（17 章整合版；ep1–ep4/ep6/ep8/ep9/ep19 正源）"
+readmeFile = "README.zh.md"
+codeFile = "code.py"
+episodes = [1, 2, 3, 4, 6, 8, 9, 19]
+
+[[pin]]
+ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+date = "2026-07-29"
+label = "站点同源修订（20 章版，分支 fix/s08-s20-sync-frontmatter-parser；本系列集制骨架）"
+readmeFile = "README.md"
+codeFile = "code.py"
+episodes = [5, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20]
+
+# 章节表：id=仓库目录名（判据轨身份）· slug=台账条目名前缀 · episode=归属集 ·
+# sitePaths=站点路径段。ep3–ep20 已于 2026-10-31 完成文案轮开工复核（钉选见上）。
+# ep1 的 s01 两轨目录名相同，readmeFile 随 pin 走；main 无独立章的集（s10/s11）
+# 以站点轨为钉、main s15_integrated_harness 经 {slug}m-* 对照登记。
+
+[[chapter]]
+id = "s01_agent_loop"
+slug = "s01"
+episode = 1
+sitePaths = ["s01"]
+
+[[chapter]]
+id = "s02_tool_use"
+slug = "s02"
+episode = 2
+sitePaths = ["s02"]
+
+[[chapter]]
+id = "s03_permission"
+slug = "s03"
+episode = 3
+sitePaths = ["s03"]
+
+[[chapter]]
+id = "s04_hooks"
+slug = "s04"
+episode = 4
+sitePaths = ["s04"]
+
+[[chapter]]
+id = "s05_todo_write"
+slug = "s05"
+episode = 5
+sitePaths = ["s05"]
+
+[[chapter]]
+id = "s06_subagent"
+slug = "s06"
+episode = 6
+sitePaths = ["s06"]
+
+[[chapter]]
+id = "s07_skill_loading"
+slug = "s07"
+episode = 7
+sitePaths = ["s07"]
+
+[[chapter]]
+id = "s08_context_compact"
+slug = "s08"
+episode = 8
+sitePaths = ["s08"]
+
+[[chapter]]
+id = "s09_memory"
+slug = "s09"
+episode = 9
+sitePaths = ["s09"]
+
+[[chapter]]
+id = "s10_system_prompt"
+slug = "s10"
+episode = 10
+sitePaths = ["s10"]
+
+[[chapter]]
+id = "s11_error_recovery"
+slug = "s11"
+episode = 11
+sitePaths = ["s11"]
+
+[[chapter]]
+id = "s12_task_system"
+slug = "s12"
+episode = 12
+sitePaths = ["s12"]
+
+[[chapter]]
+id = "s13_background_tasks"
+slug = "s13"
+episode = 13
+sitePaths = ["s13"]
+
+[[chapter]]
+id = "s14_cron_scheduler"
+slug = "s14"
+episode = 14
+sitePaths = ["s14"]
+
+[[chapter]]
+id = "s15_agent_teams"
+slug = "s15"
+episode = 15
+sitePaths = ["s15"]
+
+[[chapter]]
+id = "s16_team_protocols"
+slug = "s16"
+episode = 16
+sitePaths = ["s16"]
+note = "main 轨 17 章版已并入 s13_agent_teams；本系列按 20 章版单章成集（钉站点轨，2026-10-31 开工复核维持）。"
+
+[[chapter]]
+id = "s17_autonomous_agents"
+slug = "s17"
+episode = 17
+sitePaths = ["s17"]
+
+[[chapter]]
+id = "s18_worktree_isolation"
+slug = "s18"
+episode = 18
+sitePaths = ["s18"]
+
+[[chapter]]
+id = "s19_mcp_plugin"
+slug = "s19"
+episode = 19
+sitePaths = ["s19"]
+
+[[chapter]]
+id = "s20_comprehensive"
+slug = "s20"
+episode = 20
+sitePaths = ["s20"]

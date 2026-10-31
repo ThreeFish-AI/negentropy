@@ -1,0 +1,19 @@
+{
+ "seriesId": "claude-code-chapters",
+ "layers": [
+  {
+   "index": 1,
+   "layer": "机制拆解",
+   "title": "Agent Loop：一个循环，让 Agent 开始了心跳",
+   "published": false
+  },
+  {
+   "index": 2,
+   "layer": "机制拆解",
+   "title": "Tool Use：多加一个工具，只加一行",
+   "published": false
+  }
+ ],
+ "activeIndex": 1,
+ "next": "Tool Use：多加一个工具，只加一行"
+}

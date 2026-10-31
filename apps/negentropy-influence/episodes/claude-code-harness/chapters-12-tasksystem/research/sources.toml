@@ -1,0 +1,60 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s12-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s12_task_system/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "d36c589aadde0f07"
+text_sha256 = "224e6a262d7d5b95"
+bytes = 11872
+lines = 282
+via = "pinned commit, MIT"
+
+[s12-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s12_task_system/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "8c3405c84a4ebfb0"
+text_sha256 = "ea3a8ca6fd2bc90e"
+bytes = 13116
+lines = 378
+via = "pinned commit, MIT; LOC 与工具清单实测依据"
+
+[s12m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s10_task_system/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "bba15ce369f69e5b"
+text_sha256 = "532ef34d05293736"
+bytes = 8881
+lines = 226
+via = "pinned commit, MIT; main 轨对照（改号 s12→s10；两阶段建图与归属人校验——冻结正文 §3 [2] 面）"
+
+[s12m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s10_task_system/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "4e88e100c7a41a17"
+text_sha256 = "8822d92d8165fd50"
+bytes = 20773
+lines = 602
+via = "pinned commit, MIT; main 轨对照"
+
+[s12-site]
+url = "https://learn.shareai.run/zh/s12/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "677fac3c8e0ad7eb"
+text_sha256 = "342dcfbd0028fff5"
+bytes = 73673
+lines = 322
+via = "站点实况（集制骨架对照）"
