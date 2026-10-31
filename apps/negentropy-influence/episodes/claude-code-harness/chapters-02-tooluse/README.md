@@ -1,6 +1,6 @@
 # 《Tool Use：多加一个工具，只加一行》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-29）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 2 集（s02_tool_use 单章）；Stage ①–⑤ 已完成（信源重钉 + C 型冻结现行 171 同代次 + 策划 + 逐字稿 50 句 1325 字 + 三路双重校验 + 成文优化两轮），机器门 build / check_series 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**制作轮 ⑥–⑧ 完成**（2026-11-01）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 2 集（s02_tool_use 单章）；文案 2026-10-31 用户审批通过（基线 v1 + 制作轮微改进 5 句 → v2，50 句 1326 字）；⑥ 22 镜六场景分镜 v1（零建图原生路线，G1 对抗核验 1 RISKY + 4 WARN 全修）→ ⑦ me-bright/story 本人克隆声 TTS 50 句（MPS 水位 0 根治后续跑收官）→ ⑧ 六场景 3225 行 + 系列片头孪生挂载（Main 指纹与 ep1 同族 1c779384d763，drift 已登记）+ theme 概念色（琥珀 #EFB13C 对照表母题）；tsc/check --check-scenes/check_series 全绿。→ ⑨QA → ⑩交付进行中。发布顺序见 [../../../series.json](series.json)（工作区根）。
 
 ## 目录结构
 
@@ -9,6 +9,8 @@
 | `research/` | Stage ① 取证产物：全部口播断言须可回溯至此（gl-notes.md = C 型冻结件；source-archive/ = 双轨字节归档） |
 | `script/planning.md` | Stage ② 策划案（六节齐，含本集视觉契约） |
 | `script/narration.md` | Stage ③ 逐字稿 **★单一事实源**（勿改 narration.json） |
+| `script/storyboard.md` | Stage ⑥ 分镜表（镜号 ↔ 句 id 区间 ↔ 画面 ↔ 动效 ↔ Visual Lock） |
+| `script/narration.cues.toml` | story 档配音台本（块情绪 + say 覆写） |
 | `scripts/*.py` | 薄包装 → vibe-video skill 的 scripts/（解析器定位，保 CLI 契约） |
 | `video/` | Remotion 独立 pnpm 工程（嵌套 workspace 自锚隔离） |
 | `out/` | 渲染产物（gitignored） |

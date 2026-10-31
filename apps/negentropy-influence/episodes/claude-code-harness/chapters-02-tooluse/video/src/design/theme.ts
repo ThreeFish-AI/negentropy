@@ -31,19 +31,19 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（2026-10-29 定：承系列契约——环体恒定锚陶土橙继续出场（本集
-  //    高亮「执行」段）；本集主题色换琥珀=查表分发/工具卡；warn 承系列反例语义。
-  //    决策记录三处同步：theme.ts / planning.md §三 / README；series.json accents
-  //    同步登记 [#EFB13C, #EF6461]）──
-  // loop：循环环体恒定锚〔M-001〕（陶土橙，系列恒定色，非本集 accents——ep1 持有）
-  loop: '#D97757',
-  // core：本集主题色——查表分发/工具卡（琥珀，on #0E1116 对比度 9.9:1）
-  core: '#EFB13C',
+  // ── 本集概念色（⑧ 轮定稿，承 ep1 token 面与注释结构；色彩契约 =
+  //    script/storyboard.md「本集视觉契约」段）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与 ep1
+  //    逐像素同值即「描边色/线宽承 ep1 锁定值全片不变」的落地）
+  core: '#D97757',
+  // mech：本集主题色——查表分发/工具卡/门卡/对照表（琥珀；series-intro.tsx
+  //    逐字孪生件直读 theme.mech =「本集之物」授色）
+  mech: '#EFB13C',
   // tool：执行面/结果回喂流（青碧，承 ep1 同语义；非本集 accents——ep1 持有）
   tool: '#64C4C0',
-  // warn：错绑反例/越界（珊瑚红，与底座 danger 同族强调档，本集 accents 第二色）
+  // warn：错绑反例/越界（珊瑚红，与底座 danger 同族强调档；与 danger 同帧并用
+  //    时以描边/填充区分——storyboard 色彩契约）
   warn: '#EF6461',
-  // mech：片头「本集之物」授色档（series-intro.tsx 逐字孪生件直读 theme.mech；
-  //    按系列规约 = 本集 accents 第二色 #EF6461）
-  mech: '#EF6461',
+  // series.json accents = [#EFB13C, #EF6461] 已由本文件覆盖（mech + warn；
+  // check_series 规则 4 执法），环体 core/tool 为系列恒定色不占本集 accents 槽。
 } as const;

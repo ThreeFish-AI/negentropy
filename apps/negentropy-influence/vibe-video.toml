@@ -31,7 +31,7 @@ scene_stems = ["P0ColdOpen", "P5CoreAndRim"]
 
 [check_series.source_credit."chapters-02-tooluse"]
 narration_ids = ["p0-01", "p5-06"]
-scene_stems = []
+scene_stems = ["P0ShapelessHand", "P5FingersAndNext"]
 
 [check_series.source_credit."chapters-07-skillloading"]
 narration_ids = ["p0-01", "p5-07"]
@@ -91,6 +91,12 @@ episode = "chapters-01-loop"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
 reason = "系列片头《一个循环》挂载（2026-10-29，用户审批沿用）：Intro Sequence 压 leadIn 23.5s + 章节条片头静默 wrapper（chromeIn）——与旧系列五集 78664c3010fd 同族挂载形态，指纹差异仅一处注释措辞（本集末幕为 P5，尾幕渐黑由末幕场景从末 beat 推导）。孪生组件 seeds 见 series-assets/claude-code-explained/intro/（七路径字节孪生，check_twin_files series-intro-seed 组）。撤销条件=skill 模板吸纳挂载点或片头退役"
+
+[[skeleton.drift]]
+episode = "chapters-02-tooluse"
+path = "video/src/Main.tsx"
+fingerprint = "1c779384d763"
+reason = "系列片头挂载承 chapters-01-loop 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + 章节条 chromeIn 静默 wrapper——Main.tsx 与 ep1 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 # 顶部进度条分代（2026-09-22）：模板 Main.tsx 归一化指纹 179be60ed605 为分代前
 # 模板值（10 个既有集此前已收敛对齐、零历史登记——均已发布），与上方 Subtitle
 # 分代同构；新 frozen 的 ChapterProgress.tsx 既有集尚无此
