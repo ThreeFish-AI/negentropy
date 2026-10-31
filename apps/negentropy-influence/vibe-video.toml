@@ -25,21 +25,21 @@ next_card_series_ids = ["claude-code-explained"]
 # 首尾既定署源位——narration_ids 豁免该口播句及其所属 beat 的画面备注、
 # storyboard 同 id 行；scene_stems 豁免具名场景组件（场景文件落地时补登记）。
 # 未登记位置仍全量执法；配置引用不存在的句 id / stem 直接 FAIL。
-[check_series.source_credit."chapters-01-loop-video"]
+[check_series.source_credit."chapters-01-loop"]
 narration_ids = ["p0-01", "p5-07"]
 scene_stems = ["P0ColdOpen", "P5CoreAndRim"]
 
-[check_series.source_credit."chapters-02-tooluse-video"]
+[check_series.source_credit."chapters-02-tooluse"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-07-skillloading-video"]
+[check_series.source_credit."chapters-07-skillloading"]
 narration_ids = ["p0-01", "p5-07"]
 scene_stems = []
 
 # ep14 文案轮补登（2026-10-31 ⑤）：p5-06「开源课程」命中规则 7 裸词，署源位
 # 豁免同 ep2 形态；文案轮无场景件，scene_stems 制作期署源角标落场景文件后补。
-[check_series.source_credit."chapters-14-cronscheduler-video"]
+[check_series.source_credit."chapters-14-cronscheduler"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
@@ -51,11 +51,11 @@ scene_stems = []
 id = "bilingual-i18n"
 reason = "双语渲染分代（2026-09-24，RSI-004）：Root/NarrationAudio/Subtitle/ChapterProgress/Main 加 lang 维度、新增 i18n.tsx；zh 渲染逐像素不变。撤销条件=花名册内各集下次重渲时按整组同步（五文件 + i18n.tsx 拷齐再 tsc），同步后从 roster 删除该集。"
 episodes = [
-  "dream-rsi-video",
-  "experience-era-agents-video",
-  "openviking-video",
-  "self-evolving-coding-agents-video",
-  "self-improving-agents-video",
+  "dream-rsi",
+  "experience-era-agents",
+  "openviking",
+  "self-evolving-coding-agents",
+  "self-improving-agents",
 ]
 
 [skeleton.generation.legacy]
@@ -67,27 +67,27 @@ episodes = [
 "video/src/i18n.tsx" = "缺失"
 
 [[skeleton.drift]]
-episode = "self-improving-agents-video"
+episode = "self-improving-agents"
 path = "video/src/components/cards.tsx"
 fingerprint = "4bba8c190f21"
 reason = "多一个 ChapterCard（39 行），仅本集 P2Brain.tsx 使用；迁出至 components/chapter.tsx 后可撤销本条"
 [[skeleton.drift]]
-episode = "experience-era-agents-video"
+episode = "experience-era-agents"
 path = "video/src/components/Subtitle.tsx"
 fingerprint = "61df1a5e08e2"
 reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "self-improving-agents-video"
+episode = "self-improving-agents"
 path = "video/src/components/Subtitle.tsx"
 fingerprint = "61df1a5e08e2"
 reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "self-evolving-coding-agents-video"
+episode = "self-evolving-coding-agents"
 path = "video/src/components/Subtitle.tsx"
 fingerprint = "61df1a5e08e2"
 reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除句尾「。」；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "chapters-01-loop-video"
+episode = "chapters-01-loop"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
 reason = "系列片头《一个循环》挂载（2026-10-29，用户审批沿用）：Intro Sequence 压 leadIn 23.5s + 章节条片头静默 wrapper（chromeIn）——与旧系列五集 78664c3010fd 同族挂载形态，指纹差异仅一处注释措辞（本集末幕为 P5，尾幕渐黑由末幕场景从末 beat 推导）。孪生组件 seeds 见 series-assets/claude-code-explained/intro/（七路径字节孪生，check_twin_files series-intro-seed 组）。撤销条件=skill 模板吸纳挂载点或片头退役"
@@ -99,42 +99,42 @@ reason = "系列片头《一个循环》挂载（2026-10-29，用户审批沿用
 # Main/ChapterProgress/Subtitle 任一文件都会因 i18n.tsx import 断链而 tsc 红，
 # 须按上方 [[skeleton.generation]] 整组同步后一并撤销。
 [[skeleton.drift]]
-episode = "experience-era-agents-video"
+episode = "experience-era-agents"
 path = "video/src/Main.tsx"
 fingerprint = "179be60ed605"
 reason = "顶部进度条分代（2026-09-22）：模板 Main.tsx 新增 ChapterProgress 挂载；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "self-improving-agents-video"
+episode = "self-improving-agents"
 path = "video/src/Main.tsx"
 fingerprint = "179be60ed605"
 reason = "顶部进度条分代（2026-09-22）：模板 Main.tsx 新增 ChapterProgress 挂载；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "self-evolving-coding-agents-video"
+episode = "self-evolving-coding-agents"
 path = "video/src/Main.tsx"
 fingerprint = "179be60ed605"
 reason = "顶部进度条分代（2026-09-22）：模板 Main.tsx 新增 ChapterProgress 挂载；本集为已发布成片，源码保持发布态。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "horizon-context-video"
+episode = "horizon-context"
 path = "video/src/Main.tsx"
 fingerprint = "6b9875eace5c"
 reason = "完全重制（2026-10-02）：八幕集末幕为 P7，模板注释「尾幕渐黑由 P6…」按本集语义改写作 P7，另有 import 块后一空行；渲染语义与模板一致。撤销条件=模板注释中性化后本集对齐模板（届时指纹失配须更新本条）"
 [[skeleton.drift]]
-episode = "experience-era-agents-video"
+episode = "experience-era-agents"
 path = "video/src/components/ChapterProgress.tsx"
 fingerprint = "缺失"
 reason = "顶部进度条分代（2026-09-22）：新 frozen 文件本集尚无（旧脚手架期产物）；Main 未挂载故不影响既有渲染。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "self-improving-agents-video"
+episode = "self-improving-agents"
 path = "video/src/components/ChapterProgress.tsx"
 fingerprint = "缺失"
 reason = "顶部进度条分代（2026-09-22）：新 frozen 文件本集尚无（旧脚手架期产物）；Main 未挂载故不影响既有渲染。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "self-evolving-coding-agents-video"
+episode = "self-evolving-coding-agents"
 path = "video/src/components/ChapterProgress.tsx"
 fingerprint = "缺失"
 reason = "顶部进度条分代（2026-09-22）：新 frozen 文件本集尚无（旧脚手架期产物）；Main 未挂载故不影响既有渲染。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
 [[skeleton.drift]]
-episode = "dream-rsi-video"
+episode = "dream-rsi"
 path = "video/src/components/ChapterProgress.tsx"
 fingerprint = "4e79c14a211a"
 reason = "停在 2026-09-22 分代之前的更早版本（该集晚于此文件冻结清单建立、早于 09-22 模板收敛，09-22 批次登记了「缺失」集却漏了这两个「有而更旧」的集）。撤销条件=按 vibe-video.toml [[skeleton.generation]] bilingual-i18n 整组同步（Main + ChapterProgress + Subtitle + Root + NarrationAudio + i18n.tsx，拷齐再 tsc --noEmit），并重跑 build 派生 chapters.json；同步后从 generation roster 删除本集并撤销本条"
@@ -145,175 +145,175 @@ reason = "停在 2026-09-22 分代之前的更早版本（该集晚于此文件�
 # （同 major 全家桶，three 0.186.1 / fiber 9.8.1 / lottie-web 5.13.0）。
 # 组件文件属 seeded 档不进门；此处只登记受门文件的合法偏离。
 [[skeleton.drift]]
-episode = "claude-code-explained-video"
+episode = "claude-code-explained"
 path = "video/package.json"
 fingerprint = "bdfea44ecd31"
 reason = "V3D 3D 遗产接线（2026-09-28）：+@remotion/{three,lottie,paths,shapes,layout-utils,media}@4.0.529 +three@0.186.1+@react-three/fiber@9.8.1+lottie-web@5.13.0+@types/three。撤销条件=3D 视觉方向放弃时按模板回退"
 
 [[skeleton.drift]]
-episode = "claude-code-explained-video"
+episode = "claude-code-explained"
 path = "video/remotion.config.ts"
 fingerprint = "cdc1b4788cca"
 reason = "V3D：@remotion/three 无头渲染强制 Chromium OpenGL=angle（一行）。撤销条件同上"
 
 [[skeleton.drift]]
-episode = "claude-code-planning-video"
+episode = "claude-code-planning"
 path = "video/package.json"
 fingerprint = "bdfea44ecd31"
 reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
 
 [[skeleton.drift]]
-episode = "claude-code-planning-video"
+episode = "claude-code-planning"
 path = "video/remotion.config.ts"
 fingerprint = "cdc1b4788cca"
 reason = "V3D：angle 后端（同 EP1 条目）"
 
 [[skeleton.drift]]
-episode = "claude-code-memory-video"
+episode = "claude-code-memory"
 path = "video/package.json"
 fingerprint = "bdfea44ecd31"
 reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
 
 [[skeleton.drift]]
-episode = "claude-code-memory-video"
+episode = "claude-code-memory"
 path = "video/remotion.config.ts"
 fingerprint = "cdc1b4788cca"
 reason = "V3D：angle 后端（同 EP1 条目）"
 
 [[skeleton.drift]]
-episode = "claude-code-concurrency-video"
+episode = "claude-code-concurrency"
 path = "video/package.json"
 fingerprint = "bdfea44ecd31"
 reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
 
 [[skeleton.drift]]
-episode = "claude-code-concurrency-video"
+episode = "claude-code-concurrency"
 path = "video/remotion.config.ts"
 fingerprint = "cdc1b4788cca"
 reason = "V3D：angle 后端（同 EP1 条目）"
 
 [[skeleton.drift]]
-episode = "claude-code-multiagent-video"
+episode = "claude-code-multiagent"
 path = "video/package.json"
 fingerprint = "639be7f7420c"
 reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）；ep5 完全重制退役 lottie 残留依赖（2026-10-03，structured 档依赖集变化，指纹随更）"
 
 [[skeleton.drift]]
-episode = "claude-code-multiagent-video"
+episode = "claude-code-multiagent"
 path = "video/src/components/ChapterProgress.tsx"
 fingerprint = "ead4b18ce81f"
 reason = "ep5 完全重制 v2（2026-10-02..03）：七幕章集适配与 SceneTag 迁位（top:112）后 as-built 头注矫正，重制轮内组件自由演进。撤销条件=下轮重制对齐模板或随片头挂载轮统一刷新"
 
 [[skeleton.drift]]
-episode = "claude-code-multiagent-video"
+episode = "claude-code-multiagent"
 path = "video/remotion.config.ts"
 fingerprint = "cdc1b4788cca"
 reason = "V3D：angle 后端（同 EP1 条目）"
 
 [[skeleton.drift]]
-episode = "claude-code-explained-video"
+episode = "claude-code-explained"
 path = "video/src/Main.tsx"
 fingerprint = "78664c3010fd"
 reason = "系列片头《一个循环》（2026-10-06 样板、2026-10-08 五集铺开）：Main.tsx 挂 SeriesIntro Sequence（from=0 压扩展 leadIn）+ frozen ChapterProgress 调用点侧 wrapper（片头期静默、交棒后 12 帧淡入——不动 frozen 本体）。五集挂载块同字节（归一化指纹同为本值，见下方四条同款登记）；组件种子=series-assets/claude-code-explained/intro/（七路径孪生门 series-intro-seed 执法）。en 待办：片头 zh-only（音轨 series-intro-zh.mp3 + zh 字幕），en 交付前须补 en 文案与 series-intro-en.mp3；另存在机械阻断——pipeline.py 非主语言渲染预检 check_skeleton_for_lang 直比 Main.tsx 归一化指纹与 skill 模板、不读本登记，铺开态下 en render 预检 FAIL，en 交付前置=skill 侧修预检（I-209）。撤销条件=skill 模板吸纳片头挂载点或片头退役时，五条同款登记齐撤"
 
 [[skeleton.drift]]
-episode = "claude-code-planning-video"
+episode = "claude-code-planning"
 path = "video/src/Main.tsx"
 fingerprint = "78664c3010fd"
 reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
 
 [[skeleton.drift]]
-episode = "claude-code-memory-video"
+episode = "claude-code-memory"
 path = "video/src/Main.tsx"
 fingerprint = "78664c3010fd"
 reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
 
 [[skeleton.drift]]
-episode = "claude-code-concurrency-video"
+episode = "claude-code-concurrency"
 path = "video/src/Main.tsx"
 fingerprint = "78664c3010fd"
 reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
 
 [[skeleton.drift]]
-episode = "claude-code-multiagent-video"
+episode = "claude-code-multiagent"
 path = "video/src/Main.tsx"
 fingerprint = "78664c3010fd"
 reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
 
 [[skeleton.drift]]
-episode = "agent-skills-video"
+episode = "agent-skills"
 path = "video/pnpm-workspace.yaml"
 fingerprint = "a414005bd403"
 reason = "remotion 全家桶追新 4.0.529→4.0.533（2026-10-06，210 换代重制建集时整组追新，npm view 4.0.533 为当日最新）时 pnpm 12.2 自动追加 minimumReleaseAgeExclude 清单（30 个 @remotion/* + remotion 本体共 31 行精确版本），其余段与模板逐字一致；撤销条件=模板吸收该机制或回退 4.0.529"
 
 [[skeleton.drift]]
-episode = "agent-skills-video"
+episode = "agent-skills"
 path = "video/package.json"
 fingerprint = "2ca436199aee"
 reason = "remotion 全家桶 4.0.529→4.0.533（2026-10-06 同 major 整组追新，npm view 4.0.533 为当日最新）；verify_skeleton 当期未点名本文件，此条为版本基线留痕。structured 档：指纹口径=结构化归一 md5[:12]（2026-10-02 评审修正，原登记值非本文件任何口径的指纹）"
 
 # ── claude-code-chapters ep3–ep20 文案轮署源豁免（2026-10-31 批量登记，首尾署源制同 ep1/ep2）──
 # p0-01 = 片头署源角标 beat（视觉层）；p5-XX = 片尾课程名署源句。scene_stems 制作期场景落地后补登记。
-[check_series.source_credit."chapters-03-permission-video"]
+[check_series.source_credit."chapters-03-permission"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-04-hooks-video"]
+[check_series.source_credit."chapters-04-hooks"]
 narration_ids = ["p0-01", "p5-07"]
 scene_stems = []
 
-[check_series.source_credit."chapters-05-todowrite-video"]
+[check_series.source_credit."chapters-05-todowrite"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-06-subagent-video"]
+[check_series.source_credit."chapters-06-subagent"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-08-contextcompact-video"]
+[check_series.source_credit."chapters-08-contextcompact"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-09-memory-video"]
+[check_series.source_credit."chapters-09-memory"]
 narration_ids = ["p0-01", "p5-07"]
 scene_stems = []
 
-[check_series.source_credit."chapters-10-systemprompt-video"]
+[check_series.source_credit."chapters-10-systemprompt"]
 narration_ids = ["p0-01", "p5-07"]
 scene_stems = []
 
-[check_series.source_credit."chapters-11-errorrecovery-video"]
+[check_series.source_credit."chapters-11-errorrecovery"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-12-tasksystem-video"]
+[check_series.source_credit."chapters-12-tasksystem"]
 narration_ids = ["p0-01", "p5-05"]
 scene_stems = []
 
-[check_series.source_credit."chapters-13-backgroundtasks-video"]
+[check_series.source_credit."chapters-13-backgroundtasks"]
 narration_ids = ["p0-01", "p5-08"]
 scene_stems = []
 
-[check_series.source_credit."chapters-15-agentteams-video"]
+[check_series.source_credit."chapters-15-agentteams"]
 narration_ids = ["p0-01", "p5-05"]
 scene_stems = []
 
-[check_series.source_credit."chapters-16-teamprotocols-video"]
+[check_series.source_credit."chapters-16-teamprotocols"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-17-autonomousagents-video"]
+[check_series.source_credit."chapters-17-autonomousagents"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-18-worktreeisolation-video"]
+[check_series.source_credit."chapters-18-worktreeisolation"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-19-mcpplugin-video"]
+[check_series.source_credit."chapters-19-mcpplugin"]
 narration_ids = ["p0-01", "p5-06"]
 scene_stems = []
 
-[check_series.source_credit."chapters-20-comprehensive-video"]
+[check_series.source_credit."chapters-20-comprehensive"]
 narration_ids = ["p0-01", "p5-08"]
 scene_stems = []

@@ -220,7 +220,7 @@ description: "以 agentskills 规范仓 @69ef37e9 + PR #254/#380 楼层证据 + 
 
 ## 15. 与本仓的关联
 
-机制→negentropy 代码的 grep 实测映射（skills_injector（技能注入系统提示）/harness_materializer（DB 技能物化回盘）/definitions 表版本语义）见 [机制映射汇总的 Skills 域](../mapping-negentropy.md)（`SK-A1`–`SK-A6`，Skills 域六条机制对账条目号）；本篇同时是 E3（Agent Skills 视频系列第 3 集）视频蓝图的直接信源（七幕↔章节逐幕对表在[本集叙事锚点](../../../apps/negentropy-influence/episodes/skills-supply-chain-video/research/narrative-anchors.md)）。上一篇 [230](./230-agent-skills-standard.md)（格式层精读）；E1（同系列第 1 集）成片结尾的三张欠条（怎么签名/怎么分发/怎么管版本）在本篇 §3–§6 逐一兑付对账。可跟踪三信号：#254 合并与否 / #380 解冻与否 / 任一客户端首发签名校验或第一个要求 provenance 的 skill registry。
+机制→negentropy 代码的 grep 实测映射（skills_injector（技能注入系统提示）/harness_materializer（DB 技能物化回盘）/definitions 表版本语义）见 [机制映射汇总的 Skills 域](../mapping-negentropy.md)（`SK-A1`–`SK-A6`，Skills 域六条机制对账条目号）；本篇同时是 E3（Agent Skills 视频系列第 3 集）视频蓝图的直接信源（七幕↔章节逐幕对表在[本集叙事锚点](../../../apps/negentropy-influence/episodes/skills-supply-chain/research/narrative-anchors.md)）。上一篇 [230](./230-agent-skills-standard.md)（格式层精读）；E1（同系列第 1 集）成片结尾的三张欠条（怎么签名/怎么分发/怎么管版本）在本篇 §3–§6 逐一兑付对账。可跟踪三信号：#254 合并与否 / #380 解冻与否 / 任一客户端首发签名校验或第一个要求 provenance 的 skill registry。
 
 ## 参考（IEEE）
 

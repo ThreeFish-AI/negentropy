@@ -1,0 +1,164 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.44,
+ "story_sec": 26.1,
+ "total_wall_sec": 126.23,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "rp-open",
+   "label": "总览",
+   "index": 0,
+   "file": "read-pipeline--rp-open.mp4",
+   "end_still": "read-pipeline--rp-open-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.44,
+   "story_sec": 3.35,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "req",
+    "bundle",
+    "dropped"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "rp-resolve",
+   "label": "Resolve 主体",
+   "index": 1,
+   "file": "read-pipeline--rp-resolve.mp4",
+   "end_still": "read-pipeline--rp-resolve-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.26,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "req",
+    "resolve"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "rp-plan",
+   "label": "Plan 计划",
+   "index": 2,
+   "file": "read-pipeline--rp-plan.mp4",
+   "end_still": "read-pipeline--rp-plan-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "plan"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "rp-retrieve",
+   "label": "Retrieve 双范式",
+   "index": 3,
+   "file": "read-pipeline--rp-retrieve.mp4",
+   "end_still": "read-pipeline--rp-retrieve-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.24,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "retrieve_exact",
+    "retrieve_recall"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "rp-fuse",
+   "label": "Fuse 融合",
+   "index": 4,
+   "file": "read-pipeline--rp-fuse.mp4",
+   "end_still": "read-pipeline--rp-fuse-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "fuse"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "rp-guard",
+   "label": "Guard 检查",
+   "index": 5,
+   "file": "read-pipeline--rp-guard.mp4",
+   "end_still": "read-pipeline--rp-guard-end.png",
+   "beats": 2,
+   "dwell_ms": 1600,
+   "lead_sec": 0.44,
+   "story_sec": 3.23,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "guard",
+    "dropped"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "rp-compose",
+   "label": "Compose 裁剪",
+   "index": 6,
+   "file": "read-pipeline--rp-compose.mp4",
+   "end_still": "read-pipeline--rp-compose-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.25,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "compose"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  },
+  {
+   "id": "rp-emit",
+   "label": "Emit 交付",
+   "index": 7,
+   "file": "read-pipeline--rp-emit.mp4",
+   "end_still": "read-pipeline--rp-emit-end.png",
+   "beats": 1,
+   "dwell_ms": 3200,
+   "lead_sec": 0.44,
+   "story_sec": 3.27,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "bundle"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 62.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer/video/public/archify/html/read-pipeline.html",
+ "slug": "read-pipeline",
+ "type": "workflow"
+}

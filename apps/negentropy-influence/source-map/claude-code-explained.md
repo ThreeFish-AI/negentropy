@@ -66,14 +66,14 @@ s18–s20 仅存在于站点轨；main 无 s18+。**s01/s02 是唯一三轨同�
 
 | 集 | 工程 | 层（站点分组） | 章节 | 钉 |
 |---|---|---|---|---|
-| 1 | [claude-code-explained-video](../episodes/claude-code-explained-video/README.md) | 工具与执行 | s01 · s02 · s03 · s04 | `ce8f9f18` |
-| 2 | [claude-code-planning-video](../episodes/claude-code-planning-video/README.md) | 规划与协调 | s05 · s06 · s07 · s10 · s11 | `67a9126c` |
-| 3 | [claude-code-memory-video](../episodes/claude-code-memory-video/README.md) | 记忆管理 | s08 · s09 | `67a9126c` |
-| 4 | [claude-code-concurrency-video](../episodes/claude-code-concurrency-video/README.md) | 并发 | s13 · s14 | `67a9126c` |
-| 5 | [claude-code-multiagent-video](../episodes/claude-code-multiagent-video/README.md) | 多 Agent 平台 | s12 · s15 · s16 · s17 · s18 · s19 · s20 | `67a9126c` |
+| 1 | [claude-code-explained](../episodes/claude-code-explained/README.md) | 工具与执行 | s01 · s02 · s03 · s04 | `ce8f9f18` |
+| 2 | [claude-code-planning](../episodes/claude-code-planning/README.md) | 规划与协调 | s05 · s06 · s07 · s10 · s11 | `67a9126c` |
+| 3 | [claude-code-memory](../episodes/claude-code-memory/README.md) | 记忆管理 | s08 · s09 | `67a9126c` |
+| 4 | [claude-code-concurrency](../episodes/claude-code-concurrency/README.md) | 并发 | s13 · s14 | `67a9126c` |
+| 5 | [claude-code-multiagent](../episodes/claude-code-multiagent/README.md) | 多 Agent 平台 | s12 · s15 · s16 · s17 · s18 · s19 · s20 | `67a9126c` |
 
 注：章号一律指**站点 20 章版**（ep1 的 s01–s04 目录名在两轨恰好相同）。
-ep5 于 2026-10-02 **换题完全重制**（《多 Agent 平台：七件设施，一条走廊》，楼宇公共制度全新叙事）：C 型信源 = [175 冻结快照（换代前版本，正文冻结至 `0ecf6527c`）](../episodes/claude-code-multiagent-video/research/gl-notes.md)（主干现行 175 已于 2026-10-07 换代重写），钉 `67a9126c` 不换、章表不动。s20 不作普通章节、仍作终幕收束装置（环形走廊终考，第七件设施揭晓；「机制很多，循环一个」直接回答系列主线）；s16（Team Protocols）单章取证，见机器版 note。
+ep5 于 2026-10-02 **换题完全重制**（《多 Agent 平台：七件设施，一条走廊》，楼宇公共制度全新叙事）：C 型信源 = [175 冻结快照（换代前版本，正文冻结至 `0ecf6527c`）](../episodes/claude-code-multiagent/research/gl-notes.md)（主干现行 175 已于 2026-10-07 换代重写），钉 `67a9126c` 不换、章表不动。s20 不作普通章节、仍作终幕收束装置（环形走廊终考，第七件设施揭晓；「机制很多，循环一个」直接回答系列主线）；s16（Team Protocols）单章取证，见机器版 note。
 
 ## 四、与 main 17 章版的对照
 

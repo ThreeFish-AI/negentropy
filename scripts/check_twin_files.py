@@ -62,12 +62,12 @@ TWIN_GROUPS: list[tuple[str, str, list[str]]] = [
         ),
         [
             "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro.tsx",
-            "apps/negentropy-influence/episodes/claude-code-explained-video/video/src/components/series-intro.tsx",
-            "apps/negentropy-influence/episodes/claude-code-planning-video/video/src/components/series-intro.tsx",
-            "apps/negentropy-influence/episodes/claude-code-memory-video/video/src/components/series-intro.tsx",
-            "apps/negentropy-influence/episodes/claude-code-concurrency-video/video/src/components/series-intro.tsx",
-            "apps/negentropy-influence/episodes/claude-code-multiagent-video/video/src/components/series-intro.tsx",
-            "apps/negentropy-influence/episodes/claude-code-harness/chapters-01-loop-video/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-explained/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-planning/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-memory/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-concurrency/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-multiagent/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-01-loop/video/src/components/series-intro.tsx",
         ],
     ),
 ]
