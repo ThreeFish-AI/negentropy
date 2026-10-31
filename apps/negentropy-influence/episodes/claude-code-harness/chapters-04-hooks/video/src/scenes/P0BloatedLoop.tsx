@@ -27,7 +27,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {CheckChip, GateCard, LoopRing, Panel, ringPt} from '../components/motifs';
+import {CheckChip, GateCard, HookPoint, LoopRing, Panel, ringPt} from '../components/motifs';
 import {DUR, clamp01, progress, useImpulse, useProgress} from '../motion';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
@@ -97,14 +97,16 @@ const sluggishDot = (frame: number, stages: readonly {at: number; v: number}[]):
   return a % 1;
 };
 
-/** 环内杂色块布点（0-B 终态全集；0-A 只显前四枚） */
+/** 环内杂色块布点（0-B 终态全集；0-A 只显前四枚）。坐标为块左上角相对环心
+ *  偏移；⑨ W1 复核判据：块最远角点到环心距离 ≤ r=234（guard 267→215、无签
+ *  块 316→231 两枚越线已内收/缩宽，其余各块角点 104–227 全数在界）。 */
 const MESS_BLOCKS = [
   {label: 'log', x: -180, y: -130, w: 110, from: 0},
   {label: 'check', x: -20, y: -150, w: 120, from: 0},
-  {label: 'guard', x: 140, y: -120, w: 116, from: 0},
+  {label: 'guard', x: 103, y: -116, w: 96, from: 0},
   {label: 'track', x: 95, y: -40, w: 108, from: 0},
-  {label: '', x: 70, y: 115, w: 84, from: 0},
-  {label: '', x: 200, y: 95, w: 84, from: 0},
+  {label: '', x: 20, y: 160, w: 84, from: 0},
+  {label: '', x: 120, y: 100, w: 60, from: 0},
 ] as const;
 
 /** 0-B 四块白话短标签（次序=口播：日志、检查、提醒、自动提交） */
@@ -173,9 +175,10 @@ const ZeroA: React.FC<{atAdd1: number; atAdd2: number; atGate: number; atFlash: 
       >
         <CheckChip x={0} y={0} w={104} label={'sync'} lit={1} />
       </div>
-      {/* 既有闸卡剪影（ep3 裁决紫同形签名——ghost 暗态在场，加重一闪不展开） */}
+      {/* 既有闸卡剪影（ep3 裁决紫同形签名——常驻灰剪影；「越挂越多」闪拍短暂
+          降 ghost 至 0.45 让 #7C6FF0 可辨〔⑨ W2〕，闪毕回灰——只确认在场不展开） */}
       <div style={{position: 'absolute', left: gatePt.x - 62, top: gatePt.y - 58, opacity: 0.5 + 0.5 * gateBase}}>
-        <GateCard x={0} y={0} w={124} h={116} kind="deny" lit={0.18 + 0.4 * gateFlash} ghost={0.72} />
+        <GateCard x={0} y={0} w={124} h={116} kind="deny" lit={0.18 + 0.4 * gateFlash} ghost={0.72 - 0.27 * gateFlash} />
       </div>
       {/* 候场区（右上——两枚待挂块小影，任务签不显字） */}
       <div style={{position: 'absolute', left: 1620, top: 640, opacity: queueO}}>
@@ -500,9 +503,10 @@ const ZeroD: React.FC<{atCard: number; atEcho: number; atSlots: number}> = ({atC
   // 「挡在循环外面」：卡面重读排版压一拍（mech 辉光脉冲 + 微放大）
   const echo = useImpulse({at: atEcho, dur: DUR.f6, peak: 0.045});
   const glow = useProgress(atEcho, DUR.f5);
-  // 四枚小槽位轮廓同时微亮一次（P1 四事件预告，不显字）
+  // 四枚小槽位轮廓同时微亮一次（P1 四事件预告，不显字）；首槽一点挂点紫微光
   const slotsBase = useProgress(atCard + DUR.f4, DUR.f4);
   const slotPulse = useImpulse({at: atSlots, dur: DUR.f5, peak: 1});
+  const firstSlotLit = 0.75 * useProgress(atSlots, DUR.f5);
   return (
     <AbsoluteFill>
       {/* 杂色环体退居暗层背景（病灶定格在场不抢焦；本镜不再恶化） */}
@@ -531,7 +535,8 @@ const ZeroD: React.FC<{atCard: number; atEcho: number; atSlots: number}> = ({atC
           <span style={{fontFamily: theme.serif, fontSize: 62, fontWeight: 700, color: theme.text, whiteSpace: 'nowrap'}}>{'把扩展挡在循环外面'}</span>
         </Panel>
       </div>
-      {/* 卡下缘四枚小槽位轮廓（P1 四事件预告——不显字，微亮一次） */}
+      {/* 卡下缘四枚小槽位轮廓（P1 四事件预告——不显字，微亮一次；首槽一点
+          挂点紫微光入场〔⑨ N：宣言帧不留四个全空框——外行单帧可读「位置已留」〕） */}
       <div style={{position: 'absolute', left: 0, right: 0, top: 640, display: 'flex', justifyContent: 'center', gap: 26}}>
         {[0, 1, 2, 3].map((i) => (
           <div
@@ -546,6 +551,7 @@ const ZeroD: React.FC<{atCard: number; atEcho: number; atSlots: number}> = ({atC
           />
         ))}
       </div>
+      <HookPoint cx={759} cy={662} r={9} lit={firstSlotLit} pulse={slotPulse * 0.8} />
       {/* 「今天的钩子」预告角标（英文机制名进角标） */}
       <div
         style={{

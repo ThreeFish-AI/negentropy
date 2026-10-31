@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》后 ep4《Hooks：扩展不进循环》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 22 镜六场景分镜（零建图；G1 对抗核验 10/10 全过零 RISKY——系列第二次一次过，QA 教训清单注入实现者的复利显现）；⑦ me-bright/story TTS 55 句实测 4.8 分落窗；⑧ 六场景 3399 行 + bespoke 十四件装置（VoteBoard 承 ep3 同构复用、GateCard 裁决紫跨集签名登记）+ 片头孪生挂载（实现者自办 scene_stems/drift 登记——同族指纹 1c779384d763）。
+- ⑨ QA 三路目检 0 RISKY（系列首集零 RISKY）+ 修复轮 3 项（0-B 灰块溢环按角点判据全量复核内收、0-A 闸卡剪影闪拍降 ghost 亮裁决紫签名、0-D 宣言帧四槽位首点微光入场）；小白走查因 vision 通道不稳两度中断后改蒙太奇降载版（五幕拼图串行读）完成：四重点全证（注册表字典语义动态演出/双路互斥零同帧/两组消融读数零交叉/五幕色彩独立赋值一致无漂移），p4 幕机制自明性偏弱记 NOTE 留观。机器门全 FAIL 0。
+- ⑩ 终渲 165.7s、manifest 4.8 分 + 片头 23.5s ≈ 5.2 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Hooks：扩展不进循环 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》后 ep3《Permission》制作轮收官交付 v1（2026-11-01）
 
 - 继《Agent Loop》《Tool Use》后 ep3 交付：⑥ 23 镜六场景分镜（零建图原生路线；G1 对抗核验 9 OK/1 WARN/0 RISKY 一次过——否决章定色方案 A：否决/拒绝方向动作=警示红、装置结构=裁决紫，storyboard/planning 双面登记）；⑦ me-bright/story TTS 53 句实测 4.9 分落窗；⑧ 六场景 3043 行 + 十件 bespoke 装置 + 片头孪生挂载（Main 指纹同族 1c779384d763，drift 登记；scene_stems 回填）。
