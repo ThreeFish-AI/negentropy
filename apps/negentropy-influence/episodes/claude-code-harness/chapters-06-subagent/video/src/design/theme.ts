@@ -1,12 +1,9 @@
 /**
- * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
+ * 本集视觉契约（⑧ 轮定稿，storyboard 前言「本集视觉契约」= planning §三）。
  *
- * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
- * references/08-remotion-implementation.md：
- *   - 2–3 个概念色，映射「深度轴」而非枚举条目
- *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
- *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
- *     运行时打印的 occupied-hex INFO 行）
+ * 底座常量跨集通用、不要改；概念色规则见 references/08-remotion-implementation.md：
+ *   - 概念色映射「深度轴」而非枚举条目；对 bg (#0E1116) 对比度 ≥ 4.5:1
+ *   - 色相不与系列已用色撞值（check_series.py occupied-hex INFO 行为准）
  *   - 覆写任何底座 token 须在 theme.ts / planning.md / README 三处留决策记录
  */
 export const theme = {
@@ -16,9 +13,9 @@ export const theme = {
   panelBorder: '#2A3242',
   text: '#F2F5FA',
   dim: '#9AA7B8',
-  // danger 曾缺席本 seed（既有四集 theme.ts 全都有、场景代码读 theme.danger，
-  // scaffold 出的新集开箱即 TS2339）——补齐即与四集现状对齐。
+  // danger：回传全史灌满 / 删盘反例 / 到点红线（恒配 ✗，仅失败态）
   danger: '#FF5C5C',
+  // ok：消融在位侧 / 拦截成功 / 结论落账（确认绿）
   ok: '#7ED321',
 
   // ── 字体族（跨集通用，勿改）──
@@ -31,9 +28,22 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
-  // ── 本集概念色（planning §三；accents 与系列层 series.json 登记同值 #9B8AFB/#4EA8DE，
-  //    2026-10-31 文案轮定稿——去撞色微调后值；制作期场景按 planning §三语义展开）──
-  core: '#9B8AFB', // 隔离紫——子代理独立上下文隔离舱
-  sub: '#4EA8DE', // 结论蓝——结论单向回流主对话通道
+  // ── 本集概念色（planning §三；series.json accents 登记 [#9B8AFB, #4EA8DE]，
+  //    2026-10-31 文案轮定稿去撞色微调后值）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与
+  //    ep1–ep5 逐像素同值即「描边色/线宽承锁定值全片不变」的落地）
+  core: '#D97757',
+  // mech：本集主题色一 = 子代理隔离舱 / 新会议室（隔离紫）——全新消息列表、
+  //    内部消息条、「用完清空」的归零语义（对 bg 6.7:1；「本集之物」授色，
+  //    series-intro 孪生件的授色站直读本值）。色相自证：≈246°，与系列已用
+  //    紫族（ep4 挂点 #8B7CF6≈247°）同域但亮度阶差可辨，且该集挂点为细线
+  //    辅件非主装置；与 ep5 提醒紫 #B48CF2≈262° 差 ≥16°（更冷更蓝）。
+  mech: '#9B8AFB',
+  // steel：本集主题色二 = 主对话主线 / 结论回流通道（钢蓝）——单向通道、
+  //    主会场消息条、「只多两条」落账（对 bg 7.2:1；色相 ≈202°，与 ep3 边界
+  //    蓝 #4E9EFF≈213° / ep4 回调蓝 #58A6FF≈212° 差 ≥10°，明显更青更暗，
+  //    非同槽）
+  steel: '#4EA8DE',
+  // tool：执行面/结果回喂流（青碧承 ep1–ep5 同语义——系列恒定环体伴色）
+  tool: '#64C4C0',
 } as const;
