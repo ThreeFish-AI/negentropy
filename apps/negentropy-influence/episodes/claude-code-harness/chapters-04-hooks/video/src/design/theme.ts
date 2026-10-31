@@ -31,9 +31,29 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
-  // ── 本集概念色（planning §三；accents 与系列层 series.json 登记同值 #8B7CF6/#58A6FF，
-  //    2026-10-31 文案轮定稿——去撞色微调后值；制作期场景按 planning §三语义展开）──
-  core: '#8B7CF6', // 挂点紫——事件挂点与注册表主色
-  sub: '#58A6FF', // 回调蓝——触发信号与续跑指令流动色
+  // ── 本集概念色（⑧ 轮定稿，storyboard「本集视觉契约」= planning §三）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与
+  //    ep1/ep2/ep3 逐像素同值即「描边色/线宽承锁定值全片不变」的落地）
+  core: '#D97757',
+  // mech：本集之物 = HOOKS 注册表（挂点紫）——事件挂点/注册表/挂钩/保险徽记
+  //    的装置结构色（对 bg 5.2:1；「本集之物」授色，series-intro 孪生件直读）
+  mech: '#8B7CF6',
+  // hook：回调蓝 = 回调/触发信号流（回调卡、触发线、注入消息条、续跑指令；
+  //    对 bg 7.3:1）。命名承本集机制词（hooks），非通用 hook 语义。
+  hook: '#58A6FF',
+  // tool：执行面/结果回喂流（青碧承 ep1/ep2/ep3 同语义——系列恒定环体伴色）
+  tool: '#64C4C0',
+  // warn 槽位不设：消融反例/越界/拔钩退化/裂纹等反例动作统一走底座 danger
+  //    #FF5C5C（承 ep3 G1 定色先例——警示红即底座常量，不再造同族第二红）；
+  //    检查点全过/放行等确认态走底座 ok #7ED321。
+  // series.json accents = [#8B7CF6, #58A6FF]（mech + hook；check_series 规则 4
+  // 执法），core/tool 为系列恒定色不占本集 accents 槽。
+  //
+  // ── 跨集签名色只读登记（G1 对抗核验 2026-11-01；色值跨集回溯、语义不歧义，
+  //    常量落 motifs.tsx 模块内、不进本表——同 3D 面色常量先例，自证与全系列
+  //    已用色的色相距离：#7C6FF0 为 ep3 实占裁决紫原值（同语义回溯非撞色）、
+  //    #4E9EFF 为 ep2 实占边界蓝原值）──
+  // 裁决紫 #7C6FF0 = ep3 闸卡签名：1-C 降格迁移动画的同形签名本体（跨集视觉
+  //    记忆）、0-A 剪影一闪、5-A 闸卡小影同签回归；
+  // 边界蓝 #4E9EFF = ep2 工作区范围框签名：3-B 越界冲出的框界在画。
 } as const;
