@@ -83,3 +83,15 @@ Memadapter 论文图 1–3 取自 [arXiv:2610.05162v1](https://arxiv.org/html/26
 | [agent4sci--fig2-evaluation-protocol.png](./agent-harness/agent4sci--fig2-evaluation-protocol.png) | Agent4Sci 论文 Fig.2（agent4sci_protocol.png，原图 7664×3284） | 版权归原作者，仅作学习引用 | 等比降采样 2600×1114（949 KiB） |
 | [agent4sci--fig3-methods-word-clouds.png](./agent-harness/agent4sci--fig3-methods-word-clouds.png) | Agent4Sci 论文 Fig.3(a)（methods_word_clouds.png，2037×428） | 版权归原作者，仅作学习引用 | 原样（RGB，383 KiB） |
 | [agent4sci--fig5-neurips2025-filtering-funnel.png](./agent-harness/agent4sci--fig5-neurips2025-filtering-funnel.png) | Agent4Sci 论文 Fig.5(a)（neurips2025_filtering_overview.png，3703×579） | 版权归原作者，仅作学习引用 | 原样（RGB，1023 KiB） |
+
+### self-evolution · Trustworthy RSI 精读（[145](../../research/self-evolution/145-trustworthy-rsi.md)）
+
+抓取基准为 [arXiv:2610.35193v1](https://arxiv.org/html/2610.35193v1) HTML 版（2026-10-30 curl 快照，与 abs 页元数据双核验；webReader 首取文本与快照不一致判为幽灵全文，一切以 curl 快照为准）；图件取 HTML 版引用的原始 PNG，fig10 超单图体积门等比降采样（无内容改动）；论文许可 arXiv.org perpetual non-exclusive license（未另附开放许可，按署名学习引用处理）。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [trustworthy-rsi--fig1-overview.png](./self-evolution/trustworthy-rsi--fig1-overview.png) | 论文 Fig.1（main_figure.png，1600×900） | 版权归原作者，仅作学习引用 | 原样（526 KiB） |
+| [trustworthy-rsi--fig3-rsi-process.png](./self-evolution/trustworthy-rsi--fig3-rsi-process.png) | 论文 Fig.3（RSI_process.png，1737×1070） | 版权归原作者，仅作学习引用 | 原样（472 KiB） |
+| [trustworthy-rsi--fig4-theme1-risks-safeguards.png](./self-evolution/trustworthy-rsi--fig4-theme1-risks-safeguards.png) | 论文 Fig.4（chap3_figure.png，1737×1070） | 版权归原作者，仅作学习引用 | 原样（616 KiB） |
+| [trustworthy-rsi--fig9-three-level-comparison.png](./self-evolution/trustworthy-rsi--fig9-three-level-comparison.png) | 论文 Fig.9（chap7.2_figure.png，2029×739） | 版权归原作者，仅作学习引用 | 原样（576 KiB） |
+| [trustworthy-rsi--fig10-application-settings.png](./self-evolution/trustworthy-rsi--fig10-application-settings.png) | 论文 Fig.10（assets/chap8_figure.png，原图 1667×766） | 版权归原作者，仅作学习引用 | 等比降采样 1440px（1195 KiB） |
