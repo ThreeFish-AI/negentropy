@@ -248,6 +248,7 @@
 | I-240 | Dependabot 54 条批量处置：backend 11 包收敛升级（mcp 上界防 2.x）+ katex 0.18 override（rehype-katex 卡 ^0.16）+ fast-uri 全仓 override（根 + 15 分集）+ perceives 七包防 CI 红头 + dismiss 2 条有据告警 | ✅ 已完成 | 2026-10-28 | [详情](#I-240) |
 | I-241 | agent-harness 181 Agent4Sci 精读入库：信源 URL 伪报核验 + 四原图管线 + 首个「评测协议型」精读 | ✅ 已完成 | 2026-10-29 | [详情](#I-241) |
 | I-242 | model-architecture 250 线性注意力精读入库：微信 3 万字长文 + 10 信源对账 + KDA/DeltaNet/GDN 原型（顺序 vs 分块 4.4e-16）+ 双 archify 图 + 新开分组 | ✅ 已完成 | 2026-10-30 | [详情](#I-242) |
+| I-243 | self-evolution 145 Trustworthy RSI 精读入库：webReader 幽灵全文的元数据域漏核（作者块 12 人被幻影为单作者） | ✅ 已完成 | 2026-10-30 | [详情](#I-243) |
 
 ---
 
@@ -5754,3 +5755,20 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：后续公众号/图片型公式信源精读（对照 014/181 的 source-figures 管线，本篇是「公式不可取型」的新形态）；archify dataflow 节点上下同列叠放时反馈边几何不可行——砍边改 tag+卡片承载语义（K₂,₂ 判例复用）。
 
 **注意事项**：250 是 model-architecture 分组首篇；lab 字数门沿用 179 的 count_words（上限 6000）。
+
+<a id="I-243"></a>
+## I-243：self-evolution 145 Trustworthy RSI 精读入库：webReader 幽灵全文的元数据域漏核
+
+**问题描述**：arXiv HTML 信源经 webReader MCP 首取后，与 curl 直抓快照比对发现正文存在幽灵内容（MuZero/Bengio 等不存在于原文的引用与案例），按既有惯例判为幽灵全文并以 curl 快照为唯一基准重读。但 Phase 4 Checker 对账仍抓出一处硬伤：草稿与四处登记里的「Ang Gao 单作者」来自 webReader 版的作者块——curl 快照实际为 12 位作者（Jiayue Pu 一作，Ang Gao 二作，通信作者 Pu/Sun/Zhang），正文双核验拦住了幽灵正文，元数据（作者列表）却漏网进入了 IEEE 引用、frontmatter、CHANGELOG 与 knowledge-map。
+
+**表因**：作者、日期、版本等元信息在首取时先入为主，重读正文时被视为「已核对过的事实」未再过快照。
+
+**根因**：curl 双核验惯例的核对面默认为「正文内容」，未把元数据域（作者列表/提交日期/许可/版本号）列入必核清单；幽灵全文的污染范围没有先验边界，任何首取信息都可能是幻影。
+
+**处理方式**：Checker 待核表 C1 显式列入作者断言后暴露；全链修正正文 IEEE 引用（J. Pu et al. 12 人）、frontmatter、CHANGELOG、knowledge-map 与 lab 台账；sources.md 登记幽灵作者块事实。
+
+**后续防范**：凡 webReader/转述工具首取的信源，curl 快照到手后必须对**元数据域逐项重核**（作者全列表与次序、提交/修订日期、版本号、许可、arXiv ID），并把这几项写进 Checker 待核表首批断言；「正文以快照为准」的纪律扩展为「快照之外无事实」。
+
+**同类问题影响**：所有 arXiv/网页类精读入库与外部信源引用（guided-learn 全系）；凡首取工具与快照并存的工作流均适用。
+
+**注意事项**：I-241 记录的是信源 URL 伪报（链接与内容不符），本条是其姊妹形态——内容链接对了、元数据幻影；两者合并构成「首取工具输出不可信域 = 全域」的完整证据。本条原编号 I-242，与本侧合并主干时已合入的线性注意力精读条目（I-242，#1222）撞号后重编为 I-243——本分支 commit message 与 PR #1221 标题中的「I-242」引用均指本条。
