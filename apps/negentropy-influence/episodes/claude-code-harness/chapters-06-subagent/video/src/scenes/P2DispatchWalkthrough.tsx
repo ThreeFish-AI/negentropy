@@ -156,12 +156,11 @@ const TwoA: React.FC<{atCmd: number; atTree: number; atTask: number; atFly: numb
 
 // ── 2-B 紫室实跑：六签读入 + 两条落账 ────────────────────────────────────
 
-const TwoB: React.FC<{atRead: number; atConc: number; atTwo: number; atFlash: number; atCount: number}> = ({
+const TwoB: React.FC<{atRead: number; atConc: number; atTwo: number; atFlash: number}> = ({
   atRead,
   atConc,
   atTwo,
   atFlash,
-  atCount,
 }) => {
   const frame = useCurrentFrame();
   // 六签按目录树次序逐个点亮 + 每签一趟读取脉冲（读取次序=目录树次序）
@@ -175,7 +174,6 @@ const TwoB: React.FC<{atRead: number; atConc: number; atTwo: number; atFlash: nu
   // 主会场侧：只落两条（「只多两条」——确认绿各一闪）+ 计数 +2 定格
   const two = useProgress(atTwo, DUR.f5);
   const twoFlash = useImpulse({at: atFlash, dur: DUR.f5, peak: 1});
-  const count = useProgress(atCount, DUR.f4);
   return (
     <AbsoluteFill>
       {/* 紫室内部（承 1-B 机位） */}
@@ -227,7 +225,8 @@ const TwoB: React.FC<{atRead: number; atConc: number; atTwo: number; atFlash: nu
                 textShadow: twoFlash > 0.05 ? `0 0 ${12 * twoFlash}px ${withAlpha(theme.ok, 0.9)}` : 'none',
               }}
             >
-              {`+${Math.round(2 * count)}`}
+              {/* ⑨ QA N1：计数随 two 联动（+0 与两条并存的假读消除） */}
+              {`+${Math.round(2 * two)}`}
             </span>
           </div>
           {/* 恰两条新消息（派活记录 + 结论——钢蓝、确认绿各一闪） */}
@@ -405,7 +404,6 @@ export const P2DispatchWalkthrough: React.FC<{scene: SceneRange}> = ({scene}) =>
           atConc={wa('p2-04', 0.72) - bB.from}
           atTwo={wa('p2-05', 0.3) - bB.from}
           atFlash={wa('p2-05', 0.5) - bB.from}
-          atCount={wa('p2-05', 0.55) - bB.from}
         />
       </Sequence>
       <Sequence {...bC} name="2-C">

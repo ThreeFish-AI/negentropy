@@ -887,7 +887,8 @@ export const RoomMessageList: React.FC<{
               textShadow: counterFlash > 0.05 ? `0 0 ${12 * clamp01(counterFlash)}px ${withAlpha(theme.text, 0.8)}` : 'none',
             }}
           >
-            {`${Math.round(clamp01(counter))} 条`}
+            {/* ⑨ QA RISKY-1：去 clamp01（钳 [0,1] 使 ≥1 条数恒渲「1 条」；调用点传值有界 0..16） */}
+            {`${Math.round(counter)} 条`}
           </span>
         </div>
         {/* 列表顶「独立系统提示」标签位（仅四字不成句） */}
@@ -930,8 +931,10 @@ export const RoomMessageList: React.FC<{
                     height: rowH,
                     boxSizing: 'border-box',
                     borderRadius: 7,
-                    border: `2px solid ${isTool ? withAlpha(theme.tool, 0.5) : withAlpha(theme.dim, 0.5)}`,
-                    background: isTool ? withAlpha(theme.tool, 0.06) : 'transparent',
+                    /* ⑨ QA W2：紫系（视觉契约「内部消息条=紫」衔接「紫=子代理」色教学；
+                       工具条亮紫 / 轮转条暗紫保留次级差异） */
+                    border: `2px solid ${isTool ? withAlpha(theme.mech, 0.62) : withAlpha(theme.mech, 0.32)}`,
+                    background: isTool ? withAlpha(theme.mech, 0.08) : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     paddingLeft: 12,
@@ -1114,7 +1117,8 @@ export const MeetingRooms: React.FC<{
             textShadow: counterFlash > 0.05 ? `0 0 ${12 * clamp01(counterFlash)}px ${withAlpha(theme.ok, 0.9)}` : 'none',
           }}
         >
-          {`${Math.round(clamp01(counterVal))} 条`}
+          {/* ⑨ QA RISKY-1：同上——去 clamp01 直取 Math.round */}
+          {`${Math.round(counterVal)} 条`}
         </div>
         ) : null}
         {/* 工具表纵列（五件小卡 + task 卡位——主会场侧 sixMode='task'；缩微态
@@ -1389,13 +1393,16 @@ export const RoomGlyph: React.FC<{cx: number; cy: number; w: number; h: number; 
         height: h,
         boxSizing: 'border-box',
         borderRadius: 12,
-        border: `2.5px solid ${withAlpha(accent, 0.85)}`,
-        background: withAlpha(theme.panel, 0.9),
-        opacity: clamp01(lit) * (0.35 + 0.65 * o),
+        /* ⑨ QA W3：视觉权重三升（描边 2.5→4、室内底色随 accent、开合下限 0.35→0.55、
+           室名字号 13→17）——半分辨率下「越开越多」须有画面证据；底色随 accent 派生
+           （紫室紫底/主会场钢蓝底），不写死 mech 以保组件通用契约 */
+        border: `4px solid ${withAlpha(accent, 0.85)}`,
+        background: withAlpha(accent, 0.1),
+        opacity: clamp01(lit) * (0.55 + 0.45 * o),
         transform: `scale(${0.82 + 0.18 * o})`,
       }}
     >
-      <div style={{position: 'absolute', left: 12, top: 8, fontFamily: theme.mono, fontSize: 13, color: accent}}>{label}</div>
+      <div style={{position: 'absolute', left: 14, top: 8, fontFamily: theme.mono, fontSize: 17, color: accent}}>{label}</div>
     </div>
   );
 };
@@ -1493,6 +1500,10 @@ export const BaselineBars: React.FC<{
       <div style={{position: 'absolute', left: 30, right: 30, top: h - 60, height: 0, borderTop: `3px solid ${withAlpha(theme.dim, 0.7)}`, opacity: clamp01(rulerLit)}} />
       <div style={{position: 'absolute', left: 30, top: h - 50, fontFamily: theme.mono, fontSize: 13, color: theme.dim, opacity: clamp01(rulerLit)}}>
         {'字符口径增长条 · 共底基线'}
+      </div>
+      {/* ⑨ QA W1：工况角标（G1 修订后 storyboard 已登记的契约元素） */}
+      <div style={{position: 'absolute', right: 30, top: h - 50, fontFamily: theme.mono, fontSize: 13, color: theme.dim, opacity: clamp01(rulerLit)}}>
+        {'episode B · 实测口径'}
       </div>
     </div>
   );
@@ -2011,7 +2022,8 @@ export const DocStack: React.FC<{
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'baseline'}}>
               <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>{`docs_${i + 1}.md`}</span>
               <span style={{fontFamily: theme.mono, fontSize: 15, fontWeight: 700, color: theme.text, fontVariantNumeric: 'tabular-nums'}}>
-                {`${Math.round(clamp01(rows))} 行`}
+                {/* ⑨ QA RISKY-1 同类：行数计数去 clamp01（几千行恒渲「1 行」） */}
+              {`${Math.round(rows)} 行`}
               </span>
             </div>
             {[0, 1, 2, 3].map((k) => (

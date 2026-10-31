@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》后 ep6《Subagent：过程隔离，只回结论》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 22 镜六场景分镜（零建图；G1 核验修 2 RISKY+3 WARN 放行：片头 ACTIVE_INDEX 组号口径（泛化 craft 脚本措辞根因一并修复）、节奏注记跨幕 3 连同长补动机、2-D 工况角标、4-D 警示红第三用途登记、标签字数对齐）+ 微改进 1 句（v2→v3）。
+- ⑦ me-bright/story TTS 54 句实测 4.8 分落窗；⑧ 六场景 2473 行 + bespoke 14 件装置 + 片头孪生挂载（Main 指纹与 ep1–5 逐字节同族）。
+- ⑨ QA 三路目检抓到 1 RISKY：motifs 两处计数器 clamp01 钳位使任何 ≥1 条数恒渲「1 条」（跨 14 帧：4/2/15/16 全错，「只多两条」落账被毁）——修复并顺扫同根因 DocStack「N 行」；另修 3 WARN+2 NOTE（episode B 工况角标、紫室内部消息条归紫系衔接颜色教学、四角紫室视觉权重、+0 假读联动、空槽呼吸基线）。核验用字形模板 IoU 匹配（0.75–0.90）实证「15 条」「16 条」恢复。机器门 FAIL 0。
+- ⑩ 终渲 185.9s、manifest 4.8 分 + 片头 23.5s ≈ 5.2 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Subagent：过程隔离，只回结论 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》后 ep5《TodoWrite：把计划摆回模型眼前》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 20 镜六场景分镜（零建图；G1 核验修 1 RISKY+3 WARN 后放行：3-D 规律金句卡补 caption-dup-ok 豁免、两处 @pushIn 从画面列归位动效列、片头注记改组号口径并连坐修正 ep4 同句）+ 文案微改进 4 句（v2→v3：丢了的计划→看不见的计划/重命名→改命名/阈值→数到三的阈值/更新的模型→较新的模型——含一处 judge 转写笔误实测纠正）。

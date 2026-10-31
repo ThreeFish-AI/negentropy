@@ -151,8 +151,9 @@ const OneB: React.FC<{atList: number; atDesc: number; atRing: number; atTag: num
 
 const OneC: React.FC<{atSlot: number; atSeal: number; atTicks: number; atTop: number}> = ({atSlot, atSeal, atTicks, atTop}) => {
   const frame = useCurrentFrame();
-  // 空槽虚线框呼吸高亮（「唯独没有」——与主会场 task 卡同形的缺席轮廓）
-  const breathe = 0.55 + 0.45 * Math.sin(frame / 6);
+  // 空槽虚线框呼吸高亮（「唯独没有」——与主会场 task 卡同形的缺席轮廓）。
+  // ⑨ QA N2：基线 0.7+0.3sin（任一抽帧时刻空槽可辨——0.55 谷值半分辨率下失辨）
+  const breathe = 0.7 + 0.3 * Math.sin(frame / 6);
   const slotLit = useProgress(atSlot, DUR.f4) * breathe;
   // 单层封条小标（「锁死在一层」——递归一层的具象）
   const seal = useProgress(atSeal, DUR.f4);
