@@ -110,10 +110,34 @@ const FourA: React.FC<{atPush: number; atWave: number; atCount: number; atFive: 
                   gap: 12,
                   padding: '0 14px',
                   opacity: p * (hot > 0.35 ? 1 : 0.62),
+                  /* ⑨ QA W3：热行 mech 光环——五行成组可辨（放大可读性等价物） */
+                  boxShadow: hot > 0.35 ? `0 0 ${9 * hot}px ${withAlpha(theme.mech, 0.42 * hot)}` : 'none',
                 }}
               >
                 <span style={{width: 26, fontFamily: theme.mono, fontSize: 13, color: hot > 0.35 ? theme.mech : theme.dim, whiteSpace: 'nowrap'}}>{String(i + 1).padStart(2, '0')}</span>
                 <span style={{fontFamily: theme.mono, fontSize: 14, color: hot > 0.35 ? theme.text : theme.dim, whiteSpace: 'nowrap', opacity: 0.9}}>{code}</span>
+                {/* ⑨ QA W3：五行打点编号（1..5 随 stagger 逐行点亮——「五种」画面可数） */}
+                {i < 5 && hot > 0.2 ? (
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      border: `2px solid ${theme.mech}`,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontFamily: theme.mono,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: theme.mech,
+                      opacity: hot,
+                      transform: `scale(${0.7 + 0.3 * hot})`,
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                ) : null}
                 {/* 去向小签（行右端） */}
                 <span style={{marginLeft: 'auto', fontFamily: theme.mono, fontSize: 14, color: hot > 0.35 ? withAlpha(theme.mech, 0.9) : theme.dim, whiteSpace: 'nowrap'}}>{'→'}</span>
               </div>
@@ -136,6 +160,27 @@ const FourA: React.FC<{atPush: number; atWave: number; atCount: number; atFive: 
         {/* 行数读数（17 行可数——数字层与角标对账） */}
         <div style={{position: 'absolute', left: GRID_4A.x + GRID_4A.w + 26, top: GRID_4A.y + 8 * (GRID_4A.rowH + GRID_4A.gap) - 6, fontFamily: theme.mono, fontSize: 20, fontWeight: 700, color: theme.text, whiteSpace: 'nowrap', opacity: clamp01(progress(frame, atCount, 10))}}>
           {'17 行'}
+        </div>
+        {/* ⑨ QA W3：「展开 5/17」迷你计数签——落词拍随五行点齐亮起（教学边界可数） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: GRID_4A.x + GRID_4A.w + 26,
+            top: GRID_4A.y + 8 * (GRID_4A.rowH + GRID_4A.gap) + 30,
+            padding: '4px 14px',
+            borderRadius: 9,
+            border: `2.5px solid ${withAlpha(theme.mech, 0.85)}`,
+            background: theme.panel,
+            fontFamily: theme.mono,
+            fontSize: 17,
+            fontWeight: 700,
+            color: theme.mech,
+            whiteSpace: 'nowrap',
+            opacity: clamp01(five[4]),
+            transform: `translateY(${(1 - clamp01(five[4])) * 10}px)`,
+          }}
+        >
+          {'展开 5/17'}
         </div>
       </div>
       <div style={{position: 'absolute', left: 0, right: 0, bottom: 176, textAlign: 'center', fontFamily: theme.mono, fontSize: 19, color: theme.dim, opacity: 0.7}}>

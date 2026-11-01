@@ -32,13 +32,24 @@ import {AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig} from 'remotion'
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {CallSegmentGlow, LoopRing, RoutingTable} from '../components/motifs';
+import {CallSegmentGlow, LoopRing, RING_STROKE, RoutingTable} from '../components/motifs';
 import {DUR, clamp01, progress, usePushIn} from '../motion';
 
 const withAlpha = (hex: string, a: number): string =>
   `${hex}${Math.round(clamp01(a) * 255)
     .toString(16)
     .padStart(2, '0')}`;
+
+/** ⑨ QA N1：压黑态环体 rim-light（#2A2A30 深灰描边档——状态面色常量留模块内
+ *  不进 theme；压黑拍 max 42 亮度对 bg 17.6 几乎融背景，rim 保「环还在」可读） */
+const RIM = '#2A2A30';
+
+/** 压黑环的 rim 圈（画在熄黑环体之后一层——同 r 同心、略宽描边） */
+const RingRim: React.FC<{cx: number; cy: number; r: number; opacity: number}> = ({cx, cy, r, opacity}) => (
+  <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{position: 'absolute', inset: 0, pointerEvents: 'none'}}>
+    <circle cx={cx} cy={cy} r={r} fill="none" stroke={RIM} strokeWidth={RING_STROKE + 5} opacity={clamp01(opacity)} />
+  </svg>
+);
 
 /** 署源角标（首部署源位，RSI I-080 豁免登记）：右下常驻，一次淡入后恒定不抢焦；
  *  bottom 168 避开字幕条（承 ep1–ep10 SourceCredit 形态） */
@@ -104,6 +115,8 @@ const ZeroA: React.FC<{
   return (
     <AbsoluteFill>
       {/* 环体（匀转 → 压黑停转；压黑＝容器 opacity，描边契约不动） */}
+      {/* ⑨ QA N1：压黑拍 rim-light——熄黑环后一层深灰圈，防融背景（前后帧锚） */}
+      <RingRim cx={RING_C.cx} cy={RING_C.cy} r={RING_C.r} opacity={0.9 * dim} />
       <div style={{position: 'absolute', left: RING_W.x, top: RING_W.y, opacity: 1 - 0.78 * dim}}>
         <LoopRing size={RING_W.size} nodes={[]} showExit={false} dotProgress={dotPos % 1} />
         <svg width={RING_W.size} height={RING_W.size} viewBox={`0 0 ${RING_W.size} ${RING_W.size}`} style={{position: 'absolute', inset: 0}}>
@@ -331,7 +344,8 @@ const ZeroB: React.FC<{atDensify: number; atIcons: number[]; atLacks: number}> =
           }),
         )}
       </svg>
-      {/* 熄黑环体（背景锚——压黑态驻位小比例） */}
+      {/* 熄黑环体（背景锚——压黑态驻位小比例；⑨ QA N1 rim 保可读） */}
+      <RingRim cx={RING_B.x + RING_B.size / 2} cy={RING_B.y + RING_B.size / 2} r={RING_B.size / 2 - 46} opacity={0.9} />
       <div style={{position: 'absolute', left: RING_B.x, top: RING_B.y, opacity: 0.3}}>
         <LoopRing size={RING_B.size} nodes={[]} showExit={false} />
       </div>
@@ -458,7 +472,8 @@ const ZeroC: React.FC<{atRelight: number; atPaths: number; atPush: number}> = ({
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', inset: 0, transform: pushTf, transformOrigin: `${(HIT.x / 1920) * 100}% ${((HIT.y + 30) / 1080) * 100}%`}}>
-        {/* 环体（复亮回陶土橙——恢复转动） */}
+        {/* 环体（复亮回陶土橙——恢复转动；⑨ QA N1 复亮前压黑态 rim 随 relight 淡出） */}
+        <RingRim cx={RING_C.cx} cy={RING_C.cy} r={RING_C.r} opacity={0.9 * (1 - relight)} />
         <div style={{position: 'absolute', left: RING_W.x, top: RING_W.y, opacity: ringOp}}>
           <LoopRing size={RING_W.size} nodes={[]} showExit={false} dotProgress={dotPos % 1} />
           <svg width={RING_W.size} height={RING_W.size} viewBox={`0 0 ${RING_W.size} ${RING_W.size}`} style={{position: 'absolute', inset: 0}}>

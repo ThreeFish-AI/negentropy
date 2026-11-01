@@ -28,9 +28,9 @@
  *    角标；提示签/参数行文字不成句复述口播。
  *
  *  morph 登记（QA 教训 28 口径）：0-C→1-A 主路径——环体同位（RING_W）+ 分类卡
- *  同位（CARD_1A）承接，1-A 首帧壳自段周围生长合拢（growP 0→1），路径端点
- *  空签转暗态通道（同色同位零重绘）；1-D→1-E 阶梯同形缩放位移（BackoffCurve
- *  同组件 w/h 变换，阶梯/封顶/细齿形状逐帧不变）。
+ *  同位（CARD_A）承接，1-A 首帧壳自段周围生长合拢（growP 0→1），路径端点
+ *  空签转暗态通道（同色同位零重绘）；1-D→1-E 为镜界硬切＋BackoffCurve 同组件
+ *  w/h 缩放位移的同形承接（阶梯/封顶/细齿形状逐帧不变，非连续 morph）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig} from 'remotion';
@@ -286,10 +286,11 @@ const OneB: React.FC<{
               color: theme.dim,
               whiteSpace: 'nowrap',
               opacity: 0.55 + 0.45 * s.p,
-              textDecoration: s.p > 0.5 ? 'line-through' : 'none',
             }}
           >
-            {`${s.t} ✗`}
+            {/* ⑨ QA N2：✗ 单独上 danger（danger 恒配 ✗ 色契约）；删除线只挂灰标签 */}
+            <span style={{textDecoration: s.p > 0.5 ? 'line-through' : 'none'}}>{s.t}</span>
+            <span style={{color: theme.danger}}>{' ✗'}</span>
           </div>
         ) : null,
       )}
@@ -297,12 +298,15 @@ const OneB: React.FC<{
       {halfIn > 0.02 ? (
         <div
           style={{
+            // ⑨ QA W1：stash 终态落暂存槽中心——scale 原点在盒心，故终态未缩放盒心
+            // (805,674) ⇒ left 665 / top 579（缩放后 162×110 恰卧槽内）；透明度下限
+            // 0.35；缩放盒底边 729<920 不压角标行
             position: 'absolute',
-            left: 1250 - stash * 610,
-            top: 150 + stash * 640,
+            left: 1250 - stash * 585,
+            top: 150 + stash * 429,
             width: 280,
             height: 190,
-            opacity: halfIn * (1 - 0.85 * stash),
+            opacity: halfIn * (1 - 0.65 * stash),
             transform: `scale(${1 - 0.42 * stash})`,
             transformOrigin: 'center center',
           }}
@@ -583,7 +587,8 @@ const OneE: React.FC<{
             {c > 0.4 ? '过' : ''}
           </span>
         ))}
-        <span style={{fontFamily: theme.mono, fontSize: 17, color: c3 > 0.9 ? theme.text : theme.dim, whiteSpace: 'nowrap'}}>{`3/3`}</span>
+        {/* ⑨ QA W2：计数标签动态终值（与 2-B 同款）——计数未开始显 0/3 不剧透 */}
+        <span style={{fontFamily: theme.mono, fontSize: 17, color: c3 > 0.9 ? theme.text : theme.dim, whiteSpace: 'nowrap'}}>{`${Math.min(3, Math.floor(c1 + c2 + c3))}/3`}</span>
       </div>
       {/* 备用模型卡（半透明待命位 → 解除半透明滑入——MAX_CONSECUTIVE_529=3 伏笔） */}
       <div style={{position: 'absolute', left: 1160 + (1 - backup) * 90, top: 300, opacity: 0.45 + 0.55 * backup}}>

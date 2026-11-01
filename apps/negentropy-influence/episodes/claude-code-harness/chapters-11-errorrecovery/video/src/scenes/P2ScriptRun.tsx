@@ -25,9 +25,10 @@
  *    clock_s=3.7 · model-backup · clock_s=4.1 · messages 9→6 · 8000→64000 ·
  *    continuation 3/3 只进角标。
  *
- *  morph 登记（QA 教训 28 口径）：1-E→2-A 等待曲线主路径——BackoffCurve 同
- *  组件 w/h 缩放位移（840×560→640×420），阶梯/封顶/细齿形状逐帧不变；分类表
- *  缩微位（1600,70）与 1-E 逐像素一致；2-B→2-C 承（锚件同位）。
+ *  承接登记（⑨ QA 注释措辞修订）：1-E→2-A 为幕间 SceneFade 软切＋锚件逐像素
+ *  承接（非连续 morph——勿按 morph 误判）：BackoffCurve 同组件 w/h 缩放位移
+ *  （840×560→640×420），阶梯/封顶/细齿形状逐帧不变；分类表缩微位（1600,70）
+ *  与 1-E 逐像素一致；2-B→2-C 承（锚件同位）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig} from 'remotion';

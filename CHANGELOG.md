@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》后 ep11《Error Recovery：报错先分类，循环不亡》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 22 镜六场景分镜（零建图；G1 零 RISKY 六 WARN 全落定：4-C 天平两卡同色锁、2-C 画廊定格镜锚件补位、0-C→1-A morph 根部重接建模、est 微越 2s 直陈+减句预案、9→6 双口径防御注、4-D 落 @pushIn）；⑦ me-brief/story TTS 56 句实测 5.0 分落窗；⑧ 六场景 + bespoke 十一件装置 + 片头孪生（32 条教训 v10 清单全自检——新增流内对位/状态揭示切换/词锚实测复核三条 v10 教训）。
+- ⑨ QA 三路目检 0 RISKY 修复轮 6 项全验：1-B 半截块暂存落点错过槽 108px（盒心几何重算落槽中心、透明度下限 0.35）、1-E 计数静态终值改动态式（0/3 不剧透）、p4-02「五种」画面不可数（光环+打点编号+「5/17」计数签三件套）、压黑拍环体融背景（#2A2A30 rim-light 方案）、道歉✗/复述✗ 上 danger、morph 注释措辞防误判。机器门 FAIL 0；走查数字链全对（0.58→1.01→2.14→3.7s/10-10 撞墙 175.6s/64K·10·×3↔16K·3·×2）。
+- ⑩ 终渲 217.4s / 5.0 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Error Recovery：报错先分类，循环不亡 v1.mp4`。组二「规划与协调」五集收官。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》后 ep10《System Prompt：提示是拼出来的，不是写死的》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 19 镜六场景分镜（零建图；G1 修 1 RISKY 放行：est 含片头 5.83 分越窗 14s 显式直陈+落窗线 265 字/分+减句预案登记（承 ep9 范式）；另修 v3 标签同步与「台面」禁喻词面）；⑦ me-bright/story TTS 56 句实测 5.0 分落窗（276 字/分，系列最大 est 超窗未兑现）；⑧ 六场景 + bespoke 九件装置 + 片头孪生（29 条教训 v9 清单全自检，含贴标净空 ≥20px/morph 头注明示/出场位逐镜对齐三条新教训）。
