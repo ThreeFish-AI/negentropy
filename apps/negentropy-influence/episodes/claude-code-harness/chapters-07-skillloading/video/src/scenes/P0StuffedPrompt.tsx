@@ -147,9 +147,10 @@ const ZeroA: React.FC<{atPress: number; atSink: number; atCell: number; atDef: n
     <AbsoluteFill>
       {/* 三摞文档（上方压落） */}
       <DocTriplet press={press} />
-      {/* 开场白带（病灶态·灰白）+ 计费叠印帧（同位挂载） */}
+      {/* 开场白带（病灶态·灰白）+ 计费叠印帧（同位挂载；⑨ QA RISKY-1：p0-03「每轮」
+          词 cue——带身向右复制副本 + 计费格第二格同步点亮，账格数与轮数对齐） */}
       <div style={{position: 'absolute', left: BAND.x, top: BAND.y + 14 * sink, width: BAND.w, height: BAND.h + 20 * swellHold}}>
-        <BillingStack x={0} y={0} w={BAND.w} h={BAND.h + 20 * swellHold} copies={copy} cellsLit={cell} perRound={'+6500'} cellTag={'每轮全额'} />
+        <BillingStack x={0} y={0} w={BAND.w} h={BAND.h + 20 * swellHold} copies={copy} cellsLit={cell + copy} perRound={'+6500'} cellTag={'每轮全额'} />
         <div style={{position: 'absolute', inset: 0}}>
           <CatalogBand
             x={0}
@@ -301,11 +302,14 @@ const ZeroB: React.FC<{atS1: number; atS2: number; atS3: number; atTotal: number
   // 「百分之九十九」99% 灰化（重音镜 punch：1–2s 定格）——灰化锁存
   const grey = useProgress(atGrey, DUR.f5);
   const greyPunch = useImpulse({at: atGrey, dur: DUR.f6 + DUR.f4, peak: 1});
-  // 「按长度计费」计价签贴上；「每轮全额付」叠印帧加速（copies 1→3、格逐轮 +6500）
+  // 「按长度计费」计价签贴上；「每轮全额付」句尾窗口——轮 2/轮 3 账格 stagger
+  // 点亮 + 带子逐轮叠印副本（⑨ QA RISKY-2：账格数与轮数严格对齐，两步阶梯
+  // 各 DUR.f5、间隔 24f，实测 p0-07=131f 内完成）
   const price = useProgress(atPrice, DUR.f4);
-  const accel = clamp01(progress(frame, atAccel, DUR.f6 + DUR.f4));
-  const copies = 1 + 2 * accel;
-  const cells = 1 + 2 * accel;
+  const step2 = clamp01(progress(frame, atAccel, DUR.f5));
+  const step3 = clamp01(progress(frame, atAccel + 24, DUR.f5));
+  const copies = 1 + step2 + step3;
+  const cells = 1 + step2 + step3;
   return (
     <AbsoluteFill>
       {/* 大带内景（病灶爆涨态——头部标签承 0-A） */}
@@ -566,7 +570,7 @@ export const P0StuffedPrompt: React.FC<{scene: SceneRange}> = ({scene}) => {
           atSink={wa('p0-05', 0.82) - bB.from}
           atGrey={wa('p0-06', 0.14) - bB.from}
           atPrice={wa('p0-07', 0.14) - bB.from}
-          atAccel={wa('p0-07', 0.6) - bB.from}
+          atAccel={wa('p0-07', 0.66) - bB.from}
         />
       </Sequence>
       <Sequence {...bC} name="0-C">

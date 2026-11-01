@@ -970,7 +970,8 @@ export const BillingStack: React.FC<{
   cellTag?: string;
 }> = ({x, y, w, h = 96, lit = 1, copies = 0, cellsLit = 0, perRound = '+6500', cellTag = '每轮'}) => (
     <div style={{position: 'absolute', left: x, top: y, width: w, height: h + 116, opacity: clamp01(lit), pointerEvents: 'none'}}>
-      {/* 叠印帧（带身向右逐轮复制——ghost 层向右下错位） */}
+      {/* 叠印帧（带身向右逐轮复制——ghost 层向右下错位；⑨ QA RISKY-1/2：副本
+          可见性抬升——偏移 40/14、亮态 opacity ≥0.35、描边随点亮增强） */}
       {Array.from({length: 3}, (_, i) => {
         const on = clamp01(copies - i);
         return (
@@ -978,20 +979,21 @@ export const BillingStack: React.FC<{
             key={`cp${i}`}
             style={{
               position: 'absolute',
-              left: (i + 1) * 26,
-              top: (i + 1) * 12,
+              left: (i + 1) * 40,
+              top: (i + 1) * 14,
               width: w,
               height: h,
               boxSizing: 'border-box',
               borderRadius: 14,
-              border: `2.5px solid ${withAlpha(theme.danger, 0.28 + 0.18 * on)}`,
-              background: withAlpha(theme.danger, 0.03 * on),
-              opacity: 0.22 + 0.5 * on,
+              border: `3px solid ${withAlpha(theme.danger, 0.3 + 0.45 * on)}`,
+              background: withAlpha(theme.danger, 0.06 * on),
+              opacity: 0.35 + 0.35 * on,
             }}
           />
         );
       })}
-      {/* 计费格（带下方三格——每轮一格、读数 +perRound） */}
+      {/* 计费格（带下方三格——每轮一格、读数 +perRound；⑨ QA N1：亮格提亮
+          ≥200/255——底 0.22 + 辉光） */}
       <div style={{position: 'absolute', left: 8, top: h + 12, display: 'flex', gap: 10, alignItems: 'center'}}>
         {Array.from({length: 3}, (_, i) => {
           const on = clamp01(cellsLit - i);
@@ -1003,9 +1005,9 @@ export const BillingStack: React.FC<{
                 height: 40,
                 boxSizing: 'border-box',
                 borderRadius: 8,
-                border: `2.5px solid ${on > 0.5 ? theme.danger : theme.panelBorder}`,
+                border: `3px solid ${on > 0.5 ? theme.danger : theme.panelBorder}`,
                 borderStyle: on > 0.05 ? 'solid' : 'dashed',
-                background: on > 0.5 ? withAlpha(theme.danger, 0.12) : 'transparent',
+                background: on > 0.5 ? withAlpha(theme.danger, 0.22) : 'transparent',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1016,6 +1018,7 @@ export const BillingStack: React.FC<{
                 fontVariantNumeric: 'tabular-nums',
                 whiteSpace: 'nowrap',
                 opacity: 0.5 + 0.5 * on,
+                boxShadow: on > 0.5 ? `0 0 ${12 * on}px ${withAlpha(theme.danger, 0.55)}` : 'none',
               }}
             >
               {on > 0.5 ? perRound : `轮 ${i + 1}`}

@@ -326,9 +326,12 @@ const OneC: React.FC<{atReg: number; atEnter: number; atBounce: number; atBlock:
   // 「按名查注册表」名字签落进注册表、命中行点亮（角标 SKILL_REGISTRY）
   const reg = clamp01(progress(frame, atReg, DUR.f5));
   const regFlash = useImpulse({at: atReg + DUR.f4, dur: DUR.f5, peak: 1});
-  // 「全文送进」全文卡经通道一次性进场（一拍完成——不重复二次动画）
+  // 「全文送进」全文卡经通道一次性进场（一拍完成——不重复二次动画）。
+  // ⑨ QA RISKY-3：飞行走下凸弧线（586 + 26·sin），与注册表卡底边（y=540）
+  // 全程净空 ≥46px（辉光半径 26px 计入后仍 ≥20px），穿模窗消除
   const enter = clamp01(progress(frame, atEnter, DUR.f5 + DUR.f4));
   const cardX = 1560 - 1300 * enter;
+  const cardFlyY = 586 + 26 * Math.sin(Math.PI * enter);
   const enterFlash = useImpulse({at: atEnter + DUR.f5, dur: DUR.f5, peak: 1});
   // 对话区落账闪（全文贴进当前对话）
   const dialogLit = clamp01(progress(frame, atEnter + DUR.f5, DUR.f4));
@@ -408,7 +411,7 @@ const OneC: React.FC<{atReg: number; atEnter: number; atBounce: number; atBlock:
       </div>
       {/* 全文卡沿通道一次性进场（一拍——右→左） */}
       {enter > 0.01 && enter < 0.96 ? (
-        <div style={{position: 'absolute', left: cardX, top: 560, opacity: clamp01(enter * 4) * (1 - clamp01((enter - 0.9) * 8))}}>
+        <div style={{position: 'absolute', left: cardX, top: cardFlyY, opacity: clamp01(enter * 4) * (1 - clamp01((enter - 0.9) * 8))}}>
           <FullTextCard x={0} y={0} w={150} h={210} rowsLit={12} title={'数据库指南'} tag={''} />
         </div>
       ) : null}

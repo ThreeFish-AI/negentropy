@@ -367,7 +367,8 @@ const Track: React.FC<{
           </div>
         )}
       </div>
-      {/* 三轮格（轮次不退·总账现形——两轨同为三轮；左轨即账格：逐轮 +8370） */}
+      {/* 三轮格（轮次不退·总账现形——两轨同为三轮；左轨即账格：逐轮 +8370；
+          ⑨ QA N1：亮格提亮 ≥200/255——底 0.22 + 辉光） */}
       <div style={{position: 'absolute', left: 22, top: 214, display: 'flex', gap: 10}}>
         {[1, 2, 3].map((i) => {
           const on = bandMode === 'inline' ? clamp01(cellsLit - (i - 1)) : 1;
@@ -379,8 +380,8 @@ const Track: React.FC<{
                 height: 52,
                 boxSizing: 'border-box',
                 borderRadius: 8,
-                border: `2.5px solid ${bandMode === 'inline' ? (on > 0.5 ? theme.danger : theme.panelBorder) : withAlpha(accent, 0.6)}`,
-                background: bandMode === 'inline' && on > 0.5 ? withAlpha(theme.danger, 0.12) : 'transparent',
+                border: `3px solid ${bandMode === 'inline' ? (on > 0.5 ? theme.danger : theme.panelBorder) : withAlpha(accent, 0.6)}`,
+                background: bandMode === 'inline' && on > 0.5 ? withAlpha(theme.danger, 0.22) : 'transparent',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -389,6 +390,7 @@ const Track: React.FC<{
                 color: bandMode === 'inline' && on > 0.5 ? theme.danger : theme.dim,
                 fontWeight: 700,
                 opacity: bandMode === 'inline' ? 0.5 + 0.5 * on : 1,
+                boxShadow: bandMode === 'inline' && on > 0.5 ? `0 0 ${12 * on}px ${withAlpha(theme.danger, 0.55)}` : 'none',
               }}
             >
               {bandMode === 'inline' ? (on > 0.5 ? '+8370' : `轮 ${i}`) : `轮 ${i}`}

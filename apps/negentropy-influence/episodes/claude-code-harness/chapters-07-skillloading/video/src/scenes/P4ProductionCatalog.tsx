@@ -196,8 +196,9 @@ const FourB: React.FC<{atWin: number; atSlice: number; atGate: number}> = ({atWi
   const sliceW = 44 * slice;
   return (
     <AbsoluteFill>
-      {/* 上下文窗口容器（承 5-C 同形——窗口上限线的母形） */}
-      <div style={{position: 'absolute', left: WIN.x, top: WIN.y, width: WIN.w, height: WIN.h * win, opacity: clamp01(win * 2)}}>
+      {/* 上下文窗口容器（承 5-C 同形——窗口上限线的母形；⑨ QA W1：立起过程
+          可见——外层 height 增长 + overflow 裁切 + opacity 双驱动，DUR.f6=21f ≥10f） */}
+      <div style={{position: 'absolute', left: WIN.x, top: WIN.y, width: WIN.w, height: WIN.h * win, opacity: clamp01(win * 2), overflow: 'hidden'}}>
         <div
           style={{
             width: '100%',
@@ -409,7 +410,8 @@ const FourC: React.FC<{atProof: number; atGhost: number; atCut: number; atQuote:
       <div style={{position: 'absolute', left: 1370, top: 300, opacity: ghost}}>
         <FullTextCard x={0} y={0} w={330} h={440} rowsLit={0} dashMode={ghost} title={'全文 · 用到才来'} tag={''} />
       </div>
-      {/* 收点金句帧（压缩短语——淡入定格） */}
+      {/* 收点金句帧（压缩短语——淡入定格；⑨ QA RISKY-5：词 cue 提前至 0.16
+          （「目录自己，就是常驻内容」句首），停留至幕尾） */}
       {quote > 0.02 ? (
         <div
           style={{
@@ -477,7 +479,7 @@ export const P4ProductionCatalog: React.FC<{scene: SceneRange}> = ({scene}) => {
           atProof={wa('p4-06', 0.2) - bC.from}
           atGhost={wa('p4-06', 0.62) - bC.from}
           atCut={wa('p4-07', 0.42) - bC.from}
-          atQuote={wa('p4-08', 0.36) - bC.from}
+          atQuote={wa('p4-08', 0.16) - bC.from}
         />
       </Sequence>
     </AbsoluteFill>

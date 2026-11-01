@@ -32,7 +32,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {CatalogBand, FullTextCard, LoadChannel, LoopRing, RoundCounter} from '../components/motifs';
-import {DUR, clamp01, progress, useCount, useImpulse, useProgress} from '../motion';
+import {DUR, clamp01, progress, useImpulse, useProgress} from '../motion';
 
 const withAlpha = (hex: string, a: number): string =>
   `${hex}${Math.round(clamp01(a) * 255)
@@ -260,7 +260,8 @@ const TwoB: React.FC<{atEnter: number; atJump1: number; atJump2: number; atHist:
       <div style={{position: 'absolute', left: 900, top: 480, opacity: hist}}>
         <FullTextCard x={0} y={0} w={240} h={360} rowsLit={12} ghostMark={mark} flash={markFlash} />
       </div>
-      {/* 计数器（两跳定格——323→352→2384） */}
+      {/* 计数器（两跳定格——323→352→2384；⑨ QA RISKY-4：352 中间值句中先跳、
+          保持 36f（≥15f）后句尾再重跳 2384） */}
       <div style={{position: 'absolute', left: 1240, top: 170}}>
         <RoundCounter
           x={0}
@@ -272,6 +273,10 @@ const TwoB: React.FC<{atEnter: number; atJump1: number; atJump2: number; atHist:
           activeCell={activeCell}
           flash={Math.max(jumpFlash, jumpFlash2)}
         />
+        {/* ⑨ QA N2：口径切换小标——2384 为三轮上下文累计读数 */}
+        <div style={{marginTop: 8, fontFamily: theme.mono, fontSize: 14, color: theme.dim, whiteSpace: 'nowrap', opacity: clamp01(j2)}}>
+          {'轮 3 · 上下文累计'}
+        </div>
       </div>
       <div style={{position: 'absolute', left: 0, right: 0, bottom: 176, textAlign: 'center', fontFamily: theme.mono, fontSize: 19, color: theme.dim, opacity: 0.75}}>
         {'进场一次 · 此后都在历史里'}
@@ -283,9 +288,17 @@ const TwoB: React.FC<{atEnter: number; atJump1: number; atJump2: number; atHist:
 // ── 2-C 总账定格重音镜：count-up 3059 + 三小格汇入 ────────────────────────
 
 const TwoC: React.FC<{atCount: number; atHold: number}> = ({atCount, atHold}) => {
-  // 总账 count-up（数据本体钳制——终值不过冲；useCount eased 到位即停）
-  const countP = useCount({to: 3059, at: atCount, dur: DUR.f6 + DUR.f4});
-  const cellsJoin = useProgress(atCount + DUR.f5, DUR.f5);
+  const frame = useCurrentFrame();
+  // ⑨ QA W2：分镜锁定式台账——总账按三轮部分和阶梯累进（0→323→675→3059，
+  // 每个显示值都是闭合值：323 / 323+352 / 3059），三步各 DUR.f3 近定格步进，
+  // 不出现 956/2061 类不闭合中间数；算式行自 beat 起点常驻可读
+  const s1 = clamp01(progress(frame, atCount, DUR.f3));
+  const s2 = clamp01(progress(frame, atCount + 10, DUR.f3));
+  const s3 = clamp01(progress(frame, atCount + 20, DUR.f3));
+  const total = 323 * s1 + 352 * s2 + 2384 * s3;
+  const cellsLit = s1 + s2 + s3;
+  const eqLit = useProgress(atCount, DUR.f4);
+  const cellsJoin = useProgress(atCount + 26, DUR.f5);
   // punch 定格一拍（1–2s 重音镜）
   const hold = useImpulse({at: atHold, dur: DUR.f6, peak: 0.1});
   return (
@@ -294,17 +307,17 @@ const TwoC: React.FC<{atCount: number; atHold: number}> = ({atCount, atHold}) =>
         <RoundCounter
           x={0}
           y={0}
-          bigValue={countP}
+          bigValue={total}
           label={'total · 三轮总输入'}
-          cellsLit={3}
+          cellsLit={cellsLit}
           activeCell={-1}
           flash={cellsJoin}
           totalMode={cellsJoin}
           totalFrom={[323, 352, 2384]}
         />
       </div>
-      {/* 加法关系注（323+352+2384=3059——基线锚定可读） */}
-      <div style={{position: 'absolute', left: 0, right: 0, top: 780, textAlign: 'center', fontFamily: theme.mono, fontSize: 22, color: theme.dim, opacity: cellsJoin, fontVariantNumeric: 'tabular-nums'}}>
+      {/* 加法关系注（323+352+2384=3059——基线锚定可读，⑨ QA W2：beat 起点常驻） */}
+      <div style={{position: 'absolute', left: 0, right: 0, top: 780, textAlign: 'center', fontFamily: theme.mono, fontSize: 22, color: theme.dim, opacity: eqLit, fontVariantNumeric: 'tabular-nums'}}>
         {'323 + 352 + 2384 = 3059'}
       </div>
       <div style={{position: 'absolute', left: 0, right: 0, bottom: 176, textAlign: 'center', fontFamily: theme.mono, fontSize: 19, color: theme.dim, opacity: 0.7}}>
@@ -471,8 +484,8 @@ export const P2ThreeRoundWalkthrough: React.FC<{scene: SceneRange}> = ({scene}) 
       <Sequence {...bB} name="2-B">
         <TwoB
           atEnter={wa('p2-04', 0.22) - bB.from}
-          atJump1={wa('p2-04', 0.68) - bB.from}
-          atJump2={wa('p2-04', 0.88) - bB.from}
+          atJump1={wa('p2-04', 0.42) - bB.from}
+          atJump2={wa('p2-04', 0.66) - bB.from}
           atHist={wa('p2-05', 0.24) - bB.from}
           atMark={wa('p2-05', 0.6) - bB.from}
         />

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》后 ep7《Skill Loading：目录常驻，全文按需》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 23 镜六场景分镜（零建图；G1 核验修 1 RISKY 后放行：片头组位 groupOf(7)=2 第二组「规划与协调」三处勘误 + CatalogBand 六态口径 + 环体弱在场对齐）；⑦ me-bright/story TTS 54 句实测 5.0 分落窗；⑧ 六场景 + bespoke 六件装置（环+带复合体/蓝紫双子）+ 片头孪生挂载（21 条教训清单 v5 全过，clamp01/槽位 wrapper/锁存等前集教训零复发）。
+- ⑨ QA 三路目检 5 RISKY 修复轮 9 项全验：计费帧叠印系两处词 cue 未挂接（0-A 首演/0-B 加速，BillingStack 副本层抬亮）、1-C 飞行穿模改下凸弧全程净空 ≥20px、2-B 两跳补 352 中间值（323→352≥36f→2384）、4-C 收点金句帧补挂、4-B 容器立起改 height+opacity 双驱动 21f、2-C 台账改分镜锁定式阶梯累进（0→323→675→3059 全闭合部分和，算式常驻）；系列一致性巡检零漂移（theme/组件/母题逐字节比对）。走查代理一处字幕误读（「两千五百多」）经 narration 原文核对驳回。机器门 FAIL 0。
+- ⑩ 终渲 183.9s / 5.2 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Skill Loading：目录常驻，全文按需 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》后 ep6《Subagent：过程隔离，只回结论》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 22 镜六场景分镜（零建图；G1 核验修 2 RISKY+3 WARN 放行：片头 ACTIVE_INDEX 组号口径（泛化 craft 脚本措辞根因一并修复）、节奏注记跨幕 3 连同长补动机、2-D 工况角标、4-D 警示红第三用途登记、标签字数对齐）+ 微改进 1 句（v2→v3）。
