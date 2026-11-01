@@ -3,7 +3,12 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一个代理干不完的活——多开几个就好？麻烦，恰恰出在这个直觉上。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    },
+    "ttsText": "这是一个代理干不完的活——多开几个，就好？麻烦，恰恰出在这个直觉上。"
   },
   {
     "id": "p0-02",
@@ -18,7 +23,11 @@
   {
     "id": "p0-04",
     "scene": "P0",
-    "text": "这份记忆有个名字：上下文窗口，一次装得下的对话额度。"
+    "text": "这份记忆有个名字：上下文窗口，一次装得下的对话额度。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.15"
+    }
   },
   {
     "id": "p0-05",
@@ -34,7 +43,11 @@
   {
     "id": "p0-07",
     "scene": "P0",
-    "text": "这里的活，要的是一直在线、随时说话的队友。"
+    "text": "这里的活，要的是一直在线、随时说话的队友。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p0-08",
@@ -45,7 +58,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "最容易想到的组法：共用同一段对话记录，谁都看得见全部。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p1-02",
@@ -56,7 +73,11 @@
     "id": "p1-03",
     "scene": "P1",
     "text": "所以第一件事：对话不共享，要传话，递信。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-04",
@@ -72,29 +93,42 @@
   {
     "id": "p1-06",
     "scene": "P1",
-    "text": "读消息，是把整摞信一次取走；取走，文件就删。"
+    "text": "读消息，是把整摞信一次取走；取走，文件就删。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "取走即空，这叫消费式收信：一条消息，恰好被处理一次。"
+    "text": "取走即空，这叫消费式收信：一条消息，恰好被处理一次。",
+    "ttsText": "取走即空，这叫消费式收信：一条消息，恰好被处理一次！"
   },
   {
     "id": "p1-08",
     "scene": "P1",
-    "text": "信箱立好了，就差会用它的人。"
+    "text": "信箱立好了，就差会用它的人。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p2-01",
     "scene": "P2",
     "text": "第二件事：主代理调一件工具，拉起队友。",
     "beatStart": true,
-    "ttsText": "第二件事：主代理<调|DIAO4>一件工具，拉起队友。"
+    "ttsText": "第二件事：主代理<调|DIAO4>一件工具，拉起队友。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-02",
     "scene": "P2",
-    "text": "队友是另起的一条并行执行流，和主程序同时跑。"
+    "text": "队友是另起的一条并行执行流，和主代理同时跑。"
   },
   {
     "id": "p2-03",
@@ -104,7 +138,11 @@
   {
     "id": "p2-04",
     "scene": "P2",
-    "text": "工具只有四件：跑命令、读文件、写文件、发消息。"
+    "text": "工具只有四件：跑命令、读文件、写文件、发消息。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p2-05",
@@ -115,7 +153,11 @@
     "id": "p2-06",
     "scene": "P2",
     "text": "跟子代理一比就清楚：一次性的，管的是互不干扰；一直活着的，管的是随时递话的协作。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p2-07",
@@ -127,7 +169,11 @@
     "id": "p2-08",
     "scene": "P2",
     "text": "走个例子：接了个大活，搭后端——组队。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p2-09",
@@ -142,7 +188,11 @@
   {
     "id": "p2-11",
     "scene": "P2",
-    "text": "各干各的，互不打扰；干完，总结发回主代理信箱。"
+    "text": "各干各的，互不打扰；干完，总结发回主代理信箱。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-12",
@@ -154,7 +204,11 @@
     "scene": "P3",
     "text": "第三件事：主循环每转完一轮，就看一眼信箱。",
     "beatStart": true,
-    "ttsText": "第三件事：主循环每<转|ZHUAN4>完一轮，就看一眼信箱。"
+    "ttsText": "第三件事：主循环每<转|ZHUAN4>完一轮，就看一眼信箱。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-02",
@@ -164,7 +218,11 @@
   {
     "id": "p3-03",
     "scene": "P3",
-    "text": "还有个每秒一拍的探测：只看有没有信，不取。"
+    "text": "还有个每秒一拍的探测：只看有没有信，不取。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p3-04",
@@ -175,7 +233,11 @@
     "id": "p3-05",
     "scene": "P3",
     "text": "这里有条铁律：取走即空，读取只能有一个口。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p3-06",
@@ -191,7 +253,11 @@
     "id": "p3-08",
     "scene": "P3",
     "text": "实测说话：演到关机——队友要停工，主代理等回音。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.16"
+    }
   },
   {
     "id": "p3-09",
@@ -201,7 +267,12 @@
   {
     "id": "p3-10",
     "scene": "P3",
-    "text": "再查信箱：零条。信没了，事也没了下文。"
+    "text": "再查信箱：零条。信没了，事也没了下文。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    },
+    "ttsText": "再查信箱——零条。信没了，事也没了下文。"
   },
   {
     "id": "p3-11",
@@ -211,13 +282,22 @@
   {
     "id": "p3-12",
     "scene": "P3",
-    "text": "教训一句话：消费式信箱，必须配单点入口。"
+    "text": "教训一句话：消费式信箱，必须配单点入口。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "教训一句话：消费式信箱，必须配单点入口！"
   },
   {
     "id": "p4-01",
     "scene": "P4",
     "text": "那真实的 Claude Code 呢？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p4-02",
@@ -227,7 +307,11 @@
   {
     "id": "p4-03",
     "scene": "P4",
-    "text": "写信还加文件锁：撞上了就重试，最多十次。"
+    "text": "写信还加文件锁：撞上了就重试，最多十次。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-04",
@@ -238,7 +322,11 @@
   {
     "id": "p4-05",
     "scene": "P4",
-    "text": "队友碰到要批的动作，比如删个文件：请求就像气泡，冒进主代理信箱；用户批完，结果发回去。"
+    "text": "队友碰到要批的动作，比如删个文件：请求就像气泡，冒进主代理信箱；用户批完，结果发回去。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p4-06",
@@ -248,13 +336,22 @@
   {
     "id": "p4-07",
     "scene": "P4",
-    "text": "官方还交代：这套团队机制还是实验特性，默认不开。"
+    "text": "官方还交代：这套团队机制还是实验特性，默认不开。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p5-01",
     "scene": "P5",
     "text": "一句话收束：队友不是另一个大脑，是又一条同款循环。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "一句话收束：队友不是另一个大脑，是又一条，同款循环。"
   },
   {
     "id": "p5-02",
@@ -264,7 +361,11 @@
   {
     "id": "p5-03",
     "scene": "P5",
-    "text": "只是，会递信不等于会商量：关机谁说了算？审批找谁拍板？"
+    "text": "只是，会递信不等于会商量：关机谁说了算？审批找谁拍板？",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p5-04",
@@ -276,7 +377,11 @@
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-06",
