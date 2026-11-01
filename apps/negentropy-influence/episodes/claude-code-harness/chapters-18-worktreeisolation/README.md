@@ -1,6 +1,6 @@
 # 《Worktree Isolation：一个任务，一个房间》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 18 集（s18_worktree_isolation 单章）；Stage ①–⑤ 已完成（信源钉选复核 + 官方 worktrees 页增量补证 + C 型冻结现行 175 换代代次 + 策划 + 逐字稿 50 句 1363 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / source ledger 全绿（check_series 由系列层统一执法）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-02 制作轮收官：⑥ 21 镜零建图 G1 修 R1 双色裁决+7W → ⑦ me-bright/story 克隆声 50 句 5.0 分 → ⑧ 账本房槽/门禁/三出口/守卫消融装置族+片头孪生（组五 groupOf(18)=5）→ ⑨ 零修复+三路 0 RISKY（4 WARN 全闭合）→ ⑩ 终渲 298.7s=4 分 58.7 秒落窗，`~/Documents/video/claude-code-chapters/Worktree Isolation：一个任务，一个房间 v1.mp4`）
 
 ## 目录结构
 

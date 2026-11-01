@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》《Autonomous Agents：自己看板，自己认领》后 ep18《Worktree Isolation：一个任务，一个房间》制作轮收官交付 v1（2026-11-02）
+
+- ⑥ 21 镜六场景分镜（零建图；G1 修 RISKY1+WARN7 放行：R1 房号字段双色契约冲突裁决——卡体钢青〔任务侧〕/字段值描边兰紫〔绑定语义〕三处正文+契约行同步；p4-05/p4-07 词锚修正；环体指针 5-A 终态回指主目录；1-D 拦截载荷上屏例外；narration P3 消融备注左右向纠正）；⑦ me-bright/story TTS 50 句实测口径 5.0 分落窗；⑧ 账本+房槽挂靠/分支线/建房三件链（auth-refactor worked example）/名字门禁 1..64+白名单带+路径穿越弹回/双房双线并行作业/拆房双计数器/三出口门卡/守卫消融双轨/WorkRing 指针包装装置族 + 片头孪生（组五 groupOf(18)=5）。
+- ⑨ QA 零修复：机器门全绿（2 处粗指纹 WARN 经 diff max 226 驳回）；三路走查 0 RISKY（layman 4 WARN 全闭合：3-B 门③与确认开关源码在位证、1-D 要素句中帧 OCR 在场、金句卡 serif 源码证、5-A 卡体绿描边=完工态 mixHex 声明设计）；一致性八项全 OK（R1 落地实证）。
+- ⑩ 终渲 298.7s / 4 分 58.7 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/Worktree Isolation：一个任务，一个房间 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》后 ep17《Autonomous Agents：自己看板，自己认领》制作轮收官交付 v1（2026-11-02）
 
 - ⑥ 24 镜六场景分镜（零建图；G1 修 RISKY1+WARN3 放行：环体节拍器契约括注自相矛盾——ep16 继承的「同转速不赋新语义」随本集状态变速新契约改写；est 基数 1348 纠偏+越窗 6.6s 量化；p4-04/p4-10 两词窗锚点修正）；⑦ me-bright/story TTS 56 句实测口径 5.2 分落窗（p4-07 块 8766 服务死亡，tts_resume --mps-mem-limit-gib 0 冷重启自愈续跑，缓存块保留）；⑧ 值班钟状态机（五秒一拍两落点）/十二拍计数环（12×5=60 双口径同框）/认领流水条+裂缝/两道闩房间/选座原子性类比/撤锁双写消融/phasedRing 分段匀速相位积分（母题本体零改动实现节拍器变速）装置族 + 片头孪生（组五 groupOf(17)=5）。
