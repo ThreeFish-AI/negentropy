@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》后 ep15《Agent Teams：文件收件箱与持久队友》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 25 镜六场景分镜（零建图；G1 修 RISKY1+WARN3 放行：0-B「直观·可检查」rationale 签移位 1-B、0-A 目标小卡入环铺垫同签两实体、计数链统一（四代理含主/四箱之内/坐席签两枚）、0-C 虚线预演暗态留驻作 morph 起点）；⑦ me-bright/story TTS 53 句实测口径 4.7 分落窗（est 5.43）；⑧ 信箱文件状态机（追加逐字落格/整摞取走/清空）/品红队友环（同几何同线宽仅描边色）/消融双轨装置族 + 片头孪生（组五首集组内第二件，groupOf(15)=5）。
+- ⑨ QA 修复轮 3 项：4-A 信箱 y 钳制 730、底角标 bottom 176→212、生产拓扑 TOPO_CENTER y 560→485（P4 幕两处字幕安全带侵入 WARN 根因=底部卫星环体伸入安全带，RGB 像素实证品红弧段，拓扑整体上移后全幕复扫 FAIL 0）；走查 RISKY2+WARN3 全数亲验驳回（1-D「橙箱」实测湛蓝 87px 主体+橙 20px lead 标识、2-A 环径 56px 为入场缩放中间态而终态三环 155=155 同尺寸、0-B 直观签源码在 1-B 合规零命中 0-B、1-D 品红环 1px≈零、「直观签挂 0-B」系源码级证伪）。机器门六幕/last-n 6/beat-heads/check-theme FAIL 0（P5 唯一 WARN 为署源卡静持同形指纹，diff max>200 实有变化）。
+- ⑩ 终渲 279.4s / 4 分 39.4 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/Agent Teams：文件收件箱与持久队友 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》后 ep14《Cron Scheduler：按时间表生产工作》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 20 镜六场景分镜（零建图；G1 RISKY 0、4 WARN 全修放行：2-D 边界签改结构签、1-C 检查签去问词、est 336.3s 贴顶量化+回收预案、中性装置默认色通则）；⑦ me-bright/story TTS 49 句实测 4.6 分落窗（331 字/分、est 5.6 贴顶担忧解除）；⑧ 判时表盘（1.00s 闪律）/四层链/等待砖/防火线/五十格刻度尺装置族 + 片头孪生（组四 groupOf(14)=4）。

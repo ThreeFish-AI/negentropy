@@ -42,7 +42,8 @@ const withAlpha = (hex: string, a: number): string =>
 // ── 4-A 生产拓扑全景：橙环居中 + 品红环体环绕 + 每环一只带锁信箱 ────────────
 
 /** 拓扑几何：主环居中、五枚队友环绕（圆周分布——主从只以颜色与位置区分） */
-const TOPO_CENTER = {x: 960, y: 560} as const;
+// y 上移 560→485：底部卫星环底缘 990→915，退出字幕安全带（顶 920）
+const TOPO_CENTER = {x: 960, y: 485} as const;
 const TOPO_R = 402;
 const SATELLITES = [-90, -18, 54, 126, 198].map((deg) => {
   const rad = (deg * Math.PI) / 180;
@@ -69,7 +70,9 @@ const FourA: React.FC<{atWide: number; atMail: number[]; atLock: number[]}> = ({
           const mail = clamp01(progress(frame, atMail[i], DUR.f4));
           const lock = clamp01(progress(frame, atLock[i], DUR.f4));
           // 信箱驻环外侧（圆周外向——一人一只文件信箱）
-          const outward = i % 2 === 0 ? {x: s.x + 216, y: s.y + 96} : {x: s.x - 158, y: s.y + 96};
+          // 信箱 y 钳制：底边不入字幕安全带（860 上沿，信箱高 124 → y ≤ 730）
+          const outwardRaw = i % 2 === 0 ? {x: s.x + 216, y: s.y + 96} : {x: s.x - 158, y: s.y + 96};
+          const outward = {x: outwardRaw.x, y: Math.min(outwardRaw.y, 730)};
           const inView = outward.x > 20 && outward.x + 140 < 1900;
           return (
             <React.Fragment key={`sat${i}`}>
@@ -81,7 +84,7 @@ const FourA: React.FC<{atWide: number; atMail: number[]; atLock: number[]}> = ({
                   <MailboxFile x={0} y={0} w={140} h={124} name={`t${i + 1}.jsonl`} litP={1} lockP={lock} />
                 </div>
               ) : (
-                <div style={{position: 'absolute', left: s.x + 36, top: s.y + 216, opacity: mail}}>
+                <div style={{position: 'absolute', left: s.x + 36, top: Math.min(s.y + 216, 730), opacity: mail}}>
                   <MailboxFile x={0} y={0} w={140} h={124} name={`t${i + 1}.jsonl`} litP={1} lockP={lock} />
                 </div>
               )}
@@ -89,7 +92,7 @@ const FourA: React.FC<{atWide: number; atMail: number[]; atLock: number[]}> = ({
           );
         })}
       </div>
-      <div style={{position: 'absolute', left: 0, right: 0, bottom: 176, textAlign: 'center', fontFamily: theme.mono, fontSize: 19, color: theme.dim, opacity: 0.7}}>
+      <div style={{position: 'absolute', left: 0, right: 0, bottom: 212, textAlign: 'center', fontFamily: theme.mono, fontSize: 19, color: theme.dim, opacity: 0.7}}>
         {'~/.claude/teams/{team}/inboxes/ · teammateMailbox.ts'}
       </div>
     </AbsoluteFill>

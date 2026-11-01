@@ -1,6 +1,6 @@
 # 《Agent Teams：文件收件箱与持久队友》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 15 集（s15_agent_teams 单章，多 Agent 组第一集）；Stage ①–⑤ 已完成（信源钉选复核（钉站点轨）+ C 型冻结现行 175 + 策划 + 逐字稿 53 句 1280 字 + 三路双重校验 + 成文优化一轮 v1→v2），机器门 build / check_script --pre-tts / ledger audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：⑥ 25 镜零建图 G1 修 1R+3W → ⑦ me-bright/story 克隆声 53 句 4.7 分 → ⑧ 信箱状态机/品红队友环/消融双轨装置族+片头孪生（组五 groupOf(15)=5）→ ⑨ 修复 3 项（安全带侵入根因=底环体，拓扑上移后全幕 FAIL 0）+走查 5 项全数像素/源码级驳回 → ⑩ 终渲 279.4s=4 分 39.4 秒落窗，`~/Documents/video/claude-code-chapters/Agent Teams：文件收件箱与持久队友 v1.mp4`）
 
 ## 目录结构
 
