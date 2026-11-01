@@ -1,12 +1,9 @@
 /**
- * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
+ * 本集视觉契约（⑧ 轮定稿，storyboard 前言「本集视觉契约」= planning §三）。
  *
- * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
- * references/08-remotion-implementation.md：
- *   - 2–3 个概念色，映射「深度轴」而非枚举条目
- *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
- *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
- *     运行时打印的 occupied-hex INFO 行）
+ * 底座常量跨集通用、不要改；概念色规则见 references/08-remotion-implementation.md：
+ *   - 概念色映射「深度轴」而非枚举条目；对 bg (#0E1116) 对比度 ≥ 4.5:1
+ *   - 色相不与系列已用色撞值（check_series.py occupied-hex INFO 行为准）
  *   - 覆写任何底座 token 须在 theme.ts / planning.md / README 三处留决策记录
  */
 export const theme = {
@@ -16,9 +13,10 @@ export const theme = {
   panelBorder: '#2A3242',
   text: '#F2F5FA',
   dim: '#9AA7B8',
-  // danger 曾缺席本 seed（既有四集 theme.ts 全都有、场景代码读 theme.danger，
-  // scaffold 出的新集开箱即 TS2339）——补齐即与四集现状对齐。
+  // danger：反例/退化路径（消融左轨 / 教学版超时帧 / 违规红叉 / 补写箭头被掐断）
+  // （恒配 ✗，仅失败态）
   danger: '#FF5C5C',
+  // ok：机制在位/拦截成功（兜底在位右轨 / 同框兑现 / durable 拾起）（确认绿）
   ok: '#7ED321',
 
   // ── 字体族（跨集通用，勿改）──
@@ -31,9 +29,25 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
-  // ── 本集概念色（planning §三；accents 与系列层 series.json 登记同值 #7C9EFF/#C084FC，
-  //    2026-10-31 文案轮定稿——去撞色微调后值；制作期场景按 planning §三语义展开）──
-  core: '#7C9EFF', // 后台蓝——主循环外并行流水线
-  sub: '#C084FC', // 通知紫——迟到结果独立新事件进场高亮
+  // ── 本集概念色（planning §三；series.json accents 登记 [#7C9EFF, #C084FC]，
+  //    2026-10-31 文案轮定稿值）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与
+  //    ep1–ep12 逐像素同值即「描边色/线宽承锁定值全片不变」的落地；本集环上
+  //    「执行」段是被「等待」砖压停/解放的时点段——P0 压停、P2 起解放、P5 定格收束）
+  core: '#D97757',
+  // mech：本集主题色一 = 后台执行蓝（雾蓝）——后台执行线全体（后台线程轨/
+  //    登记表描边/bg_0001 编号签/后台侧命令卡）（「正在后台跑」的元素；对 bg
+  //    7.4:1）。撞色自证：色相 ≈224°，系列已用蓝族最近邻 ep11 mech #6C8CFF≈226°
+  //    （差 2°、亮度更亮的一档）与 ep12 unlock #58B7FF≈206°（差 18°）——本值是
+  //    系列层文案轮定稿登值（ep13 授蓝：片头授色站 series-intro theme.mech 同源
+  //    本值），按集独立语义不撞值；与青碧 tool #64C4C0≈178° 拉开蓝相/青绿相。
+  mech: '#7C9EFF',
+  // notify：本集主题色二 = 通知注入兰紫——通知注入流全体（独立通知卡描边/
+  //    通知合入的新消息事件）（与雾蓝构成「发出→回注」时间轴对照；对 bg 7.1:1）。
+  //    撞色自证：色相 ≈270°，系列已用紫族最近邻 ep10 mech #A78BFA≈262°（差 8°）、
+  //    ep11 backoff #B48EF5≈275°（差 5°）、ep12 mech #9B8CFF≈248°（差 22°）——
+  //    兰紫一档系列层定稿登值，按集独立语义不撞值。
+  notify: '#C084FC',
+  // tool：工况伴色（青碧承 ep1–ep12 同语义——工况角标 / 终端窗 / 既有工具件）
+  tool: '#64C4C0',
 } as const;

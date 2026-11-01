@@ -3,7 +3,12 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一条能把整个循环，卡在原地干等的命令。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    },
+    "ttsText": "这是一条能把整个循环，卡在原地，干等的命令。"
   },
   {
     "id": "p0-02",
@@ -13,13 +18,18 @@
   {
     "id": "p0-03",
     "scene": "P0",
-    "text": "这十分钟，模型一步动不了，按文字量计费，空转也在花钱。"
+    "text": "这十分钟，模型一步动不了，按文字量计费，空转也在花钱。",
+    "ttsText": "这十分钟，模型一步动不了——按文字量计费，空转，也在花钱。"
   },
   {
     "id": "p0-04",
     "scene": "P0",
     "text": "可没人会站在洗衣机前，盯满三十分钟。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p0-05",
@@ -30,7 +40,11 @@
     "id": "p0-06",
     "scene": "P0",
     "text": "循环也该这样：慢命令丢出去，结果自己回来。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p0-07",
@@ -41,7 +55,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "对话协议有条硬规矩：一次调用，只配一个结果。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p1-02",
@@ -52,7 +70,11 @@
     "id": "p1-03",
     "scene": "P1",
     "text": "解法是丢后台——可谁说了算，哪条命令算慢？两道闸门来把关。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-04",
@@ -67,7 +89,11 @@
   {
     "id": "p1-06",
     "scene": "P1",
-    "text": "安装、构建、测试这类词一撞上，就猜它是慢操作。"
+    "text": "安装、构建、测试这类词一撞上，就猜它是慢操作。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p1-07",
@@ -78,23 +104,37 @@
     "id": "p1-08",
     "scene": "P1",
     "text": "实测说话：拔掉兜底，同条安装命令落回原地干等——主循环从零秒一路卡到六百秒。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.16"
+    },
+    "ttsText": "实测说话：拔掉兜底，同条安装命令落回原地干等——主循环，从零秒，一路卡到六百秒。"
   },
   {
     "id": "p1-09",
     "scene": "P1",
-    "text": "模型忘说一句「丢后台」，代价就是十分钟全程陪等。"
+    "text": "模型忘说一句「丢后台」，代价就是十分钟全程陪等。",
+    "ttsText": "模型忘说一句「丢后台」，代价，就是十分钟，全程陪等。"
   },
   {
     "id": "p1-10",
     "scene": "P1",
-    "text": "可就算进了后台，真结果要怎么进对话？名额只有一个。"
+    "text": "可就算进了后台，真结果要怎么进对话？名额只有一个。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-01",
     "scene": "P2",
     "text": "决定后台化，循环当场做三件事。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-02",
@@ -109,7 +149,11 @@
   {
     "id": "p2-04",
     "scene": "P2",
-    "text": "第三，马上回占位回执：任务已启动，结果完成后可得。"
+    "text": "第三，马上回占位回执：任务已启动，结果完成后可得。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p2-05",
@@ -125,18 +169,27 @@
   {
     "id": "p2-07",
     "scene": "P2",
-    "text": "边界：小票丢了还能凭记忆取；名额用掉，就是用掉了。"
+    "text": "边界：小票丢了还能凭记忆取；名额用掉，就是用掉了。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-08",
     "scene": "P2",
-    "text": "模型拿着占位转头干下一件，真结果在后台赶路。"
+    "text": "模型拿着占位回执转头干下一件，真结果在后台赶路。",
+    "ttsText": "模型拿着占位回执转头干下一件，真结果在后台赶路。"
   },
   {
     "id": "p3-01",
     "scene": "P3",
     "text": "后台跑完，真结果怎么回来？不补旧账。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    }
   },
   {
     "id": "p3-02",
@@ -151,7 +204,11 @@
   {
     "id": "p3-04",
     "scene": "P3",
-    "text": "送它进对话的是主循环自己：每轮交结果前，顺手查一遍登记表。"
+    "text": "送它进对话的是主循环自己：每轮交结果前，顺手查一遍登记表。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p3-05",
@@ -162,7 +219,11 @@
     "id": "p3-06",
     "scene": "P3",
     "text": "第一回合：模型发起安装命令，带上了后台参数。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.08"
+    }
   },
   {
     "id": "p3-07",
@@ -172,23 +233,36 @@
   {
     "id": "p3-08",
     "scene": "P3",
-    "text": "第二回合：读配置是快命令，当场拿到内容。"
+    "text": "第二回合：读配置是快命令，当场拿到内容。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
   },
   {
     "id": "p3-09",
     "scene": "P3",
-    "text": "主循环顺手收集后台结果，安装通知和配置内容同框出现。"
+    "text": "主循环顺手收集后台结果，安装通知和配置内容同框出现。",
+    "ttsText": "主循环顺手收集后台结果，安装通知，和配置内容，同框出现。"
   },
   {
     "id": "p3-10",
     "scene": "P3",
-    "text": "从发起到收尾，主循环一分钟都没干等——路通了，坎还在后头。"
+    "text": "从发起到收尾，主循环一分钟都没干等——路通了，坎还在后头。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p4-01",
     "scene": "P4",
     "text": "教学版有道坎，实测在场：丢进后台的命令，最多只给两分钟。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p4-02",
@@ -199,18 +273,27 @@
     "id": "p4-03",
     "scene": "P4",
     "text": "生产版自己留了后手：命令跑满超时，自动转后台。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    }
   },
   {
     "id": "p4-04",
     "scene": "P4",
-    "text": "同一个两分钟：教学版当错误上限，生产版当转后台的触发线。"
+    "text": "同一个两分钟：教学版当错误上限，生产版当转后台的触发线。",
+    "ttsText": "同一个两分钟：教学版，当错误上限；生产版，当转后台的触发线。"
   },
   {
     "id": "p4-05",
     "scene": "P4",
     "text": "谁该决定「去后台」？成了真争议。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-06",
@@ -225,18 +308,26 @@
   {
     "id": "p4-08",
     "scene": "P4",
-    "text": "可拔掉兜底的代价，你已经见过——就是那六百秒。"
+    "text": "可拔掉兜底的代价，你已经见过——就是那六百秒。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p4-09",
     "scene": "P4",
-    "text": "更深的误会，还藏在「保存」两个字里。"
+    "text": "「保存」两个字里，还藏着更深的误会。"
   },
   {
     "id": "p5-01",
     "scene": "P5",
     "text": "收尾前一个误会：还有一类到点才跑的任务——定义写进磁盘，调度却活在程序进程里。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p5-02",
@@ -246,18 +337,27 @@
   {
     "id": "p5-03",
     "scene": "P5",
-    "text": "像纸质日程本：计划跨年都在，没人翻开就不会发生。"
+    "text": "像纸质日程本：计划跨年都在，没人翻开就不会发生。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10"
+    }
   },
   {
     "id": "p5-04",
     "scene": "P5",
-    "text": "纸本永远等人翻；任务重启后自动被拾起，下次到点照常触发——停摆错过的，不补跑。"
+    "text": "纸本永远等人翻；进程重启后，任务自动被拾起，下次到点照常触发——停摆错过的，不补跑。"
   },
   {
     "id": "p5-05",
     "scene": "P5",
     "text": "一句话收束：慢操作不能赊账——占位先闭合问答，真结果走新消息进场。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "一句话收束：慢操作，不能赊账——占位，先闭合问答；真结果，走新消息进场。"
   },
   {
     "id": "p5-06",
@@ -268,14 +368,22 @@
     "id": "p5-07",
     "scene": "P5",
     "text": "九点该跑的测试还得人提醒——下期，把「到点」从人手里拿走。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10"
+    }
   },
   {
     "id": "p5-08",
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-09",

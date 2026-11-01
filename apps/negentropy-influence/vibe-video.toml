@@ -150,6 +150,12 @@ episode = "chapters-12-tasksystem"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
 reason = "系列片头挂载承 chapters-01–11 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep11 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx / harness-stack.tsx / intro mp3 三拷贝与 ep11 cmp 逐字节一致；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
+
+[[skeleton.drift]]
+episode = "chapters-13-backgroundtasks"
+path = "video/src/Main.tsx"
+fingerprint = "1c779384d763"
+reason = "系列片头挂载承 chapters-01–12 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep12 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx 与种子 cmp 逐字节一致、harness-stack.tsx 与 ep12 cmp 逐字节一致、intro mp3 拷贝在位；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
 # 顶部进度条分代（2026-09-22）：模板 Main.tsx 归一化指纹 179be60ed605 为分代前
 # 模板值（10 个既有集此前已收敛对齐、零历史登记——均已发布），与上方 Subtitle
 # 分代同构；新 frozen 的 ChapterProgress.tsx 既有集尚无此
@@ -359,7 +365,8 @@ scene_stems = ["P0RelayBreak", "P5WallAndNext"]
 
 [check_series.source_credit."chapters-13-backgroundtasks"]
 narration_ids = ["p0-01", "p5-08"]
-scene_stems = []
+# ⑧ 轮场景落地补登（承 ep1–ep12 形态）：P0 首部署源角标 / P5 尾部署源卡
+scene_stems = ["P0StalledLoop", "P5DurableAndClose"]
 
 [check_series.source_credit."chapters-15-agentteams"]
 narration_ids = ["p0-01", "p5-05"]
