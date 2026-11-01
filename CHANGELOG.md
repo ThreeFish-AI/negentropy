@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### dsh-superagent（DeepSeek Super-agent 原型）精读与通俗拆解入库（agent-harness 182，2026-11-01）
+
+- 新增 [182 精读](docs/research/agent-harness/182-dsh-superagent.md)（deepseek-ai/dsh-superagent-prototype，main@6337fc8，MIT，2026-10-31 开源）：注意力公理 → 两道闸（Gate 程序管人 / Assessment 模型管事，正文骗不了代码闸）→ 订阅扇出（上下文≠权限、bot 不复活已结束工单）→ Mandate 不可变票据（变更只通知不撤单、复活按当日重验）→ 异步执行环（5s 转后台/30min 上限/人类加塞槽/路由禁等待）→ 先记账后干活（Effects/Outbox）；文章的 Watchdog/投机执行/存算分离在仓库 0 实现（grep 实测）作为「文章 vs 仓库」核心证据链；微信文章原文反爬不可达，数字全走【三】级归因（p95 15.7 vs 29.5 分钟、cache +37%、Router +30%，合成消息测试）；五规律三争议，字数门 5000 内（4913）。
+- 配套纯标准库原型 [dsh_superagent_lab.py](docs/research/agent-harness/assets/dsh_superagent_lab.py)（纯函数核心 1:1 移植，809 条测试用例行为对账；D1–D5 破坏实验实测退化）；两张 archify 图四件套入库（`dsh-superagent--message-lifecycle` workflow、`dsh-superagent--attention-lifecycle` lifecycle，finalize 四门回执齐，candidate JSON 入 docs/diagrams/）。
+- 登记面：research readme 第九节、knowledge-map Research 节、mermaid README agent-harness 分节、issue I-244。
+
 ### 线性注意力机制精读与通俗拆解入库：新开 model-architecture 分组（250，2026-10-30）
 
 - 新增 [250 精读](docs/research/model-architecture/250-linear-attention-kda.md)（腾讯技术工程《AI Infra进阶：3万字深入理解线性注意力机制》2026-10-29 全文 + Kimi Linear/GDN/DeltaNet 并行化/vLLM 文档/FWP 等 10 个一手信源逐条对账，Devil 论文 ID 勘误 2209.07482→2210.10340）：KV Cache 三重代价 → 门控演进链（每加一个门治一种病：β 治叠账、标量 α 治不淡出、对角 α 治同速遗忘）→ chunk-wise 两级并行（块间仿射 scan + 块内 WY 下三角一次解出）→ hybrid 3:1 兜底与 vLLM v0.32.0 落地三件事（page 对齐 640/前缀缓存块边界/推测解码回退一块）；五规律三争议，字数门 6000 内（5993）。

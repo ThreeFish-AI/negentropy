@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "92698e92-4415-4d5f-babc-9967c845567d",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/newport-beach-v3/.archify/lifecycle-dsh-attention-20261101-085912/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/newport-beach-v3/docs/assets/architecture/agent-harness/dsh-superagent--attention-lifecycle.html",
+  "specification": {
+    "sha256": "8e2a2d9e7a1df8cafa63a95133bd7747c89f606232cfd939c4033837cb9d8865",
+    "bytes": 3299
+  },
+  "artifact": {
+    "sha256": "5e9fb599f02a313c70b6f42285e5f1e49583f172fe754f5fef2b37e65e2ad7e5",
+    "bytes": 762338
+  }
+}
