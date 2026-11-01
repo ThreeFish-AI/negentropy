@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》后 ep16《Team Protocols：对上号，才改状态》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 22 镜六场景分镜（零建图；G1 修 RISKY1+WARN2 放行：2-C/2-D 镜界对齐 narration v3 beat（judge 补空行的传导落地）、ep15 折算基准 330→300 字/分纠偏、planning 消融左右序回写左红右绿）；⑦ me-bright/story TTS 55 句实测口径 5.2 分落窗（G1 折算预期 5.1 精准命中）；⑧ 登记表状态机（落行/翻态/长新行）/142 号徽章三处同号/回执簿撕合/消融双轨（左红右绿）/「轮末查信」挂点弧（4-B 点亮-5-A 锁定）装置族 + 片头孪生（组五 groupOf(16)=5）。
+- ⑨ QA 三路 0 RISKY 0 WARN：机器门全绿（3 处「句帧指纹相同」经 diff max 196/233 装置有实变化驳回）；一致性 7 OK+1 WARN 驳回（Badge bottom 168→176「漂移」经五集场景内基线分布实证 176 才是系列真基线、168 为孤例）；layman 重点五项全过（3-B/3-C 左红右绿+计数 3↔1、142 四签逐落、4-B 闸门两段+挂点高亮、5-A 金句卡逐字）。2-C 命名签半分帧 OCR 不可读判分辨率极限（实现+cue 在位），记 v2 候选。
+- ⑩ 终渲 312.0s / 5 分 12 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/Team Protocols：对上号，才改状态 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》后 ep15《Agent Teams：文件收件箱与持久队友》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 25 镜六场景分镜（零建图；G1 修 RISKY1+WARN3 放行：0-B「直观·可检查」rationale 签移位 1-B、0-A 目标小卡入环铺垫同签两实体、计数链统一（四代理含主/四箱之内/坐席签两枚）、0-C 虚线预演暗态留驻作 morph 起点）；⑦ me-bright/story TTS 53 句实测口径 4.7 分落窗（est 5.43）；⑧ 信箱文件状态机（追加逐字落格/整摞取走/清空）/品红队友环（同几何同线宽仅描边色）/消融双轨装置族 + 片头孪生（组五首集组内第二件，groupOf(15)=5）。
