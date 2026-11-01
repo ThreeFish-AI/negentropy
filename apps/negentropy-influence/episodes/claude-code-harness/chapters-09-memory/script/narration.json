@@ -3,17 +3,27 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一份越攒越懂你的记忆——最难的功课，不是记住，是拒绝。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    },
+    "ttsText": "这是一份越攒越懂你的记忆——最难的功课，不是记住，是，拒绝。"
   },
   {
     "id": "p0-02",
     "scene": "P0",
-    "text": "会话一断，攒下的全忘光：对话、结论、踩过的坑，全清零。"
+    "text": "会话一断，攒下的全忘光：对话、结论、踩过的坑，全清零。",
+    "ttsText": "会话一断，攒下的全忘光——对话、结论、踩过的坑，全清零。"
   },
   {
     "id": "p0-03",
     "scene": "P0",
-    "text": "偏偏有一层不跟着清零——它不住对话里，住磁盘文件里。"
+    "text": "偏偏有一层不跟着清零——它不住对话里，住磁盘文件里。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p0-04",
@@ -24,7 +34,11 @@
     "id": "p0-05",
     "scene": "P0",
     "text": "分工清楚：压缩管会话内，这层管跨会话。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p0-06",
@@ -40,7 +54,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "记忆库就是一个文件夹：一个记忆，一个文件。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-02",
@@ -57,7 +75,11 @@
     "id": "p1-04",
     "scene": "P1",
     "text": "第一种记你是谁——比如，缩进只用制表符、不碰空格。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-05",
@@ -72,7 +94,11 @@
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "第四种记东西在哪——比如，问题单在哪块看板。"
+    "text": "第四种记东西在哪——比如，问题单在哪块看板。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-08",
@@ -84,13 +110,21 @@
   {
     "id": "p1-09",
     "scene": "P1",
-    "text": "四类各就各位——可每次开工，带多少条进门？"
+    "text": "四类各就各位——可每次开工，带多少条进门？",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-01",
     "scene": "P2",
     "text": "最省事的做法：全部记忆写进开场白——每轮固定要先发的那段话——全量重发。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p2-02",
@@ -100,7 +134,11 @@
   {
     "id": "p2-03",
     "scene": "P2",
-    "text": "更亏的是缓存：开头一变，重复前缀省下的钱作废。"
+    "text": "更亏的是缓存：开头一变，重复前缀省下的钱作废。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p2-04",
@@ -111,7 +149,11 @@
     "id": "p2-05",
     "scene": "P2",
     "text": "走个例子：你留过一句缩进偏好——新会话，你问手头一份配置文件怎么写。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-06",
@@ -121,7 +163,11 @@
   {
     "id": "p2-07",
     "scene": "P2",
-    "text": "交给一次轻量调用去挑，最多五条；失败，降级成关键词匹配。"
+    "text": "交给一次轻量调用去挑，最多五条；失败，降级成关键词匹配。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-08",
@@ -132,7 +178,11 @@
     "id": "p2-09",
     "scene": "P2",
     "text": "索引放固定的开头；正文，贴在当前消息前面。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-10",
@@ -142,13 +192,21 @@
   {
     "id": "p2-11",
     "scene": "P2",
-    "text": "取的路数清楚了——往里写，才是关卡。"
+    "text": "取的路数清楚了——往里写，才是关卡。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    }
   },
   {
     "id": "p3-01",
     "scene": "P3",
     "text": "用户不会回回喊「记住」——偏好，散在对话里。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-02",
@@ -159,7 +217,11 @@
     "id": "p3-03",
     "scene": "P3",
     "text": "交回来的只是候选——落盘前，先过五道检查。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p3-04",
@@ -174,44 +236,67 @@
   {
     "id": "p3-06",
     "scene": "P3",
-    "text": "第四道抓临时话：「本次会话」「暂时」这类字眼，当场拦下；第五道防重复，逐项比对。"
+    "text": "第四道抓临时话：「本次会话」「暂时」这类字眼，当场拦下；第五道防重复，逐项比对。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p3-07",
     "scene": "P3",
     "text": "为什么卡这么严？一句嘱咐：「这次先别建新文件。」",
-    "beatStart": true
+    "beatStart": true,
+    "ttsText": "为什么卡这么严？一句嘱咐：「这次，先别建新文件。」"
   },
   {
     "id": "p3-08",
     "scene": "P3",
-    "text": "这话只管当前一回；没门，它就落库，变下个会话的永久规矩。"
+    "text": "这话只管当前一回；没门，它就落库，变下个会话的永久规矩。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.15"
+    }
   },
   {
     "id": "p3-09",
     "scene": "P3",
-    "text": "实测：把关卡全拆，两轮提取，库从三条涨到五条。"
+    "text": "实测：把关卡全拆，两轮提取，库从三条涨到五条。",
+    "ttsText": "实测：把关卡全拆，两轮提取，库从三条，涨到五条。"
   },
   {
     "id": "p3-10",
     "scene": "P3",
-    "text": "混进去的正是那条临时嘱咐，同一句偏好还多存一份。"
+    "text": "混进去的正是那条临时嘱咐，同一句偏好还多存一份。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.16"
+    }
   },
   {
     "id": "p3-11",
     "scene": "P3",
-    "text": "记忆不怕多，怕脏——脏一条，往后每个会话跟着错。"
+    "text": "记忆不怕多，怕脏——脏一条，往后每个会话跟着错。",
+    "ttsText": "记忆不怕多，怕脏——脏一条，往后每个会话，跟着错。"
   },
   {
     "id": "p3-12",
     "scene": "P3",
-    "text": "入口的门守住了；旧账呢？"
+    "text": "入口的门守住了；旧账呢？",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p4-01",
     "scene": "P4",
     "text": "攒到十条触发整理：合并重复、修正矛盾、淘汰过时——最多留三十条。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-02",
@@ -222,12 +307,21 @@
     "id": "p4-03",
     "scene": "P4",
     "text": "动手前先拍快照：失败就删半成品，按快照恢复原样。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p4-04",
     "scene": "P4",
-    "text": "实测拆掉回滚：一次写入失败，库从两条直接归零。"
+    "text": "实测拆掉回滚：一次写入失败，库从两条直接归零。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    },
+    "ttsText": "实测拆掉回滚：一次写入失败，库从两条，直接归零。"
   },
   {
     "id": "p4-05",
@@ -238,7 +332,11 @@
     "id": "p4-06",
     "scene": "P4",
     "text": "拆解过 Claude Code 源码的同学们应该知道：真实产品的整理，叫做梦。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p4-07",
@@ -248,13 +346,21 @@
   {
     "id": "p4-08",
     "scene": "P4",
-    "text": "门守住了，账清了——这层记忆，凭什么不怕压缩清场？"
+    "text": "门守住了，账清了——这层记忆，凭什么不怕压缩清场？",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p5-01",
     "scene": "P5",
     "text": "一页索引，常驻开场白；一库正文，用到才取。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
   },
   {
     "id": "p5-02",
@@ -264,13 +370,21 @@
   {
     "id": "p5-03",
     "scene": "P5",
-    "text": "压缩清场也轮不到它：今年十月的官方文档写着，这一层会从磁盘重新注入。"
+    "text": "压缩清场也轮不到它：今年十月的官方文档写着，这一层会从磁盘重新注入。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p5-04",
     "scene": "P5",
     "text": "只不过，这份开场白从第一天起就写死了。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p5-05",
@@ -280,14 +394,19 @@
   {
     "id": "p5-06",
     "scene": "P5",
-    "text": "下期，拆这份写死的开场白。"
+    "text": "下期，拆这份写死的开场白。",
+    "ttsText": "下期——拆这份写死的开场白。"
   },
   {
     "id": "p5-07",
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-08",
