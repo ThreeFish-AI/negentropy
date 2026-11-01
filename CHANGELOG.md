@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》后 ep17《Autonomous Agents：自己看板，自己认领》制作轮收官交付 v1（2026-11-02）
+
+- ⑥ 24 镜六场景分镜（零建图；G1 修 RISKY1+WARN3 放行：环体节拍器契约括注自相矛盾——ep16 继承的「同转速不赋新语义」随本集状态变速新契约改写；est 基数 1348 纠偏+越窗 6.6s 量化；p4-04/p4-10 两词窗锚点修正）；⑦ me-bright/story TTS 56 句实测口径 5.2 分落窗（p4-07 块 8766 服务死亡，tts_resume --mps-mem-limit-gib 0 冷重启自愈续跑，缓存块保留）；⑧ 值班钟状态机（五秒一拍两落点）/十二拍计数环（12×5=60 双口径同框）/认领流水条+裂缝/两道闩房间/选座原子性类比/撤锁双写消融/phasedRing 分段匀速相位积分（母题本体零改动实现节拍器变速）装置族 + 片头孪生（组五 groupOf(17)=5）。
+- ⑨ QA 修复 2 项：0-C 钟位 y 120→56（原注释算式 cy 误取 310 实为 430、落点签实底 903 越安全带，上移后 P0/beat-heads 清零）；黑遮罩 #000000→#000 字面统一。三路走查 0 RISKY 0 WARN：layman 重点五项全过（3-A TOCTOU 裂缝+洋红首亮、3-C/3-D 撤锁消融左红右绿+终值归属、4-A 两房间两道闩、1-E 12×5=60 同框、5-A 金句卡）；一致性八项全过（2 风格级 WARN 渲染零差异）。
+- ⑩ 终渲 312.9s / 5 分 12.9 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/Autonomous Agents：自己看板，自己认领 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》后 ep16《Team Protocols：对上号，才改状态》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 22 镜六场景分镜（零建图；G1 修 RISKY1+WARN2 放行：2-C/2-D 镜界对齐 narration v3 beat（judge 补空行的传导落地）、ep15 折算基准 330→300 字/分纠偏、planning 消融左右序回写左红右绿）；⑦ me-bright/story TTS 55 句实测口径 5.2 分落窗（G1 折算预期 5.1 精准命中）；⑧ 登记表状态机（落行/翻态/长新行）/142 号徽章三处同号/回执簿撕合/消融双轨（左红右绿）/「轮末查信」挂点弧（4-B 点亮-5-A 锁定）装置族 + 片头孪生（组五 groupOf(16)=5）。

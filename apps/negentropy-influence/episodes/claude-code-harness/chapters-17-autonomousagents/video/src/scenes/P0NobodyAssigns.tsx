@@ -395,10 +395,10 @@ const ZeroB: React.FC<{atTurn1: number; atTurn2: number; atClock1: number; atClo
 
 // ── 0-C 首拍全流程微演：钟面满幅 + 两落点次序演示 + 写名 + 暗纹悬念 ───────────
 
-/** 0-C 钟位（钟面满幅——落点签底边 ≈ 120+780+46=946？否：landY=cy+cos26°·armL
- *  +size·0.06 = 310+434+37 = 781，tagH/2=46 → 底边 827 恒 ≤ 860；常量改动须
- *  同步核算（ep15 底环 990 侵入教训）。 */
-const CLOCK_0C = {x: 650, y: 120, size: 620} as const;
+/** 0-C 钟位（钟面满幅）——y 120→56 修正：原算式 cy 误取 310（实=120+size/2=430），
+ *  落点签实底 903 越安全带；y=56 → cy=366 → landY≈793 → 签底 ≈839 ≤860（余 21px，
+ *  钟面顶 56 恰合 y≥56 红线；ep15 底环 990 侵入教训——常量改动须同步核算）。 */
+const CLOCK_0C = {x: 650, y: 56, size: 620} as const;
 /** 第二落点侧的三灯卡（任务墙一张卡——三枚条件灯位；左缘与落点签净空 ≥20px） */
 const DEMO_CARD_0C = {x: 1350, y: 560, w: 330, h: 220} as const;
 
@@ -499,7 +499,7 @@ const ZeroC: React.FC<{atBeat: number; atLook1: number; atLook2: number; atWrite
         </svg>
       ) : null}
       {/* 压暗半档定格（悬念钩——P3 接棒位） */}
-      <AbsoluteFill style={{background: '#000000', opacity: darken, pointerEvents: 'none'}} />
+      <AbsoluteFill style={{background: '#000', opacity: darken, pointerEvents: 'none'}} />
       <SourceCredit />
       <div style={{position: 'absolute', left: 0, right: 0, bottom: 210, textAlign: 'center', fontFamily: theme.mono, fontSize: 19, color: theme.dim, opacity: 0.7 * (1 - darken)}}>
         {'每五秒一拍 · 先信后墙 · 写名领走'}
