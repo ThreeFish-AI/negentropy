@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》后 ep9《Memory：索引与按需加载》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 22 镜六场景分镜（零建图；G1 零 RISKY——泛化脚本组号措辞修复后首次实证生效；四 WARN 全落定：est 含片头 5.73 分越窗 7.6s 直陈+减句预案登记、跨幕 seam 辩护、前集色清单补 ep8 两色、5-A 母题缺席注理由）；⑦ me-bright/story TTS 55 句实测 5.0 分落窗（271 字/分，est 超窗风险未兑现）；⑧ 六场景 + bespoke 十件装置 + 片头孪生挂载（26 条教训 v8 清单全自检）。
+- ⑨ QA 三路目检 0 RISKY（系列第二次）：修复轮仅 1 项（3-A 偏好签与空块标注交叠 44×18px 一字修）+ 分镜改判两处（库体 morph 按回退形态登记、3-B 环体出场位改「提取臂残位承身份」）；「路经」错字指控经 narration/代码双 grep 驳回为走查代理幻觉（沙箱拦截源稿所致）；p4「2→0」判半分辨率伪影（源码 leftCount 口径正确）。机器门 FAIL 0。
+- ⑩ 终渲 238.4s / 5.0 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Memory：索引与按需加载 v1.mp4`。组三「记忆管理」ep8–ep9 收官。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》后 ep8《Context Compact：先整理，再总结》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 21 镜六场景分镜（零建图；G1 修 2 RISKY 放行：4-C 五函数↔教学四步改「按序对位」（contextCollapse 暗态旁签、四条对齐线）、阶梯缩回右上恒驻缩影位）；微改进 1 句 v2→v3（p1-03 删冗词「接口」——曾因非引号 heredoc 的 `$'` ANSI-C 展开静默丢失致 TTS 用旧文，补 v3+cues 后全量 story 重配 4.8 分收官）。

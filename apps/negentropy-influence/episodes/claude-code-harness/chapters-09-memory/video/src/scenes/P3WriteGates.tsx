@@ -154,7 +154,7 @@ const ThreeA: React.FC<{atSigns: number; atHook: number; atNoTool: number; atArm
             key={t}
             style={{
               position: 'absolute',
-              left: RING_3A.cx + (i === 2 ? 6 : 20),
+              left: RING_3A.cx + (i === 2 ? -30 : 20),
               top: RING_3A.cy - 128 + i * 100,
               padding: '4px 13px',
               borderRadius: 8,
