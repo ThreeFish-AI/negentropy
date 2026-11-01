@@ -99,7 +99,7 @@ const OneA: React.FC<{atCards: number; atZoom: number; atQuit: number; atFlash: 
         <LoopRing size={RING_1A.size} nodes={[]} showExit={false} dotProgress={dotPos >= 0 ? dotPos : undefined} />
       </div>
       {/* 急推容器（判时表盘特写——@pushIn；包含链首卡与表盘） */}
-      <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, transform: pushTf, transformOrigin: '1385px 235px'}}>
+      <div style={{position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, transform: pushTf, transformOrigin: '1485px 235px'}}>
         {/* 四卡纵列（暗态轮廓一次浮出 → 判时卡点火；次序恒定判时→队列→交付→执行） */}
         <TimeChain x={CHAIN_1A.x} y={CHAIN_1A.y} w={CHAIN_1A.w} cardH={CHAIN_1A.cardH} gap={CHAIN_1A.gap} outlineP={cards} lits={[schedLit, 0, 0, 0]} hot={schedLit > 0.4 ? 0 : -1} />
         {/* 判时表盘（长春花蓝——居链首；点火时自刻度点亮，此后每秒一闪） */}

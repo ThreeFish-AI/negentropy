@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》后 ep14《Cron Scheduler：按时间表生产工作》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 20 镜六场景分镜（零建图；G1 RISKY 0、4 WARN 全修放行：2-D 边界签改结构签、1-C 检查签去问词、est 336.3s 贴顶量化+回收预案、中性装置默认色通则）；⑦ me-bright/story TTS 49 句实测 4.6 分落窗（331 字/分、est 5.6 贴顶担忧解除）；⑧ 判时表盘（1.00s 闪律）/四层链/等待砖/防火线/五十格刻度尺装置族 + 片头孪生（组四 groupOf(14)=4）。
+- ⑨ QA 三路目检 0 RISKY 修复 3 项驳回 4 项：夜幕色裸 hex 常量化收 motifs（NIGHT_TOP/NIGHT_BOTTOM）、4-C 满格红线 3.5px dashed→6px solid + caption 16→18px、1-A pushIn transformOrigin 1385→1485 对齐表盘中心；驳回项（0-A 闹钟基态、4-B 镜首字幕、1-A 近黑、P5 冻帧）均经帧级像素取证/机器 OCR 证伪——0-A 句中点亮比 0.0472 高于 0-B 特写 0.0377 证「一暗一亮」契约兑现、4-B-h1 字幕 OCR 实读 p4-04 正确（走查两次独立误读）。机器门六幕/last-n 6/beat-heads/check-theme FAIL 0。
+- ⑩ 终渲 297.2s / 4 分 57 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/Cron Scheduler：按时间表生产工作 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》后 ep13《Background Tasks：慢命令丢后台，结果走通知》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 22 镜六场景分镜（零建图；G1 修 2 RISKY+2 WARN 放行）；⑦ me-bright/story TTS 53 句实测 4.9 分落窗；⑧ 六场景 22 镜 + 等待砖压停/双闸门/登记表/通知卡装置族 + 片头孪生（组四首集，groupOf(13)=4）。

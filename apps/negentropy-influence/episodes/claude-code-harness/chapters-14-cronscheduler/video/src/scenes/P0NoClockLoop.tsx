@@ -28,7 +28,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig} from 'remotion'
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {LoopRing} from '../components/motifs';
+import {LoopRing, NIGHT_TOP, NIGHT_BOTTOM} from '../components/motifs';
 import {DUR, clamp01, progress, usePushIn} from '../motion';
 
 const withAlpha = (hex: string, a: number): string =>
@@ -132,7 +132,7 @@ const ZeroA: React.FC<{atNine: number; atOff: number; atDim: number; atPush: num
   return (
     <AbsoluteFill>
       {/* 夜色底光（P0 夜语义——冷暗一档，与 P1 常态区分） */}
-      <AbsoluteFill style={{background: `linear-gradient(180deg, ${withAlpha('#05070B', 0.55)}, ${withAlpha('#0B0E14', 0.2)})`, pointerEvents: 'none'}} />
+      <AbsoluteFill style={{background: `linear-gradient(180deg, ${withAlpha(NIGHT_TOP, 0.55)}, ${withAlpha(NIGHT_BOTTOM, 0.2)})`, pointerEvents: 'none'}} />
       {/* 环体〔M-001〕悬于终端上方——暗转（描边承锁定、无指针、无辉光无脉冲：静止即陈述）。
           p0-03 推近一拍：容器 transform 承载（描边色/线宽不动） */}
       <div style={{position: 'absolute', left: RING_0A.x, top: RING_0A.y, opacity: 0.3 + 0.25 * ringDead, transform: pushTf, transformOrigin: '50% 50%'}}>

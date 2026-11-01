@@ -32,7 +32,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig} from 'remotion'
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {LoopRing, Panel, WatchFaceCard} from '../components/motifs';
+import {LoopRing, Panel, WatchFaceCard, NIGHT_TOP} from '../components/motifs';
 import {DUR, clamp01, progress, useEnter, useFadeOut, useProgress} from '../motion';
 
 const withAlpha = (hex: string, a: number): string =>
@@ -76,7 +76,7 @@ const FiveA: React.FC<{atQuote: number; atK1: number; atK2: number; atBranch: nu
   return (
     <AbsoluteFill>
       {/* 夜色底光（p5-02 夜语义——沉一档） */}
-      <AbsoluteFill style={{background: `linear-gradient(180deg, ${withAlpha('#05070B', 0.12 + 0.3 * night)}, transparent 70%)`, pointerEvents: 'none'}} />
+      <AbsoluteFill style={{background: `linear-gradient(180deg, ${withAlpha(NIGHT_TOP, 0.12 + 0.3 * night)}, transparent 70%)`, pointerEvents: 'none'}} />
       {/* 环体〔M-001〕定格收束（居中偏左——支链在环外挂定，不入环内） */}
       <div style={{position: 'absolute', left: RING_5A.x, top: RING_5A.y}}>
         <LoopRing size={RING_5A.size} nodes={[]} showExit={false} dotProgress={dotPos} />

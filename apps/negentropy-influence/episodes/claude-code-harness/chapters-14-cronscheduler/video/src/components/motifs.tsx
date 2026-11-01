@@ -21,6 +21,10 @@ const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (1 - t) * (1 - t) * 2);
 
 // ─────────────────────────────────────────────────────────── chrome 组件
 
+// 夜幕渐变叠加色（scenes 共享常量——装置层单一事实源，对齐 ep13 装置内先例）
+export const NIGHT_TOP = '#05070B';
+export const NIGHT_BOTTOM = '#0B0E14';
+
 export const Panel: React.FC<{
   style?: React.CSSProperties;
   children?: React.ReactNode;
@@ -1494,10 +1498,10 @@ export const CapacityRuler: React.FC<{
         </div>
         {/* 满格基线（右端竖线——警示红点缀：限额越线即拒） */}
         {cells > 0.85 ? (
-          <div style={{position: 'absolute', right: -2, top: -8, bottom: -8, borderRight: `3.5px dashed ${withAlphaM(theme.danger, 0.85)}`, opacity: clamp01v((cells - 0.85) / 0.15)}} />
+          <div style={{position: 'absolute', right: -2, top: -8, bottom: -8, borderRight: `6px solid ${withAlphaM(theme.danger, 0.92)}`, opacity: clamp01v((cells - 0.85) / 0.15)}} />
         ) : null}
       </div>
-      <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: theme.mono, fontSize: 16, color: theme.dim, marginTop: 8, whiteSpace: 'nowrap'}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', fontFamily: theme.mono, fontSize: 18, color: theme.dim, marginTop: 8, whiteSpace: 'nowrap'}}>
         <span>{'0'}</span>
         <span style={{color: cells > 0.9 ? theme.danger : theme.dim}}>{'上限 50 · 满格基线'}</span>
         <span>{'50'}</span>
