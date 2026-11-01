@@ -116,7 +116,8 @@ const TwoA: React.FC<{atCount: number; atTarget: number; atArchive: number; atKe
             const inMid = !inHead && !inTail;
             // 中段收走（归档段淡出上移）+ 头尾高亮
             const midFade = inMid ? cut : 0;
-            const keepGlow = (inHead || inTail) && i !== 6 ? keep : 0;
+            // ⑨ QA N1：头尾同档亮度（删 i!==6 残留条件）
+            const keepGlow = inHead || inTail ? keep : 0;
             return (
               <div key={i} style={{position: 'relative', height: LIST.rowH, marginBottom: 6}}>
                 <div
@@ -140,7 +141,7 @@ const TwoA: React.FC<{atCount: number; atTarget: number; atArchive: number; atKe
                 >
                   {`消息 ${i + 1}`}
                   {inHead && keepGlow > 0.3 ? <span style={{marginLeft: 10, fontFamily: theme.sans, fontSize: 11, fontWeight: 700, color: theme.text, opacity: keepGlow}}>{'头 · 保留'}</span> : null}
-                  {inTail && keepGlow > 0.3 ? <span style={{marginLeft: 10, fontFamily: theme.sans, fontSize: 11, fontWeight: 700, color: theme.text, opacity: keepGlow}}>{'尾组 · 保留'}</span> : null}
+                  {inTail && keepGlow > 0.3 ? <span style={{marginLeft: 10, fontFamily: theme.sans, fontSize: 11, fontWeight: 700, color: theme.text, opacity: keepGlow}}>{'尾 · 保留 26 条'}</span> : null}
                 </div>
               </div>
             );

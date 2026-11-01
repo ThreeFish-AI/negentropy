@@ -479,7 +479,8 @@ export const Redline: React.FC<{x: number; y: number; w: number; lit?: number; t
 );
 
 /** 上下文草稿纸（P0 主装置 / 5-B 回扣——同款同形首尾对照件）。三类内容块
- *  （文件块/命令输出条/回答气泡）按 `rowsLit` 0..12 实数交错显形；`redness`
+ *  （文件块/命令输出条/回答气泡）按 `rowsLit` 0..14 实数交错显形（⑨ QA W2：
+ *  14 行铺满纸面 ~660px、末四行行宽 ~98%——写满不留结构性空白）；`redness`
  *  0..1 整张泛红；`thickness` 0..1 纸厚（环每转一段厚一分——右缘纸页叠层）；
  *  `quotaLit` 0..1 外缘额度框（框满即死）；`cleanP` 0..1 清爽态（边角留白——
  *  纸面内容按比例淡出留白）；`blankP` 0..1 完全空白（新纸「忘」的判据）。 */
@@ -517,6 +518,7 @@ export const ContextPaper: React.FC<{
   const clean = clamp01(cleanP);
   const blank = clamp01(blankP);
   // 三类内容块布局：文件(0,3,6,9) 命令(1,4,7,10) 回答(2,5,8,11) 交错压行
+  // ⑨ QA W2：14 行铺满纸面（44px/行 × 14 ≈ 616 + 头签 44 = 660）
   const rows = [
     {kind: 'file', zh: '读过的文件'},
     {kind: 'cmd', zh: '命令输出'},
@@ -530,6 +532,8 @@ export const ContextPaper: React.FC<{
     {kind: 'file', zh: '读过的文件'},
     {kind: 'cmd', zh: '命令输出'},
     {kind: 'reply', zh: '模型的回答'},
+    {kind: 'file', zh: '读过的文件'},
+    {kind: 'cmd', zh: '命令输出'},
   ] as const;
   return (
     <div
@@ -577,8 +581,8 @@ export const ContextPaper: React.FC<{
               <div
                 key={i}
                 style={{
-                  height: isCmd ? 30 : 36,
-                  marginBottom: 7,
+                  height: isCmd ? 32 : 38,
+                  marginBottom: 6,
                   boxSizing: 'border-box',
                   borderRadius: isFile ? 6 : isCmd ? 4 : 12,
                   border: `2px solid ${isCmd ? withAlpha(theme.dim, 0.5) : withAlpha(theme.mech, 0.3 + 0.4 * p)}`,
@@ -588,7 +592,8 @@ export const ContextPaper: React.FC<{
                   paddingLeft: 12,
                   gap: 10,
                   opacity: fade * (0.3 + 0.7 * p),
-                  width: `${96 - ((i * 7) % 30)}%`,
+                  // ⑨ QA W2：末四行行宽 ~98%（写密至纸边）
+                  width: `${i >= rows.length - 4 ? 98 : 96 - ((i * 7) % 30)}%`,
                 }}
               >
                 {isCmd ? (
@@ -1259,10 +1264,13 @@ export const ArchiveMark: React.FC<{x: number; y: number; w: number; lit?: numbe
 
 /** 四步阶梯（第二索引件——0-C 首亮 → 缩影恒驻右上 → 各步逐格点亮 → 4-A 主景
  *  → 5-A 双轴定格收束；三态 = 'mini' | 'main' | 'axes'，缩微前后不重绘——
- *  同一阶梯几何 scale 变换）。`litMask` 0..4 实数（第 N 格亮）；`prewarm4` 0..1
- *  第四格预亮（3-C 钩子）；`axisP` 0..1 成本轴箭头自低向高点亮；`sweepP` 0..1
- *  四卡间贯穿光带掠过（4-D P5 预演）；axes 态 `distortP` 失真轴展开 + `tiersLit`
- *  0..3 三档标注（无损/可恢复/不可恢复——档位高低=成本高低=运行先后）。 */
+ *  同一阶梯几何 scale 变换）。`litMask` 0..4 实数（第 N 格亮）；`seat` 0..4 实数
+ *  落位格数（⑨ QA RISKY-2 落位-点亮解耦：0-C 只落位暗态轮廓+序号，标题/en/
+ *  note 随点亮格才显；缺省 seat=1=恒落位——既有调用未亮格暗态 0.4 恒可见不变）；
+ *  `prewarm4` 0..1 第四格预亮（3-C 钩子）；`axisP` 0..1 成本轴箭头自低向高点亮；
+ *  `sweepP` 0..1 四卡间贯穿光带掠过（4-D P5 预演）；axes 态 `distortP` 失真轴
+ *  展开 + `tiersLit` 0..3 三档标注（无损/可恢复/不可恢复——档位高低=成本高低
+ *  =运行先后）。 */
 export const StepLadder: React.FC<{
   x: number;
   y: number;
@@ -1271,6 +1279,7 @@ export const StepLadder: React.FC<{
   dim?: number;
   mode?: 'mini' | 'main' | 'axes';
   litMask?: number;
+  seat?: number;
   prewarm4?: number;
   axisP?: number;
   sweepP?: number;
@@ -1285,6 +1294,7 @@ export const StepLadder: React.FC<{
   dim = 0,
   mode = 'main',
   litMask = 0,
+  seat = 1,
   prewarm4 = 0,
   axisP = 0,
   sweepP = 0,
@@ -1318,6 +1328,7 @@ export const StepLadder: React.FC<{
       <div style={{position: 'relative', width: mini ? 220 : 1080, height: mini ? 108 : 460}}>
         {STEPS.map((s, i) => {
           const on = clamp01(litMask - i);
+          const seated = clamp01(seat - i); // 落位可见度（缺省 1=恒落位，暗态 0.4 恒可见）
           const pre = i === 3 ? clamp01(prewarm4) : 0;
           const cx = i * stepRight;
           const cy = (3 - i) * stepUp;
@@ -1341,16 +1352,17 @@ export const StepLadder: React.FC<{
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: mini ? 0 : 6,
-                opacity: on > 0.05 ? 0.45 + 0.55 * on : 0.4,
+                opacity: on > 0.05 ? 0.45 + 0.55 * on : 0.4 * seated,
                 padding: mini ? 0 : '10px 12px',
               }}
             >
               <span style={{fontFamily: theme.mono, fontSize: mini ? 15 : 24, fontWeight: 700, color: on > 0.5 ? theme.text : theme.dim}}>{s.no}</span>
               {mini ? null : (
                 <>
-                  <span style={{fontFamily: theme.sans, fontSize: 21, fontWeight: 700, color: on > 0.5 ? theme.text : theme.dim, whiteSpace: 'nowrap'}}>{s.zh}</span>
-                  <span style={{fontFamily: theme.mono, fontSize: 12, color: on > 0.5 ? theme.core : theme.dim, whiteSpace: 'nowrap'}}>{s.en}</span>
-                  {/* 内容行暗态（info dump 禁——亮格才显简述） */}
+                  {/* ⑨ QA RISKY-2：标题/en/note 只随点亮格显（on>0.05）——落位暗态
+                      只余虚线轮廓+序号，「内容留各幕点亮」 */}
+                  <span style={{fontFamily: theme.sans, fontSize: 21, fontWeight: 700, color: on > 0.5 ? theme.text : theme.dim, whiteSpace: 'nowrap', opacity: on}}>{s.zh}</span>
+                  <span style={{fontFamily: theme.mono, fontSize: 12, color: on > 0.5 ? theme.core : theme.dim, whiteSpace: 'nowrap', opacity: on}}>{s.en}</span>
                   <span style={{fontFamily: theme.sans, fontSize: 13, color: theme.dim, whiteSpace: 'nowrap', opacity: on}}>{s.note}</span>
                 </>
               )}

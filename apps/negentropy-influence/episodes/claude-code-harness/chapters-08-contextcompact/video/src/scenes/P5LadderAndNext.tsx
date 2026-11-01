@@ -216,8 +216,9 @@ const FiveB: React.FC<{atBack: number; atTrim: number; atNewPaper: number; atSum
           {'摘要卡'}
         </div>
       ) : null}
-      {/* 水位条（列侧——低位贴线一拍回落） */}
-      <ThresholdWaterline x={1490} y={240} h={480} level={clamp01(level)} lit={back} breach={0} caption={'到线就腾'} />
+      {/* 水位条（⑨ QA W4：移至纸左侧 x=380——原 x1490 与紫面驻旁（x1450..、
+          y480..680）叠压；低位贴线一拍回落、与 0-A 额度框同口径呼应） */}
+      <ThresholdWaterline x={380} y={240} h={480} level={clamp01(level)} lit={back} breach={0} caption={'到线就腾'} />
       {/* 蓝→紫箭头（一块大件落进紫面——腾地方动作） */}
       <TransferArrow x={1180} y={430} w={240} p={trimFall} lit={trimFall > 0.02 && trimFall < 0.98 ? 1 : 0} flowPhase={frame / 26} />
       {/* 紫面驻旁（磁盘——大件落进 + 轻闪） */}

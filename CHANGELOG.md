@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》后 ep8《Context Compact：先整理，再总结》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 21 镜六场景分镜（零建图；G1 修 2 RISKY 放行：4-C 五函数↔教学四步改「按序对位」（contextCollapse 暗态旁签、四条对齐线）、阶梯缩回右上恒驻缩影位）；微改进 1 句 v2→v3（p1-03 删冗词「接口」——曾因非引号 heredoc 的 `$'` ANSI-C 展开静默丢失致 TTS 用旧文，补 v3+cues 后全量 story 重配 4.8 分收官）。
+- ⑧ 六场景 3058 行 + bespoke 14 件（红线/阶梯三态/水位条/归档夹/占位条/时间轴/单据卡/保险丝等）+ 片头孪生挂载；⑨ QA 三路目检 2 RISKY+7 WARN 修复轮 8 项全验 + W1 回炉：P0 环体三层可见（渲染序反转+悬纸角 cy160）、阶梯 seat 落位-点亮解耦（消 info-dump 与切镜灯态回退）、0-C→1-A 红线判例改非 morph（分镜/实现/头注三面同步）、1-C 飞行块三段轨迹时序避让（爬升先行→高位平移→越条后落账，三帧像素复验零侵入）、写密铺满（14 行 98% 行宽）、「5%」双义改「重算一遍·再付全价 2.0×」、5-B 水位条移位消叠压、尾组签「尾·保留 26 条」。机器门 FAIL 0。
+- ⑩ 终渲 180.7s / 4.8 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Context Compact：先整理，再总结 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》后 ep7《Skill Loading：目录常驻，全文按需》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 23 镜六场景分镜（零建图；G1 核验修 1 RISKY 后放行：片头组位 groupOf(7)=2 第二组「规划与协调」三处勘误 + CatalogBand 六态口径 + 环体弱在场对齐）；⑦ me-bright/story TTS 54 句实测 5.0 分落窗；⑧ 六场景 + bespoke 六件装置（环+带复合体/蓝紫双子）+ 片头孪生挂载（21 条教训清单 v5 全过，clamp01/槽位 wrapper/锁存等前集教训零复发）。

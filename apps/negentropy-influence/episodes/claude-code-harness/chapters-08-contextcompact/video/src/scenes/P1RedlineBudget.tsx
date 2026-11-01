@@ -2,8 +2,9 @@
  *
  *  叙事链：1-A 开帧蓝面消息列全景一拍（环体缩悬列侧上角、阶梯缩影右上在位）
  *  → @pushIn 急推消息列特写：一条「调用」块永远牵着一条「结果」块、配对小锁
- *  咔哒锁上；红线自 0-C 屏底位迁入列下缘驻位（Morph Continuity：色值/线宽/
- *  水平姿态逐帧不变，仅位置变化）；p1-02 剪刀试图切进两块之间被红线弹开一拍、
+ *  咔哒锁上；红线于列下缘重新亮起驻位（⑨ QA 修订同步分镜 G2：0-C→1-A 红线
+ *  非 morph·装置重锚——0-C 屏底红线随幕落暗、1-A 同款红线在列下缘自左向右
+ *  描线亮起，不做跨幕位置迁移）；p1-02 剪刀试图切进两块之间被红线弹开一拍、
  *  合法切口落在配对之外的空隙绿闪一次（躲开的正解）→ 1-B 边界实验一拍（单句
  *  实测帧）：左右双帧——左「拆掉切口保护」剪刀落切、结果块孤立闪珊瑚红无人
  *  认领、0-A 同款拒收红章缩小版砸下；右「红线在位」切口绕开配对、成对保全
@@ -75,8 +76,8 @@ const OneA: React.FC<{atLock: number; atSnip: number; atBounce: number; atGood: 
   const frame = useCurrentFrame();
   // @pushIn（动机：p1-01 红线规矩压向配对锁主角）——开帧全景一拍后急推
   const push = usePushIn(atLock - 24, {scale: 0.07, dur: DUR.f6});
-  // 「硬规矩」红线自 0-C 屏底位（y≈946 全局系）迁入列下缘驻位（Morph：色值/
-  // 线宽/水平姿态不变，仅位置——局部坐标内 y 自 +120 到 0）
+  // 「硬规矩」红线在列下缘自左向右描线亮起驻位（⑨ QA G2：非 morph·装置重锚
+  // ——redMove 即描线进度，与 0-C 红线为同款同语言、非同一实例的位置迁移）
   const redMove = useProgress(atLock, DUR.f5, 'decelerate');
   // 「一次工具调用，必须跟着它的结果」配对锁咔哒锁上
   const lock = useProgress(atLock + 6, DUR.f4);
@@ -104,8 +105,9 @@ const OneA: React.FC<{atLock: number; atSnip: number; atBounce: number; atGood: 
         {/* 消息列特写（调用牵着结果、配对锁在接缝） */}
         <div style={{position: 'absolute', left: COL.x, top: COL.y}}>
           <MessageColumn x={0} y={0} w={COL.w} rowH={COL.rowH} rows={ROWS} rowsLit={6} pairLock={lock} lockFlash={lockFlash} />
-          {/* 剪刀（切向第 2/3 行接缝——被红线弹开回落） */}
-          <Scissors x={COL.w / 2 - 40 + 60 * (1 - snip)} y={-70 + 190 * snip + 90 * bounceT} rot={-18 + 26 * snip - 30 * bounceT} lit={snip > 0.02 ? 1 : 0} />
+          {/* 剪刀（切向第 2/3 行接缝——被红线弹开回落；⑨ QA N2：settle 位下移
+              贴接缝，终位中心 y≈216=接缝位） */}
+          <Scissors x={COL.w / 2 - 40 + 60 * (1 - snip)} y={-70 + 250 * snip + 90 * bounceT} rot={-18 + 26 * snip - 30 * bounceT} lit={snip > 0.02 ? 1 : 0} />
           {/* 合法切口（配对之外的空隙——第 3/4 行之间；绿闪一次） */}
           {good > 0.02 ? (
             <div
@@ -128,9 +130,8 @@ const OneA: React.FC<{atLock: number; atSnip: number; atBounce: number; atGood: 
             </div>
           ) : null}
         </div>
-        {/* 红线（0-C 屏底位 → 列下缘驻位——迁移中色值/线宽/水平姿态不变；
-            驻位 y=856 收在字幕安全带之上） */}
-        <Redline x={COL.x - 40} y={COL.y + COL.rowH * 6 + 8 * 6 + 4 + 120 * (1 - redMove)} w={COL.w + 80} lit={1} />
+        {/* 红线（列下缘驻位——自左向右描线亮起；y=856 收在字幕安全带之上） */}
+        <Redline x={COL.x - 40} y={COL.y + COL.rowH * 6 + 8 * 6 + 4} w={COL.w + 80} lit={redMove} />
         <div style={{position: 'absolute', left: COL.x - 36, top: COL.y + COL.rowH * 6 + 8 * 6 + 18, fontFamily: theme.sans, fontSize: 16, fontWeight: 700, color: theme.danger, whiteSpace: 'nowrap', opacity: redMove}}>
           {'红线 · 调用必须跟着结果'}
         </div>
@@ -284,9 +285,17 @@ const OneC: React.FC<{atGather: number; atPurple: number; atWater: number; atPul
   // 阶梯缩影第一格点亮（大件落盘）
   const l1 = useProgress(atL1, DUR.f4);
   const l1Flash = useImpulse({at: atL1, dur: DUR.f5, peak: 1});
-  // 大块飞行（蓝面末条 → 紫面磁盘卡位——下凸弧线，避免穿水位条）
-  const flyX = STAGE.blue.x + 420 + (STAGE.purple.x + 120 - STAGE.blue.x - 420) * pull;
-  const flyY = 470 + 60 * Math.sin(Math.PI * pull);
+  // 大块飞行（蓝面末条 → 紫面磁盘卡位；⑨ QA W1 返修·时序避让：先爬升（pull
+  // 0..0.4，smoothstep 到 y130）后水平越条（块与水位条 x 874..948 相交窗内
+  // 块底 flyY+120 恒 =250 ≤ 条顶 270），越过条带（xEase>0.65 即块左缘 >948）
+  // 才下降落账——块底零入条身、零压 200,000 红刻度）
+  const climb = Math.min(1, pull / 0.4);
+  const climbS = climb * climb * (3 - 2 * climb);
+  const xp = Math.max(0, (pull - 0.4) / 0.6);
+  const xEase = xp * xp * (3 - 2 * xp);
+  const descent = Math.max(0, (xEase - 0.65) / 0.35);
+  const flyX = STAGE.blue.x + 420 + (STAGE.purple.x + 120 - STAGE.blue.x - 420) * xEase;
+  const flyY = 470 - 340 * climbS + 160 * descent * descent;
   const dot = ((frame / 80) % 1 + 1) % 1;
   return (
     <AbsoluteFill>
@@ -357,8 +366,8 @@ const OneC: React.FC<{atGather: number; atPurple: number; atWater: number; atPul
       </div>
       {/* 水位条（列侧立起——逼近二十万刻度） */}
       <ThresholdWaterline x={STAGE.blue.x + STAGE.blue.w + 24} y={STAGE.blue.y + 30} h={STAGE.blue.h - 60} level={water * 0.93} lit={water} />
-      {/* 蓝→紫双色箭头（首演——恒向右） */}
-      <TransferArrow x={STAGE.blue.x + STAGE.blue.w + 40} y={430} w={STAGE.purple.x - STAGE.blue.x - STAGE.blue.w - 80} p={pull} lit={pull > 0.02 ? 1 : 0} flowPhase={frame / 30} />
+      {/* 蓝→紫双色箭头（首演——恒向右；⑨ QA W1：起点 x>948 让开水位条右缘） */}
+      <TransferArrow x={956} y={430} w={148} p={pull} lit={pull > 0.02 ? 1 : 0} flowPhase={frame / 30} />
       {/* 紫面容器（磁盘面板——自右缘滑入首亮） */}
       <div
         style={{

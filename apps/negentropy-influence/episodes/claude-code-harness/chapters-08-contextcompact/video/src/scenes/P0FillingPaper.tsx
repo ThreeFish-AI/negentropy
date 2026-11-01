@@ -62,8 +62,9 @@ export const LADDER_MINI = {x: 1630, y: 68} as const;
 
 /** 主装置全局位：草稿纸（0-A 满幅 / 0-B 推近底景 / 5-B 回扣同款同形） */
 const PAPER = {x: 470, y: 200, w: 980, h: 660} as const;
-/** 环体缩悬纸面上角位（0-A/0-B——环侧牵纸一角） */
-const RING_P0 = {size: 150, cx: 560, cy: 250} as const;
+/** 环体缩悬纸面上角位（⑨ QA RISKY-1：cy 160——环上半悬于纸界外，牵线连到
+ *  纸角；渲染顺序在纸之后，不再被 0.96 不透明纸面盖住） */
+const RING_P0 = {size: 150, cx: 560, cy: 160} as const;
 
 // ── 0-A 冷启动：写密→泛红→红章 + 三类块回放 + 纸厚一分 + 额度框 ──────────
 
@@ -80,7 +81,8 @@ const ZeroA: React.FC<{atFill: number; atStamp: number; atReA: number; atReB: nu
   // 内 0.28→0.72 的写密主段；先慢后快）
   const fillFast = clamp01(progress(frame, atFill, 34));
   const accel = fillFast * fillFast * (3 - 2 * fillFast) * 0.5 + fillFast * 0.5;
-  const rowsLit = 12 * accel;
+  // ⑨ QA W2：写密铺满纸面（14 行内容块，末段行宽 ~98%）
+  const rowsLit = 14 * accel;
   // 「直接被拒收」整张泛红 + 红章砸下（1–2s 重音镜：章落 DUR.f4 + 停持全句尾）
   const redness = useProgress(atStamp, DUR.f5);
   const stamp = useProgress(atStamp + 5, DUR.f4, 'accelerate');
@@ -100,15 +102,15 @@ const ZeroA: React.FC<{atFill: number; atStamp: number; atReA: number; atReB: nu
   const quotaFlash = useImpulse({at: atQuota, dur: DUR.f5, peak: 1});
   return (
     <AbsoluteFill>
-      {/* 环体（M-001 缩悬纸面上角——环侧牵纸一角：短线锚到纸角） */}
+      {/* 草稿纸（主装置·蓝面首亮——⑨ QA RISKY-1：先渲染，环体层在其上） */}
+      <ContextPaper x={PAPER.x} y={PAPER.y} w={PAPER.w} h={PAPER.h} rowsLit={rowsLit} redness={redness} thickness={thickness} quotaLit={quota} stampZone={stampFlash} />
+      {/* 环体（M-001 缩悬纸面上角——上半悬于纸界外；牵纸一角：短线锚到纸角） */}
       <div style={{position: 'absolute', left: RING_P0.cx - RING_P0.size / 2, top: RING_P0.cy - RING_P0.size / 2, opacity: 0.92}}>
         <LoopRing size={RING_P0.size} nodes={[]} showExit={false} dotProgress={dot} />
       </div>
-      <svg width={140} height={90} viewBox="0 0 140 90" style={{position: 'absolute', left: RING_P0.cx + 40, top: RING_P0.cy + 26, overflow: 'visible', opacity: 0.7}}>
+      <svg width={140} height={90} viewBox="0 0 140 90" style={{position: 'absolute', left: RING_P0.cx + 20, top: RING_P0.cy + 40, overflow: 'visible', opacity: 0.7}}>
         <line x1={4} y1={12} x2={126} y2={76} stroke={withAlpha(theme.core, 0.6)} strokeWidth={2.5} strokeDasharray="5 6" />
       </svg>
-      {/* 草稿纸（主装置·蓝面首亮） */}
-      <ContextPaper x={PAPER.x} y={PAPER.y} w={PAPER.w} h={PAPER.h} rowsLit={rowsLit} redness={redness} thickness={thickness} quotaLit={quota} stampZone={stampFlash} />
       {/* 三类块回放闪注（p0-02 三词——词窗内各自一拍，加亮对应类别签） */}
       {['文件', '命令输出', '回答'].map((t, i) => {
         const f = replayFlash[i];
@@ -222,10 +224,11 @@ const ZeroB: React.FC<{atBubble: number; atPrice: number; atCard: number; atPres
   const frame = useCurrentFrame();
   // 「让模型自己总结一遍」直觉方案气泡弹出
   const bubble = useProgress(atBubble, DUR.f5, 'decelerate');
-  // 「最贵」计费小卡逐字跳价又收起（再请模型干一次活——调用价跳升）
+  // 「最贵」计费小卡逐字跳价又收起（再请模型干一次活；⑨ QA W3：读数改
+  // 「×2」重付口径——与 3-B「白付第二遍」同语义，不用无钉选数字的百分比）
   const price = useProgress(atPrice, DUR.f4);
   const priceOut = useProgress(atPrice + 26, DUR.f4, 'accelerate');
-  const priceVal = Math.round(progress(frame, atPrice, 22) * 100);
+  const priceVal = (1 + progress(frame, atPrice, 22)).toFixed(1);
   // 「必然丢细节」摘要卡亮出 →「压成」压缩箭头挤扁
   const card = useProgress(atCard, DUR.f5);
   const press = clamp01(progress(frame, atPress, DUR.f5));
@@ -305,8 +308,8 @@ const ZeroB: React.FC<{atBubble: number; atPrice: number; atCard: number; atPres
             transform: `translateY(${(1 - price) * 16}px)`,
           }}
         >
-          <div style={{fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>{'再干一次活 · 计费'}</div>
-          <div style={{fontFamily: theme.mono, fontSize: 34, fontWeight: 700, color: theme.danger, fontVariantNumeric: 'tabular-nums'}}>{`${priceVal}%`}</div>
+          <div style={{fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>{'重算一遍 · 再付全价'}</div>
+          <div style={{fontFamily: theme.mono, fontSize: 34, fontWeight: 700, color: theme.danger, fontVariantNumeric: 'tabular-nums'}}>{`${priceVal}×`}</div>
         </div>
       ) : null}
       <SourceCredit />
@@ -347,15 +350,22 @@ const ZeroC: React.FC<{atSteps: number; atAxis: number; atRed: number; atDock: n
   // 交叉淡入而非缩放变换：mini 是独立形态（46px 格 vs 250px 卡），0-C→1-A 走
   // SceneFade + 同位重锚，morph 不适用（形态档位切换））
   const dock = clamp01(progress(frame, atDock, DUR.f6));
+  // 环体巡游（0-C 阶梯顶角位——缩悬持续转动）
+  const dot = ((frame / 80) % 1 + 1) % 1;
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', inset: 0, transform: push, transformOrigin: '42% 50%'}}>
         {/* 草稿纸退居暗层（0-B 后压暗驻左——蓝面世界在场的持续锚） */}
         <ContextPaper x={130} y={300} w={420} h={330} scale={0.9} rowsLit={12} dim={0.35 + 0.25 * dock} redness={0.2} />
-        {/* 四步阶梯（主景居中——镜尾淡出） */}
-        <StepLadder x={LADDER_MAIN.x} y={LADDER_MAIN.y} litMask={stepsLit} axisP={axis} mode="main" lit={1 - dock} />
-        {/* 阶梯缩影（右上——镜尾淡入，自此恒驻） */}
-        <StepLadder x={LADDER_MINI.x} y={LADDER_MINI.y} mode="mini" litMask={stepsLit} lit={dock} axisP={dock} />
+        {/* 环体（M-001 缩悬阶梯顶角——⑨ QA RISKY-1 补画，continuity 表 0-C 位） */}
+        <div style={{position: 'absolute', left: 396, top: 88, opacity: 0.85 * (1 - dock)}}>
+          <LoopRing size={110} nodes={[]} showExit={false} dotProgress={dot} />
+        </div>
+        {/* 四步阶梯（主景居中——镜尾淡出；⑨ QA RISKY-2：只落位暗态轮廓+序号，
+            litMask=0——标题/en/note 留各幕点亮格才显，末态=四格暗态与 1-A 缩影连续） */}
+        <StepLadder x={LADDER_MAIN.x} y={LADDER_MAIN.y} seat={stepsLit} litMask={0} axisP={axis} mode="main" lit={1 - dock} />
+        {/* 阶梯缩影（右上——镜尾淡入，自此恒驻；seat 连续、零点亮） */}
+        <StepLadder x={LADDER_MINI.x} y={LADDER_MINI.y} mode="mini" seat={stepsLit} litMask={0} lit={dock} axisP={dock} />
         {/* 红线（横贯画面底部——亮起定格；1-A 迁入列下缘驻位） */}
         <Redline x={120} y={946} w={1680} lit={red} />
         {redFlash > 0.04 ? (
