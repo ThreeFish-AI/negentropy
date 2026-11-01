@@ -1,12 +1,9 @@
 /**
- * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
+ * 本集视觉契约（⑧ 轮定稿，storyboard 前言「本集视觉契约」= planning §三）。
  *
- * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
- * references/08-remotion-implementation.md：
- *   - 2–3 个概念色，映射「深度轴」而非枚举条目
- *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
- *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
- *     运行时打印的 occupied-hex INFO 行）
+ * 底座常量跨集通用、不要改；概念色规则见 references/08-remotion-implementation.md：
+ *   - 概念色映射「深度轴」而非枚举条目；对 bg (#0E1116) 对比度 ≥ 4.5:1
+ *   - 色相不与系列已用色撞值（check_series.py occupied-hex INFO 行为准）
  *   - 覆写任何底座 token 须在 theme.ts / planning.md / README 三处留决策记录
  */
 export const theme = {
@@ -16,9 +13,9 @@ export const theme = {
   panelBorder: '#2A3242',
   text: '#F2F5FA',
   dim: '#9AA7B8',
-  // danger 曾缺席本 seed（既有四集 theme.ts 全都有、场景代码读 theme.danger，
-  // scaffold 出的新集开箱即 TS2339）——补齐即与四集现状对齐。
+  // danger：全量内联反例 / 爆涨带警示描边 / 计费帧红（恒配 ✗，仅失败态）
   danger: '#FF5C5C',
+  // ok：两级加载在位 / 按需命中 / 预算闸放行（确认绿）
   ok: '#7ED321',
 
   // ── 字体族（跨集通用，勿改）──
@@ -31,9 +28,20 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
-  // ── 本集概念色（planning §三；accents 与系列层 series.json 登记同值 #7E77E8/#4E9DF5，
-  //    2026-10-31 文案轮定稿——去撞色微调后值；制作期场景按 planning §三语义展开）──
-  core: '#7E77E8', // 目录紫——技能目录常驻层
-  sub: '#4E9DF5', // 按需蓝——全文一次性注入与回喂通道
+  // ── 本集概念色（planning §三；series.json accents 登记 [#7E77E8, #4E9DF5]，
+  //    2026-10-31 文案轮定稿值）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与
+  //    ep1–ep6 逐像素同值即「描边色/线宽承锁定值全片不变」的落地）
+  core: '#D97757',
+  // mech：本集主题色 A = 目录常驻层 / 注册表 / 开场白带目录态（紫）——书目行、
+  //    名字↔技能登记表、注入开场白的常驻带（对 bg 5.9:1）。色相自证：≈244°，
+  //    系列已用紫族最近邻 ep6 mech #9B8AFB≈246° 同域亮度阶差可辨，且本集紫为
+  //    新增语义、按集独立（storyboard 前言明文）；accents 已登记不撞值。
+  mech: '#7E77E8',
+  // load：本集主题色 B = 全文按需加载通道与全文卡（蓝）——加载调用、全文卡
+  //    一次性进场（对 bg 6.1:1；色相 ≈210°，与 ep3 边界蓝 #4E9EFF≈213° /
+  //    ep4 回调蓝 #58A6FF≈212° 差 ≥2° 非同值，accents 已登记、本集语义独立）
+  load: '#4E9DF5',
+  // tool：执行面伴色（青碧承 ep1–ep6 同语义——系列恒定环体伴色）
+  tool: '#64C4C0',
 } as const;

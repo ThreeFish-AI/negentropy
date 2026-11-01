@@ -4,7 +4,11 @@
     "scene": "P0",
     "text": "这是六千五百行知识的账：每一轮对话，全额再付一遍。",
     "beatStart": true,
-    "ttsText": "这是六千五百<行|HANG2>知识的账：每一轮对话，全额再付一遍。"
+    "ttsText": "这是六千五百<行|HANG2>知识的账：每一轮对话，全额，再付一遍。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
   },
   {
     "id": "p0-02",
@@ -21,7 +25,11 @@
     "scene": "P0",
     "text": "项目里摆着三份：界面规范两千行，数据库指南一千五百行，接口文档三千行。",
     "beatStart": true,
-    "ttsText": "项目里摆着三份：界面规范两千<行|HANG2>，数据库指南一千五百<行|HANG2>，接口文档三千<行|HANG2>。"
+    "ttsText": "项目里摆着三份：界面规范两千<行|HANG2>，数据库指南一千五百<行|HANG2>，接口文档三千<行|HANG2>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p0-05",
@@ -32,12 +40,17 @@
   {
     "id": "p0-06",
     "scene": "P0",
-    "text": "百分之九十九的内容，和当前任务无关。"
+    "text": "百分之九十九的内容，和当前任务无关。",
+    "ttsText": "百分之九十九的内容，和当前任务，无关。"
   },
   {
     "id": "p0-07",
     "scene": "P0",
-    "text": "输入按长度计费——开场白每轮都在，每轮全额付。"
+    "text": "输入按长度计费——开场白每轮都在，每轮全额付。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p0-08",
@@ -48,13 +61,22 @@
   {
     "id": "p0-09",
     "scene": "P0",
-    "text": "今天解这笔账：知识怎么进场，才做得到用到才拿？"
+    "text": "今天解这笔账：知识怎么进场，才做得到用到才拿？",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-01",
     "scene": "P1",
     "text": "先摆答案：知识分两级进场——目录常驻，全文按需。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    },
+    "ttsText": "先摆答案：知识分两级进场——目录，常驻；全文，按需。"
   },
   {
     "id": "p1-02",
@@ -70,7 +92,11 @@
     "id": "p1-04",
     "scene": "P1",
     "text": "第二级，全文。模型看目录判断：这活要用数据库指南。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-05",
@@ -85,20 +111,28 @@
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "按名查找不走文件路径：想借路径摸库外文件，这条路天生堵死。"
+    "text": "按名查找不走文件路径：想借路径摸库外文件，这条路天生堵死。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p1-08",
     "scene": "P1",
     "text": "落到代码很省事：工具清单添一件，分发表添一行，循环原样。",
     "beatStart": true,
-    "ttsText": "落到代码很省事：工具清单添一件，分发表添一<行|HANG2>，循环原样。"
+    "ttsText": "落到代码很省事：工具清单，添一件；分发表，添一<行|HANG2>；循环，原样。"
   },
   {
     "id": "p1-09",
     "scene": "P1",
     "text": "常驻的只有几行目录；上千行的全文，用到才进来。",
-    "ttsText": "常驻的只有几<行|HANG2>目录；上千<行|HANG2>的全文，用到才进来。"
+    "ttsText": "常驻的，只有几<行|HANG2>目录；上千<行|HANG2>的全文，用到，才进来。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p1-10",
@@ -110,7 +144,11 @@
     "scene": "P2",
     "text": "走一遍实测。技能库四个技能，目录四行，两百来个字符。",
     "beatStart": true,
-    "ttsText": "走一遍实测。技能库四个技能，目录四<行|HANG2>，两百来个字符。"
+    "ttsText": "走一遍实测。技能库四个技能，目录四<行|HANG2>，两百来个字符。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p2-02",
@@ -126,7 +164,11 @@
     "id": "p2-04",
     "scene": "P2",
     "text": "全文进场一次；到下一轮，输入涨到两千三百八十四字符。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-05",
@@ -136,18 +178,24 @@
   {
     "id": "p2-06",
     "scene": "P2",
-    "text": "三轮跑完，总输入三千零五十九字符。"
+    "text": "三轮跑完，总输入三千零五十九字符。",
+    "ttsText": "三轮跑完，总输入，三千零五十九字符。"
   },
   {
     "id": "p2-07",
     "scene": "P2",
     "text": "量级的账，原作者给过估计：按计价单位算——文本按它计费——目录，每个技能百来个。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-08",
     "scene": "P2",
-    "text": "全文，两千上下——用到才付，差一个数量级。"
+    "text": "全文，两千上下——用到才付，差一个数量级。",
+    "ttsText": "全文，两千上下——用到才付，差一个数量级！"
   },
   {
     "id": "p2-09",
@@ -158,7 +206,11 @@
     "id": "p3-01",
     "scene": "P3",
     "text": "实测说话：四个技能的全文，全量拼进开场白，再跑同样的三轮。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
   },
   {
     "id": "p3-02",
@@ -168,18 +220,27 @@
   {
     "id": "p3-03",
     "scene": "P3",
-    "text": "三轮总输入，从三千零五十九，涨到两万五千三百二十三。"
+    "text": "三轮总输入，从三千零五十九，涨到两万五千三百二十三。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.18"
+    }
   },
   {
     "id": "p3-04",
     "scene": "P3",
-    "text": "多付两万两千多字符，八点三倍。"
+    "text": "多付两万两千多字符，八点三倍。",
+    "ttsText": "多付两万两千多字符——八点三倍！"
   },
   {
     "id": "p3-05",
     "scene": "P3",
     "text": "而且这只是三轮——轮数越多，倍数越大。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p3-06",
@@ -194,13 +255,18 @@
   {
     "id": "p3-08",
     "scene": "P3",
-    "text": "目录也常驻，所以它必须小；全文按需，才配得上大。"
+    "text": "目录也常驻，所以它必须小；全文按需，才配得上大。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p3-09",
     "scene": "P3",
     "text": "教训一句话：用不到的知识，最多在目录里挂个名，不进全文。",
-    "beatStart": true
+    "beatStart": true,
+    "ttsText": "教训一句话：用不到的知识，最多在目录里，挂个名——不进全文。"
   },
   {
     "id": "p3-10",
@@ -211,7 +277,11 @@
     "id": "p4-01",
     "scene": "P4",
     "text": "那真实的 Claude Code 呢？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p4-02",
@@ -226,18 +296,27 @@
   {
     "id": "p4-04",
     "scene": "P4",
-    "text": "上下文窗口，就是模型单轮装得下的文本上限。"
+    "text": "上下文窗口，就是模型单轮装得下的文本上限。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-05",
     "scene": "P4",
-    "text": "目录的预算被按死：约窗口的百分之一，上限八千字符。"
+    "text": "目录的预算被按死：约窗口的百分之一，上限八千字符。",
+    "ttsText": "目录的预算被按死：约窗口的百分之一，上限，八千字符。"
   },
   {
     "id": "p4-06",
     "scene": "P4",
     "text": "官方文档印证：技能全文只在使用时加载，用到之前几乎零成本。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p4-07",
@@ -248,18 +327,31 @@
   {
     "id": "p4-08",
     "scene": "P4",
-    "text": "目录要短，是因为目录自己，就是常驻内容。"
+    "text": "目录要短，是因为目录自己，就是常驻内容。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p5-01",
     "scene": "P5",
     "text": "一句话收束：目录常驻，全文按需——有什么常驻，是什么按需。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "一句话收束：目录常驻，全文按需——有什么，常驻；是什么，按需。"
   },
   {
     "id": "p5-02",
     "scene": "P5",
-    "text": "这笔账操作系统早算过一遍：常驻集要小，缺的页用到才搬进内存。"
+    "text": "这笔账操作系统早算过一遍：常驻集要小，缺的页用到才搬进内存。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-03",
@@ -270,7 +362,11 @@
     "id": "p5-04",
     "scene": "P5",
     "text": "进场解决了，新麻烦跟着来：进了对话的全文，每轮都在场。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p5-05",
@@ -287,7 +383,11 @@
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-08",
