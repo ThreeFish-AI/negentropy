@@ -3,23 +3,37 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一个到点不会自己动的程序：你说九点跑测试，九点一到，它还在等你开口。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p0-02",
     "scene": "P0",
-    "text": "会话一关，连提醒的人都没了，定时，名存实亡。"
+    "text": "会话一关，连提醒的人都没了，定时，名存实亡。",
+    "ttsText": "会话一关，连提醒的人都没了——定时，名存实亡。"
   },
   {
     "id": "p0-03",
     "scene": "P0",
-    "text": "它缺的不是勤快，是时间感，循环里，没有表。"
+    "text": "它缺的不是勤快，是时间感，循环里，没有表。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.15"
+    },
+    "ttsText": "它缺的不是勤快，是时间感——循环里，没有表。"
   },
   {
     "id": "p0-04",
     "scene": "P0",
     "text": "答案的引子是闹钟：设好七点，到点自响——你睡着，它也照响。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p0-05",
@@ -30,7 +44,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "先摆答案：定时，被拆给了四个角色。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-02",
@@ -46,7 +64,11 @@
     "id": "p1-04",
     "scene": "P1",
     "text": "第二个，队列：到点的任务进来记账，账本不执行任何东西。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-05",
@@ -57,12 +79,17 @@
   {
     "id": "p1-06",
     "scene": "P1",
-    "text": "空不空，看一把锁：一次只许一方持有的令牌——抢得到就有空，抢不到走开。"
+    "text": "空不空，看一把锁：一次只许一方持有的令牌——抢得到就有空，抢不到走开。",
+    "ttsText": "空不空，看一把锁：一次只许一方持有的令牌——抢得到就有空，抢不到，走开。"
   },
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "第四个，执行的循环：任务像用户消息进场，照常开工。"
+    "text": "第四个，执行的循环：任务像用户消息进场，照常开工。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p1-08",
@@ -73,7 +100,11 @@
   {
     "id": "p1-09",
     "scene": "P1",
-    "text": "边界：驿站等你上门；交付线程会主动拉起执行——前提是有空。"
+    "text": "边界：驿站等你上门；交付线程会主动拉起执行——前提是有空。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p1-10",
@@ -84,7 +115,11 @@
     "id": "p2-01",
     "scene": "P2",
     "text": "任务极简：一段定时写法、一句要办的事、两个开关。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-02",
@@ -95,7 +130,11 @@
     "id": "p2-03",
     "scene": "P2",
     "text": "走个全程。注册一个任务：每两分钟，取一次日期。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-04",
@@ -105,7 +144,11 @@
   {
     "id": "p2-05",
     "scene": "P2",
-    "text": "交付线程查到：队列有活、锁也抢到，消息注入对话。"
+    "text": "交付线程查到：队列有活、锁也抢到，消息注入对话。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p2-06",
@@ -116,7 +159,12 @@
     "id": "p2-07",
     "scene": "P2",
     "text": "五段里有一条反直觉：日填一号、星期填周一，任一命中就触发——是或，不是且。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    },
+    "ttsText": "五段里有一条反直觉：日填一号、星期填周一，任一命中就触发——是或，不是且！"
   },
   {
     "id": "p2-08",
@@ -126,19 +174,32 @@
   {
     "id": "p2-09",
     "scene": "P2",
-    "text": "边界：只这一对是或；分、时、月，仍全是且。"
+    "text": "边界：只这一对是或；分、时、月，仍全是且。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p2-10",
     "scene": "P2",
-    "text": "实测：同一个周一，写或它响；改成且，它哑了，该跑的日子静默漏掉。"
+    "text": "实测：同一个周一，写或它响；改成且，它哑了，该跑的日子静默漏掉。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    },
+    "ttsText": "实测：同一个周一，写或，它响；改成且，它哑了——该跑的日子，静默漏掉。"
   },
   {
     "id": "p3-01",
     "scene": "P3",
     "text": "回看交付线程，最精的一步：它的循环只有六行。",
     "beatStart": true,
-    "ttsText": "回看交付线程，最精的一步：它的循环只有六<行|HANG2>。"
+    "ttsText": "回看交付线程，最精的一步：它的循环只有六<行|HANG2>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-02",
@@ -154,7 +215,11 @@
     "id": "p3-04",
     "scene": "P3",
     "text": "不信？实测说话：让交付线程无视忙锁，到点硬塞。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.14"
+    }
   },
   {
     "id": "p3-05",
@@ -165,24 +230,37 @@
   {
     "id": "p3-06",
     "scene": "P3",
-    "text": "病根：同一时刻两方一起往对话里写——一次只许一方写的规矩，破了。"
+    "text": "病根：同一时刻两方一起往对话里写——一次只许一方写的规矩，破了。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p3-07",
     "scene": "P3",
     "text": "这是闹钟比不了的：不管你正忙，照响；交付线程，等你空下来。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
   },
   {
     "id": "p3-08",
     "scene": "P3",
-    "text": "到点了，还得等你有空——两个条件硬焊死，就互相打架。"
+    "text": "到点了，还得等你有空——两个条件硬焊死，就互相打架。",
+    "ttsText": "到点了，还得等你有空——两个条件硬焊死，就互相打架！"
   },
   {
     "id": "p4-01",
     "scene": "P4",
     "text": "最后一问：程序关掉，任务还活着吗？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p4-02",
@@ -192,7 +270,11 @@
   {
     "id": "p4-03",
     "scene": "P4",
-    "text": "而判时线程活在进程里——进程，就是运行中的那个程序。"
+    "text": "而判时线程活在进程里——进程，就是运行中的那个程序。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-04",
@@ -208,7 +290,11 @@
   {
     "id": "p4-06",
     "scene": "P4",
-    "text": "边界：纸本永远等人翻；这里的任务，进程活着就照常跑。"
+    "text": "边界：纸本永远等人翻；这里的任务，进程活着就照常跑。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p4-07",
@@ -219,7 +305,12 @@
   {
     "id": "p4-08",
     "scene": "P4",
-    "text": "官方文档的现行口径：一个会话最多挂五十个；周期任务满七天，自动过期。"
+    "text": "官方文档的现行口径：一个会话最多挂五十个；周期任务满七天，自动过期。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    },
+    "ttsText": "官方文档的现行口径：一个会话，最多挂五十个；周期任务满七天，自动过期。"
   },
   {
     "id": "p4-09",
@@ -230,22 +321,35 @@
     "id": "p5-01",
     "scene": "P5",
     "text": "一句话收束：判时的只管看表，干活的只管干活——一条队列隔开到点与有空。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "一句话收束：判时的只管看表，干活的只管干活——一条队列，隔开到点与有空。"
   },
   {
     "id": "p5-02",
     "scene": "P5",
-    "text": "时间感加在循环外；循环照常收活，它夜里也能自己醒来干活。"
+    "text": "时间感加在循环外；循环照常收活，程序夜里也能自己醒来干活。"
   },
   {
     "id": "p5-03",
     "scene": "P5",
-    "text": "别忘了：任务写进磁盘不会自己跑——得有活着的进程替它看表。"
+    "text": "别忘了：任务写进磁盘不会自己跑——得有活着的进程替它看表。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p5-04",
     "scene": "P5",
-    "text": "还有一道坎：表排得再准，干活的始终只有一个它。"
+    "text": "还有一道坎：表排得再准，干活的始终只有一个它。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p5-05",
@@ -257,7 +361,11 @@
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-07",
