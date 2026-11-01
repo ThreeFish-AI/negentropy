@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》后 ep10《System Prompt：提示是拼出来的，不是写死的》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 19 镜六场景分镜（零建图；G1 修 1 RISKY 放行：est 含片头 5.83 分越窗 14s 显式直陈+落窗线 265 字/分+减句预案登记（承 ep9 范式）；另修 v3 标签同步与「台面」禁喻词面）；⑦ me-bright/story TTS 56 句实测 5.0 分落窗（276 字/分，系列最大 est 超窗未兑现）；⑧ 六场景 + bespoke 九件装置 + 片头孪生（29 条教训 v9 清单全自检，含贴标净空 ≥20px/morph 头注明示/出场位逐镜对齐三条新教训）。
+- ⑨ QA 三路目检 1 RISKY 修复轮 5 项全验：0-B 打架红叉落点错位（均分估宽公式被击穿 5-10 倍——改 flex 流内插入构造性对位，f1806 复测偏差入容差）、p1-09 指纹签词锚超前（0.2→0.42 落实测词位）、2-C 徽标失效标签提前剧透（随闪断交叉切换+锁存红边）、p5-07 空面板悬置 3.1s→1.9s、theme 色相自证注释按实测口径更正（ΔH 4.6° 非 ≥7°）；4-A morph 改判回退形态登记（登记/实现/头注三面同步）。四组冻帧 WARN 全判采样伪影或设计静持；外行走查零发现（引用句全部回源 grep 核实）。机器门 FAIL 0。
+- ⑩ 终渲 196.8s / 5.0 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/System Prompt：提示是拼出来的，不是写死的 v1.mp4`。组二「规划与协调」五集（ep5–7/10–11）过四。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》后 ep9《Memory：索引与按需加载》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 22 镜六场景分镜（零建图；G1 零 RISKY——泛化脚本组号措辞修复后首次实证生效；四 WARN 全落定：est 含片头 5.73 分越窗 7.6s 直陈+减句预案登记、跨幕 seam 辩护、前集色清单补 ep8 两色、5-A 母题缺席注理由）；⑦ me-bright/story TTS 55 句实测 5.0 分落窗（271 字/分，est 超窗风险未兑现）；⑧ 六场景 + bespoke 十件装置 + 片头孪生挂载（26 条教训 v8 清单全自检）。

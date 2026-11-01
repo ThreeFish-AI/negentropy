@@ -268,8 +268,9 @@ const OneC: React.FC<{atBadge: number; atHit: number; atBar: number; atKey: numb
   // 比对键文本条逐字展开（清单排成固定格式的文字——与清单行内容逐字对应）
   const keyText = useRevealKey(atKey);
   const keyIn = clamp01(progress(frame, atKey - 4, DUR.f3));
-  // 指纹小签先现即被压暗（被否的备选——不显为可行）
-  const hashShow = Math.sin(Math.PI * clamp01(progress(frame, atHash, 22)));
+  // 指纹小签先现即被压暗（被否的备选——不显为可行；⑨ QA WARN：窗口 22→26f，
+  // 配合幕入口锚 0.2→0.42 使压暗拍落在「自带的指纹函数」口播词位 f3465-3478 上）
+  const hashShow = Math.sin(Math.PI * clamp01(progress(frame, atHash, 26)));
   const hashDim = clamp01(progress(frame, atHash + 12, 12));
   // 两枚坑签（重启翻新 / 嵌套压不成——两拍即收〔M-006〕）
   const pit1 = Math.sin(Math.PI * clamp01(progress(frame, atPit1, 30)));
@@ -504,7 +505,7 @@ export const P1SectionAssembly: React.FC<{scene: SceneRange}> = ({scene}) => {
           atHit={wa('p1-07', 0.52) - bC.from}
           atBar={wa('p1-07', 0.4) - bC.from}
           atKey={wa('p1-08', 0.4) - bC.from}
-          atHash={wa('p1-09', 0.2) - bC.from}
+          atHash={wa('p1-09', 0.42) - bC.from}
           atPit1={wa('p1-09b', 0.14) - bC.from}
           atPit2={wa('p1-09b', 0.5) - bC.from}
           atDot={wa('p1-07', 0.08) - bC.from}

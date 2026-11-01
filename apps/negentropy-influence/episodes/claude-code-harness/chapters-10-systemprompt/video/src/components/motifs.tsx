@@ -776,6 +776,8 @@ export const AssemblyFlow: React.FC<{
 /** 缓存徽标（确认绿 ok——拼装流出口/静态段挂件；1-C 与 4-C 同形复用）。
  *  `litP` 0..1 挂上（轮廓态→实体态）；`hitP` 0..1 命中亮（✓ 落定 + ok 辉光，
  *  场景传）；`breakP` 0..1 闪断（红边一拍——缓存失效，场景传 sin 包络）；
+ *  `labelAlt`/`altP` 失效态标签交叉淡换（⑨ QA N1：`label` 常驻「缓存」不剧透，
+ *  `altP` 由场景传**锁存**进度——闪断拍起交叉换「失效」且不复换回）；
  *  `size` 缩放（4-C 特写放大走 scale 同形）。 */
 export const CacheBadge: React.FC<{
   x: number;
@@ -786,7 +788,9 @@ export const CacheBadge: React.FC<{
   size?: number;
   scale?: number;
   label?: string;
-}> = ({x, y, litP = 0, hitP = 0, breakP = 0, size = 64, scale = 1, label = '缓存'}) => {
+  labelAlt?: string;
+  altP?: number;
+}> = ({x, y, litP = 0, hitP = 0, breakP = 0, size = 64, scale = 1, label = '缓存', labelAlt, altP = 0}) => {
   const on = clamp01(litP);
   const hit = clamp01(hitP);
   const brk = clamp01(breakP);
@@ -810,8 +814,13 @@ export const CacheBadge: React.FC<{
         <svg width={size * 0.3} height={size * 0.3} viewBox="0 0 20 20">
           <path d="M 4 10.5 L 8.5 15 L 16 5" fill="none" stroke={edge} strokeWidth={3.4} strokeLinecap="round" strokeLinejoin="round" opacity={0.35 + 0.65 * Math.max(on, hit)} />
         </svg>
-        <span style={{fontFamily: theme.sans, fontSize: size * 0.24, fontWeight: 700, color: hit > 0.4 ? theme.ok : theme.dim, whiteSpace: 'nowrap'}}>
-          {label}
+        {/* ⑨ QA N1：标签双轨交叉淡换（altP 锁存——「缓存→失效」在闪断拍揭示，
+            常驻期不剧透；未传 labelAlt 时恒显 label，行为与旧态逐像素一致） */}
+        <span style={{position: 'relative', fontFamily: theme.sans, fontSize: size * 0.24, fontWeight: 700, color: hit > 0.4 ? theme.ok : theme.dim, whiteSpace: 'nowrap'}}>
+          <span style={{opacity: 1 - clamp01(altP)}}>{label}</span>
+          {labelAlt ? (
+            <span style={{position: 'absolute', left: 0, top: 0, whiteSpace: 'nowrap', color: theme.danger, opacity: clamp01(altP)}}>{labelAlt}</span>
+          ) : null}
         </span>
       </div>
     </div>
@@ -1083,38 +1092,43 @@ export const PromptBar: React.FC<{
     >
       {mode === 'grow' ? (
         <div style={{position: 'relative', width: '100%', height: '100%', boxSizing: 'border-box', borderRadius: 10, border: `2.5px solid ${withAlpha(theme.dim, 0.55)}`, background: withAlpha(theme.bg, 0.5), display: 'flex', alignItems: 'center', paddingLeft: 10, gap: 8, overflow: 'hidden'}}>
+          {/* ⑨ QA RISKY：新旧段交界红叉改**流内插入**（末段之前的一个 flex 项）——
+              旧形态按 92px/段均分估宽绝对定位，chip 实宽 75–95px 随文字浮动，红叉
+              实测落末段外空轨、距交界 ~212px；流内项随实际排版走，交界对位由构造
+              保证（偏差 ≤ gap 8px < 容差 20px，f1806 复测口径）。 */}
           {segs.map((s, i) => {
             const p = clamp01(segLit - i);
             if (p <= 0.02) {
               return null;
             }
+            const atJunction = i === segs.length - 1 && conflictP > 0.03;
             return (
-              <span
-                key={`g${i}`}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 7,
-                  border: `2px solid ${withAlpha(theme.dim, 0.4 + 0.4 * p)}`,
-                  background: withAlpha(theme.panel, 0.9),
-                  fontFamily: theme.sans,
-                  fontSize: 16,
-                  color: theme.dim,
-                  whiteSpace: 'nowrap',
-                  opacity: 0.5 + 0.5 * p,
-                  transform: `translateX(${(1 - p) * -14 - clamp01(reflowP) * Math.sin(i * 2.1) * 6}px)`,
-                }}
-              >
-                {s}
-              </span>
+              <React.Fragment key={`g${i}`}>
+                {atJunction ? (
+                  <svg width={30} height={30} viewBox="0 0 30 30" style={{flex: '0 0 auto', overflow: 'visible'}}>
+                    <line x1={6} y1={6} x2={24} y2={24} stroke={theme.danger} strokeWidth={5} strokeLinecap="round" opacity={clamp01(conflictP)} />
+                    <line x1={24} y1={6} x2={6} y2={24} stroke={theme.danger} strokeWidth={5} strokeLinecap="round" opacity={clamp01(conflictP)} />
+                  </svg>
+                ) : null}
+                <span
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 7,
+                    border: `2px solid ${withAlpha(theme.dim, 0.4 + 0.4 * p)}`,
+                    background: withAlpha(theme.panel, 0.9),
+                    fontFamily: theme.sans,
+                    fontSize: 16,
+                    color: theme.dim,
+                    whiteSpace: 'nowrap',
+                    opacity: 0.5 + 0.5 * p,
+                    transform: `translateX(${(1 - p) * -14 - clamp01(reflowP) * Math.sin(i * 2.1) * 6}px)`,
+                  }}
+                >
+                  {s}
+                </span>
+              </React.Fragment>
             );
           })}
-          {/* 新旧段交界红叉（打架——一拍闪） */}
-          {conflictP > 0.03 ? (
-            <svg width={34} height={34} viewBox="0 0 34 34" style={{position: 'absolute', left: Math.min(w - 60, 40 + segs.length * 92 * clamp01(segLit / Math.max(1, segs.length))) , top: h / 2 - 17}}>
-              <line x1={7} y1={7} x2={27} y2={27} stroke={theme.danger} strokeWidth={5} strokeLinecap="round" opacity={clamp01(conflictP)} />
-              <line x1={27} y1={7} x2={7} y2={27} stroke={theme.danger} strokeWidth={5} strokeLinecap="round" opacity={clamp01(conflictP)} />
-            </svg>
-          ) : null}
         </div>
       ) : null}
       {mode === 'assembled' ? (

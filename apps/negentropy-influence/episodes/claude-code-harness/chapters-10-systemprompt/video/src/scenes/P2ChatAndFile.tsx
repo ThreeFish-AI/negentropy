@@ -197,8 +197,9 @@ const TwoC: React.FC<{atDisk: number; atFlip: number; atBreak: number; atRebuild
   // 变化链②清单翻新（记忆行 无→有：flip 白闪一拍 + memHas 交叉换值）
   const flipEnv = Math.sin(Math.PI * clamp01(progress(frame, atFlip, 16)));
   const memHas = clamp01(progress(frame, atFlip, 14));
-  // 变化链③缓存徽标闪断（红一拍——失效）
+  // 变化链③缓存徽标闪断（红一拍——失效；brkLatch 锁存：闪断后驻失效态不复亮）
   const brk = Math.sin(Math.PI * clamp01(progress(frame, atBreak, 16)));
+  const brkLatch = clamp01(progress(frame, atBreak + 8, 12));
   // 变化链④四块分段卡拼装（记忆段滑入）+ 计数 113→154 + 标尺增格（重音镜）
   const chips = [1, 1, 1, clamp01(progress(frame, atRebuild, DUR.f4))].map((v, i) => (i < 3 ? v : v));
   const count = useCount({from: 113, to: 154, at: atCount, dur: 26});
@@ -230,8 +231,9 @@ const TwoC: React.FC<{atDisk: number; atFlip: number; atBreak: number; atRebuild
         chipsLit={chips}
         hotP={[0, 0, 0, hot]}
       />
-      {/* 缓存徽标（闪断红一拍——失效后不复亮为命中态） */}
-      <CacheBadge x={BADGE.x} y={BADGE.y} litP={1} breakP={brk} size={58} label={'失效'} />
+      {/* 缓存徽标（⑨ QA N1：标签常驻「缓存」不剧透、闪断拍交叉换「失效」并锁存；
+          闪断后驻 subdued 红边失效态——不复亮为命中态） */}
+      <CacheBadge x={BADGE.x} y={BADGE.y} litP={1} breakP={Math.max(brk, brkLatch * 0.85)} size={58} label={'缓存'} labelAlt={'失效'} altP={brkLatch} />
       {/* 字符计数器（113→154 + 增格；基线 113 对照锚常驻） */}
       <CharCounterRuler x={COUNTER.x} y={COUNTER.y} w={COUNTER.w} value={Math.round(count)} baseLine={113} baseLit={1} cells={18} cellsLit={(18 * count) / 154} flash={punch} label={'重拼体量 · 四段'} />
       {/* 问号悬念签（判据位上方——半透明悬停） */}

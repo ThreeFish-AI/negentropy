@@ -235,7 +235,8 @@ const FiveB: React.FC<{atWave: number; atStop: number; atX1: number; atX2: numbe
 const CreditCard: React.FC<{atCard: number; durCard: number}> = ({atCard, durCard}) => {
   // 卡随 p5-07 口播同拍淡入；两行先后落定（署源专名口播例外随行）
   const card = useEnter('rise', {at: atCard + 2, dur: DUR.f6, dist: 24, restBottom: 560});
-  const l1At = atCard + Math.round(durCard * 0.6);
+  // ⑨ QA N2：主行落位 0.6→0.4——署源句长（~5s）下空面板悬 3.1s 压到 ~1.9s
+  const l1At = atCard + Math.round(durCard * 0.4);
   const l1 = useProgress(l1At, DUR.f5);
   const l2At = l1At + DUR.f6;
   const l2 = useProgress(l2At, DUR.f5);
