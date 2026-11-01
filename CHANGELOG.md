@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》后 ep12《Task System：从执行清单到可认领的契约》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 27 镜六场景分镜（零建图；G1 修 4 RISKY+9 WARN 放行：0-C→1-A 推-拉-推 morph 改判 SceneFade 全景重锚、2-B p2-04 依赖签「只亮一枚」状态抢跑改全灰、1-E 教学卡收卡入栏去向登记、est 5.91 分越窗 18.9s 诚实口径+落窗线 269 字/分）；⑦ me-bright/story TTS 54 句实测 5.2 分落窗（270 字/分压线）；⑧ 六场景 27 镜 + bespoke 装置族 + 片头孪生（组五多 Agent 首集，groupOf(12)=5）。
+- ⑨ QA 三路目检 0 RISKY 修复轮 6 项全验：0-C slot1 卡影补「排版」标题、p0-08 安全带真侵入（push c.y/z 双参数组合，段渲像素级复验净空 25px）、1-E 归档签随 pull 淡出（消幕界硬消失）、p1-06 红挡 cue 0.55→0.42 对齐词窗、done2 翻绿越窗 2 帧、4-D edges 两拍间隔拉开。机器门 FAIL 0；走查四重点全过（六字段/墙上走一圈拓扑翻绿/幽灵编号消融/真实的墙九字段+高水位）。
+- ⑩ 终渲 234.2s / 5.2 分落窗；deliver 归档 `~/Documents/video/claude-code-chapters/Task System：从执行清单到可认领的契约 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》后 ep11《Error Recovery：报错先分类，循环不亡》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 22 镜六场景分镜（零建图；G1 零 RISKY 六 WARN 全落定：4-C 天平两卡同色锁、2-C 画廊定格镜锚件补位、0-C→1-A morph 根部重接建模、est 微越 2s 直陈+减句预案、9→6 双口径防御注、4-D 落 @pushIn）；⑦ me-brief/story TTS 56 句实测 5.0 分落窗；⑧ 六场景 + bespoke 十一件装置 + 片头孪生（32 条教训 v10 清单全自检——新增流内对位/状态揭示切换/词锚实测复核三条 v10 教训）。

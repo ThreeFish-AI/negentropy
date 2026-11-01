@@ -474,7 +474,7 @@ export const P2WallWalkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
           atDone1={wa('p2-05', 0.38) - bB.from}
           atDep1={wa('p2-05', 0.44) - bB.from}
           atSign2={wa('p2-05', 0.6) - bB.from}
-          atDone2={wa('p2-05', 0.88) - bB.from}
+          atDone2={wa('p2-05', 0.84) - bB.from} // ⑨ QA N1：0.88→0.84——翻绿越窗 2 帧回收
         />
       </Sequence>
       <Sequence {...bC} name="2-C">

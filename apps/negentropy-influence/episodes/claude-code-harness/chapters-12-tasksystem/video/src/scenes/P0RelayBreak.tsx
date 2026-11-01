@@ -355,15 +355,17 @@ const ZeroC: React.FC<{atWall: number; atPins: number; atFly: number; atClaim: n
   const pinOut = clamp01(progress(frame, atOut, DUR.f4));
   // 四枚卡影 stagger 飞入挂槽（半透明预演态——次序=口播：初稿/配图/排版/发布）
   const flyOrder = [0, 3, 1, 2];
-  const TITLE_BY_SLOT = ['写初稿', '', '发布', '配图', '', ''];
+  const TITLE_BY_SLOT = ['写初稿', '排版', '发布', '配图', '', '']; // ⑨ QA W1：slot1 补「排版」——与 1-A SHADOW_TITLES 及口播次序对齐
   const flys = flyOrder.map((s, i) => clamp01(progress(frame, atFly + i * 6, 20)));
   // 「人人可认领」小签贴墙
   const claim = clamp01(progress(frame, atClaim, DUR.f4));
   // 镜尾推向 slot0 卡槽位（P1 接棒位）——zoom 公式：o=槽心固定映向 c、z 随 p
   const pushP = clamp01(progress(frame, atPush, 30));
   const o = {x: WALL_SLOTS[0].x + SLOT_W / 2, y: WALL_SLOTS[0].y + SLOT_H / 2};
-  const c = {x: 820, y: 520};
-  const z = 1 + (1.75 - 1) * pushP;
+  // ⑨ QA W2：c.y 520→470 + z 1.75→1.6（组合）——单改任一项按实测 y932-1000 逆推
+  //   仍侵 920 字幕安全带 ~30px；组合后 slot3「配图」标题带 ≈846..908，净空 ≥11px
+  const c = {x: 820, y: 470};
+  const z = 1 + (1.6 - 1) * pushP;
   const zoomTf = `translate(${(c.x - o.x) * pushP}px, ${(c.y - o.y) * pushP}px) scale(${z})`;
   return (
     <AbsoluteFill>

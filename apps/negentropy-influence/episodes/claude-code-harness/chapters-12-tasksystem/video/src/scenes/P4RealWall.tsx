@@ -308,7 +308,7 @@ export const P4RealWall: React.FC<{scene: SceneRange}> = ({scene}) => {
         <FourD
           atLeft={wa('p4-06', 0.52) - bD.from}
           atNodes={wa('p4-06', 0.56) - bD.from}
-          atEdges={wa('p4-06', 0.68) - bD.from}
+          atEdges={wa('p4-06', 0.86) - bD.from} // ⑨ QA N2：0.68→0.86——拉开「先建点后连边」两拍间隔（静止帧可辨）
           atBack={wa('p4-07', 0.6) - bD.from}
           atDangle={wa('p4-08', 0.3) - bD.from}
           atCheck={wa('p4-09', 0.4) - bD.from}

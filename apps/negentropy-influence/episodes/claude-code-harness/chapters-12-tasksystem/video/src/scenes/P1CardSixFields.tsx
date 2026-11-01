@@ -593,7 +593,7 @@ const OneE: React.FC<{atCount: number; atNewCards: number[]; atRetract: number; 
                 fontSize: 16,
                 color: theme.dim,
                 whiteSpace: 'nowrap',
-                opacity: clamp01(progress(frame, atRetract + 4, DUR.f4)),
+                opacity: clamp01(progress(frame, atRetract + 4, DUR.f4)) * (1 - pullP), // ⑨ QA W3：随拉回淡出——防幕界硬消失（f3557→f3582 亮像素骤归零）
               }}
             >
               {'教学卡 · 归档'}
@@ -645,7 +645,7 @@ export const P1CardSixFields: React.FC<{scene: SceneRange}> = ({scene}) => {
           atGate={wa('p1-05', 0.24) - bC.from}
           atPass={wa('p1-05', 0.72) - bC.from}
           atGray={wa('p1-06', 0.3) - bC.from}
-          atLeftBar={wa('p1-06', 0.55) - bC.from}
+          atLeftBar={wa('p1-06', 0.42) - bC.from} // ⑨ QA W4：0.55→0.42 对齐「有一个没完成」词窗（防句中点定格帧绿灯+「不许开工」字幕反读）
           atGhostChip={wa('p1-07', 0.2) - bC.from}
           atRightBar={wa('p1-07', 0.4) - bC.from}
           atErr={wa('p1-07', 0.7) - bC.from}
