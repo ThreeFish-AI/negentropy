@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》《Autonomous Agents：自己看板，自己认领》《Worktree Isolation：一个任务，一个房间》后 ep19《MCP 与插件：发现、命名、组装》制作轮收官交付 v1（2026-11-02）
+
+- ⑥ 20 镜六场景分镜（零建图；G1 修 RISKY1+WARN4 放行：R1 宿主名单第三条目 deploy/check→deploy/status（main 轨 code.py L205-210 与 gl-notes B.3 双源铁证——名单上屏即事实，两世界不混编）+教学版口径角标；0-B pushIn 动机错引修正；E5 轮次口径闭合为 B.2 显式引用；est 1317 字）；judge 三词锚同步（p1-06 白名单外/p2-06 没写过一行/p3-06 旧缓存）。⑦ me-bright/story TTS 54 句实测口径 4.9 分落窗。⑧ 前缀挂牌三段逐字拍上/归一网格字符级翻写（斜杠圆点拦下逐字符换下划线）/字符窗 0..64+拒收红牌（教学版口径）/统一工具池灌装-重灌-涟漪/对照表双列翻译/调用链四段去回同线+0 行签/旧池 Unknown tool 消融双轨（左调用1成功0↔右重建成功1+双断言签）/六通道矩阵/宿主名单三绿一黄装置族 + 片头孪生（组五 groupOf(19)=5）。
+- ⑨ QA 零修复：机器门全绿（2 粗指纹 WARN diff max 204 驳回）；一致性八项全 OK（底座十九集单指纹、R1 名单三绿一黄与 main 轨口径三方一致、孪生四拷贝一致）；layman 0 RISKY 0 WARN（消融方位正确、环上唯一高亮段成立、MCP 徽记为唯一契约英文例外、自行撤回一处提问诱导假阳性）。
+- ⑩ 终渲 294.6s / 4 分 54.6 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/MCP 与插件：发现、命名、组装 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》《Autonomous Agents：自己看板，自己认领》后 ep18《Worktree Isolation：一个任务，一个房间》制作轮收官交付 v1（2026-11-02）
 
 - ⑥ 21 镜六场景分镜（零建图；G1 修 RISKY1+WARN7 放行：R1 房号字段双色契约冲突裁决——卡体钢青〔任务侧〕/字段值描边兰紫〔绑定语义〕三处正文+契约行同步；p4-05/p4-07 词锚修正；环体指针 5-A 终态回指主目录；1-D 拦截载荷上屏例外；narration P3 消融备注左右向纠正）；⑦ me-bright/story TTS 50 句实测口径 5.0 分落窗；⑧ 账本+房槽挂靠/分支线/建房三件链（auth-refactor worked example）/名字门禁 1..64+白名单带+路径穿越弹回/双房双线并行作业/拆房双计数器/三出口门卡/守卫消融双轨/WorkRing 指针包装装置族 + 片头孪生（组五 groupOf(18)=5）。
