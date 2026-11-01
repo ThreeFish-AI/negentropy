@@ -1,12 +1,9 @@
 /**
- * 本集视觉契约（seed —— scaffold 复制后**必须**按本集重写概念色）。
+ * 本集视觉契约（⑧ 轮定稿，storyboard 前言「本集视觉契约」= planning §三）。
  *
- * 底座常量四集通用、不要改；概念色是每集独立设计的产物，规则见
- * references/08-remotion-implementation.md：
- *   - 2–3 个概念色，映射「深度轴」而非枚举条目
- *   - 对 bg (#0E1116) 对比度 ≥ 4.5:1（用 `qa_frames.py --check-theme` 实测）
- *   - 色相不得与已用色撞车（各集 theme.ts 实占色值见 `check_series.py`
- *     运行时打印的 occupied-hex INFO 行）
+ * 底座常量跨集通用、不要改；概念色规则见 references/08-remotion-implementation.md：
+ *   - 概念色映射「深度轴」而非枚举条目；对 bg (#0E1116) 对比度 ≥ 4.5:1
+ *   - 色相不与系列已用色撞值（check_series.py occupied-hex INFO 行为准）
  *   - 覆写任何底座 token 须在 theme.ts / planning.md / README 三处留决策记录
  */
 export const theme = {
@@ -16,9 +13,9 @@ export const theme = {
   panelBorder: '#2A3242',
   text: '#F2F5FA',
   dim: '#9AA7B8',
-  // danger 曾缺席本 seed（既有四集 theme.ts 全都有、场景代码读 theme.danger，
-  // scaffold 出的新集开箱即 TS2339）——补齐即与四集现状对齐。
+  // danger：关卡拦截／翻车／幽灵态（左红挡 / 编号闪错 / 幽灵签名描边 / 悬空断头）（恒配 ✗，仅失败态）
   danger: '#FF5C5C',
+  // ok：完成翻绿／关卡放行／机制在位（完成态 / 绿灯 / 校验绿点 / 基线闸门）（确认绿）
   ok: '#7ED321',
 
   // ── 字体族（跨集通用，勿改）──
@@ -31,9 +28,24 @@ export const theme = {
   sans: "'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', sans-serif",
   mono: "'SF Mono', 'Menlo', 'JetBrains Mono', monospace",
 
-  // ── 本集概念色（TODO：替换为本集设计，删掉这三行占位）──
-  // ── 本集概念色（planning §三；accents 与系列层 series.json 登记同值 #9B8CFF/#58B7FF，
-  //    2026-10-31 文案轮定稿——去撞色微调后值；制作期场景按 planning §三语义展开）──
-  core: '#9B8CFF', // 任务卡紫——任务板卡片与认领态高亮
-  sub: '#58B7FF', // 解锁蓝——依赖连线与完成解锁播报
+  // ── 本集概念色（planning §三；series.json accents 登记 [#9B8CFF, #58B7FF]，
+  //    2026-10-31 文案轮定稿值）──
+  // core：循环环体恒定锚〔M-001〕（陶土橙——LoopRing 描边色直读本值，与
+  //    ep1–ep11 逐像素同值即「描边色/线宽承锁定值全片不变」的落地；本集环侧
+  //    亮「工具池」挂面——3→8 加挂，机制逐层加挂、循环不变）
+  core: '#D97757',
+  // mech：本集主题色一 = 任务卡紫——任务墙墙体／六字段卡／认领签名态
+  //    （「板上待领的活」；对 bg 6.9:1）。撞色自证：色相 ≈248°，系列已用
+  //    紫族最近邻 ep10 mech #A78BFA≈262°（差 14°）、ep11 backoff #B48EF5≈275°
+  //    ——本值更偏蓝紫、亮度更亮，accents 正登值不撞值、按集独立语义；
+  //    片头授色站（series-intro theme.mech）同源本值（ep12 授紫）。
+  mech: '#9B8CFF',
+  // unlock：本集主题色二 = 解锁蓝——blockedBy 依赖连线／完成→解锁的播报
+  //    信号流（「依赖凑齐、下游放行」；对 bg 7.9:1）。撞色自证：色相 ≈206°，
+  //    系列已用蓝族最近邻 ep10 sky #5CA8FF≈217°（差 11°）、ep11 mech
+  //    #6C8CFF≈226°（差 20°）——本值是天蓝偏青的一档、与青碧 tool #64C4C0
+  //    ≈178° 拉开蓝相/青绿相（planning §三明文），accents 正登值不撞值。
+  unlock: '#58B7FF',
+  // tool：工况伴色（青碧承 ep1–ep11 同语义——工况角标 / 既有工具卡 / 会话窗）
+  tool: '#64C4C0',
 } as const;
