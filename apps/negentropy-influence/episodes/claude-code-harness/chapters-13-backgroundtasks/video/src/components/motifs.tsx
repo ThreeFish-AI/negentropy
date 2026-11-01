@@ -465,12 +465,14 @@ export const RingExecSeg: React.FC<{
   const free = clamp01v(freeP);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none'}}>
-      {/* 执行段弧（压停加重 → 解放微光 → 残影，三态互斥由调用侧喂值；描边恒 core） */}
+      {/* 执行段弧（压停加重 → 解放微光 → 残影，三态互斥由调用侧喂值；描边恒 core）。
+          ⑨ QA W3：去掉压停态 +3px 加厚——线宽恒 RING_STROKE=6 全片不变（环体契约），
+          压停加重语义由透明度档与等待砖投影承载 */}
       <path
         d={d}
         fill="none"
         stroke={theme.core}
-        strokeWidth={RING_STROKE + (press > 0.4 ? 3 : 0)}
+        strokeWidth={RING_STROKE}
         strokeLinecap="round"
         opacity={clamp01v(segP) * Math.max(0.5 * press + 0.5 * ghost, 0.28 + 0.5 * free, 0.22)}
         strokeDasharray={ghost > 0.05 ? '14 10' : undefined}
@@ -623,11 +625,13 @@ export const ProtocolCard: React.FC<{
               strokeWidth={4}
               strokeLinecap="round"
             />
-            {/* 理想态虚影箭头（0-C 一闪即收——上：慢命令飞出 / 下：结果回流） */}
+            {/* 理想态虚影箭头（0-C 一闪即收——上：慢命令飞出 / 下：结果回流）。
+                ⑨ QA W2：飞出（发出侧）改雾蓝——与「雾蓝=发出/兰紫=回注」双色轴及
+                后台轨授色一致；确认绿不在枚举内（下侧回流箭头保持兰紫） */}
             {ghostOutP > 0.02 ? (
               <g opacity={clamp01v(ghostOutP)}>
-                <path d={`M ${w * 0.5} ${(slotH + 24) / 2 - 20} Q ${w * 0.62} ${(slotH + 24) / 2 - 90} ${w * 0.82} ${(slotH + 24) / 2 - 34}`} fill="none" stroke={withAlphaM(theme.ok, 0.85)} strokeWidth={4} strokeDasharray="10 8" strokeLinecap="round" />
-                <path d={`M ${w * 0.82 - 12} ${(slotH + 24) / 2 - 44} L ${w * 0.82} ${(slotH + 24) / 2 - 34} L ${w * 0.82 - 14} ${(slotH + 24) / 2 - 26}`} fill="none" stroke={withAlphaM(theme.ok, 0.85)} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={`M ${w * 0.5} ${(slotH + 24) / 2 - 20} Q ${w * 0.62} ${(slotH + 24) / 2 - 90} ${w * 0.82} ${(slotH + 24) / 2 - 34}`} fill="none" stroke={withAlphaM(theme.mech, 0.85)} strokeWidth={4} strokeDasharray="10 8" strokeLinecap="round" />
+                <path d={`M ${w * 0.82 - 12} ${(slotH + 24) / 2 - 44} L ${w * 0.82} ${(slotH + 24) / 2 - 34} L ${w * 0.82 - 14} ${(slotH + 24) / 2 - 26}`} fill="none" stroke={withAlphaM(theme.mech, 0.85)} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
               </g>
             ) : null}
             {ghostBackP > 0.02 ? (
@@ -963,13 +967,16 @@ export const KeywordScanner: React.FC<{
       {hits.map((hit) => (
         <div key={`tick${hit.t}`} style={{position: 'absolute', left: hit.fx * w - 1, top: barH + 10, width: 2, height: 12, background: withAlphaM(theme.dim, 0.7)}} />
       ))}
-      {/* 显式「不要后台」小签（卡角——灯带径直穿过、不停留；随后暗角化定格） */}
+      {/* 显式「不要后台」小签（卡角——灯带径直穿过、不停留；随后暗角化定格）。
+          ⑨ QA W1：top -46→-26 使签底边压进命令条上缘数像素——扫描灯带（裁剪在
+          条内）得以从签身上横穿，「从签下方掠过」恢复为「径直穿过」（恒速/不
+          读取/不拦截三硬约束不动） */}
       {noTag > 0.02 ? (
         <div
           style={{
             position: 'absolute',
             right: 30,
-            top: -46,
+            top: -26,
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -1079,7 +1086,9 @@ export const RegistryTable: React.FC<{
   const headH = mini ? 40 : 56;
   const rowH = mini ? 40 : 56;
   const stateTxt = state === 'running' ? '运行中' : state === 'done' ? '完成' : state === 'timeout' ? '超时' : '—';
-  const stateColor = state === 'timeout' ? theme.danger : state === 'done' ? theme.ok : state === 'running' ? theme.mech : theme.dim;
+  // ⑨ QA N1：done 行状态灯由 ok 改 notify——「行点亮成通知卡」的出生语义与
+  // doneP 辉光同色（同对象双色杂消除）；确认绿枚举不含登记行完成态
+  const stateColor = state === 'timeout' ? theme.danger : state === 'done' ? theme.notify : state === 'running' ? theme.mech : theme.dim;
   return (
     <div style={{position: 'absolute', left: x, top: y, width: w, height: h, opacity: lit * (1 - 0.72 * dim)}}>
       <div

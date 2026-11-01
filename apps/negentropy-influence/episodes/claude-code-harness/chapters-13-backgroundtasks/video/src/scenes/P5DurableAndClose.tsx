@@ -309,8 +309,9 @@ const FiveB: React.FC<{atQuote: number; atK1: number; atK2: number; atStatic: nu
         <LoopRing size={RING_5B.size} nodes={[]} showExit={false} dotProgress={dotPos} />
         <RingExecSeg size={RING_5B.size} segP={1} freeP={1} ghostP={ghostP} />
       </div>
-      {/* 等待砖残影（执行段正上——半透明虚影，碎散消隐） */}
-      <WaitBrick x={cx - 88} y={cy + r - 62} w={176} litP={0.35 * ghostP} dropP={1} crumbleP={crumble} />
+      {/* 等待砖残影（执行段正上——半透明虚影，碎散消隐）。
+          ⑨ QA N2：残影起始 litP 0.35→0.52——30 帧碎散窗内可辨（近不可见→可辨） */}
+      <WaitBrick x={cx - 88} y={cy + r - 62} w={176} litP={0.52 * ghostP} dropP={1} crumbleP={crumble} />
       {/* 装置全家福（环旁缩微驻位——登记表 bg_0001 行 + 通知卡缩微，仅缩微不重绘） */}
       <div style={{position: 'absolute', left: 1210, top: 200, opacity: 0.55 * quote + 0.3}}>
         <RegistryTable x={0} y={0} w={300} h={150} mini litP={1} rowP={1} state="done" />

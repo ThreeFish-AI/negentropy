@@ -1,6 +1,6 @@
 # 《Background Tasks：慢命令丢后台，结果走通知》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 13 集（s13_background_tasks 单章）；Stage ①–⑤ 已完成（信源钉选复核 + C 型冻结现行 176（2026-10-23 代次）+ 策划 + 逐字稿 53 句 1308 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / 台账 audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：⑥ 22 镜六场景分镜（零建图，G1 修 2 RISKY+2 WARN 放行）→ ⑦ me-bright/story 克隆声 TTS 53 句 4.9 分 → ⑧ 等待砖压停/双闸门/登记表/通知卡装置族 + 片头孪生（组四首集，groupOf(13)=4）→ ⑨ QA 0 RISKY 修复 6 项（W1 noTag 下移恢复穿过读法、W2 飞出箭头 ok→mech 雾蓝轴、W3 RingExecSeg 恢复恒 6px、N1 done 灯改 notify、N2 残影 litP 0.52、N3「可」字判 OCR 噪声；导航错字 RISKY 判旧草渲帧误报、重渲后 Vision OCR 复核「名额与闸门」正确）+ 机器门全程零 WARN → ⑩ 终渲 294.3s / 4 分 54.3 秒落窗 [4.4,5.6]，`~/Documents/video/claude-code-chapters/Background Tasks：慢命令丢后台，结果走通知 v1.mp4`）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 13 集（s13_background_tasks 单章）；Stage ①–⑤ 已完成（信源钉选复核钉站点轨 67a9126c + C 型冻结现行 176（2026-10-23 代次）+ 策划 + 逐字稿 53 句 1308 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / 台账 audit+verify 全绿。发布顺序见 [../../../series.json](series.json)（工作区根）。
 
 ## 目录结构
 

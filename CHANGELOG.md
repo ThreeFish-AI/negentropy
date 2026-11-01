@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》后 ep13《Background Tasks：慢命令丢后台，结果走通知》制作轮收官交付 v1（2026-11-01）
+
+- ⑥ 22 镜六场景分镜（零建图；G1 修 2 RISKY+2 WARN 放行）；⑦ me-bright/story TTS 53 句实测 4.9 分落窗；⑧ 六场景 22 镜 + 等待砖压停/双闸门/登记表/通知卡装置族 + 片头孪生（组四首集，groupOf(13)=4）。
+- ⑨ QA 三路目检 0 RISKY 修复轮 6 项全验：W1 noTag 下移恢复穿过读法、W2 飞出箭头 ok→mech 雾蓝轴、W3 RingExecSeg 去 +3px 恢复恒 6px、N1 done 灯改 notify、N2 残影 litP 0.52、N3「可」字几何判定 OCR 噪声；唯一 RISKY 顶部导航「名称与闸门」错字查源正确（chapters.json/narration.md 双核验）、判走查读修复轮前旧草渲帧，重渲后 Vision OCR 整条带复核第 2 块=「名额与闸门」正确。机器门 FAIL 0 / WARN 0（本集全程零 WARN）。
+- ⑩ 终渲 294.3s / 4 分 54.3 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/Background Tasks：慢命令丢后台，结果走通知 v1.mp4`。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》后 ep12《Task System：从执行清单到可认领的契约》制作轮收官交付 v1（2026-11-01）
 
 - ⑥ 27 镜六场景分镜（零建图；G1 修 4 RISKY+9 WARN 放行：0-C→1-A 推-拉-推 morph 改判 SceneFade 全景重锚、2-B p2-04 依赖签「只亮一枚」状态抢跑改全灰、1-E 教学卡收卡入栏去向登记、est 5.91 分越窗 18.9s 诚实口径+落窗线 269 字/分）；⑦ me-bright/story TTS 54 句实测 5.2 分落窗（270 字/分压线）；⑧ 六场景 27 镜 + bespoke 装置族 + 片头孪生（组五多 Agent 首集，groupOf(12)=5）。
