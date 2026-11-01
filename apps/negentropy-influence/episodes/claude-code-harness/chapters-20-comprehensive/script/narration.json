@@ -3,12 +3,22 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一场合体后的总点验：十八般机制都到齐，芯子还是那四句。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    },
+    "ttsText": "这是一场合体后的总点验：十八般机制都到齐，芯子，还是那四句。"
   },
   {
     "id": "p0-02",
     "scene": "P0",
-    "text": "哪四句？调模型、看响应里有没有工具调用、有就执行、结果回填。"
+    "text": "哪四句？调模型、看响应里有没有工具调用、有就执行、结果回填。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    },
+    "ttsText": "哪四句？调模型、看响应里有没有工具调用、有就执行，结果回填。"
   },
   {
     "id": "p0-03",
@@ -19,12 +29,17 @@
     "id": "p0-04",
     "scene": "P0",
     "text": "一路走下来，外围长出了一整圈设施，管记性的、管门禁的、管外接的。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    }
   },
   {
     "id": "p0-05",
     "scene": "P0",
-    "text": "但合在一起怎么跑？每一件，都得在循环上有一个固定的挂点。"
+    "text": "但合在一起怎么跑？每一件，都得在循环上有一个固定的挂点。",
+    "ttsText": "但合在一起怎么跑？每一件，都得在循环上，有一个固定的挂点。"
   },
   {
     "id": "p0-06",
@@ -35,7 +50,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "先站到输入口，你的一句话进门，先过一道输入钩子。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-02",
@@ -46,7 +65,11 @@
     "id": "p1-03",
     "scene": "P1",
     "text": "真正调模型之前，还有三道准备。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-04",
@@ -56,7 +79,11 @@
   {
     "id": "p1-05",
     "scene": "P1",
-    "text": "旧账太长，压缩管线先把大输出打包压短，再裁历史。"
+    "text": "旧账太长，压缩管线先把大输出打包压短，再裁历史。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-06",
@@ -67,23 +94,36 @@
     "id": "p1-07",
     "scene": "P1",
     "text": "调模型这一下，外面还裹着一层恢复垫。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p1-08",
     "scene": "P1",
-    "text": "限流就退一步再试、超载换备用、超长提额续写——实在太长，现场再压一道。"
+    "text": "限流就退一步再试、超载换备用、超长提额续写——实在太长，现场再压一道。",
+    "ttsText": "限流，就退一步再试；超载，换备用；超长，提额续写——实在太长，现场，再压一道。"
   },
   {
     "id": "p1-09",
     "scene": "P1",
-    "text": "到这里，模型才开口。开口第一站，是岔口。"
+    "text": "到这里，模型才开口。开口第一站，是岔口。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p2-01",
     "scene": "P2",
     "text": "模型一开口，就到全走廊唯一的岔口。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-02",
@@ -93,7 +133,12 @@
   {
     "id": "p2-03",
     "scene": "P2",
-    "text": "有，接着走执行；没有，本轮就地收尾。"
+    "text": "有，接着走执行；没有，本轮就地收尾。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    },
+    "ttsText": "有，接着走执行；没有，本轮，就地收尾。"
   },
   {
     "id": "p2-04",
@@ -104,7 +149,11 @@
     "id": "p2-05",
     "scene": "P2",
     "text": "要动手了，先过权限闸。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.10"
+    }
   },
   {
     "id": "p2-06",
@@ -120,12 +169,17 @@
     "id": "p2-08",
     "scene": "P2",
     "text": "没有工具调用的一轮，收尾钩做统计，就地收官。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p2-09",
     "scene": "P2",
-    "text": "一圈走完，每一站都是往循环周围加东西——周围变厚，循环没变。"
+    "text": "一圈走完，每一站都是往循环周围加东西——周围变厚，循环没变。",
+    "ttsText": "一圈走完，每一站都是往循环周围加东西——周围变厚，循环，没变。"
   },
   {
     "id": "p2-10",
@@ -136,7 +190,11 @@
     "id": "p3-01",
     "scene": "P3",
     "text": "来句实的：查一下测试为什么挂了，顺手修掉。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-02",
@@ -146,7 +204,11 @@
   {
     "id": "p3-03",
     "scene": "P3",
-    "text": "一条跑测试的命令，一处修改。"
+    "text": "一条跑测试的命令，一处修改。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p3-04",
@@ -157,18 +219,27 @@
     "id": "p3-05",
     "scene": "P3",
     "text": "真实的 Claude Code，这一眼也没变过。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p3-06",
     "scene": "P3",
-    "text": "拆解过 Claude Code 源码的同学们应该知道：不认收尾字段，「本轮说完了」的记号，只认调用块。"
+    "text": "拆解过 Claude Code 源码的同学们应该知道：不认收尾字段，「本轮说完了」的记号，只认调用块。",
+    "ttsText": "拆解过 Claude Code 源码的同学们应该知道：不认收尾字段，「本轮说完了」的记号——只认，调用块。"
   },
   {
     "id": "p3-07",
     "scene": "P3",
     "text": "修改这件，过权限闸，路径在内、动作安全，放行。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-08",
@@ -178,13 +249,21 @@
   {
     "id": "p3-09",
     "scene": "P3",
-    "text": "测试回来，一处失败，指向登录模块。"
+    "text": "测试回来，一处失败，指向登录模块。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.10"
+    }
   },
   {
     "id": "p3-10",
     "scene": "P3",
     "text": "回填，再转一圈，模型看着日志补上修复。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p3-11",
@@ -194,13 +273,22 @@
   {
     "id": "p3-12",
     "scene": "P3",
-    "text": "一句输入，三圈走廊，每步都有人接住。"
+    "text": "一句输入，三圈走廊，每步都有人接住。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "一句输入，三圈走廊，每步都有人接住。"
   },
   {
     "id": "p4-01",
     "scene": "P4",
     "text": "合体版里还有两对东西，最容易认混。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-02",
@@ -210,24 +298,37 @@
   {
     "id": "p4-03",
     "scene": "P4",
-    "text": "跨会话的任务图，管依赖和认领——一张草稿，一张契约。"
+    "text": "跨会话的任务图，管依赖和认领——一张草稿，一张契约。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p4-04",
     "scene": "P4",
     "text": "第二对是委派，走两扇门。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-05",
     "scene": "P4",
-    "text": "要结论，用一次性子代理，只回摘要；要并肩，拉持久队友，空闲自己领活。"
+    "text": "要结论，用一次性子代理，只回摘要；要并肩，拉持久队友，空闲自己领活。",
+    "ttsText": "要结论，用一次性子代理，只回摘要；要并肩，拉持久队友，空闲，自己领活。"
   },
   {
     "id": "p4-06",
     "scene": "P4",
     "text": "两对之外，还有一批家什：内置二十七件，外部工具随连随挂。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p4-07",
@@ -237,40 +338,67 @@
   {
     "id": "p4-08",
     "scene": "P4",
-    "text": "从八件长到十四、十八，再到二十七，机制每添一层，家什跟着添。"
+    "text": "从八件长到十四、十八，再到二十七，机制每添一层，家什跟着添。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    },
+    "ttsText": "从八件长到十四、十八，再到二十七，机制每添一层，家什跟着添。"
   },
   {
     "id": "p4-09",
     "scene": "P4",
     "text": "本地原型实测：连上新服务、沿用旧名册，调用直接报错——不认识这个工具。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.14"
+    },
+    "ttsText": "本地原型实测：连上新服务、沿用旧名册，调用，直接报错——不认识这个工具。"
   },
   {
     "id": "p4-10",
     "scene": "P4",
-    "text": "名册重组后再调，结果立刻到手——册是活的，旧名册就得作废。"
+    "text": "名册重组后再调，结果立刻到手——册是活的，旧名册就得作废。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p5-01",
     "scene": "P5",
     "text": "收官前，交最后一份数据：本地原型全量自检，十八条全绿。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
   },
   {
     "id": "p5-02",
     "scene": "P5",
-    "text": "一句话收束：机制很多，循环一个。"
+    "text": "一句话收束：机制很多，循环一个。",
+    "ttsText": "一句话收束：机制很多，循环，一个。"
   },
   {
     "id": "p5-03",
     "scene": "P5",
-    "text": "一路加到全套设施，芯子始终是那四句。"
+    "text": "一路加到全套设施，芯子始终是那四句。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p5-04",
     "scene": "P5",
     "text": "复杂的不是另一个大脑，是外围那圈设施——成熟 Harness 的复杂。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p5-05",
@@ -281,19 +409,29 @@
     "id": "p5-06",
     "scene": "P5",
     "text": "终点回头望，最初那声心跳，一路没停。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    },
+    "ttsText": "终点回头望，最初那声心跳，一路，没停。"
   },
   {
     "id": "p5-07",
     "scene": "P5",
-    "text": "没有下期了。工具还会再长，循环还是那一个。"
+    "text": "没有下期了。工具还会再长，循环还是那一个。",
+    "ttsText": "没有下期了。工具还会再长，循环还是那一个。"
   },
   {
     "id": "p5-08",
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-09",
