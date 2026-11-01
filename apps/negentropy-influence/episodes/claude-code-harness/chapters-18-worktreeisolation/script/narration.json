@@ -3,7 +3,12 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是同一个目录里挤着的几个队友：各干各的活，改的却是同一份代码。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    },
+    "ttsText": "这是同一个目录里，挤着的几个队友：各干各的活，改的，却是同一份代码。"
   },
   {
     "id": "p0-02",
@@ -19,12 +24,21 @@
     "id": "p0-04",
     "scene": "P0",
     "text": "任务板管了谁干什么，收件箱管了怎么说——在哪干，没人管。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    },
+    "ttsText": "任务板管了谁干什么，收件箱管了怎么说——在哪干？没人管。"
   },
   {
     "id": "p0-05",
     "scene": "P0",
-    "text": "答案不是让大家小心点，而是给每个任务，发一间独立的房。"
+    "text": "答案不是让大家小心点，而是给每个任务，发一间独立的房。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p0-06",
@@ -34,24 +48,37 @@
   {
     "id": "p0-07",
     "scene": "P0",
-    "text": "更要紧的是，拆房那一步，藏着全片最值得学的一道守卫。"
+    "text": "更要紧的是，拆房那一步，藏着全片最值得学的一道守卫。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.10"
+    },
+    "ttsText": "更要紧的是——拆房那一步，藏着全片最值得学的，一道守卫。"
   },
   {
     "id": "p1-01",
     "scene": "P1",
     "text": "先说这间房是什么——不是复制粘贴出来的副本。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-02",
     "scene": "P1",
     "text": "它是同一本账上，同时铺开的另一份工作目录，行话叫工作树。",
-    "ttsText": "它是同一本账上，同时铺开的另一份工作目录，<行|HANG2>话叫工作树。"
+    "ttsText": "它是同一本账上，同时铺开的另一份工作目录——<行|HANG2>话，叫工作树。"
   },
   {
     "id": "p1-03",
     "scene": "P1",
-    "text": "每个目录，挂自己的一条线，各改各的，互不相扰。"
+    "text": "每个目录，挂自己的一条线，各改各的，互不相扰。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-04",
@@ -62,7 +89,11 @@
   {
     "id": "p1-05",
     "scene": "P1",
-    "text": "建房只要两个参数：一个名字，一个任务编号。"
+    "text": "建房只要两个参数：一个名字，一个任务编号。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-06",
@@ -72,7 +103,11 @@
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "妙在绑定只写房号、不动状态：任务还是没人做，等人来领。"
+    "text": "妙在绑定只写房号、不动状态：任务还是没人做，等人来领。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p1-08",
@@ -83,7 +118,11 @@
     "id": "p1-09",
     "scene": "P1",
     "text": "名字也有门禁：一到六十四个字符，只认字母数字和几种符号。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p1-10",
@@ -94,7 +133,11 @@
     "id": "p2-01",
     "scene": "P2",
     "text": "还是那摊活：一个任务理认证，一个任务做登录界面。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-02",
@@ -105,13 +148,17 @@
     "id": "p2-03",
     "scene": "P2",
     "text": "两位队友各领一间，都要动那个配置文件——这回，谁也踩不着谁。",
-    "ttsText": "两位队友各领一间，都要动那个配置文件——这回，谁也踩不<着|ZHAO2>谁。"
+    "ttsText": "两位队友各领一间，都要动那个配置文件——这回，谁也，踩不<着|ZHAO2>谁。"
   },
   {
     "id": "p2-04",
     "scene": "P2",
     "text": "用认领工具接走的那一刻，读写、跑命令，全落进自己那间房。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p2-05",
@@ -122,7 +169,11 @@
     "id": "p2-06",
     "scene": "P2",
     "text": "两边的活先后完工——房，怎么收？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p2-07",
@@ -138,21 +189,30 @@
   {
     "id": "p3-01",
     "scene": "P3",
-    "text": "一数改了还没记到线上的文件，二数记了还没送回账本的提交。",
+    "text": "一数改了还没记到线上的文件，二数记了还没送出去的提交。",
     "beatStart": true,
-    "ttsText": "一<数|SHU3>改了还没记到线上的文件，二<数|SHU3>记了还没送回账本的提交。"
+    "ttsText": "一<数|SHU3>改了还没记到线上的文件，二<数|SHU3>记了还没送出去的提交。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p3-02",
     "scene": "P3",
     "text": "第二条，要线连着上游——远处对着的那本账——才数得着；第一条，不看这条前提。",
-    "ttsText": "第二条，要线连着上游——远处对着的那本账——才<数|SHU3>得<着|ZHAO2>；第一条，不看这条前提。"
+    "ttsText": "第二条，要线连着上游——远处对着的那本账——才<数|SHU3>得<着|ZHAO2>！第一条，不看这条前提。"
   },
   {
     "id": "p3-03",
     "scene": "P3",
     "text": "有一样不是零，默认拒绝——这是三个出口里的第一个。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    },
+    "ttsText": "有一样不是零——默认拒绝！这是三个出口里的，第一个。"
   },
   {
     "id": "p3-04",
@@ -163,23 +223,41 @@
     "id": "p3-05",
     "scene": "P3",
     "text": "实测一遍：守卫在位，房里放一个没提交的文件，去拆——被拒，房和线都在。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p3-06",
     "scene": "P3",
-    "text": "绕开守卫强拆呢？目录没了，文件无声蒸发，线也连坐删掉。"
+    "text": "绕开守卫强拆呢？目录没了，文件无声蒸发，线也连坐删掉。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.15"
+    },
+    "ttsText": "绕开守卫强拆呢？目录没了，文件无声蒸发，线，也连坐删掉。"
   },
   {
     "id": "p3-07",
     "scene": "P3",
-    "text": "一句话教训：收尾的保护，比创建更值得学。"
+    "text": "一句话教训：收尾的保护，比创建更值得学。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "一句话教训：收尾的保护，比创建，更值得学。"
   },
   {
     "id": "p3-08",
     "scene": "P3",
     "text": "还有一本流水账：建、拆、留，每一步都追加一条事件。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p3-09",
@@ -189,13 +267,21 @@
   {
     "id": "p3-10",
     "scene": "P3",
-    "text": "那真实的 Claude Code，这套房长什么样？"
+    "text": "那真实的 Claude Code，这套房长什么样？",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p4-01",
     "scene": "P4",
     "text": "拆解过 Claude Code 源码的同学们应该知道：真实的 Claude Code，把这件事做成了两个入口。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p4-02",
@@ -205,7 +291,11 @@
   {
     "id": "p4-03",
     "scene": "P4",
-    "text": "进房工具一落，整个会话当场切进那间目录。"
+    "text": "进房工具一落，整个会话当场切进那间目录。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-04",
@@ -215,13 +305,22 @@
   {
     "id": "p4-05",
     "scene": "P4",
-    "text": "另一个入口是子代理：给一次性任务包一间房，活全在自己目录里干。"
+    "text": "另一个入口是子代理：给一次性任务包一间房，活全在自己目录里干。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.08"
+    }
   },
   {
     "id": "p4-06",
     "scene": "P4",
     "text": "最后把边界说死：这堵墙挡互踩，不挡越狱。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "最后把边界说死：这堵墙，挡互踩，不挡越狱！"
   },
   {
     "id": "p4-07",
@@ -232,13 +331,22 @@
   {
     "id": "p4-08",
     "scene": "P4",
-    "text": "拿它关不可信的代码，是把它当成它不是的东西——施工面，不是笼子。"
+    "text": "拿它关不可信的代码，是把它当成它不是的东西——施工面，不是笼子。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    },
+    "ttsText": "拿它关不可信的代码，是把它当成它不是的东西——施工面，不是笼子！"
   },
   {
     "id": "p5-01",
     "scene": "P5",
     "text": "一句话收束：任务管目标，房管施工——房号绑在卡上，各改各的线。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
   },
   {
     "id": "p5-02",
@@ -248,13 +356,18 @@
   {
     "id": "p5-03",
     "scene": "P5",
-    "text": "最该带走的，是那道默认拒绝：护住收尾，比创建更要紧。"
+    "text": "最该带走的，是那道默认拒绝：护住收尾，比创建更要紧。",
+    "ttsText": "最该带走的，是那道默认拒绝：护住收尾，比创建，更要紧。"
   },
   {
     "id": "p5-04",
     "scene": "P5",
     "text": "只是别忘了：读写、跑命令、建房拆房，件件都是自家手写的。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
   },
   {
     "id": "p5-05",
@@ -267,7 +380,11 @@
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-07",

@@ -171,6 +171,12 @@ fingerprint = "1c779384d763"
 reason = "系列片头挂载承 chapters-01–16 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep16 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
+episode = "chapters-18-worktreeisolation"
+path = "video/src/Main.tsx"
+fingerprint = "1c779384d763"
+reason = "系列片头挂载承 chapters-01–17 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep17 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+
+[[skeleton.drift]]
 episode = "chapters-14-cronscheduler"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
@@ -410,7 +416,8 @@ scene_stems = ["P0NobodyAssigns", "P5ClockAndNext"]
 
 [check_series.source_credit."chapters-18-worktreeisolation"]
 narration_ids = ["p0-01", "p5-06"]
-scene_stems = []
+# ⑧ 轮场景落地补登（承 ep1–ep17 形态）：P0 首部署源角标 / P5 尾部署源卡
+scene_stems = ["P0SharedDesk", "P5LedgerRoomsClose"]
 
 [check_series.source_credit."chapters-19-mcpplugin"]
 narration_ids = ["p0-01", "p5-06"]
