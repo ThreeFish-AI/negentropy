@@ -3,7 +3,12 @@
     "id": "p0-01",
     "scene": "P0",
     "text": "这是一份写死的开场说明——工具新了，它不提；记忆有了，它不认。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    },
+    "ttsText": "这是一份写死的开场说明——工具新了，它不提；记忆有了，它，不认。"
   },
   {
     "id": "p0-02",
@@ -13,13 +18,19 @@
   {
     "id": "p0-03",
     "scene": "P0",
-    "text": "它叫系统提示——和消息、工具表，构成模型每轮看到的全部。"
+    "text": "它叫系统提示——和消息、工具表，构成模型每轮看到的全部。",
+    "ttsText": "它叫，系统提示——和消息、工具表，构成模型每轮看到的全部。"
   },
   {
     "id": "p0-04",
     "scene": "P0",
     "text": "教学代码里，它欠了一屁股债。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.15"
+    },
+    "ttsText": "教学代码里，它欠了，一屁股债。"
   },
   {
     "id": "p0-05",
@@ -35,7 +46,11 @@
   {
     "id": "p0-07",
     "scene": "P0",
-    "text": "加一个能力多一段，换项目整段重写，新指令还可能跟旧的打架。"
+    "text": "加一个能力多一段，换项目整段重写，新指令还可能跟旧的打架。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10"
+    }
   },
   {
     "id": "p0-08",
@@ -46,7 +61,11 @@
     "id": "p1-01",
     "scene": "P1",
     "text": "解法三步：分段，按状态拼装，缓存。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-02",
@@ -62,7 +81,11 @@
     "id": "p1-04",
     "scene": "P1",
     "text": "第二步，按状态拼装：每轮调用模型前，先查一份状态清单。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-05",
@@ -72,7 +95,11 @@
   {
     "id": "p1-06",
     "scene": "P1",
-    "text": "哪段拼、哪段不拼，全看这份清单——不在消息里搜关键词。"
+    "text": "哪段拼、哪段不拼，全看这份清单——不在消息里搜关键词。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p1-06b",
@@ -82,8 +109,12 @@
   {
     "id": "p1-07",
     "scene": "P1",
-    "text": "第三步，缓存：状态清单没变，直接返回上次拼好的结果。",
-    "beatStart": true
+    "text": "第三步，缓存：状态清单没变，原样返回上次拼好的结果。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p1-08",
@@ -93,7 +124,11 @@
   {
     "id": "p1-09",
     "scene": "P1",
-    "text": "为什么不直接给清单算一枚指纹？自带的指纹函数有两个坑。"
+    "text": "为什么不直接给清单算一枚指纹？自带的指纹函数有两个坑。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.10"
+    }
   },
   {
     "id": "p1-09b",
@@ -103,13 +138,21 @@
   {
     "id": "p1-10",
     "scene": "P1",
-    "text": "到这里，说明不再是写死的手稿，而是按状态现拼的配置。"
+    "text": "到这里，说明不再是写死的手稿，而是按状态现拼的配置。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
   },
   {
     "id": "p2-01",
     "scene": "P2",
     "text": "拿原型走一遍：开机第一次取说明——磁盘上还没有记忆文件。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
   },
   {
     "id": "p2-02",
@@ -125,18 +168,27 @@
     "id": "p2-04",
     "scene": "P2",
     "text": "这时用户闲聊一句：「我对写这个模块毫无记忆」。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p2-05",
     "scene": "P2",
-    "text": "提示纹丝不动——「提到记忆」，不是状态。"
+    "text": "提示纹丝不动——「提到记忆」，不是状态。",
+    "ttsText": "提示，纹丝不动——「提到记忆」，不是状态。"
   },
   {
     "id": "p2-06",
     "scene": "P2",
     "text": "直到磁盘上真的落下记忆文件，还写进了内容。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p2-07",
@@ -151,13 +203,21 @@
   {
     "id": "p2-09",
     "scene": "P2",
-    "text": "那，要是判据不看状态，改看话术呢？"
+    "text": "那，要是判据不看状态，改看话术呢？",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.10"
+    }
   },
   {
     "id": "p3-01",
     "scene": "P3",
     "text": "破坏实验来了：把判据从「查状态」，改成「猜关键词」。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.14"
+    }
   },
   {
     "id": "p3-02",
@@ -167,18 +227,27 @@
   {
     "id": "p3-03",
     "scene": "P3",
-    "text": "还是那句闲聊，话音刚落——空的记忆段，当场被误拼了进去。"
+    "text": "还是那句闲聊，话音刚落——空的记忆段，当场被误拼了进去。",
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.16"
+    }
   },
   {
     "id": "p3-04",
     "scene": "P3",
-    "text": "误注入从零变一，提示从一百一十三字符跳到一百四十七。"
+    "text": "误注入从零变一，提示从一百一十三字符跳到一百四十七。",
+    "ttsText": "误注入从零变一，提示从一百一十三字符，跳到，一百四十七。"
   },
   {
     "id": "p3-05",
     "scene": "P3",
     "text": "麻烦在哪？一句随口闲聊，就撬动了模型每轮要看的说明。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p3-06",
@@ -189,7 +258,12 @@
     "id": "p3-07",
     "scene": "P3",
     "text": "教训一句话：段加载，看状态，不看话术。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "教训一句话：段加载，看状态，不看话术！"
   },
   {
     "id": "p3-08",
@@ -199,8 +273,12 @@
   {
     "id": "p4-01",
     "scene": "P4",
-    "text": "另一套在集成版：七个固定段，每轮重建，不设本地缓存。",
-    "beatStart": true
+    "text": "另一套在教学代码的集成版里：七个固定段，每轮重建，不设本地缓存。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p4-02",
@@ -216,7 +294,12 @@
     "id": "p4-04",
     "scene": "P4",
     "text": "哪套对？都对，目标不同。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.10"
+    },
+    "ttsText": "哪套对？都对——目标不同。"
   },
   {
     "id": "p4-05",
@@ -227,7 +310,11 @@
     "id": "p4-06",
     "scene": "P4",
     "text": "真实的 Claude Code 呢？",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
   },
   {
     "id": "p4-07",
@@ -242,23 +329,36 @@
   {
     "id": "p4-08b",
     "scene": "P4",
-    "text": "切一条分界线：静态段命中全局缓存，不因动态内容失效。"
+    "text": "切一条分界线：静态段命中全局缓存，不因动态内容失效。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
   },
   {
     "id": "p4-09",
     "scene": "P4",
-    "text": "体量也悬殊：标准形态两三万字节，极简形态只剩一百五十来个字符。"
+    "text": "体量也悬殊：标准形态两三万字节，极简形态只剩一百五十来个字符。",
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
   },
   {
     "id": "p4-10",
     "scene": "P4",
-    "text": "同一套装置，相差两个数量级。"
+    "text": "同一套装置，相差两个数量级。",
+    "ttsText": "同一套装置，相差，两个数量级。"
   },
   {
     "id": "p5-01",
     "scene": "P5",
     "text": "一句话收束：有什么，才写什么——看状态，不猜话术。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    }
   },
   {
     "id": "p5-02",
@@ -274,12 +374,17 @@
     "id": "p5-04",
     "scene": "P5",
     "text": "只是，说明拼得再稳，也拦不住服务端的一记报错。",
-    "beatStart": true
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
   },
   {
     "id": "p5-05",
     "scene": "P5",
-    "text": "眼下的循环一撞就停：不重试，不换模型。"
+    "text": "眼下的循环一撞就停：不重试，不换模型。",
+    "ttsText": "眼下的循环，一撞就停：不重试，不换模型。"
   },
   {
     "id": "p5-06",
@@ -291,7 +396,11 @@
     "scene": "P5",
     "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
     "beatStart": true,
-    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。"
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
   },
   {
     "id": "p5-08",
