@@ -95,3 +95,19 @@ Memadapter 论文图 1–3 取自 [arXiv:2610.05162v1](https://arxiv.org/html/26
 | [trustworthy-rsi--fig4-theme1-risks-safeguards.png](./self-evolution/trustworthy-rsi--fig4-theme1-risks-safeguards.png) | 论文 Fig.4（chap3_figure.png，1737×1070） | 版权归原作者，仅作学习引用 | 原样（616 KiB） |
 | [trustworthy-rsi--fig9-three-level-comparison.png](./self-evolution/trustworthy-rsi--fig9-three-level-comparison.png) | 论文 Fig.9（chap7.2_figure.png，2029×739） | 版权归原作者，仅作学习引用 | 原样（576 KiB） |
 | [trustworthy-rsi--fig10-application-settings.png](./self-evolution/trustworthy-rsi--fig10-application-settings.png) | 论文 Fig.10（assets/chap8_figure.png，原图 1667×766） | 版权归原作者，仅作学习引用 | 等比降采样 1440px（1195 KiB） |
+
+### cognitive-context · PowerContext 精读（[016](../../research/cognitive-context/016-powercontext-context-runtime.md)）
+
+抓取基准为 [oceanbase/powercontext](https://github.com/oceanbase/powercontext) master `5032075ad`（2026-11-01 curl 快照，v1.4.1；仓库许可 Apache-2.0）；4 张官方 SVG 图以 Chrome headless `--headless=new` 2× 栅格化（按各自 viewBox 定尺寸，仅格式转换）、5 张博客 PNG 等比降采样至 1400px（原图 ~1.5 MiB 超单图体积门，无内容改动）。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [powercontext--src-01-context-formation.png](./cognitive-context/powercontext--src-01-context-formation.png) | 官网文档图「一个 Scope 内的两类制品形成路径」（website/public/docs-diagrams/context-formation-zh.svg，900×490） | Apache-2.0 | SVG 无头浏览器 2× 栅格化（1800×980） |
+| [powercontext--src-02-context-deployment.png](./cognitive-context/powercontext--src-02-context-deployment.png) | 官网文档图「各组件运行在哪里」（website/public/docs-diagrams/context-deployment-zh.svg，900×490） | Apache-2.0 | SVG 无头浏览器 2× 栅格化（1800×980） |
+| [powercontext--src-03-workflow-handoff.png](./cognitive-context/powercontext--src-03-workflow-handoff.png) | README 工作流图「你和 Agent 交接工作」（docs/assets/readme-workflow.svg，1080×360，暗色主题） | Apache-2.0 | SVG 无头浏览器 2× 栅格化（2160×720） |
+| [powercontext--src-04-benchmark-summary.png](./cognitive-context/powercontext--src-04-benchmark-summary.png) | README 基准对比图「LoCoMo 与 SWE-bench Pro 紧凑对比」（docs/assets/readme-benchmark-summary.svg，960×272，暗色主题） | Apache-2.0 | SVG 无头浏览器 2× 栅格化（1920×544） |
+| [powercontext--src-05-blog-multimodal-chain.png](./cognitive-context/powercontext--src-05-blog-multimodal-chain.png) | 官方博客《构建持久的项目上下文》图 1「从多模态输入到验证结果」（docs/assets/blog/building-durable-project-context/figure-1.png，1668×943） | Apache-2.0 | 等比降采样 1400px（1155 KiB） |
+| [powercontext--src-06-blog-source-linked-index.png](./cognitive-context/powercontext--src-06-blog-source-linked-index.png) | 同博客图 2「索引始终关联原始材料」（figure-2.png） | Apache-2.0 | 等比降采样 1400px（1112 KiB） |
+| [powercontext--src-07-blog-seekdb-multi-path.png](./cognitive-context/powercontext--src-07-blog-seekdb-multi-path.png) | 同博客图 3「seekdb：多路径检索证据」（figure-3.png） | Apache-2.0 | 等比降采样 1400px（1074 KiB） |
+| [powercontext--src-08-blog-four-context-lifecycles.png](./cognitive-context/powercontext--src-08-blog-four-context-lifecycles.png) | 同博客图 4「四类上下文，分别管理生命周期」（figure-4.png） | Apache-2.0 | 等比降采样 1400px（1096 KiB） |
+| [powercontext--src-09-blog-cross-session-handoff.png](./cognitive-context/powercontext--src-09-blog-cross-session-handoff.png) | 同博客图 6「跨会话交接，恢复时重新核对」（figure-6.png） | Apache-2.0 | 等比降采样 1400px（1084 KiB） |

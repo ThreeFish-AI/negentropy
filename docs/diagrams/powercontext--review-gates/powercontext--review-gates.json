@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "PowerContext 内容门禁：生成 · 评审 · 执行三权分立",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/powercontext--review-gates.html"
+  },
+  "phases": [
+    { "id": "propose", "label": "提案", "fromCol": 0, "toCol": 1 },
+    { "id": "review", "label": "评审", "fromCol": 2, "toCol": 2, "variant": "security" },
+    { "id": "persist", "label": "入库", "fromCol": 3, "toCol": 3, "variant": "emphasis" },
+    { "id": "consume", "label": "消费", "fromCol": 4, "toCol": 4, "variant": "dashed" }
+  ],
+  "lanes": [
+    { "id": "gen", "label": "生成层 · 只能提案" },
+    { "id": "gov", "label": "治理层 · 评审与版本" },
+    { "id": "use", "label": "使用层 · 只读消费" }
+  ],
+  "mainPath": ["model", "inbox", "decision", "revision", "export"],
+  "nodes": [
+    { "id": "model", "lane": "gen", "col": 0, "type": "backend", "label": "生成模型", "sublabel": "从 Source 提案", "width": 128 },
+    { "id": "inbox", "lane": "gov", "col": 1, "type": "security", "label": "评审收件箱", "sublabel": "pending · expected_version", "width": 150 },
+    { "id": "decision", "lane": "gov", "col": 2, "type": "security", "label": "评审决策", "sublabel": "通过 / 驳回 均终态", "width": 132 },
+    { "id": "revision", "lane": "gov", "col": 3, "type": "database", "label": "不可变 Revision", "sublabel": "ID@REVISION · Lineage", "width": 148 },
+    { "id": "export", "lane": "use", "col": 4, "type": "frontend", "label": "显式导出到宿主", "sublabel": "仅 Skill · 可发现≠可执行", "width": 152 },
+    { "id": "direct", "lane": "gen", "col": 3, "type": "cloud", "label": "直接 Create/Replace", "sublabel": "免模型 · 家族校验", "width": 144 },
+    { "id": "recall", "lane": "use", "col": 3, "type": "database", "label": "PreparedContext", "sublabel": "active+已批 · 字节预算", "width": 144 }
+  ],
+  "edges": [
+    { "id": "propose", "from": "model", "to": "inbox", "label": "提案", "variant": "default", "role": "main" },
+    { "id": "match", "from": "inbox", "to": "decision", "label": "版本一致", "variant": "default", "role": "main" },
+    { "id": "approve", "from": "decision", "to": "revision", "label": "通过 · 写入", "variant": "emphasis", "role": "main" },
+    { "id": "export-precise", "from": "revision", "to": "export", "label": "导出精确版本", "variant": "default", "role": "main" },
+    { "id": "direct-write", "from": "direct", "to": "revision", "label": "校验即正式版", "variant": "dashed", "role": "branch", "fromSide": "bottom", "toSide": "top" },
+    { "id": "bounded-recall", "from": "revision", "to": "recall", "label": "只取已批内容", "variant": "dashed", "role": "branch", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三权分立",
+      "items": [
+        "模型只能提案，评审批准写入不可变 Revision",
+        "批准 ≠ 安装 ≠ 执行：导出与执行权限各自独立"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "乐观锁防偷换",
+      "items": [
+        "评审携带 expected_version，提案被改则版本前进",
+        "版本失配即拒绝，旧决定不静默作用于新内容"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "召回边界",
+      "items": [
+        "只有 active Memory 与已通过 Experience 当前头参与召回",
+        "pending、驳回与历史 Revision 一律排除"
+      ]
+    }
+  ]
+}
