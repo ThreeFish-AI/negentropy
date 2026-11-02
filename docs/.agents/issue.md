@@ -250,6 +250,7 @@
 | I-242 | model-architecture 250 线性注意力精读入库：微信 3 万字长文 + 10 信源对账 + KDA/DeltaNet/GDN 原型（顺序 vs 分块 4.4e-16）+ 双 archify 图 + 新开分组 | ✅ 已完成 | 2026-10-30 | [详情](#I-242) |
 | I-243 | self-evolution 145 Trustworthy RSI 精读入库：webReader 幽灵全文的元数据域漏核（作者块 12 人被幻影为单作者） | ✅ 已完成 | 2026-10-30 | [详情](#I-243) |
 | I-244 | agent-harness 182 dsh-superagent 精读入库：微信原文反爬的证据分级降级与「文章 vs 仓库」零实现清单 | ✅ 已完成 | 2026-11-01 | [详情](#I-244) |
+| I-245 | knowledge 写端点鉴权缺位（optional 模式 fail-open、035 声称 RBAC 但零执行）：聚合层统一注入 knowledge:write 守卫 + 机器调用方 service token + 覆盖门 | ✅ 已完成 | 2026-11-02 | [详情](#I-245) |
 
 ---
 
@@ -5788,3 +5789,20 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：所有微信公众号信源的 guided-learn 精读（250 线性注意力先例：微信图 curl+img alt 复原）；文章/代码双信源交付物。
 
 **注意事项**：源稿对账 Checker 的信源表等级列写「三手」字样会被 SOURCE MISUSE 门禁拦截——厂商自述转述源按「厂商自述（声明经新闻通道转述）」口径登记并在正文一律据称归因。
+
+<a id="I-245"></a>
+## I-245：knowledge 写端点鉴权缺位（optional 模式 fail-open、035 声称 RBAC 但零执行）：聚合层统一注入 knowledge:write 守卫 + 机器调用方 service token + 覆盖门
+
+**问题描述**：知识库平台差距分析（[gap-analysis](../concepts/design/knowledge-base-platform-gap-analysis.md) D4）确证：knowledge 子系统 70 个写方法端点（语料库删除、文档删除/同步/重建、Wiki 发布/下线、Catalog 改写等）几乎全部未挂鉴权依赖；035 §11.1 声称「Edit 仅 admin 或 knowledge_manager 角色」，但 `knowledge_manager` 角色不存在、`require_permission` 全仓零调用。
+
+**表因**：`auth.mode` 默认 `optional`——`AuthMiddleware` 对无 token 请求直接放行；端点层未挂依赖即等于匿名可达，例如匿名可级联删除语料库、发布生产 Wiki。
+
+**根因**：鉴权采用「中间件 optional + 端点按需挂依赖」的组合，默认值是 fail-open；端点忘挂依赖没有任何机器门拦截，设计文档声称的 RBAC 与代码之间也没有对账机制，导致文档声称的保护长期不存在而无人察觉。
+
+**处理方式**：① 新增 `auth.deps.require_knowledge_write`：`knowledge:write` 权限（roles 经 `resolve_user_with_db_roles` 以 DB 为权威）；鉴权关闭（`enabled=False`/`mode=off`）时放行，与中间件同口径；其余模式 fail-closed（optional 模式下匿名写同样 401）。② `knowledge/api.py` 聚合层遍历全部写方法路由统一注入守卫（默认拒绝：新增写端点自动受保护），只读语义的检索类 POST、Wiki 阅读计数、评论/注解（端点自带 `get_current_user`）进入带理由的显式豁免清单 `WRITE_GUARD_EXEMPT`。③ 机器调用方：每进程随机 service token（不落库、重启轮换，与 `/mcp/knowledge` bearer 同构），经 Claude Code 子进程环境变量 `NE_KNOWLEDGE_SERVICE_TOKEN` 注入、`X-Negentropy-Service-Token` 头携带并以 `compare_digest` 校验；patrol 提示词的 `refresh_markdown` 调用同步带头。④ 覆盖门测试 `test_write_route_auth_coverage.py`（12 例）：写路由「守卫或豁免」二选一、豁免项必须存在且带理由、守卫不重复注入；守卫行为矩阵（匿名 401 / user 403 / admin 放行 / service token 放行 / 伪造 token 拒 / 鉴权关闭放行 / 真实路由端到端 401）。⑤ 035 §11.1 改写为与代码一致。
+
+**后续防范**：写端点的授权由聚合层默认注入，端点作者不再需要记得挂依赖；新增豁免必须进清单并写理由，由覆盖门锁定。设计文档中的权限声明须有对应的机器门（本例为覆盖门测试）。
+
+**同类问题影响**：memory、interface 等其他域若采用「optional 中间件 + 端点自挂」模式，同样存在漏挂风险，可复用本条的聚合层注入与覆盖门模式；读路径的可见性控制（visibility 三级取交集零执行）属差距分析 D4 的独立缺口，不在本条范围。
+
+**注意事项**：普通 `user` 角色因此失去知识库写权限，这与 035 原本声称的设计意图一致；UI BFF 的写路由已全部经 `buildAuthHeaders` 转发 cookie（已逐一扫描）。`TestGetCatalogDocuments` 的 4 例集成失败在基线上同样出现，原因是测试库跨会话累积数据导致全表计数断言漂移，与本修复无关。
