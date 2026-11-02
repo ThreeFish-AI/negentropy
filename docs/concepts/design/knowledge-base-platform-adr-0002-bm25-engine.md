@@ -17,7 +17,7 @@ tags:
 |---|---|
 | 状态 | Accepted（2026-11-02，按评估建议定稿；许可结论为工程视角评估，商用前需法务确认） |
 | 范围 | 《[知识库平台技术方案](./knowledge-base-platform.md)》§3.1 单库现实与 §6 推荐起步组合；《[M1–M3 实施计划](./knowledge-base-platform-implementation.md)》P2-4 |
-| 取证 | 三路并行取证（PG 内扩展 / 外置引擎 / AGPL 义务边界）+ 逐路对抗核验：66 项核验 50 confirmed / 11 corrected / 0 removed；许可证取自官方仓库 LICENSE 或源码文件头，托管可用性取自云厂商扩展清单（访问日期 2026-11-02） |
+| 取证 | 三路并行取证（PG 内扩展 / 外置引擎 / AGPL 义务边界）+ 逐路对抗核验：61 项核验 50 confirmed / 11 corrected / 0 removed；许可证取自官方仓库 LICENSE 或源码文件头，托管可用性取自云厂商扩展清单（访问日期 2026-11-02） |
 
 ## 1. 问题
 
@@ -34,7 +34,7 @@ tags:
 
 | 候选 | 许可 | 真 BM25 | BM25F | 中文 | 主流托管可用性（2026-11-02） | 成熟度 |
 |---|---|---|---|---|---|---|
-| **pg_textsearch** | PostgreSQL License | ✓ k1 0.1–10 / b 0–1，按索引 | ✗（多列拼表达式或多索引应用融合） | 复用 PG text search config，配 zhparser（v1.4.0 起） | Cloud SQL ✓（PG17+，需 flag）· AlloyDB ✓ Preview · RDS/Aurora ✗ · Azure Flexible ✗（官方答复未在路线图）· Neon ✗ · Supabase ✗ | v1.0 GA 2026-03-27，v1.5.1 2026-10-02（修复并发损坏），~4.0k stars |
+| **pg_textsearch** | PostgreSQL License | ✓ k1 0.1–10 / b 0–1，按索引 | ✗（多列拼表达式或多索引应用融合） | 复用 PG text search config，配 zhparser（v1.4.0 起；zhparser 托管均不可装，见 §5 ④） | Cloud SQL ✓（PG17+，需 flag）· AlloyDB ✓ Preview · RDS/Aurora ✗ · Azure Flexible ✗（官方答复未在路线图）· Neon ✗ · Supabase ✗ | v1.0 GA 2026-03-27，v1.5.1 2026-10-02（修复并发损坏），~4.0k stars |
 | ParadeDB pg_search | **AGPL-3.0-or-later**（源码文件头）/ Enterprise 商业 | ✓ Tantivy，k1/b 按字段 | ≈（查询级 boost 拆子查询相加） | Jieba / Lindera / ICU | 七家全部 ✗；仅自托管 / ParadeDB Cloud（private preview）/ 托管主库逻辑复制到自建节点（PG17+） | v0.26.4（2026-10-29），~9.5k stars；Community 无索引复制 |
 | VectorChord-bm25 | AGPLv3 或 ELv2 二选一 | ✓ Block-WeakAnd | ✗ | jieba 预分词（README：仅测过英文） | 七家全部 ✗ | 0.3.0（2025-12-15），主仓约 6 个月无提交，仓库迁移至个人账号，维护前景不确定 |
 | pgx-bm25 | PostgreSQL License | ✓ | ✓ 原生多列 | ✗（仅 Snowball english） | 七家全部 ✗ | v1.0.0 2026-10-06，极新，无生产证据 |
@@ -59,8 +59,8 @@ tags:
 
 - **方案联动**：方案 §3.1「单库起步现实」与 §6「推荐起步组合」中「pg_search 类扩展补真 BM25」改为「pg_textsearch（PostgreSQL License）补真 BM25，AGPL 类扩展不作主选」；实施计划 P2-4 改为「pg_textsearch 集成 + 托管兼容性验证（目标云为 Google Cloud 时直接可用；AWS/Azure 部署走 OpenSearch 外置或兜底路径）」。
 - **部署约束**：pg_textsearch 要求 PG17/18 且需 `shared_preload_libraries`（托管侧为 flag），M1 基线 PG 版本据此定为 **PG17+**。
-- **已知限制须进测试**（取自官方 README Limitations）：① 语料统计包含 RLS 隐藏的行——多租户共享表时 IDF 会跨租户泄漏统计信息（不泄漏内容），须评估是否按产品域分区/分索引；② 分区表的 IDF 按分区各自计算；③ 刚建索引时不支持 2PC。第 ① 条与方案 §5.3 的 RLS 兜底直接相关，列入 M2 泄漏回归矩阵。
-- **云厂商分岔**：目标云若为 AWS 或 Azure，pg_textsearch 当前不可用——此时 M1 关键字路先走兜底路径（`ts_rank` 粗召回 + SQL 侧 BM25 重算），M2 起外置 OpenSearch（Amazon OpenSearch Service 原生提供中文插件）。
+- **已知限制须进测试**（取自官方 README Limitations）：① 语料统计包含 RLS 隐藏的行——多租户共享表时 IDF 会跨租户泄漏统计信息（不泄漏内容），须评估是否按产品域分区/分索引；② 分区表的 IDF 按分区各自计算；③ 刚建索引时不支持 2PC。第 ① 条与方案 §5.3 的 RLS 兜底直接相关，列入 M2 泄漏回归矩阵。④ 中文分词：zhparser 在全部七家托管 PG（含可装 pg_textsearch 的 Cloud SQL/AlloyDB）均不可安装（证据 F16）——托管场景中文分词质量受限，须 PoC 验证替代方案（PG 内置配置/预分词入库），不达预期时按重评触发器走 OpenSearch 托管 IK/HanLP。
+- **云厂商分岔**：目标云若为 AWS 或 Azure，pg_textsearch 当前不可用——关键字路在 M1 一律以兜底路径（`ts_rank` 粗召回 + SQL 侧 BM25 重算）起步（实施计划 P2-1，明示非 BM25），M2 P2-4 落地真 BM25 时 Google Cloud 直接集成 pg_textsearch、AWS/Azure 保持兜底并外置 OpenSearch（Amazon OpenSearch Service 原生提供中文插件）。
 - **重评触发器**：Cloud SQL/AlloyDB 上 pg_textsearch 转 GA，或 RDS/Azure 加入支持；pg_textsearch 出现新的数据损坏类缺陷；OpenSearch BM25F 或中文插件托管策略变化。
 
 ## 6. 依据

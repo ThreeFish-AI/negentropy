@@ -146,12 +146,12 @@ tags:
 
 | ID | 断言 | 信源 | 日期 | 置信 |
 |---|---|---|---|---|
-| F1 | BM25=Σ IDF·tf(k1+1)/(tf+k1(1−b+b·|D|/avgdl))：k1 控 TF 饱和、b 控长度归一；惯例 k1∈[1.2,2.0]、b=0.75 | Robertson & Zaragoza FnTIR 2009（DOI:10.1561/1500000019） | 2009 | 高 |
+| F1 | BM25=Σ IDF·tf(k1+1)/(tf+k1(1−b+b·\|D\|/avgdl))：k1 控 TF 饱和、b 控长度归一；惯例 k1∈[1.2,2.0]、b=0.75 | Robertson & Zaragoza FnTIR 2009（DOI:10.1561/1500000019） | 2009 | 高 |
 | F2 | BM25F（微软剑桥 TREC-13 2004）给标题/正文/锚文本等字段独立权重与长度归一 | Zaragoza et al. TREC-13 2004 | 2004 | 高 |
 | F3 | BM25 长文档缺陷：长度归一缺下界，长而多匹配文档被欠排；BM25+ 加 δ（默认 1.0）下界修正 | Lv & Zhai CIKM 2011（DOI:10.1145/2063576.2063584） | 2011 | 高 |
 | F4 | SPLADE-v2 以 MLM 词表权重生成稀疏扩展向量，蒸馏后 TREC DL19 NDCG@10 +9%+、BEIR SOTA | arXiv:2109.10086 | 2021 | 高 |
 | F5 | ELSER v2（Elastic 学习型稀疏，BERT 词表 30522 维）官方基准 BEIR 平均 NDCG@10 较 BM25 +18%，ES 8.11 起 GA（现行推理部署形态以官方文档为准） | elastic.co ml-elser / Search Labs 2023-10 | 2023/26 | 高（已核验，部署表述校正） |
-| F6 | ColBERT（与 DPR 双塔同期的并行工作，定位为 cross-encoder 全交互与单向量双塔之间的折中）：分词级编码 + MaxSim 晚交互，文档离线预编码；v2 残差压缩省 6–10× 存储 | arXiv:2004.12832 / arXiv:2112.01488 | 2020/22 | 高（已核验，谱系校正） |
+| F6 | ColBERT（与 DPR 双塔同期的并行工作，定位为 cross-encoder 全交互与单向量双塔之间的折中）：分词级编码 + MaxSim 晚交互，文档离线预编码；v2 残差压缩省 6–10× 存储 | arXiv:2004.12832 / arXiv:2112.01488 / Nogueira & Cho 2019（cross-encoder 重排） | 2020/22 | 高（已核验，谱系校正） |
 | F7 | MRL（NeurIPS 2022）：嵌入前缀截断即自适应维度，ImageNet 视觉基准上同精度嵌入最多小 14×、检索最多提速 14×；OpenAI/Gemini 嵌入已产品化采纳（dimensions 参数） | arXiv:2205.13147 | 2022 | 高（已核验，补「最多」与数据集语境） |
 | F8 | BGE-M3 单模型同时产出稠密+稀疏+多向量三路表征（知识蒸馏统一打分）；100+ 语言、8192 token | arXiv:2402.03216 | 2024 | 高 |
 | F9 | Qwen3-Embedding-8B 以 70.58 居 MTEB 多语榜首（as of 2025-06-05；2025-11 快照已被 KaLM-Embedding-Gemma3-12B 72.32 超越）——榜单快速更替，选型须以当期评测+自有 golden set 复核 | arXiv:2506.05176 / MTEB 快照 | 2025 | 高（已核验，时效校正） |
@@ -165,19 +165,19 @@ tags:
 
 | ID | 断言 | 信源 | 日期 | 置信 |
 |---|---|---|---|---|
-| F1 | Qdrant 过滤在 HNSW 遍历内就地执行而非 pre/post 二选一，planner 按匹配基数四路选择（filterable HNSW/ACORN/负载索引/全扫） | qdrant.tech pre-filtering-vs-post-filtering | 2026-08 | 高 |
+| F1 | Qdrant 过滤在 HNSW 遍历内就地执行而非 pre/post 二选一，planner 按匹配基数四路选择（filterable HNSW/ACORN/负载索引/全扫） | qdrant.tech pre-filtering-vs-post-filtering / Malkov & Yashunin TPAMI'20（HNSW 原论文） | 2026-08 | 高 |
 | F2 | Weaviate pre-filtering：倒排先产 allow-list，HNSW 只加白名单 id；匹配对象数低于 flatSearchCutoff（绝对数阈值，默认 40000）时切 flat 暴力检索 | docs.weaviate.io filtering / vector-index config | 2026 | 高（已核验；15% 为概念页示意配置值，非默认） |
 | F3 | Milvus 两路：标准 pre-filter 先收窄再 ANN；iterative_filter 在迭代检索中逐实体过滤至凑满 top-k | milvus.io filtered-search | 2026 | 高 |
 | F4 | Azure 2025-08 预览 strictPostFilter（vectorFilterMode）：全局 top-k 确定后再过滤 | learn.microsoft.com whats-new | 2026-10 | 高 |
 | F5 | filtered-ANN 图算法两路线：Filtered-DiskANN（WWW'23，索引期建过滤感知图，需预知标签集）与 ACORN（predicate-agnostic 查询期） | arXiv:2403.04871 / DOI:10.1145/3543507.3583552 | 2023/24 | 高 |
-| F6 | PostgreSQL RLS 显式 fail-closed：无策略时启用默认拒绝（官方文档明言 default-deny） | postgresql.org ddl-rowsecurity | 2026 | 高 |
+| F6 | PostgreSQL RLS 显式 fail-closed：无策略时启用默认拒绝（官方文档明言 default-deny） | postgresql.org ddl-rowsecurity / Saltzer-Schroeder 1975（fail-safe defaults 原则） | 2026 | 高 |
 | F7 | Zanzibar：trillions 条 ACL、百万级 QPS、p95<10ms、三年可用性>99.999%；决策遵循外部一致性，Zookie 时间戳承载因果序 | USENIX ATC'19 Pang et al. | 2019 | 高 |
 | F8 | SpiceDB 按请求选一致性档：minimize_latency（可现 New Enemy）/ at_least_as_fresh（ZedToken）/ fully_consistent | authzed.com spicedb consistency | 2026 | 高 |
 | F9 | OpenFGA 2025-11 成为 CNCF Incubating：37 家公开生产用户；独立授权服务+多语言 SDK 的 ReBAC 引擎 | cncf.io blog | 2025-11 | 高 |
 | F10 | Azure SQL 官方多租户对比：standalone 1–100s 租户（隔离最高成本最高）；database-per-tenant 1–100,000s（可弹性池）；sharded schema 适更高量级 | learn.microsoft.com saas-tenancy-patterns | 2025-08 | 高 |
 | F11 | RRF 论文默认 k=60；引擎默认分叉：Qdrant Query API 的 RRF k 默认 2——k 是引擎相关超参，须用评测集定值 | SIGIR'09 / qdrant.tech | 2009/2026 | 高 |
 | F12 | 融合与重排必须后置于权限过滤：Qdrant Query API filter 只属于各检索分支，fusion/rescore 仅消费 prefetch 结果 | qdrant.tech hybrid-queries | 2026 | 高 |
-| F13 | ES DLS 角色 query 模板注入 `_user.metadata.*` 做查询期文档过滤 | elastic.co document-level-security | 2026 | 高 |
+| F13 | ES DLS 角色 query 模板注入 `_user.metadata.*` 做查询期文档过滤（属性驱动访问控制的引擎内形态） | elastic.co document-level-security / NIST SP 800-162（ABAC 定义） | 2026 | 高 |
 
 **设计启示（→P2/P4）**：
 
@@ -203,9 +203,9 @@ tags:
 | F7 | CDC=日志增量复制（Airbyte 定义）：首连全量快照后按日志位推进，UPDATE/DELETE 与 INSERT 同构 | docs.airbyte.com | 2026 | 高 |
 | F8 | CMS 编辑态（Strapi 5/Sanity 交叉验证）：草稿/发布双版本分存；Content History 每次保存留快照（含操作者与状态） | docs.strapi.io draft-and-publish | 2026 | 高 |
 | F9 | Git 对象库为内容寻址存储：blob 键=SHA-1(头+内容)，同内容恒同键——天然去重与零成本变更检测 | git-scm.com Git Internals | 2024 | 高 |
-| F10 | RAGAS：faithfulness=答案主张可由检索上下文支持的比例；核心集含 context precision/recall | arXiv:2309.15217 / docs.ragas.io | 2023/25 | 高 |
+| F10 | RAGAS：faithfulness=答案主张可由检索上下文支持的比例；核心集含 context precision/recall | arXiv:2309.15217 / docs.ragas.io / Lewis et al. NeurIPS'20（RAG 原论文） | 2023/25 | 高 |
 | F11 | Google Agent Search 检索评测：golden 查询集=查询+目标 URI，上报 docRecall/docPrecision/docNDCG | docs.cloud.google.com | 2026-10 | 高 |
-| F12 | Anthropic Citations（2025-01 各平台 stable）：源文档带 title/context 传入、citations.enabled 开启，响应逐断言回锚 | platform.claude.com citations | 2025 | 高 |
+| F12 | Anthropic Citations（2025-01 各平台 stable）：源文档带 title/context 传入、citations.enabled 开启，响应逐断言回锚 | platform.claude.com citations / Gao et al. EMNLP'23（生成带引用文本） | 2025 | 高 |
 | F13 | 向量 kNN 恒返回 k 个最近邻、弱相关也返回（Azure）；2026-08-preview 增 threshold 阈值拒答 | learn.microsoft.com vector-search | 2026 | 高 |
 
 **设计启示（→P1/P2/P3）**：默认调参递归固定分块、语义/LLM 分块按文档类型灰度；chunk 带语境前缀（BM25 与向量共用）；跨文档聚合问答需层次摘要索引层；webhook 入口先落队列再回 202+续订守护+定期全量对账兜底；**删除传播=显式软删通道+首日配置不变量**；数据库型源走 CDC、SaaS API 源退化为高水位+软删轮询；人工编辑=草稿→发布状态机+乐观锁+版本快照审计，仅发布态触发索引；内容哈希=去重/增量判定/缓存失效统一凭据；离线回归门禁采 RAGAS 四指标+每产品域 golden set；答案逐断言挂锚点、无锚断言按幻觉处理；检索分数阈值+空结果策略=拒答/转人工闸门。
@@ -214,13 +214,13 @@ tags:
 
 | ID | 断言 | 信源 | 日期 | 置信 |
 |---|---|---|---|---|
-| F1 | PostGIS 索引三家族：GiST=默认 R-Tree；BRIN 建速约快 10 倍、磁盘约省千倍，仅限空间有序静态表且不支持 KNN；SP-GiST（四叉/k-d 树）亦无 KNN | postgis.net using_postgis_dbmanagement | 2026 | 高（已核验） |
+| F1 | PostGIS 索引三家族：GiST=默认 R-Tree；BRIN 建速约快 10 倍、磁盘约省千倍，仅限空间有序静态表且不支持 KNN；SP-GiST（四叉/k-d 树）亦无 KNN | postgis.net using_postgis_dbmanagement / Guttman SIGMOD'84、Beckmann SIGMOD'90（R-Tree/R*-Tree 原始论文） | 2026 | 高（已核验） |
 | F2 | PostGIS `<->` 仅在 ORDER BY 子句中触发索引辅助 KNN；geography 的 KNN 按球面（非椭球）计距 | postgis.net geometry_distance_knn | 2026 | 高（已核验，删除一项未获文档支持的子断言） |
 | F3 | ES geo_point 收 6 种格式且坐标序不一（字符串 lat,lon；GeoJSON/WKT/数组 lon,lat）；底层 Lucene LatLonPoint 每维 4 字节量化（依据 Lucene GeoEncodingUtils，非 ES mapping 页） | elastic.co geo-point / Lucene GeoEncodingUtils | 2026 | 高（已核验，信源校正） |
 | F4 | ES geo_shape 多边形三角化入 BKD 树（分辨率 1e-7 度）；支持 intersects/contains/within/disjoint | elastic.co geo-shape | 2026 | 高 |
 | F5 | Algolia 默认排名序 typos→geo→words：geo 距离列第二位 tie-breaker，文本容错优先于距离 | algolia.com relevance-guide | 2026 | 高 |
-| F6 | H3 为 16 级六边形网格（res0 边长约 1281km→res15 约 0.58m）；每级恒有 12 个五边形 | h3geo.org restable | 2026 | 高（已核验） |
-| F7 | S2 球面六面体投影+Hilbert 曲线：31 级四叉树、64 位 cell id，id 邻近⇒空间邻近（单向） | s2geometry.io s2cell_hierarchy | 2024 | 高 |
+| F6 | H3 为 16 级六边形网格（res0 边长约 1281km→res15 约 0.58m）；每级恒有 12 个五边形 | h3geo.org restable / Uber Engineering 2018（H3 出处） | 2026 | 高（已核验） |
+| F7 | S2 球面六面体投影+Hilbert 曲线：31 级四叉树、64 位 cell id，id 邻近⇒空间邻近（单向） | s2geometry.io s2cell_hierarchy / S2 论文 arXiv:2410.14808 | 2024 | 高 |
 | F8 | GeoHash 前缀匹配边界缺陷：cell 边缘近邻点不共享前缀，proximity 检索需并查 8 邻居并精距后滤——禁止前缀 LIKE 直查 | ops4life geohashing | 2024 | 中 |
 | F9 | OpenSearch 四种过滤时机：efficient filter 向量搜索期间过滤保证 k 个结果；post_filter 严格时远少于 k | docs.opensearch.org filter-search | 2026 | 高 |
 | F10 | Vespa nearestNeighbor 可被常规 filter（含 geo）约束 HNSW 图遍历；过滤命中不足 2% 文档时自动回退精确 NN | docs.vespa.ai | 2026 | 高 |
@@ -296,7 +296,7 @@ tags:
 
 ## 10. 核验回执
 
-七维发现共 95 条（报告正文按设计相关性收录其中主干条目）、理论引用 44 条，经逐维对抗核验（默认怀疑、实抓复核）：
+七维发现共 95 条（报告正文按设计相关性收录其中主干条目）、理论引用核查 44 条（正文 §9 文献表按同口径收录 31 条主干条目），经逐维对抗核验（默认怀疑、实抓复核）：
 
 | 维度 | 断言数 | confirmed | corrected | removed | 理论引用核查 |
 |---|---|---|---|---|---|

@@ -8,7 +8,7 @@
 
 - 修复 [I-245](docs/.agents/issue.md#I-245)：knowledge 写端点鉴权缺位——聚合层统一注入 `knowledge:write` 守卫（默认拒绝）、机器调用方每进程随机 service token、写路由覆盖门测试；035 §11.1 与代码对齐。
 - 新增 [ADR-0001 核心数据模型](docs/concepts/design/knowledge-base-platform-adr-0001-data-model.md)：version_key 含 document_id+产品域+ACL、确定性 chunk_id（document_id+text_hash+序位）、文档粒度同事务原子换版；依据差距分析中三类连锁事故实证。
-- 新增 [ADR-0002 真 BM25 选型](docs/concepts/design/knowledge-base-platform-adr-0002-bm25-engine.md)：三路取证+对抗核验（66 项：50 confirmed / 11 corrected / 0 removed）；pg_textsearch（PostgreSQL License）主选、OpenSearch（Apache-2.0）扩容；pg_search 因主流托管七家全不可装、Community 无索引复制、AGPL 对私有化交付不友好不作主选；AGPL 义务边界三情形表；证据 JSON 随文档入库。方案 §3.1/§6/§8 与实施计划 P2-4/前提/风险同步。
+- 新增 [ADR-0002 真 BM25 选型](docs/concepts/design/knowledge-base-platform-adr-0002-bm25-engine.md)：三路取证+对抗核验（61 项：50 confirmed / 11 corrected / 0 removed）；pg_textsearch（PostgreSQL License）主选、OpenSearch（Apache-2.0）扩容；pg_search 因主流托管七家全不可装、Community 无索引复制、AGPL 对私有化交付不友好不作主选；AGPL 义务边界三情形表；证据 JSON 随文档入库。方案 §3.1/§6/§8 与实施计划 P2-4/前提/风险同步。
 
 ### 知识库平台差距分析与 M1–M3 实施计划入库（design + 035 指针，2026-11-02）
 
@@ -19,7 +19,7 @@
 
 ### 知识库平台技术方案与四支柱竞品理论调研入库（design + knowledge-graph 036，2026-11-02）
 
-- 新增 [知识库平台技术方案](docs/concepts/design/knowledge-base-platform.md)（独立通用参考架构，正文字数门 7000 内）：六层架构（源/文档管理/索引构建/检索服务/应用集成）+ 权限与评测双横切平面；P1 Connector SPI 三同步模式（webhook/增量拉取·CDC/全量重扫）+ 内容寻址不可变版本库 SSOT + 草稿→评审→发布与 staleness 验证态治理；P2 BM25(F)/元数据/向量 ANN/地理空间四路索引 + 蓝绿索引版本 + 过滤基数自适应路由 + pgvector iterative scan×PostGIS 单 SQL 三路；P3 多产品 Channel 一等实体 + 逐断言引用锚定 + 阈值拒答回流文档待办 + RAGAS/golden set 回归门；P4 身份三平面（内部 RBAC/匿名产品域/登录客户 ABAC）+ 源 ACL 镜像→版本快照→chunk 物化→引擎内 pre-filter fail-closed→权限快照 token→双审计；19 条 IEEE 引用。
+- 新增 [知识库平台技术方案](docs/concepts/design/knowledge-base-platform.md)（独立通用参考架构，正文字数门 7000 内）：五层架构（源/文档管理/索引构建/检索服务/应用集成）+ 权限与评测双横切平面；P1 Connector SPI 三同步模式（webhook/增量拉取·CDC/全量重扫）+ 内容寻址不可变版本库 SSOT + 草稿→评审→发布与 staleness 验证态治理；P2 BM25(F)/元数据/向量 ANN/地理空间四路索引 + 蓝绿索引版本 + 过滤基数自适应路由 + pgvector iterative scan×PostGIS 单 SQL 三路；P3 多产品 Channel 一等实体 + 逐断言引用锚定 + 阈值拒答回流文档待办 + RAGAS/golden set 回归门；P4 身份四平面（内部 RBAC/匿名产品域/登录客户 ABAC/机器调用方）+ 源 ACL 镜像→版本快照→chunk 物化→引擎内 pre-filter fail-closed→权限快照 token→双审计；19 条 IEEE 引用。
 - 新增 [036 竞品与理论调研](docs/research/knowledge-graph/036-knowledge-base-platform-competitors.md)：七维并行扫描（企业平台/云检索服务/客服 AI/检索理论/过滤 ANN×ACL/分块同步评测/地理空间）95 条发现 + 逐维对抗核验（78 confirmed / 17 corrected / 0 removed，corrected 项已按修正口径入正文），四张对比矩阵 + 31 条理论引用，复用 034/035/030–032 存量不重复。
 - 两张 archify 图入库（`knowledge-base-platform--architecture` architecture、`knowledge-base-platform--permission-chain` workflow，finalize 四门回执齐，candidate JSON 入 docs/diagrams/，dark/light PNG 均 ≤1280 KiB）。
 - 方案经三镜头对抗评审（架构完备性 / 权限安全红队 / 引用对账）与二轮复审：修正检索次序（pre-filter 下推四路召回在前）、补 ACL 三类主体与匿名/客户判定式、version_key 纳入 ACL、蓝绿追平与回滚重放、撤销覆盖表、增强 token 约束、缓存与会话隔离、间接提示注入防线、PII 与保留期等。

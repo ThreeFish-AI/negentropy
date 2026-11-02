@@ -506,7 +506,7 @@
    "sot_drift": [
     {
      "doc_claim": "035 §0：数据库权威定义为 schema/perception_schema.sql（链接却指向 models/perception.py），含 kb_hybrid_search/kb_rrf_search",
-     "code_fact": "链接目标错误且 SQL 文件实际在 docs/reference/cognizes/engine/schema/perception_schema.sql（文档/reference 侧非代码 SSOT）；真正权威是 db/migrations/versions/ 的 100 个 alembic 迁移，且其中无任何迁移创建 kb_hybrid_search/kb_rrf_search（grep 零命中，repository 调用靠 Python fallback 兜底）",
+     "code_fact": "链接目标错误且 SQL 文件实际在 docs/reference/cognizes/engine/schema/perception_schema.sql（文档/reference 侧非代码 SSOT）；真正权威是 db/migrations/versions/ 的 99 个 alembic 迁移，且其中无任何迁移创建 kb_hybrid_search/kb_rrf_search（grep 零命中，repository 调用靠 Python fallback 兜底）",
      "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:23；grep kb_hybrid 于 apps/negentropy/src/negentropy/db/ 零命中；apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:966,1113（fallback 路径）"
     },
     {
