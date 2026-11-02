@@ -16,7 +16,7 @@ tags:
 
 ## 0. 前提与总体假设
 
-- **推荐技术栈**（与方案 §6 对齐，最大化参考件复用）：Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic；PostgreSQL 16+（pgvector；PostGIS 于 M2 引入；pg_search 视法务评估）；Redis（队列/限流，M2）；Next.js（管理台与官网 Widget）；uv + pnpm。检索层以仓储接口抽象，保持 ES/OpenSearch 可替换。
+- **推荐技术栈**（与方案 §6 对齐，最大化参考件复用）：Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic；PostgreSQL 17+（pgvector；关键字路 pg_textsearch，见 [ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)；PostGIS 于 M2 引入）；Redis（队列/限流，M2）；Next.js（管理台与官网 Widget）；uv + pnpm。检索层以仓储接口抽象，保持 ES/OpenSearch 可替换。
 - **团队假设**：后端 3、前端 1、算法/评测 1（可缩配 2+1+1）；人月按此折算。
 - **工期估算**：M1 ≈ 4–5 周（约 14 人周）；M2 ≈ 7–9 周（约 26 人周）；M3 ≈ 4–6 周（约 15 人周）。关键路径见 §9。
 - **总原则**：每个里程碑以**可量化的退出门**收口（§8）；安全不变量（方案 §5.2 五条）在 M1 即以最小形态成立，之后只收紧不放松；一切原生快路径随迁移交付、降级必须可观测。
@@ -59,7 +59,7 @@ tags:
 | P2-1 (M1) | 索引基线：tsvector（**明示非 BM25**）+ pgvector HNSW（M/efC/efS 参数化）+ 元数据结构化列与 GIN + (product_id) 复合索引 | migration + 索引回归测试（含 CJK 子串用例） | D2-L6/I-196（english 配置中文全灭）；差距 D2-C1/C2 | M |
 | P2-2 (M1) | chunk 数据态与写入幂等：parsed→indexing→indexed；未索引隔离；LLM 派生物缓存键 (hash(正文+源侧 metadata), pipeline_ver) | 状态机 + 缓存层 + 测试 | 方案不变量①；FastGPT 三态（调研 §4.3） | M |
 | P2-3 (M1) | 增量与重建（起步档）：文档粒度原子换版；text_hash 命中复用 embedding；重建判据=模型标识变更；重建入口覆盖全部源类型 | rebuild 管线 + 对比测试 | D2-L3/L4、D2-L5（幂等锚不可变标识） | M |
-| P2-4 (M2) | 真 BM25：pg_search（Tantivy）POC + AGPL 法务评估 → 通过则集成（JOIN/高亮/过滤）；不通过则关键字路外置 OpenSearch（字段级 k1/b、BM25F） | 决策 ADR + 落地 | 调研 §5-F11/F12；方案 §3.1 单库现实 | L |
+| P2-4 (M2) | 真 BM25 落地（选型已定，[ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)）：pg_textsearch 集成（k1/b 按索引、zhparser 中文）+ 目标云兼容性验证；RLS 共享表 IDF 跨租户统计评估（必要时按产品域分区）；AWS/Azure 场景走兜底重算并外置 OpenSearch（BM25F `combined_fields`） | 集成 + 兼容矩阵 + IDF 隔离测试 | ADR-0002；方案 §3.1 | L |
 | P2-5 (M2) | 地理空间：PostGIS + geo_point/geo_region 列 + GiST + `<->` KNN + H3 分析列；参照点优先级链与降级 | migration + geo 检索腿 + 测试 | 方案 §3.1/§3.3；调研 §8 | L |
 | P2-6 (M2) | index_ver 蓝绿：双写、水位追平、回归门、别名原子切换；回滚先重放删除/ACL 事件；权限/内容分队列部分重索引 | 蓝绿编排器 + 回滚演练 | 方案 §3.2；Azure Resync 范式（§3-F5） | XL |
 | P2-7 (M3) | 嵌入双轨：中文 BGE-M3/Qwen3 自托管 + 西文 API；MRL 弹性维度与租户配额；换模型重建常态化 | 双轨接入 + 重建 runbook | 调研 §5-F7/F8/F9/F10 | L |
@@ -134,7 +134,7 @@ tags:
 
 | 风险 | 缓解 |
 |---|---|
-| pg_search AGPL 法务不过 | M2 初即启动评估；不过则关键字路外置 OpenSearch（蓝绿迁移），接口已抽象 |
+| 目标云不支持 pg_textsearch（AWS/Azure） | ADR-0002 兜底：ts_rank 粗召回+SQL 侧 BM25 重算，M2 外置 OpenSearch；接口已抽象 |
 | 登录客户 IdP 对接形态未知（SSO/自建） | P4-4 预留双入口（OIDC 兑换 + 自建会话）；M2 前与产品侧确认 |
 | geo 场景数据量与查询形态不确定 | P2-5 先以单产品域网点/区域政策小集试点，再决定 H3 分析列深度 |
 | 蓝绿双写复杂度超预期 | M1 已用原子换版兜底；index_ver 蓝绿可降档为「重建+影子比对+切换」 |
@@ -144,6 +144,6 @@ tags:
 ## 12. Next Actions（两周内可开工）
 
 1. P0-1/P0-2/P0-3：仓库骨架、鉴权默认 strict+覆盖门、迁移与扩展自检（可立即开工）。
-2. P1-1 数据模型设计评审（version_key/确定性 chunk_id/软删复活）——本计划最大的一次性设计决策。
-3. P2-4 真 BM25 法务评估启动（ADR 模板就绪）。
+2. P1-1 数据模型按 [ADR-0001](./knowledge-base-platform-adr-0001-data-model.md) 开工（version_key 含 document_id+产品域+ACL、确定性 chunk_id、文档粒度原子换版）。
+3. 确认目标云：按 [ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)（pg_textsearch 主选、OpenSearch 扩容），目标云决定 M1 关键字路走 pg_textsearch 还是兜底重算。
 4. 与产品侧确认 M2 的 IdP 对接形态与首个多产品试点域。

@@ -47,6 +47,7 @@
 - [知识库平台技术方案](../concepts/design/knowledge-base-platform.md) —
 - [知识库平台 × Negentropy 差距分析与补充诊断](../concepts/design/knowledge-base-platform-gap-analysis.md) — 82 项机制判定（3 implemented/28 partial/19 divergent/32 missing）+ 44 条反向经验（24 high）+ 24 条 035 文档漂移附录；机器可审计证据 JSON 随文档入库
 - [知识库平台 M1–M3 工程实施计划](../concepts/design/knowledge-base-platform-implementation.md) — 独立新建平台：六工作流（P0 平台工程/P1 文档管理/P2 索引/P3 检索/P4 权限/P5 应用闭环）× 三里程碑量化退出门、关键路径、16 条工程铁律与可移植参考件清单（roadmap archify 图） 文档管理 × 索引构建 × 应用集成 × 权限管控四支柱独立通用参考架构：六层+权限/评测双横切平面、Connector SPI 三同步模式与内容寻址版本库、BM25/元数据/向量/地理四路索引与蓝绿版本、多产品 Channel 客服机器人、全链路 pre-filter fail-closed 权限流（两张 archify 图；循证基座见 [036 竞品与理论调研](../research/knowledge-graph/036-knowledge-base-platform-competitors.md)）
+- [KBP ADR-0001 核心数据模型](../concepts/design/knowledge-base-platform-adr-0001-data-model.md) · [ADR-0002 真 BM25 选型](../concepts/design/knowledge-base-platform-adr-0002-bm25-engine.md) — 数据模型三决策（version_key/确定性 chunk_id/原子换版）；BM25 许可与托管可用性评估（66 项核验，pg_textsearch 主选、OpenSearch 扩容、AGPL 义务边界三情形）
 - [Negentropy Wiki Ops](../reference/wiki/ops.md)
 - [Wiki 独立部署与内容同步](../reference/wiki/deployment.md) — 纯静态 wiki 独立部署（Docker / 静态托管）+ 本地主站 Catalog 内容同步到远程 wiki 的 step-by-step 指引；含「本地 publish 自动发布到 GitHub Pages」（图片烘焙自包含 + 后端 spawn `publish-wiki-pages.sh` + buildId 幂等）
 - [Wiki 知识图谱（按 Publication 切片发布）](../reference/wiki/design/knowledge-graph.md)

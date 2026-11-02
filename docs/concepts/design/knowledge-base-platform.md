@@ -91,7 +91,7 @@ DocumentVersion 承载结构化 AST、清洗正文、元数据（语言/类型/�
 | 向量 ANN | HNSW<sup>[[5]](#ref5)</sup> | M/efConstruction/efSearch；**embedding 模型版本绑定索引**（重建判据为模型标识变更而非维度比对——同维换模型同样混空间；换模型=全量重建，不混用向量空间）；MRL 自适应维度<sup>[[19]](#ref19)</sup>；中文优先 BGE-M3/Qwen3 类自托管（BGE-M3 单模型三路表征一次计算<sup>[[18]](#ref18)</sup>；榜单快速更替，以当期 MTEB+自有 golden set 复核）、西文 API 双轨 | 语义改述、口语提问 |
 | 地理空间 | geo_point + geo_region | R-tree 族（PostGIS GiST）<sup>[[16]](#ref16)</sup>；KNN 距离算子 `<->`（仅在 ORDER BY 中走索引）；区域走 within/intersects 围栏语义；H3 预置列作分析面、S2 region cover 编不规则服务区（调研报告 §8） | 「附近网点」「区域政策」 |
 
-**单库起步现实**：PostgreSQL 一库承载四路时，tsvector/ts_rank_cd **并非 BM25**（官方文档明言排名函数不用全局统计，故无 IDF，§5-F10）——真 BM25 须走 pg_search/Tantivy 类扩展（核托管商支持与 AGPL 许可，§5-F11）或外置引擎；向量路用 pgvector 0.8+ iterative scan，可与任意 WHERE（含 PostGIS 谓词）组合，一条 SQL 完成 geo+元数据+向量三路检索（调研报告 §8-F11）。
+**单库起步现实**：PostgreSQL 一库承载四路时，tsvector/ts_rank_cd **并非 BM25**（官方文档明言排名函数不用全局统计，故无 IDF，§5-F10）——真 BM25 走 pg_textsearch（PostgreSQL License，选型见 [ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)）或外置引擎；向量路用 pgvector 0.8+ iterative scan，可与任意 WHERE（含 PostGIS 谓词）组合，一条 SQL 完成 geo+元数据+向量三路检索（调研报告 §8-F11）。
 
 ### 3.2 索引编排与版本
 
@@ -171,7 +171,7 @@ IndexBuild 三策略：全量初建 / 增量（按版本 diff 重刷该文档 ch
 | P3 | Zendesk brand 绑定；Kapa project 隔离+citations+拒答<10%+回流文档待办；Ada Simulations/Coaching | Channel 一等实体+逐断言引用+阈值拒答+KnowledgeTask 回流 |
 | P4 | Azure search.in 引擎内裁剪+Resync 部分重索引；Vertex acl_info.readers；Algolia secured key；Zanzibar 外部一致性 | 源 ACL 镜像→版本快照→chunk 物化→引擎内 pre-filter fail-closed→ACL 水位→双审计 |
 
-**推荐起步组合**：PostgreSQL 一库四能——pgvector HNSW（向量）+ PostGIS（地理）+ JSONB GIN/结构化列（元数据）+ RLS（租户/权限兜底）；关键字路以 ts_rank 粗召回起步、pg_search（Tantivy）类扩展补真 BM25（社区版 AGPL-3.0 需法务评估；托管支持不稳，如 Neon 2026-03 对新项目弃用，§5-F11；备选外置 ES/OpenSearch）；连接器框架与 Channel 网关自建；评测 RAGAS+golden set。**演进边界**（阈值触发、受控迁移非重写）：QPS/数据量超限→关键字路升 Elasticsearch/OpenSearch、向量路升专用引擎（filtered-ANN 原生）；ACL 判定超规模→独立 ReBAC 服务；embedding 中文路 BGE-M3/Qwen3 自托管与西文 API 双轨，MRL 弹性维度做租户级配额<sup>[[19]](#ref19)</sup>。**可替换性**：抽象索引接口，勿绑维护期服务（Kendra 教训，§3-F6）。
+**推荐起步组合**：PostgreSQL 一库四能——pgvector HNSW（向量）+ PostGIS（地理）+ JSONB GIN/结构化列（元数据）+ RLS（租户/权限兜底）；关键字路以 pg_textsearch 补真 BM25（PostgreSQL License；AWS/Azure 暂不可装时走 ts_rank 粗召回+SQL 侧 BM25 重算，再外置 OpenSearch）；连接器框架与 Channel 网关自建；评测 RAGAS+golden set。**演进边界**（阈值触发、受控迁移非重写）：QPS/数据量超限→关键字路升 Elasticsearch/OpenSearch、向量路升专用引擎（filtered-ANN 原生）；ACL 判定超规模→独立 ReBAC 服务；embedding 中文路 BGE-M3/Qwen3 自托管与西文 API 双轨，MRL 弹性维度做租户级配额<sup>[[19]](#ref19)</sup>。**可替换性**：抽象索引接口，勿绑维护期服务（Kendra 教训，§3-F6）。
 
 ## 7. 演进路线
 
@@ -184,7 +184,7 @@ IndexBuild 三策略：全量初建 / 增量（按版本 diff 重刷该文档 ch
 | 风险 | 缓解 |
 |---|---|
 | pre-filter 高选择性下 ANN 召回塌缩 | 过滤基数自适应路由+低基数 brute-force 回退（Weaviate flatSearchCutoff 范式，默认 40000 对象，§6-F2）；strictPostFilter 差分作泄漏回归基线（Azure 预览特性，§6-F4） |
-| 单库关键字路非真 BM25 | ts_rank 粗召回+pg_search 补偿；超阈值迁 ES 系（字段级 k1/b 覆写） |
+| 单库关键字路非真 BM25 | pg_textsearch；不可装时兜底重算，超阈值迁 OpenSearch（BM25F） |
 | ACL 镜像同步错序 | 双通道对账+滞后监控+ACL 水位 |
 | geo×文本×向量融合参数无先验 | 按 golden set 实测定参，不拍脑袋 |
 | 生成端幻觉 | 逐断言引用+无锚按幻觉处理+拒答阈值+评测门 |

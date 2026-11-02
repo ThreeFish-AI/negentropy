@@ -57,6 +57,8 @@
 | [知识库平台技术方案](./design/knowledge-base-platform.md) | 文档管理 × 索引构建 × 应用集成 × 权限管控四支柱参考架构 |
 | [知识库平台 × Negentropy 差距分析](./design/knowledge-base-platform-gap-analysis.md) | 82 项机制判定 + 44 条反向经验 + 24 条 035 漂移（机器可审计证据随文档入库） |
 | [知识库平台 M1–M3 实施计划](./design/knowledge-base-platform-implementation.md) | 独立新建平台分里程碑工程计划：六工作流 × 三里程碑、量化退出门、关键路径与 16 条工程铁律 |
+| [KBP ADR-0001：核心数据模型](./design/knowledge-base-platform-adr-0001-data-model.md) | version_key（含 document_id+产品域+ACL）、确定性 chunk_id、文档粒度原子换版 |
+| [KBP ADR-0002：真 BM25 选型](./design/knowledge-base-platform-adr-0002-bm25-engine.md) | pg_textsearch（PostgreSQL License）主选、OpenSearch 扩容；pg_search 因托管全不可装+Community 无索引复制+AGPL 不作主选 |
 | [RFC 0001：Home Chat 会话架构重塑](./design/0001-conversation-architecture-refactor.md) | 会话架构重构决策记录 |
 | [RFC 0002：Home Chat UI 交互能力增强](./design/0002-ui-interaction-enhancements.md) | UI 交互增强决策记录 |
 
