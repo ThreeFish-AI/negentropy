@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### 知识库平台差距分析与 M1–M3 实施计划入库（design + 035 指针，2026-11-02）
+
+- 新增 [差距分析与补充诊断](docs/concepts/design/knowledge-base-platform-gap-analysis.md)：以方案为标尺对 Negentropy 知识子系统做五域取证（82 项判定：3 implemented / 28 partial / 19 divergent / 32 missing，工作量 S11/M36/L29/XL6）+ 逐域对抗复核（另补 16 条遗漏事实）；44 条反向经验（24 high）沉淀回方案与实施铁律；24 条 035 文档漂移附录（RBAC 未挂、kb_* 函数未入迁移、knowledge.embedding 无 HNSW、版本快照路径损坏、visibility 交集零执行等）；机器可审计证据 [JSON](docs/concepts/design/knowledge-base-platform-gap-evidence.json) 随文档入库。
+- 方案正文按反向经验回写（字数门 7000 内，6796）：机器调用方第四身份平面、Agent/MCP 第四种嵌入形态、chunk_id 确定性派生、原生快路径随迁移交付且降级可观测、重建判据=模型标识、跨索引名次融合、置信禁归一化分、权限参数必填、路由鉴权覆盖门、逐腿回归断言、蓝绿起步档=文档粒度原子换版等 12 处。
+- 新增 [M1–M3 工程实施计划](docs/concepts/design/knowledge-base-platform-implementation.md)：独立新建平台（Negentropy 为参考实现与经验库）；六工作流 × 三里程碑任务分解（含参考件锚点与工作量）、量化退出门、关键路径、16 条工程铁律、风险与 Next Actions；配套 archify roadmap 图（横版三泳道×六列，finalize 四门回执，candidate JSON 入 docs/diagrams/）。
+- 035 补对标指针一行（漂移整改另开 Issue，本文不代改）。
+
 ### 知识库平台技术方案与四支柱竞品理论调研入库（design + knowledge-graph 036，2026-11-02）
 
 - 新增 [知识库平台技术方案](docs/concepts/design/knowledge-base-platform.md)（独立通用参考架构，正文字数门 7000 内）：六层架构（源/文档管理/索引构建/检索服务/应用集成）+ 权限与评测双横切平面；P1 Connector SPI 三同步模式（webhook/增量拉取·CDC/全量重扫）+ 内容寻址不可变版本库 SSOT + 草稿→评审→发布与 staleness 验证态治理；P2 BM25(F)/元数据/向量 ANN/地理空间四路索引 + 蓝绿索引版本 + 过滤基数自适应路由 + pgvector iterative scan×PostGIS 单 SQL 三路；P3 多产品 Channel 一等实体 + 逐断言引用锚定 + 阈值拒答回流文档待办 + RAGAS/golden set 回归门；P4 身份三平面（内部 RBAC/匿名产品域/登录客户 ABAC）+ 源 ACL 镜像→版本快照→chunk 物化→引擎内 pre-filter fail-closed→权限快照 token→双审计；19 条 IEEE 引用。

@@ -23,6 +23,7 @@ tags:
 - **数据库权威定义**：[`schema/perception_schema.sql`](../../../apps/negentropy/src/negentropy/models/perception.py)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
 - **前端扩展约束**：[`framework.md` §11](../../../concepts/framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
 - **调研文档**：[`034-knowledge-base.md`](../../research/knowledge-graph/034-knowledge-base.md)、[`035-knowledge-base-platform.md`](../../research/knowledge-graph/035-knowledge-base-platform.md)。
+- **对标与差距**：本子系统相对《[知识库平台技术方案](../design/knowledge-base-platform.md)》的逐机制差距判定与文档漂移清单见《[差距分析与补充诊断](../design/knowledge-base-platform-gap-analysis.md)》（as-of 2026-11-02，代码为准）。
 - **设计文档**：[`020-the-hippocampus.md`](../../reference/cognizes/engine/020-the-hippocampus.md)（Memory 遗忘曲线设计）。
 
 ## 1. 目标与边界

@@ -55,6 +55,8 @@
 | [自进化 Agents Team 技术方案](./design/self-evolving-agents.md) | 四层自进化架构 |
 | [Skills 模块](./design/skills.md) | Agent Skills 工程实现 |
 | [知识库平台技术方案](./design/knowledge-base-platform.md) | 文档管理 × 索引构建 × 应用集成 × 权限管控四支柱参考架构 |
+| [知识库平台 × Negentropy 差距分析](./design/knowledge-base-platform-gap-analysis.md) | 82 项机制判定 + 44 条反向经验 + 24 条 035 漂移（机器可审计证据随文档入库） |
+| [知识库平台 M1–M3 实施计划](./design/knowledge-base-platform-implementation.md) | 独立新建平台分里程碑工程计划：六工作流 × 三里程碑、量化退出门、关键路径与 16 条工程铁律 |
 | [RFC 0001：Home Chat 会话架构重塑](./design/0001-conversation-architecture-refactor.md) | 会话架构重构决策记录 |
 | [RFC 0002：Home Chat UI 交互能力增强](./design/0002-ui-interaction-enhancements.md) | UI 交互增强决策记录 |
 

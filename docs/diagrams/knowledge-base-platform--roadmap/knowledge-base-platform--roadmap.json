@@ -1,0 +1,324 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "知识库平台 M1–M3 实施路线",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/design/knowledge-base-platform--roadmap.html"
+  },
+  "lanes": [
+    {
+      "id": "m1",
+      "label": "M1 单产品可用"
+    },
+    {
+      "id": "m2",
+      "label": "M2 多产品·全索引"
+    },
+    {
+      "id": "m3",
+      "label": "M3 规模化·闭环",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "g0",
+    "d0",
+    "i0",
+    "r0",
+    "a0",
+    "w0"
+  ],
+  "nodes": [
+    {
+      "id": "g0",
+      "lane": "m1",
+      "col": 0,
+      "type": "backend",
+      "label": "骨架·鉴权门",
+      "sublabel": "strict+覆盖门",
+      "width": 150
+    },
+    {
+      "id": "d0",
+      "lane": "m1",
+      "col": 1,
+      "type": "database",
+      "label": "版本库·原子换版",
+      "sublabel": "确定性 chunk",
+      "tag": "SSOT",
+      "width": 152
+    },
+    {
+      "id": "i0",
+      "lane": "m1",
+      "col": 2,
+      "type": "database",
+      "label": "索引基线",
+      "sublabel": "ts_rank+HNSW+元数据",
+      "width": 150
+    },
+    {
+      "id": "r0",
+      "lane": "m1",
+      "col": 3,
+      "type": "backend",
+      "label": "谓词·四模式",
+      "sublabel": "RRF k=60",
+      "width": 146
+    },
+    {
+      "id": "a0",
+      "lane": "m1",
+      "col": 4,
+      "type": "security",
+      "label": "Channel·匿名谓词",
+      "sublabel": "fail-closed",
+      "tag": "安全底线",
+      "width": 150
+    },
+    {
+      "id": "w0",
+      "lane": "m1",
+      "col": 5,
+      "type": "frontend",
+      "label": "Answer API",
+      "sublabel": "golden set v0",
+      "width": 144
+    },
+    {
+      "id": "g1",
+      "lane": "m2",
+      "col": 0,
+      "type": "messagebus",
+      "label": "队列·调度·死信",
+      "sublabel": "watchdog",
+      "width": 148
+    },
+    {
+      "id": "d1",
+      "lane": "m2",
+      "col": 1,
+      "type": "backend",
+      "label": "连接器 SPI",
+      "sublabel": "webhook/增量/重扫",
+      "width": 148
+    },
+    {
+      "id": "i1",
+      "lane": "m2",
+      "col": 2,
+      "type": "database",
+      "label": "真 BM25·geo·蓝绿",
+      "sublabel": "index_ver 水位",
+      "width": 150
+    },
+    {
+      "id": "r1",
+      "lane": "m2",
+      "col": 3,
+      "type": "backend",
+      "label": "真重排·置信校准",
+      "sublabel": "逐腿回归门",
+      "width": 150
+    },
+    {
+      "id": "a1",
+      "lane": "m2",
+      "col": 4,
+      "type": "security",
+      "label": "ACL 全链路",
+      "sublabel": "撤销表·token·RLS",
+      "width": 146
+    },
+    {
+      "id": "w1",
+      "lane": "m2",
+      "col": 5,
+      "type": "frontend",
+      "label": "Widget 沙箱·闭环",
+      "sublabel": "四态·RAGAS 门",
+      "width": 150
+    },
+    {
+      "id": "g2",
+      "lane": "m3",
+      "col": 0,
+      "type": "backend",
+      "label": "运维常态化",
+      "sublabel": "演练+runbook",
+      "width": 144
+    },
+    {
+      "id": "d2",
+      "lane": "m3",
+      "col": 1,
+      "type": "frontend",
+      "label": "降频·合规·多语言",
+      "sublabel": "擦除级联",
+      "width": 150
+    },
+    {
+      "id": "i2",
+      "lane": "m3",
+      "col": 2,
+      "type": "database",
+      "label": "嵌入双轨",
+      "sublabel": "MRL 弹性维度",
+      "width": 142
+    },
+    {
+      "id": "r2",
+      "lane": "m3",
+      "col": 3,
+      "type": "backend",
+      "label": "高精档（可选）",
+      "sublabel": "ColBERT/SPLADE",
+      "width": 146
+    },
+    {
+      "id": "a2",
+      "lane": "m3",
+      "col": 4,
+      "type": "security",
+      "label": "ReBAC 外置评估",
+      "sublabel": "OpenFGA",
+      "width": 146
+    },
+    {
+      "id": "w2",
+      "lane": "m3",
+      "col": 5,
+      "type": "backend",
+      "label": "A/B·口径",
+      "sublabel": "粘性分桶+护栏",
+      "width": 142
+    }
+  ],
+  "edges": [
+    {
+      "id": "m1a",
+      "from": "g0",
+      "to": "d0",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m1b",
+      "from": "d0",
+      "to": "i0",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m1c",
+      "from": "i0",
+      "to": "r0",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m1d",
+      "from": "r0",
+      "to": "a0",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m1e",
+      "from": "a0",
+      "to": "w0",
+      "variant": "emphasis"
+    },
+    {
+      "id": "p0",
+      "from": "g0",
+      "to": "g1"
+    },
+    {
+      "id": "p1",
+      "from": "g1",
+      "to": "g2"
+    },
+    {
+      "id": "q0",
+      "from": "d0",
+      "to": "d1"
+    },
+    {
+      "id": "q1",
+      "from": "d1",
+      "to": "d2"
+    },
+    {
+      "id": "s0",
+      "from": "i0",
+      "to": "i1"
+    },
+    {
+      "id": "s1",
+      "from": "i1",
+      "to": "i2"
+    },
+    {
+      "id": "t0",
+      "from": "r0",
+      "to": "r1"
+    },
+    {
+      "id": "t1",
+      "from": "r1",
+      "to": "r2"
+    },
+    {
+      "id": "u0",
+      "from": "a0",
+      "to": "a1"
+    },
+    {
+      "id": "u1",
+      "from": "a1",
+      "to": "a2"
+    },
+    {
+      "id": "v0",
+      "from": "w0",
+      "to": "w1"
+    },
+    {
+      "id": "v1",
+      "from": "w1",
+      "to": "w2"
+    },
+    {
+      "id": "x0",
+      "from": "g1",
+      "to": "d1",
+      "variant": "dashed",
+      "label": "队列前置"
+    },
+    {
+      "id": "x1",
+      "from": "a1",
+      "to": "w1",
+      "variant": "dashed",
+      "label": "权限前置"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "列=工作流 行=里程碑",
+      "items": [
+        "六工作流 P0–P5 各自随里程碑递进",
+        "M1 行为关键路径：骨架→版本→索引→谓词→Channel→API"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "硬约束",
+      "items": [
+        "安全不变量 M1 即成立、只收紧不放松",
+        "每里程碑以量化退出门收口",
+        "原生快路径随迁移交付，降级必须可观测"
+      ]
+    }
+  ]
+}
