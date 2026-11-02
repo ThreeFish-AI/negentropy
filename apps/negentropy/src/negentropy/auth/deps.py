@@ -125,7 +125,11 @@ def get_knowledge_service_token() -> str:
 
 def _is_service_caller(request: Request) -> bool:
     presented = request.headers.get(SERVICE_TOKEN_HEADER)
-    return bool(presented) and hmac.compare_digest(presented, get_knowledge_service_token())
+    if not presented:
+        return False
+    # header 值经 latin-1 解码可含非 ASCII 字符；compare_digest 对非 ASCII str 抛 TypeError（500），
+    # 两侧统一 utf-8 编码为 bytes 后恒时比较。
+    return hmac.compare_digest(presented.encode("utf-8"), get_knowledge_service_token().encode("utf-8"))
 
 
 async def require_knowledge_write(request: Request) -> AuthUser | None:
@@ -133,6 +137,10 @@ async def require_knowledge_write(request: Request) -> AuthUser | None:
 
     鉴权关闭（``enabled=False`` / ``mode=off``）时放行，与 ``AuthMiddleware`` 同口径；
     其余模式一律 fail-closed——optional 模式下中间件对无 token 请求放行，写操作的拒绝在此兜底。
+
+    注意：service token 机器调用方路径仅在 optional/off 模式生效——strict 模式下
+    ``AuthMiddleware`` 先于路由守卫对无会话 token 的请求一律 401，机器调用方（不持有
+    人类会话 token）会被中间件拒绝；strict 部署若需机器调用方，须先决策中间件层的豁免机制。
     """
     # 局部 import：rbac 顶层依赖本模块的 get_current_user，避免循环导入。
     from .rbac import has_permission

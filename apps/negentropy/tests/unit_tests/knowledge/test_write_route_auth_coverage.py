@@ -61,6 +61,18 @@ def test_guard_injected_once_per_route() -> None:
         assert count <= 1, f"守卫重复注入：{route.path}"
 
 
+def test_separately_mounted_knowledge_write_routes_are_guarded() -> None:
+    """/knowledge 前缀但独立挂载（聚合 router 之外，如 corpus task-models）的写端点同样须挂守卫。"""
+    from negentropy.interface.task_models_api import corpus_router as task_models_corpus_router
+
+    write_routes = [
+        r for r in task_models_corpus_router.routes if isinstance(r, APIRoute) and r.methods & _WRITE_METHODS
+    ]
+    assert write_routes, "corpus task-models 写端点消失：请同步更新本覆盖门"
+    for route in write_routes:
+        assert _has_guard(route), f"独立挂载的 /knowledge 写端点未挂守卫：{route.path}"
+
+
 # ---------------------------------------------------------------------------
 # 守卫行为
 # ---------------------------------------------------------------------------
@@ -143,6 +155,14 @@ def test_wrong_service_token_is_rejected(guarded_client) -> None:
     app, mp = guarded_client
     _set_token_user(mp, None)
     headers = {auth_deps.SERVICE_TOKEN_HEADER: "forged"}
+    assert TestClient(app).post("/probe", headers=headers).status_code == 401
+
+
+def test_non_ascii_service_token_is_rejected_not_500(guarded_client) -> None:
+    """header 值经 latin-1 解码可含非 ASCII 字符：须 401 拒绝而非 compare_digest 的 TypeError 500。"""
+    app, mp = guarded_client
+    _set_token_user(mp, None)
+    headers = {auth_deps.SERVICE_TOKEN_HEADER: "éÿ".encode("latin-1")}  # 原始非 ASCII 字节
     assert TestClient(app).post("/probe", headers=headers).status_code == 401
 
 
