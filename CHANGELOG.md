@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### PowerContext（OceanBase 上下文运行层）精读与通俗拆解入库（016，2026-11-01）
+
+- 新增 [016 精读](docs/research/cognitive-context/016-powercontext-context-runtime.md)（oceanbase/powercontext v1.4.1，钉点 master `5032075ad`，Apache-2.0；官网中文文档 + README + 13 篇核心 RFC + evaluation/ 共 78 文件全量通读）：把决定/约束/证据/进展做成服务端带版本 Artifact——Scope 只选数据不授权、Source 捕获≠生成、七类家族 `FAMILY/ID@REVISION` 不可变寻址；生成·评审·执行三权分立（Candidate 收件箱 + `expected_version` 乐观锁、批准≠安装≠执行）；PreparedContext 字节预算有界召回 + 充分性闸门（强匹配 0.70 参与差距判定、两轮有界扩展）与容量契约；Handoff 四步循环与 hint 全有或全无；实证 LoCoMo 90.78% 对全量重放 52.9%、SWE-bench Pro +4.38pp（非官方提交）、LoCoMo Plus 自供未复核等边界自曝；五规律三争议，字数门 5000 内（4962）。
+- 配套纯标准库原型 [powercontext_lab.py](docs/research/cognitive-context/assets/powercontext_lab.py)（五机制 M1–M5、21 断言全绿、D1–D5 破坏实验：D2 无评审门未批准提案进召回、D3 无预算 468B→2769B、D4 截断丢「禁止压测」限定）；archify workflow 图 `powercontext--review-gates`（finalize 四门回执齐）；9 张信源原图入 source-figures（4 张官方 SVG 无头 2× 栅格化 + 5 张博客图降采样 1400px）。
+- 登记面：research readme 第一节、knowledge-map Research 节与原图资产库行、mermaid README cognitive-context 分节、source-figures README。
+
 ### 线性注意力机制精读与通俗拆解入库：新开 model-architecture 分组（250，2026-10-30）
 
 - 新增 [250 精读](docs/research/model-architecture/250-linear-attention-kda.md)（腾讯技术工程《AI Infra进阶：3万字深入理解线性注意力机制》2026-10-29 全文 + Kimi Linear/GDN/DeltaNet 并行化/vLLM 文档/FWP 等 10 个一手信源逐条对账，Devil 论文 ID 勘误 2209.07482→2210.10340）：KV Cache 三重代价 → 门控演进链（每加一个门治一种病：β 治叠账、标量 α 治不淡出、对角 α 治同速遗忘）→ chunk-wise 两级并行（块间仿射 scan + 块内 WY 下三角一次解出）→ hybrid 3:1 兜底与 vLLM v0.32.0 落地三件事（page 对齐 640/前缀缓存块边界/推测解码回退一块）；五规律三争议，字数门 6000 内（5993）。
