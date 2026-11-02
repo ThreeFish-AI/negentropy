@@ -1,0 +1,19 @@
+%% source: docs/research/agent-harness/182-dsh-superagent.md §6
+%% slug: dsh-superagent--attention-lifecycle
+%% type: lifecycle
+%% derived: docs/assets/architecture/agent-harness/dsh-superagent--attention-lifecycle.html
+stateDiagram-v2
+    [*] --> queued : 接单排队
+    queued --> working : 派工启动 · 占槽
+    working --> idle : 报 waiting · 本轮结束
+    idle --> working : 订阅消息 / 后台完成唤醒
+    working --> review : 报 ready · PR 待人审
+    working --> answer : 提问 human_action
+    answer --> working : 答后继续（授权工作不停）
+    working --> blocked : 报 blocked/failed
+    blocked --> working : 人话释放 · 重试
+    idle --> ended : dropped 无事可做
+    review --> ended : PR 合并/关闭 · followsDone
+    ended --> working : 真人消息复活 · 先重验票据
+    review --> [*]
+    ended --> [*]

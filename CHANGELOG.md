@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### PowerContext（OceanBase 上下文运行层）精读与通俗拆解入库（016，2026-11-01）
+
+- 新增 [016 精读](docs/research/cognitive-context/016-powercontext-context-runtime.md)（oceanbase/powercontext v1.4.1，钉点 master `5032075ad`，Apache-2.0；官网中文文档 + README + 13 篇核心 RFC + evaluation/ 共 78 文件全量通读）：把决定/约束/证据/进展做成服务端带版本 Artifact——Scope 只选数据不授权、Source 捕获≠生成、七类家族 `FAMILY/ID@REVISION` 不可变寻址；生成·评审·执行三权分立（Candidate 收件箱 + `expected_version` 乐观锁、批准≠安装≠执行）；PreparedContext 字节预算有界召回 + 充分性闸门（强匹配 0.70 参与差距判定、两轮有界扩展）与容量契约；Handoff 四步循环与 hint 全有或全无；实证 LoCoMo 90.78% 对全量重放 52.9%、SWE-bench Pro +4.38pp（非官方提交）、LoCoMo Plus 自供未复核等边界自曝；五规律三争议，字数门 5000 内（4962）。
+- 配套纯标准库原型 [powercontext_lab.py](docs/research/cognitive-context/assets/powercontext_lab.py)（五机制 M1–M5、21 断言全绿、D1–D5 破坏实验：D2 无评审门未批准提案进召回、D3 无预算 468B→2769B、D4 截断丢「禁止压测」限定）；archify workflow 图 `powercontext--review-gates`（finalize 四门回执齐）；9 张信源原图入 source-figures（4 张官方 SVG 无头 2× 栅格化 + 5 张博客图降采样 1400px）。
+- 登记面：research readme 第一节、knowledge-map Research 节与原图资产库行、mermaid README cognitive-context 分节、source-figures README。
+
+### dsh-superagent（DeepSeek Super-agent 原型）精读与通俗拆解入库（agent-harness 182，2026-11-01）
+- 新增 [182 精读](docs/research/agent-harness/182-dsh-superagent.md)（deepseek-ai/dsh-superagent-prototype，main@6337fc8，MIT，2026-10-31 开源）：注意力公理 → 两道闸（Gate 程序管人 / Assessment 模型管事，正文骗不了代码闸）→ 订阅扇出（上下文≠权限、bot 不复活已结束工单）→ Mandate 不可变票据（变更只通知不撤单、复活按当日重验）→ 异步执行环（5s 转后台/30min 上限/人类加塞槽/路由禁等待）→ 先记账后干活（Effects/Outbox）；文章的 Watchdog/投机执行/存算分离在仓库 0 实现（grep 实测）作为「文章 vs 仓库」核心证据链；微信文章原文反爬不可达，数字全走【三】级归因（p95 15.7 vs 29.5 分钟、cache +37%、Router +30%，合成消息测试）；五规律三争议，字数门 5000 内（4913）。
+- 配套纯标准库原型 [dsh_superagent_lab.py](docs/research/agent-harness/assets/dsh_superagent_lab.py)（纯函数核心 1:1 移植，809 条测试用例行为对账；D1–D5 破坏实验实测退化）；两张 archify 图四件套入库（`dsh-superagent--message-lifecycle` workflow、`dsh-superagent--attention-lifecycle` lifecycle，finalize 四门回执齐，candidate JSON 入 docs/diagrams/）。
+- 登记面：research readme 第九节、knowledge-map Research 节、mermaid README agent-harness 分节、issue I-244。
+
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》《Autonomous Agents：自己看板，自己认领》《Worktree Isolation：一个任务，一个房间》《MCP 与插件：发现、命名、组装》后 ep20《综合回合：机制很多，循环一个》终章收官交付 v1（2026-11-02）——二十集系列全部交付
 
 - ⑥ 22 镜六场景分镜（零建图；G1 RISKY 0 放行——终章反串线从严扫描全过：回闪十八枚机制剪影零文字、零前集标题零集数序号、series-layers next=null 终章处置；3-A 输入条 caption-dup 豁免预注；judge 零微改进 v2 基线直冻）。⑦ me-bright/story TTS 56 句实测口径 5.0 分落窗。⑧ 环形走廊双态画法（远景环体细线四拍/近景走廊、中线即陶土橙环体——LoopRing 母题本体零改动外层包装）/十八机制剪影族（灰调零文字）/挂点槽+合流紫归位/岗亭输入钩子/三间准备室/恢复垫四徽章/岔口判读台正反同帧/三车道执行段/三圈走查（一句真输入拆两签四段全程可追）/名册 27 格+演进链 8→14→18→27/消融左红右绿/while True 五行代码剪影/五段组弧零文字装置族 + 片头孪生（组五 groupOf(20)=5、五大组进度全亮）。

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "05e65859-91ef-4a43-9e01-e06cf30f0a68",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/lisbon-v3/docs/diagrams/powercontext--review-gates/powercontext--review-gates.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/lisbon-v3/docs/assets/architecture/cognitive-context/powercontext--review-gates.html",
+  "specification": {
+    "sha256": "fc360a1d5ad377cfb86966e016fec790c6df6915fa25cd63a411af7f8fe851f0",
+    "bytes": 3615
+  },
+  "artifact": {
+    "sha256": "0f589b65fc9a1e2906bbb5815d036b3a2f14076814243e32c075c5439e286af4",
+    "bytes": 756686
+  }
+}

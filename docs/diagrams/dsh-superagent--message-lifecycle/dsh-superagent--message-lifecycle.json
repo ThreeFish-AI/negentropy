@@ -1,0 +1,246 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "dsh-superagent：一条消息的一生",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/agent-harness/dsh-superagent--message-lifecycle.html"
+  },
+  "lanes": [
+    {
+      "id": "code",
+      "label": "程序强制 · 宿主代码（提示词改不动）"
+    },
+    {
+      "id": "model",
+      "label": "模型判断 · 主 Session 与执行器"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p-in",
+      "label": "入口",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "p-judge",
+      "label": "研判与路由",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-exec",
+      "label": "执行",
+      "fromCol": 4,
+      "toCol": 4
+    },
+    {
+      "id": "p-out",
+      "label": "交付与复活",
+      "fromCol": 5,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "trigger",
+    "gate",
+    "assess",
+    "router",
+    "ticket",
+    "worker",
+    "effects"
+  ],
+  "nodes": [
+    {
+      "id": "trigger",
+      "lane": "code",
+      "col": 0,
+      "type": "external",
+      "label": "Source 触发",
+      "sublabel": "谁·@·范围；正文不可信",
+      "width": 150
+    },
+    {
+      "id": "gate",
+      "lane": "code",
+      "col": 1,
+      "type": "security",
+      "label": "Gate 准入",
+      "sublabel": "名单×准入表→强度",
+      "width": 150
+    },
+    {
+      "id": "policy",
+      "lane": "code",
+      "col": 2,
+      "type": "database",
+      "label": "Policy 版本",
+      "sublabel": "变更只通知不撤单",
+      "width": 150
+    },
+    {
+      "id": "ticket",
+      "lane": "code",
+      "col": 3,
+      "type": "backend",
+      "label": "Ticket 工单",
+      "sublabel": "原子建票+订阅线程",
+      "width": 150,
+      "tag": "订阅输入不过闸"
+    },
+    {
+      "id": "effects",
+      "lane": "code",
+      "col": 5,
+      "type": "messagebus",
+      "label": "Effects/Outbox",
+      "sublabel": "先记账后执行·ack 先行",
+      "width": 150
+    },
+    {
+      "id": "assess",
+      "lane": "model",
+      "col": 2,
+      "type": "backend",
+      "label": "Assessment 研判",
+      "sublabel": "三事实+逐规则必判",
+      "width": 150
+    },
+    {
+      "id": "router",
+      "lane": "model",
+      "col": 3,
+      "type": "frontend",
+      "label": "主 Session 薄路由",
+      "sublabel": "转发原文·注≤30 词",
+      "tag": "提示词层",
+      "width": 150
+    },
+    {
+      "id": "worker",
+      "lane": "model",
+      "col": 4,
+      "type": "backend",
+      "label": "Worker 执行器",
+      "sublabel": "5s 转后台·人话加塞槽",
+      "width": 150
+    },
+    {
+      "id": "ended",
+      "lane": "model",
+      "col": 5,
+      "type": "external",
+      "label": "ended 已结束",
+      "sublabel": "订阅仍在·待真人唤醒",
+      "width": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "trigger",
+      "to": "gate",
+      "label": "谁在说话",
+      "role": "main"
+    },
+    {
+      "id": "e2",
+      "from": "gate",
+      "to": "assess",
+      "label": "强度",
+      "role": "main"
+    },
+    {
+      "id": "e3",
+      "from": "assess",
+      "to": "router",
+      "label": "判定回填",
+      "role": "main"
+    },
+    {
+      "id": "e3b",
+      "from": "router",
+      "to": "ticket",
+      "label": "accept 路由",
+      "role": "main"
+    },
+    {
+      "id": "e4",
+      "from": "ticket",
+      "to": "worker",
+      "label": "派工 Assignment",
+      "role": "main"
+    },
+    {
+      "id": "e5",
+      "from": "worker",
+      "to": "effects",
+      "label": "report 六态",
+      "role": "main"
+    },
+    {
+      "id": "e7",
+      "from": "worker",
+      "to": "assess",
+      "label": "超范围退回",
+      "variant": "dashed",
+      "role": "return",
+      "route": "auto"
+    },
+    {
+      "id": "e8",
+      "from": "policy",
+      "to": "ticket",
+      "label": "变更通知",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "e9",
+      "from": "worker",
+      "to": "ended",
+      "label": "PR 合并",
+      "variant": "default",
+      "role": "branch"
+    },
+    {
+      "id": "e10",
+      "from": "ended",
+      "to": "worker",
+      "label": "真人复活·先重验",
+      "variant": "emphasis",
+      "role": "return",
+      "route": "auto"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两级过滤",
+      "items": [
+        "程序管人：名单/@/准入表定强度，正文引用骗不了代码闸",
+        "模型管事：三事实+逐条启用规则判定，observe 档只记 would-accept"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "上下文 ≠ 权限",
+      "items": [
+        "订阅线程的任何消息（含 bot/CI）直达工单当背景，一条都不构成新授权",
+        "只有真人消息能复活已结束工单，复活前按当日规则重验票据"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "约束的五级阶梯",
+      "items": [
+        "宿主强制 > 内建提示 > 匹配规则 > 团队段落 > 外部文本（纯数据）",
+        "提示词层只管纪律与风格；先记账后干活由代码保证"
+      ]
+    }
+  ]
+}
