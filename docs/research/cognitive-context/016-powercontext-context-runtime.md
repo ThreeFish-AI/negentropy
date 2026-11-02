@@ -22,7 +22,7 @@ description: "oceanbase/powercontext v1.4.1（master 5032075ad，Apache-2.0，14
 
 ![你和 Agent 交接工作，并基于已存储的上下文继续推进](../../assets/source-figures/cognitive-context/powercontext--src-03-workflow-handoff.png)
 
-| 规格 | 通俗版 | 对应机制 |
+| 规格 | 通俗拆解 | 对应机制 |
 | --- | --- | --- |
 | 跨会话、跨 Agent、跨人留存 | 换工具、换人，工作跟着走 | 服务端 Artifact，不寄生宿主 |
 | 一切带版本、可追溯 | 「当时批的是哪版」永远说得清 | 不可变 Revision + Lineage |
@@ -68,7 +68,7 @@ description: "oceanbase/powercontext v1.4.1（master 5032075ad，Apache-2.0，14
 
 **实景**（原型 M1 实测）：写入「约束：接口统一用 GraphQL」得 `atomic-memory/api-style@1`；决定改成 REST 后替换产生 `@2`，历史长度 2；此时按 `@1` 精确读取，拿到的仍是原来那句 GraphQL 约束。覆盖式存储（反例 D1）历史长度只剩 1、旧引用不可读——审计线从这里断掉。
 
-## 4. 机制二：四大支柱——四类内容，四种生命周期
+## 4. 机制二：四类内容——四种生命周期
 
 ![四类上下文，分别管理生命周期](../../assets/source-figures/cognitive-context/powercontext--src-08-blog-four-context-lifecycles.png)
 
