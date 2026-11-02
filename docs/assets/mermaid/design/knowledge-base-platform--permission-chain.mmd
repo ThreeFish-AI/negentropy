@@ -1,0 +1,46 @@
+%%source: docs/concepts/design/knowledge-base-platform.md §5 权限管控（全链路权限流 + 身份三平面）
+%%slug: design/knowledge-base-platform--permission-chain
+%%type: workflow
+%%derived: 新创作，无原文 mermaid 块；五阶段权限链路（引入→编辑→索引→检索→集成），fail-closed 不变量
+%%fix: 评审 R2——M2「可选四眼」改为「可见性变更强制四眼」，与 §2.3/§5.2 一致
+flowchart TD
+  subgraph IN["① 引入期"]
+    N1["连接器最小权限凭据<br/>密钥托管不落库"]
+    N2["捕获源 ACL 镜像<br/>随文档同步"]
+    N3["写入 DocumentVersion.acl<br/>不可变快照"]
+    N1 --> N2 --> N3
+  end
+
+  subgraph ED["② 编辑期"]
+    M1["产品域 RBAC<br/>∩ 文档级授权"]
+    M2["草稿→评审→发布<br/>可见性变更强制四眼"]
+    M3["操作全审计<br/>字段级 diff"]
+    M1 --> M2 --> M3
+  end
+
+  subgraph IX["③ 索引期"]
+    X1["Chunk 物化继承 ACL<br/>不放大不缩小"]
+    X2["ACL 变更<br/>→ 增量重刷受影响 chunk"]
+    X1 --> X2
+  end
+
+  subgraph RT["④ 检索期（安全不变量）"]
+    T1["组合 pre-filter<br/>权限+产品域+元数据+geo"]
+    T2["fail-closed<br/>判定不可用 = 全部不可见"]
+    T3["RRF 融合 + 重排<br/>只接触已过滤候选"]
+    T4["拒答话术统一<br/>不泄露文档存在性"]
+    T1 --> T2 --> T3 --> T4
+  end
+
+  subgraph AP["⑤ 集成期"]
+    W1["匿名访客<br/>Channel token = 产品域 scope"]
+    W2["登录客户<br/>IdP JWT → 增强 token"]
+    W3["验签 + 域名绑定<br/>ACL 属性展开为过滤谓词"]
+    W1 & W2 --> W3
+  end
+
+  N3 --> M1
+  M3 --> X1
+  X2 --> T1
+  W3 --> T1
+  T4 --> W1

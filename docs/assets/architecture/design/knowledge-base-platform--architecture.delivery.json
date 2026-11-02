@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "e0a813d4-0346-44d8-9d0b-2c5c9535e6cc",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+  "specification": {
+    "sha256": "bde84bfd76ed80daf6a35ed94756a1c38ae78b646929b4ddabd586b5f01eda4b",
+    "bytes": 12078
+  },
+  "artifact": {
+    "sha256": "8c84f9b169f505fad6967637ce5370a95879fc4e102dd58b6df7e58391881c5d",
+    "bytes": 795766
+  }
+}

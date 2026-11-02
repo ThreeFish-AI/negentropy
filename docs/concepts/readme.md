@@ -54,6 +54,7 @@
 | [浏览器操作 MCP 集成方案](./design/browser-automation-mcp-integration.md) | Playwright MCP 全系统默认配备 |
 | [自进化 Agents Team 技术方案](./design/self-evolving-agents.md) | 四层自进化架构 |
 | [Skills 模块](./design/skills.md) | Agent Skills 工程实现 |
+| [知识库平台技术方案](./design/knowledge-base-platform.md) | 文档管理 × 索引构建 × 应用集成 × 权限管控四支柱参考架构 |
 | [RFC 0001：Home Chat 会话架构重塑](./design/0001-conversation-architecture-refactor.md) | 会话架构重构决策记录 |
 | [RFC 0002：Home Chat UI 交互能力增强](./design/0002-ui-interaction-enhancements.md) | UI 交互增强决策记录 |
 

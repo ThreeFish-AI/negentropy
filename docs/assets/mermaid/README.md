@@ -160,6 +160,8 @@
 | [sso--auth-flow](./design/sso--auth-flow.mmd) | design/sso.md | sequence | ✓ | done | fix: validate 三轮收敛（18 err → 1 err → 0/0）：R1 修 |
 | [browser-mcp--seed-migration](./design/browser-mcp--seed-migration.mmd) | design/browser-automation-mcp-integration.md | workflow | ✓ | done | fix: 源图 11 节点精简为 8（workflow v2 ≤8 预算）：三执行入口（R |
 | [skills--management-ui](./design/skills--management-ui.mmd) | design/skills.md | workflow | ✓ | done | fix: (1) SkillFormDialog → SkillFormDrawer：实际 |
+| [knowledge-base-platform--architecture](./design/knowledge-base-platform--architecture.mmd) | design/knowledge-base-platform.md §1 | architecture | ✓ | done | 新创作，无原文 mermaid 块：六层参考架构+权限/评测双横切平面；fix: 评审 R1 blocker——L3 改为「组合 pre-filter 下推四路召回」在前；candidate JSON 入 `docs/diagrams/knowledge-base-platform--architecture/` |
+| [knowledge-base-platform--permission-chain](./design/knowledge-base-platform--permission-chain.mmd) | design/knowledge-base-platform.md §5.2 | workflow | ✓ | done | 新创作，无原文 mermaid 块：四泳道五阶段权限链路，内容轨与身份轨在 pre-filter 合流；outside-right 回边不可满足已删、desktop-readability 收窄节点过门；candidate JSON 入 `docs/diagrams/knowledge-base-platform--permission-chain/` |
 
 ### operations/（docs/concepts/operations/）
 

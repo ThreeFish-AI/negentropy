@@ -1,0 +1,683 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "知识库平台参考架构",
+    "locale": "zh-CN",
+    "output": "docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "src-help",
+      "type": "external",
+      "label": "帮助中心 / CMS",
+      "sublabel": "全量 / 增量源",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "src-files",
+      "type": "external",
+      "label": "文档文件",
+      "sublabel": "PDF / Office",
+      "pos": [
+        230,
+        40
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "src-biz",
+      "type": "external",
+      "label": "业务数据",
+      "sublabel": "工单 / DB 视图",
+      "pos": [
+        420,
+        40
+      ],
+      "size": [
+        150,
+        56
+      ]
+    },
+    {
+      "id": "conn",
+      "type": "backend",
+      "label": "连接器框架",
+      "sublabel": "webhook·增量拉取·重扫",
+      "pos": [
+        40,
+        180
+      ],
+      "size": [
+        170,
+        60
+      ]
+    },
+    {
+      "id": "sync",
+      "type": "backend",
+      "label": "同步状态机",
+      "sublabel": "tombstone·失效传播",
+      "pos": [
+        300,
+        180
+      ],
+      "size": [
+        170,
+        60
+      ]
+    },
+    {
+      "id": "edit",
+      "type": "frontend",
+      "label": "人工编辑工作流",
+      "sublabel": "草稿→评审→发布",
+      "pos": [
+        490,
+        180
+      ],
+      "size": [
+        180,
+        60
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "文档版本库",
+      "sublabel": "DocumentVersion 不可变·acl 快照",
+      "tag": "canonical SSOT",
+      "pos": [
+        180,
+        320
+      ],
+      "size": [
+        290,
+        64
+      ]
+    },
+    {
+      "id": "indexer",
+      "type": "backend",
+      "label": "索引编排器",
+      "sublabel": "解析→分块→上下文富化",
+      "pos": [
+        560,
+        320
+      ],
+      "size": [
+        180,
+        60
+      ]
+    },
+    {
+      "id": "bm25",
+      "type": "database",
+      "label": "BM25 倒排",
+      "sublabel": "k1/b·字段加权",
+      "pos": [
+        40,
+        460
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "meta",
+      "type": "database",
+      "label": "元数据索引",
+      "sublabel": "结构化过滤下推",
+      "pos": [
+        220,
+        460
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "vec",
+      "type": "database",
+      "label": "向量 ANN",
+      "sublabel": "HNSW·模型版本绑定",
+      "pos": [
+        400,
+        460
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "geoidx",
+      "type": "database",
+      "label": "地理索引",
+      "sublabel": "geo_point / geo_region",
+      "pos": [
+        605,
+        460
+      ],
+      "size": [
+        160,
+        60
+      ]
+    },
+    {
+      "id": "recall",
+      "type": "security",
+      "label": "组合 pre-filter · 下推四路",
+      "sublabel": "权限+产品域+元数据+geo 原子合取，各路引擎内带谓词取 top-k",
+      "pos": [
+        40,
+        600
+      ],
+      "size": [
+        690,
+        60
+      ],
+      "tag": "fail-closed"
+    },
+    {
+      "id": "prefilter",
+      "type": "backend",
+      "label": "多路召回结果",
+      "sublabel": "仅含已过滤候选",
+      "pos": [
+        40,
+        720
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "fusion",
+      "type": "backend",
+      "label": "RRF 融合重排",
+      "sublabel": "cross-encoder·仅已过滤候选",
+      "pos": [
+        280,
+        720
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "cite",
+      "type": "backend",
+      "label": "引用锚定",
+      "sublabel": "chunk→文档→锚点",
+      "pos": [
+        510,
+        720
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "widget",
+      "type": "frontend",
+      "label": "官网 Widget",
+      "sublabel": "JS SDK·域名白名单",
+      "pos": [
+        40,
+        850
+      ],
+      "size": [
+        160,
+        60
+      ]
+    },
+    {
+      "id": "gw",
+      "type": "backend",
+      "label": "Channel 网关",
+      "sublabel": "产品域绑定·限流",
+      "pos": [
+        240,
+        850
+      ],
+      "size": [
+        170,
+        60
+      ]
+    },
+    {
+      "id": "answerapi",
+      "type": "backend",
+      "label": "Answer API",
+      "sublabel": "服务端集成",
+      "pos": [
+        470,
+        850
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "human",
+      "type": "messagebus",
+      "label": "转人工 Webhook",
+      "sublabel": "客服系统对接",
+      "pos": [
+        650,
+        850
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "idp",
+      "type": "security",
+      "label": "身份三平面",
+      "sublabel": "内部 RBAC / 匿名产品域 / 客户 ACL",
+      "pos": [
+        850,
+        180
+      ],
+      "size": [
+        180,
+        64
+      ]
+    },
+    {
+      "id": "aclsync",
+      "type": "security",
+      "label": "ACL 同步与物化",
+      "sublabel": "镜像→版本→chunk 继承",
+      "pos": [
+        850,
+        320
+      ],
+      "size": [
+        180,
+        60
+      ]
+    },
+    {
+      "id": "audit",
+      "type": "security",
+      "label": "审计日志",
+      "sublabel": "读写全量·仅追加",
+      "pos": [
+        850,
+        460
+      ],
+      "size": [
+        180,
+        60
+      ]
+    },
+    {
+      "id": "evalplane",
+      "type": "backend",
+      "label": "评测与反馈平面",
+      "sublabel": "golden set 回归·bad-case 归因·评测集回流",
+      "pos": [
+        40,
+        990
+      ],
+      "size": [
+        300,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "L0 源层",
+      "wraps": [
+        "src-help",
+        "src-files",
+        "src-biz"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "L1 文档管理",
+      "wraps": [
+        "conn",
+        "sync",
+        "edit",
+        "store"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "L2 索引构建",
+      "wraps": [
+        "indexer",
+        "bm25",
+        "meta",
+        "vec",
+        "geoidx"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "L3 检索服务",
+      "wraps": [
+        "recall",
+        "prefilter",
+        "fusion",
+        "cite"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "L4 应用集成",
+      "wraps": [
+        "widget",
+        "gw",
+        "answerapi",
+        "human"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "权限平面（横切）",
+      "wraps": [
+        "idp",
+        "aclsync",
+        "audit"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "评测平面（横切）",
+      "wraps": [
+        "evalplane"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e1",
+      "from": "src-help",
+      "to": "conn",
+      "label": "拉取"
+    },
+    {
+      "id": "e2",
+      "from": "src-files",
+      "to": "conn",
+      "label": "上传"
+    },
+    {
+      "id": "e3",
+      "from": "src-biz",
+      "to": "conn",
+      "label": "视图"
+    },
+    {
+      "id": "e4",
+      "from": "conn",
+      "to": "sync",
+      "label": "指纹 diff"
+    },
+    {
+      "id": "e5",
+      "from": "sync",
+      "to": "store",
+      "label": "新版本"
+    },
+    {
+      "id": "e6",
+      "from": "edit",
+      "to": "store",
+      "label": "草稿/发布",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          580,
+          268
+        ],
+        [
+          325,
+          268
+        ]
+      ]
+    },
+    {
+      "id": "e7",
+      "from": "store",
+      "to": "indexer",
+      "label": "全量重放",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e8",
+      "from": "indexer",
+      "to": "bm25"
+    },
+    {
+      "id": "e9",
+      "from": "indexer",
+      "to": "meta"
+    },
+    {
+      "id": "e10",
+      "from": "indexer",
+      "to": "vec"
+    },
+    {
+      "id": "e11",
+      "from": "indexer",
+      "to": "geoidx"
+    },
+    {
+      "id": "e12",
+      "from": "bm25",
+      "to": "recall",
+      "label": "下推"
+    },
+    {
+      "id": "e13",
+      "from": "meta",
+      "to": "recall"
+    },
+    {
+      "id": "e14",
+      "from": "vec",
+      "to": "recall"
+    },
+    {
+      "id": "e15",
+      "from": "geoidx",
+      "to": "recall"
+    },
+    {
+      "id": "e16",
+      "from": "recall",
+      "to": "prefilter",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          385,
+          685
+        ],
+        [
+          120,
+          685
+        ]
+      ]
+    },
+    {
+      "id": "e17",
+      "from": "prefilter",
+      "to": "fusion",
+      "label": "带谓词召回",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e18",
+      "from": "fusion",
+      "to": "cite",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e19",
+      "from": "cite",
+      "to": "gw",
+      "label": "有据答案",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          585,
+          815
+        ],
+        [
+          325,
+          815
+        ]
+      ]
+    },
+    {
+      "id": "e20",
+      "from": "gw",
+      "to": "widget",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "e21",
+      "from": "gw",
+      "to": "answerapi",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "e22",
+      "from": "gw",
+      "to": "human",
+      "label": "转人工",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          325,
+          940
+        ],
+        [
+          725,
+          940
+        ]
+      ]
+    },
+    {
+      "id": "e23",
+      "from": "idp",
+      "to": "aclsync",
+      "variant": "security"
+    },
+    {
+      "id": "e23b",
+      "from": "aclsync",
+      "to": "audit",
+      "variant": "dashed"
+    },
+    {
+      "id": "e25",
+      "from": "aclsync",
+      "to": "recall",
+      "label": "谓词注入",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "via": [
+        [
+          940,
+          420
+        ],
+        [
+          800,
+          420
+        ],
+        [
+          800,
+          630
+        ]
+      ]
+    },
+    {
+      "id": "e29",
+      "from": "widget",
+      "to": "evalplane",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          120,
+          950
+        ],
+        [
+          190,
+          950
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "安全不变量",
+      "items": [
+        "权限谓词先合取再下推四路召回（非先召回后过滤），fail-closed",
+        "Chunk 物化继承版本 ACL，不放大不缩小；读写双审计",
+        "检索访问与编辑操作双审计，仅追加不可篡改"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "检索与索引",
+      "items": [
+        "四路索引（BM25/元数据/向量/地理）混合召回，RRF 融合",
+        "索引蓝绿版本：构建→校验→切换→下线，全程可回滚"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "闭环与重建",
+      "items": [
+        "canonical 版本库为 SSOT，任何索引可全量重放重建",
+        "线上反馈归因回流：评测集扩充、排序调参、知识补录",
+        "评测回归门控索引重建与检索策略变更"
+      ]
+    }
+  ]
+}

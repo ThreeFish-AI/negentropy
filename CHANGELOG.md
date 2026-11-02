@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### 知识库平台技术方案与四支柱竞品理论调研入库（design + knowledge-graph 036，2026-11-02）
+
+- 新增 [知识库平台技术方案](docs/concepts/design/knowledge-base-platform.md)（独立通用参考架构，正文字数门 7000 内）：六层架构（源/文档管理/索引构建/检索服务/应用集成）+ 权限与评测双横切平面；P1 Connector SPI 三同步模式（webhook/增量拉取·CDC/全量重扫）+ 内容寻址不可变版本库 SSOT + 草稿→评审→发布与 staleness 验证态治理；P2 BM25(F)/元数据/向量 ANN/地理空间四路索引 + 蓝绿索引版本 + 过滤基数自适应路由 + pgvector iterative scan×PostGIS 单 SQL 三路；P3 多产品 Channel 一等实体 + 逐断言引用锚定 + 阈值拒答回流文档待办 + RAGAS/golden set 回归门；P4 身份三平面（内部 RBAC/匿名产品域/登录客户 ABAC）+ 源 ACL 镜像→版本快照→chunk 物化→引擎内 pre-filter fail-closed→权限快照 token→双审计；19 条 IEEE 引用。
+- 新增 [036 竞品与理论调研](docs/research/knowledge-graph/036-knowledge-base-platform-competitors.md)：七维并行扫描（企业平台/云检索服务/客服 AI/检索理论/过滤 ANN×ACL/分块同步评测/地理空间）95 条发现 + 逐维对抗核验（78 confirmed / 17 corrected / 0 removed，corrected 项已按修正口径入正文），四张对比矩阵 + 31 条理论引用，复用 034/035/030–032 存量不重复。
+- 两张 archify 图入库（`knowledge-base-platform--architecture` architecture、`knowledge-base-platform--permission-chain` workflow，finalize 四门回执齐，candidate JSON 入 docs/diagrams/，dark/light PNG 均 ≤1280 KiB）。
+- 方案经三镜头对抗评审（架构完备性 / 权限安全红队 / 引用对账）与二轮复审：修正检索次序（pre-filter 下推四路召回在前）、补 ACL 三类主体与匿名/客户判定式、version_key 纳入 ACL、蓝绿追平与回滚重放、撤销覆盖表、增强 token 约束、缓存与会话隔离、间接提示注入防线、PII 与保留期等。
+- 登记面：concepts readme 设计 RFC 表、research readme 第四节、knowledge-map 系统概念与设计节、mermaid README design 分节。
+
 ### PowerContext（OceanBase 上下文运行层）精读与通俗拆解入库（016，2026-11-01）
 
 - 新增 [016 精读](docs/research/cognitive-context/016-powercontext-context-runtime.md)（oceanbase/powercontext v1.4.1，钉点 master `5032075ad`，Apache-2.0；官网中文文档 + README + 13 篇核心 RFC + evaluation/ 共 78 文件全量通读）：把决定/约束/证据/进展做成服务端带版本 Artifact——Scope 只选数据不授权、Source 捕获≠生成、七类家族 `FAMILY/ID@REVISION` 不可变寻址；生成·评审·执行三权分立（Candidate 收件箱 + `expected_version` 乐观锁、批准≠安装≠执行）；PreparedContext 字节预算有界召回 + 充分性闸门（强匹配 0.70 参与差距判定、两轮有界扩展）与容量契约；Handoff 四步循环与 hint 全有或全无；实证 LoCoMo 90.78% 对全量重放 52.9%、SWE-bench Pro +4.38pp（非官方提交）、LoCoMo Plus 自供未复核等边界自曝；五规律三争议，字数门 5000 内（4962）。
