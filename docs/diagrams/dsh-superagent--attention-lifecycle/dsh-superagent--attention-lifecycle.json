@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "dsh-superagent：一张工单的注意力生命周期",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/agent-harness/dsh-superagent--attention-lifecycle.html"
+  },
+  "lanes": [
+    { "id": "main", "label": "正常流" },
+    { "id": "person", "label": "等人" },
+    { "id": "recovery", "label": "救援" },
+    { "id": "terminal", "label": "终结" }
+  ],
+  "states": [
+    { "id": "queued", "type": "start", "label": "queued 排队", "sublabel": "等槽位/备目录", "lane": "main", "col": 0, "step": "01" },
+    { "id": "working", "type": "active", "label": "working 干活", "sublabel": "占槽运行", "lane": "main", "col": 1, "step": "02" },
+    { "id": "idle", "type": "waiting", "label": "idle 空闲", "sublabel": "等触发·非完成", "lane": "main", "col": 2, "step": "03" },
+    { "id": "answer", "type": "waiting", "label": "等人答", "sublabel": "Attention 一问", "lane": "person", "col": 2 },
+    { "id": "review", "type": "decision", "label": "等人审", "sublabel": "ready+PR", "lane": "person", "col": 3 },
+    { "id": "blocked", "type": "failure", "label": "blocked/failed", "sublabel": "等人救", "lane": "recovery", "col": 1 },
+    { "id": "ended", "type": "success", "label": "ended 已结束", "sublabel": "订阅仍在", "lane": "terminal", "col": 4 }
+  ],
+  "transitions": [
+    { "id": "t1", "from": "queued", "to": "working", "label": "派工启动" },
+    { "id": "t2", "from": "working", "to": "idle", "label": "报 waiting" },
+    { "id": "t3", "from": "idle", "to": "working", "label": "订阅/后台唤醒", "variant": "emphasis" },
+    { "id": "t4", "from": "working", "to": "answer", "label": "提问", "route": "auto" },
+    { "id": "t5", "from": "answer", "to": "working", "label": "答后继续", "variant": "dashed" },
+    { "id": "t6", "from": "working", "to": "blocked", "label": "报 blocked/failed", "route": "auto" },
+    { "id": "t7", "from": "blocked", "to": "working", "label": "人话释放·重试", "variant": "dashed" },
+    { "id": "t8", "from": "working", "to": "review", "label": "报 ready" },
+    { "id": "t9", "from": "review", "to": "ended", "label": "PR 合并/关闭" },
+    { "id": "t10", "from": "idle", "to": "ended", "label": "dropped 无事可做", "variant": "dashed" },
+    { "id": "t11", "from": "ended", "to": "working", "label": "真人消息复活·先重验", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "首行命中",
+      "items": [
+        "阶段按表自上而下首个匹配判定：等人优先于一切工作态",
+        "idle 只是等触发，不是完成；完成以 ready 且 PR 关闭为准"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "复活规则",
+      "items": [
+        "只有真人消息能唤醒已结束工单，bot/CI 永不能",
+        "复活前按当日规则重验票据：人还在名单？规则还开？还是 auto？"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "注意力优先",
+      "items": [
+        "槽满时人的消息走专用加塞位，不被机器活排队",
+        "等待人的工单压住自动输入，人一说话立刻回到执行器"
+      ]
+    }
+  ]
+}

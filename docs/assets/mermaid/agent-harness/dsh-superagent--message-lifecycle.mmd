@@ -1,0 +1,32 @@
+%% source: docs/research/agent-harness/182-dsh-superagent.md §2
+%% slug: dsh-superagent--message-lifecycle
+%% type: workflow
+%% derived: docs/assets/architecture/agent-harness/dsh-superagent--message-lifecycle.html
+flowchart LR
+    subgraph CODE["程序强制 · 宿主代码（提示词改不动）"]
+        TRG["Source 触发<br/>谁在说话 · @没@ · 哪个范围<br/>Source 声明，正文不可信"]
+        GATE{"Gate 准入<br/>名单 × 准入表 → explicit / inferred<br/>消息内容骗不了代码"}
+        POL["Policy 版本<br/>规则+模式+名单<br/>变更只通知不撤单"]
+        TKT["Ticket 原子建单<br/>+ Mandate 不可变票据<br/>+ Subscription 订阅线程"]
+        EFF{"Effects / Outbox<br/>先记账后执行<br/>同会话有序 · ack 先于答案"}
+    end
+    subgraph MODEL["模型判断 · 两个会话"]
+        ASM["Assessment 研判<br/>三事实 + intent_evidence<br/>每条启用规则必判一次"]
+        WRK["Worker 执行器<br/>每单一会话一目录<br/>命令 5s 转后台 · 人话加塞槽"]
+        END["ended 已结束<br/>订阅仍在"]
+    end
+    subgraph PROMPT["提示词约束 · 团队可改写"]
+        RTR["主 Session 薄路由<br/>转发原文 · 注 ≤30 词<br/>不读代码不做技术决定"]
+    end
+    TRG -->|"谁在说话"| GATE
+    GATE -->|"强度 explicit/inferred"| ASM
+    ASM -->|"accept（observe 只记 would-accept）"| TKT
+    TKT -->|"Assignment 派工"| WRK
+    WRK -->|"report 六态"| EFF
+    TRG -.->|"订阅扇出 · 不过闸不授权<br/>（上下文≠权限）"| WRK
+    WRK -->|"超范围退回 handback"| ASM
+    POL -->|"policy-changed 通知"| TKT
+    WRK -->|"PR 合并/ready"| END
+    END ==>|"真人消息复活 · 先重验票据<br/>（bot/CI 永不能）"| WRK
+    RTR -.->|"只转发路由事实"| ASM
+    RTR -.->|"attach 明确指向才挂单"| TKT

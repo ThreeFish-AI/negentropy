@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "acde6d1e-98d9-4883-afc6-83ae59af97ec",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/newport-beach-v3/.archify/workflow-dsh-msg-20261101-085912/candidate.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/newport-beach-v3/docs/assets/architecture/agent-harness/dsh-superagent--message-lifecycle.html",
+  "specification": {
+    "sha256": "45aa3c9f02496ea178526adc6ee9d22e121aecdd9785846fb87b1da9cb504831",
+    "bytes": 5329
+  },
+  "artifact": {
+    "sha256": "c3a325d8b07e15acc7a8c6972934be8b0cd141717cc7dfed3d8b54809272e97b",
+    "bytes": 763554
+  }
+}
