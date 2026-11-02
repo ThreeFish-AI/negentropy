@@ -293,14 +293,14 @@
     {
       "id": "idp",
       "type": "security",
-      "label": "身份三平面",
-      "sublabel": "内部 RBAC / 匿名产品域 / 客户 ACL",
+      "label": "身份四平面",
+      "sublabel": "内部 RBAC / 匿名产品域 / 客户 ACL / 机器调用方",
       "pos": [
         850,
         180
       ],
       "size": [
-        180,
+        250,
         64
       ]
     },

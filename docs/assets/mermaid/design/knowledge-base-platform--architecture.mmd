@@ -1,4 +1,4 @@
-%%source: docs/concepts/design/knowledge-base-platform.md §1 总体架构（六层参考架构 + 权限/评测横切平面）
+%%source: docs/concepts/design/knowledge-base-platform.md §1 总体架构（五层参考架构 + 权限/评测横切平面）
 %%slug: design/knowledge-base-platform--architecture
 %%type: architecture
 %%derived: 新创作，无原文 mermaid 块；知识库平台参考架构（独立通用方案）
@@ -51,7 +51,7 @@ flowchart TD
   end
 
   subgraph XP["权限平面（横切）"]
-    P1["身份三平面<br/>内部 RBAC / 匿名产品域 / 客户 ACL"]
+    P1["身份四平面<br/>内部 RBAC / 匿名产品域 / 客户 ACL / 机器调用方"]
     P2["ACL 同步·物化·查询期 fail-closed·审计"]
     P1 --- P2
   end

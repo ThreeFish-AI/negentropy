@@ -4987,7 +4987,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
     <!-- Main Diagram -->
     <div class="diagram-container" data-detail-level="read"
          data-preset-badge-editorial-plate="ARCHIFY / 图版 04">
-      <svg viewBox="0 0 1100 1138" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
+      <svg viewBox="0 0 1170 1138" role="img" lang="zh-CN" aria-labelledby="archify-diagram-title archify-diagram-description" data-preset="classic" data-quality-profile="showcase" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
         <title id="archify-diagram-title">知识库平台参考架构</title>
         <desc id="archify-diagram-description">由 Archify 生成的架构图。</desc>
         <!-- Definitions -->
@@ -5023,7 +5023,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
         <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="4" data-composition-frame-label="L4 应用集成" x="10" y="820" width="820" height="110" rx="12" class="c-region" stroke-width="1"/>
 
-        <rect data-graph-role="structural-frame" data-composition-frame-kind="security-group" data-composition-frame-id="5" data-composition-frame-label="权限平面（横切）" x="820" y="150" width="240" height="390" rx="8" class="c-security-group" stroke-width="1"/>
+        <rect data-graph-role="structural-frame" data-composition-frame-kind="security-group" data-composition-frame-id="5" data-composition-frame-label="权限平面（横切）" x="820" y="150" width="310" height="390" rx="8" class="c-security-group" stroke-width="1"/>
 
         <rect data-graph-role="structural-frame" data-composition-frame-kind="region" data-composition-frame-id="6" data-composition-frame-label="评测平面（横切）" x="10" y="960" width="360" height="110" rx="12" class="c-region" stroke-width="1"/>
 
@@ -5105,8 +5105,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </g>
         <path data-edge-from="gw" data-edge-to="human" data-edge-label="转人工" data-edge-key="21" data-edge-id="e22" data-composition-points="325,910;325,940;725,940;725,910" d="M 325 910 L 325 932 Q 325 940 333 940 L 717 940 Q 725 940 725 932 L 725 910" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         <g data-graph-role="automatic-crossover" style="--step:22">
-          <path data-graph-role="automatic-crossover-underlay" d="M 940 244 L 940 320" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="idp" data-edge-to="aclsync" data-edge-key="22" data-edge-id="e23" data-composition-points="940,244;940,320" data-composition-crossover="halo" data-composition-independent="true" d="M 940 244 L 940 320" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 975 244 L 975 274 Q 975 282 967 282 L 948 282 Q 940 282 940 290 L 940 320" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="idp" data-edge-to="aclsync" data-edge-key="22" data-edge-id="e23" data-composition-points="975,244;975,282;940,282;940,320" data-composition-crossover="halo" data-composition-independent="true" d="M 975 244 L 975 274 Q 975 282 967 282 L 948 282 Q 940 282 940 290 L 940 320" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:23">
           <path data-graph-role="automatic-crossover-underlay" d="M 940 380 L 940 460" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -5356,16 +5356,16 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="725" y="894" class="t-muted" font-size="9" text-anchor="middle">客服系统对接</text>
         </g>
 
-        <g id="node-idp" data-node-id="idp" data-node-label="身份三平面" tabindex="0" role="button" aria-label="聚焦身份三平面，内部 RBAC / 匿名产品域 / 客户 ACL, 权限平面（横切）" aria-pressed="false" data-node-kind="security" data-node-sublabel="内部 RBAC / 匿名产品域 / 客户 ACL" data-node-context="权限平面（横切）">
-          <title>身份三平面 · 内部 RBAC / 匿名产品域 / 客户 ACL · 权限平面（横切）</title>
-          <rect x="850" y="180" width="180" height="64" rx="6" class="c-mask"/>
-          <rect x="850" y="180" width="180" height="64" rx="6" class="c-security" stroke-width="1.5"/>
+        <g id="node-idp" data-node-id="idp" data-node-label="身份四平面" tabindex="0" role="button" aria-label="聚焦身份四平面，内部 RBAC / 匿名产品域 / 客户 ACL / 机器调用方, 权限平面（横切）" aria-pressed="false" data-node-kind="security" data-node-sublabel="内部 RBAC / 匿名产品域 / 客户 ACL / 机器调用方" data-node-context="权限平面（横切）">
+          <title>身份四平面 · 内部 RBAC / 匿名产品域 / 客户 ACL / 机器调用方 · 权限平面（横切）</title>
+          <rect x="850" y="180" width="250" height="64" rx="6" class="c-mask"/>
+          <rect x="850" y="180" width="250" height="64" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(856 186) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="940" y="210" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">身份三平面</text>
-        <text data-detail="context" x="940" y="226" class="t-muted" font-size="8.6" text-anchor="middle">内部 RBAC / 匿名产品域 / 客户 ACL</text>
+          <text data-node-label="" data-detail-anchor="" x="975" y="210" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">身份四平面</text>
+        <text data-detail="context" x="975" y="226" class="t-muted" font-size="8.7" text-anchor="middle">内部 RBAC / 匿名产品域 / 客户 ACL / 机器调用方</text>
         </g>
 
         <g id="node-aclsync" data-node-id="aclsync" data-node-label="ACL 同步与物化" tabindex="0" role="button" aria-label="聚焦ACL 同步与物化，镜像→版本→chunk 继承, 权限平面（横切）" aria-pressed="false" data-node-kind="security" data-node-sublabel="镜像→版本→chunk 继承" data-node-context="权限平面（横切）">

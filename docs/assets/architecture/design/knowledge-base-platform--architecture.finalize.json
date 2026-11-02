@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-11-02T08:13:33.083Z",
+  "startedAt": "2026-11-02T15:46:22.897Z",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-    "sha256": "bde84bfd76ed80daf6a35ed94756a1c38ae78b646929b4ddabd586b5f01eda4b",
-    "bytes": 12078
+    "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
+    "bytes": 12096
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-    "sha256": "8c84f9b169f505fad6967637ce5370a95879fc4e102dd58b6df7e58391881c5d",
-    "bytes": 795766
+    "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
+    "bytes": 795966
   },
   "stages": {
     "validate": {
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "bde84bfd76ed80daf6a35ed94756a1c38ae78b646929b4ddabd586b5f01eda4b",
-          "bytes": 12078
+          "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
+          "bytes": 12096
         },
         "validation": {
           "checksPassed": 9,
@@ -54,7 +54,7 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 880,
+      "durationMs": 558,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -68,19 +68,19 @@
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "e0a813d4-0346-44d8-9d0b-2c5c9535e6cc",
+        "receiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
         "input": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "specification": {
-          "sha256": "bde84bfd76ed80daf6a35ed94756a1c38ae78b646929b4ddabd586b5f01eda4b",
-          "bytes": 12078
+          "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
+          "bytes": 12096
         },
         "artifact": {
-          "sha256": "8c84f9b169f505fad6967637ce5370a95879fc4e102dd58b6df7e58391881c5d",
-          "bytes": 795766
+          "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
+          "bytes": 795966
         },
         "validation": {
           "checksPassed": 9,
@@ -95,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 134,
+      "durationMs": 118,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -107,8 +107,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "artifact": {
-          "sha256": "8c84f9b169f505fad6967637ce5370a95879fc4e102dd58b6df7e58391881c5d",
-          "bytes": 795766
+          "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
+          "bytes": 795966
         },
         "checks": [
           {
@@ -178,7 +178,7 @@
             "minLabelRouteClearance": 10,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
-            "minProjectedNodeTextPx": 6.763636363636364,
+            "minProjectedNodeTextPx": 6.358974358974359,
             "maxBends": 4,
             "routesOverSuggestedBends": 3,
             "maxStretch": 1.39,
@@ -321,19 +321,19 @@
               "to": "conn"
             },
             "minimumSourceTextPx": 8,
-            "minimumProjectedTextPx": 6.763636363636364,
+            "minimumProjectedTextPx": 6.358974358974359,
             "semanticTextCount": 67
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "e0a813d4-0346-44d8-9d0b-2c5c9535e6cc"
+        "deliveryReceiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1048,
+      "durationMs": 1771,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -351,11 +351,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "e0a813d4-0346-44d8-9d0b-2c5c9535e6cc",
+        "deliveryReceiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-          "sha256": "8c84f9b169f505fad6967637ce5370a95879fc4e102dd58b6df7e58391881c5d",
-          "bytes": 795766
+          "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
+          "bytes": 795966
         },
         "state": {
           "detail": "read",
@@ -377,7 +377,7 @@
               "innerWidth": 1440,
               "innerHeight": 900,
               "scrollWidth": 1440,
-              "scrollHeight": 1136,
+              "scrollHeight": 1124,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -386,20 +386,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
                 "diagramChromePx": 78,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -429,7 +429,7 @@
               "innerWidth": 1600,
               "innerHeight": 1000,
               "scrollWidth": 1600,
-              "scrollHeight": 1202,
+              "scrollHeight": 1190,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -438,20 +438,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -481,7 +481,7 @@
               "innerWidth": 1920,
               "innerHeight": 1080,
               "scrollWidth": 1920,
-              "scrollHeight": 1202,
+              "scrollHeight": 1190,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -490,20 +490,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -542,8 +542,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1096,
-              "diagramWidth": 1046,
+              "readerWidth": 1162,
+              "diagramWidth": 1112,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -552,10 +552,10 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 7.607272727272727,
-              "minimumProjectedNonEdgeTextPx": 8.177818181818182,
-              "minimumProjectedEdgeTextPx": 7.607272727272727,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 7.603418803418803,
+              "minimumProjectedNonEdgeTextPx": 8.268717948717947,
+              "minimumProjectedEdgeTextPx": 7.603418803418803,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -638,7 +638,7 @@
               "innerWidth": 1440,
               "innerHeight": 900,
               "scrollWidth": 1440,
-              "scrollHeight": 1136,
+              "scrollHeight": 1124,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -647,20 +647,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
                 "diagramChromePx": 78,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -690,7 +690,7 @@
               "innerWidth": 1600,
               "innerHeight": 1000,
               "scrollWidth": 1600,
-              "scrollHeight": 1202,
+              "scrollHeight": 1190,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -699,20 +699,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -742,7 +742,7 @@
               "innerWidth": 1920,
               "innerHeight": 1080,
               "scrollWidth": 1920,
-              "scrollHeight": 1202,
+              "scrollHeight": 1190,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -751,20 +751,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -803,8 +803,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1096,
-              "diagramWidth": 1046,
+              "readerWidth": 1162,
+              "diagramWidth": 1112,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -813,10 +813,10 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 7.607272727272727,
-              "minimumProjectedNonEdgeTextPx": 8.177818181818182,
-              "minimumProjectedEdgeTextPx": 7.607272727272727,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 7.603418803418803,
+              "minimumProjectedNonEdgeTextPx": 8.268717948717947,
+              "minimumProjectedEdgeTextPx": 7.603418803418803,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -851,7 +851,7 @@
               "innerWidth": 1440,
               "innerHeight": 900,
               "scrollWidth": 1440,
-              "scrollHeight": 1136,
+              "scrollHeight": 1124,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -860,20 +860,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 12,
                 "headerPx": 52,
                 "diagramChromePx": 78,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -903,7 +903,7 @@
               "innerWidth": 1600,
               "innerHeight": 1000,
               "scrollWidth": 1600,
-              "scrollHeight": 1202,
+              "scrollHeight": 1190,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -912,20 +912,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -955,7 +955,7 @@
               "innerWidth": 1920,
               "innerHeight": 1080,
               "scrollWidth": 1920,
-              "scrollHeight": 1202,
+              "scrollHeight": 1190,
               "overflowX": false,
               "overflowY": true,
               "verticalScrollAccepted": true,
@@ -964,20 +964,20 @@
               "readerOverflow": "authored",
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 990,
-              "diagramWidth": 960,
+              "readerWidth": 1039,
+              "diagramWidth": 1009,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 60,
                 "diagramChromePx": 84,
-                "svgPx": 993,
+                "svgPx": 981,
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 6.9818181818181815,
-              "minimumProjectedNonEdgeTextPx": 7.505454545454545,
-              "minimumProjectedEdgeTextPx": 6.9818181818181815,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 6.8991452991452995,
+              "minimumProjectedNonEdgeTextPx": 7.502820512820513,
+              "minimumProjectedEdgeTextPx": 6.8991452991452995,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -1016,8 +1016,8 @@
               "readerOverflow": null,
               "readerFit": "intrinsic-height",
               "ok": true,
-              "readerWidth": 1096,
-              "diagramWidth": 1046,
+              "readerWidth": 1162,
+              "diagramWidth": 1112,
               "pageComposition": {
                 "bodyPaddingPx": 64,
                 "headerPx": 68,
@@ -1026,10 +1026,10 @@
                 "cardsPx": 0,
                 "viewBoxHeight": 1138
               },
-              "viewBoxWidth": 1100,
-              "minimumProjectedNodeTextPx": 7.607272727272727,
-              "minimumProjectedNonEdgeTextPx": 8.177818181818182,
-              "minimumProjectedEdgeTextPx": 7.607272727272727,
+              "viewBoxWidth": 1170,
+              "minimumProjectedNodeTextPx": 7.603418803418803,
+              "minimumProjectedNonEdgeTextPx": 8.268717948717947,
+              "minimumProjectedEdgeTextPx": 7.603418803418803,
               "minimumProjectedNodeText": "拉取",
               "minimumProjectedNodeTextDetail": "edge",
               "minimumProjectedNodeTextOwner": {
@@ -1073,6 +1073,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-11-02T08:13:35.552Z",
-  "durationMs": 2468
+  "finishedAt": "2026-11-02T15:46:25.727Z",
+  "durationMs": 2830
 }
