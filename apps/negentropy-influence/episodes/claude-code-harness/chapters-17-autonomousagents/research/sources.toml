@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s17-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s17_autonomous_agents/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "53277b2b0b249692"
+text_sha256 = "9dbb2f8aad8c267f"
+bytes = 12846
+lines = 271
+via = "pinned commit, MIT; 钉选轨（自治单章正源：生命周期三阶段 + 独有「深入 CC 源码」附录→【三】级断言正源）"
+
+[s17-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s17_autonomous_agents/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "76359df33f09b3c1"
+text_sha256 = "a3fd0a2e7596bbcd"
+bytes = 30718
+lines = 813
+via = "pinned commit, MIT; 轮询 5s/超时 60s/12 拍推导与认领三检查实测依据"
+
+[s17-site]
+url = "https://learn.shareai.run/zh/s17/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "4928383da5a63ac9"
+text_sha256 = "bd52a6acbbf32356"
+bytes = 92289
+lines = 317
+via = "站点实况（集制骨架对照）"
+
+[s17m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s13_agent_teams/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "cd529d72deee856d"
+text_sha256 = "3c7272c59e23fa9b"
+bytes = 18980
+lines = 448
+via = "pinned commit, MIT; main 轨对照（s13_agent_teams 团队整合章：认领两步化+原子执行+结果/IDLE 双事件——对照正源）"
+
+[s17m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s13_agent_teams/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "f8880aaaaedbd5c8"
+text_sha256 = "646b68c61a0e602d"
+bytes = 71053
+lines = 1891
+via = "pinned commit, MIT; main 轨对照（task_store_lock 双重锁/锁内重读/忙检查/无固定超时实测依据）"
+
+[doc-agent-teams]
+url = "https://code.claude.com/docs/en/agent-teams"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "cdb04bf7a76bcd2d"
+text_sha256 = "ef2d6f697fc47d8f"
+bytes = 461460
+lines = 762
+via = "官方补读（175 参考 [6]；文件锁认领、实验性默认关、建议 3–5 队友归属）"

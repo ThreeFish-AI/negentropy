@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s04-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s04_hooks/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "a20535af5e793158"
+text_sha256 = "3bd3a06df17577f0"
+bytes = 7891
+lines = 224
+via = "pinned commit, MIT; 钉选轨（README.zh.md）——内容块判据与 Stop 续跑教学语义正源"
+
+[s04-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s04_hooks/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "2ff90e604304083d"
+text_sha256 = "eec017cb5f2cfcb6"
+bytes = 10755
+lines = 282
+via = "pinned commit, MIT; HOOKS 注册表 4 事件/5 回调与 Stop 续跑实测依据"
+
+[s04f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s04_hooks/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "cbdcc9e97e17aec2"
+text_sha256 = "0db16face2278578"
+bytes = 11575
+lines = 283
+via = "pinned commit, MIT; 站点轨对照（s04 独有「深入 CC 源码」附录：27 事件/HookResult 14 字段/Hook 不变式/stopHookActive/hook_stopped_continuation，【三】级断言正源）"
+
+[s04f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s04_hooks/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "95cdc67a7d788192"
+text_sha256 = "23de09d42f7bd0fb"
+bytes = 12871
+lines = 288
+via = "pinned commit, MIT; 站点轨对照（fix 分支 = 站点 20 章版同源修订）"
+
+[s04-site]
+url = "https://learn.shareai.run/zh/s04/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "3ec4a442808b2a5d"
+text_sha256 = "213cc53568f96038"
+bytes = 71867
+lines = 351
+via = "站点实况（集制骨架对照）"
+
+[doc-hooks]
+url = "https://code.claude.com/docs/en/hooks"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "9e71dad501576799"
+text_sha256 = "54fa946de3c76c53"
+bytes = 2621020
+lines = 3086
+via = "官方补读（171 参考 [3]；33 个 hook 事件清单口径与 deny/ask 不变式原文——本集【三】级断言官方核证面）"

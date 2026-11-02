@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s03-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s03_permission/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "da23348cf11cdd58"
+text_sha256 = "412644141c73cc4b"
+bytes = 5553
+lines = 168
+via = "pinned commit, MIT; 钉选轨（main）——闸门 2 词边界正则与测试点 5、SYSTEM 提示「审批归装置」正源"
+
+[s03-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s03_permission/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "97b42c55a7820275"
+text_sha256 = "ef362cb02cd2b6ea"
+bytes = 9967
+lines = 271
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s03f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s03_permission/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "ef8836baa58b203d"
+text_sha256 = "b08c0cf168e1552f"
+bytes = 9687
+lines = 232
+via = "pinned commit, MIT; 站点轨对照（s03 独有「深入 CC 源码」附录六节——【三】级断言正源；立场句原句锚此轨）"
+
+[s03f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s03_permission/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "f4dc41b91caa2706"
+text_sha256 = "e0ba208949c83a0b"
+bytes = 9846
+lines = 244
+via = "pinned commit, MIT; 站点轨对照"
+
+[s03-site]
+url = "https://learn.shareai.run/zh/s03/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "ae54c96b095bc788"
+text_sha256 = "1a3fc2a7a75dec35"
+bytes = 67071
+lines = 284
+via = "站点实况（集制骨架对照）"
+
+[doc-permissions]
+url = "https://code.claude.com/docs/en/permissions"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "260f84bc85916a53"
+text_sha256 = "c00ee2827503e7c6"
+bytes = 608107
+lines = 936
+via = "官方补读（171 参考 [4]；权限规则由 CC 执行 / 六种权限模式 / bypassPermissions 隔离边界）"

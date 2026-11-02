@@ -18,11 +18,12 @@ on:
       - "apps/negentropy-wiki/src/components/markdown/remark-math-sanitize.ts"
       - "apps/negentropy-ui/utils/remark-math-sanitize.ts"
       - "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-explained-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-planning-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-memory-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-concurrency-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-multiagent-video/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-explained/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-planning/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-memory/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-concurrency/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-multiagent/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-harness/chapters-01-loop/video/src/components/series-intro.tsx"
       - ".github/workflows/twin-files-consistency.yml"
   push:
     branches: [master, main]
@@ -31,11 +32,12 @@ on:
       - "apps/negentropy-wiki/src/components/markdown/remark-math-sanitize.ts"
       - "apps/negentropy-ui/utils/remark-math-sanitize.ts"
       - "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-explained-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-planning-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-memory-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-concurrency-video/video/src/components/series-intro.tsx"
-      - "apps/negentropy-influence/episodes/claude-code-multiagent-video/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-explained/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-planning/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-memory/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-concurrency/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-explained/claude-code-multiagent/video/src/components/series-intro.tsx"
+      - "apps/negentropy-influence/episodes/claude-code-harness/chapters-01-loop/video/src/components/series-intro.tsx"
 
 permissions:
   contents: read

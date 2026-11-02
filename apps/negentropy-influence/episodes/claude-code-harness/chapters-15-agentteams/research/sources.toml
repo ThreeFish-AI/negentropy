@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s15-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s15_agent_teams/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "03206e9ac1356c44"
+text_sha256 = "ae566add03e2fa37"
+bytes = 10857
+lines = 254
+via = "pinned commit, MIT; 钉选轨（20 章版单章成集）"
+
+[s15-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s15_agent_teams/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "8cee51a2c815b3f6"
+text_sha256 = "056096515c72a2a3"
+bytes = 36566
+lines = 985
+via = "pinned commit, MIT; 工具数/轮次上限/收件箱机制实测依据"
+
+[s15m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s13_agent_teams/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "cd529d72deee856d"
+text_sha256 = "3c7272c59e23fa9b"
+bytes = 18980
+lines = 448
+via = "pinned commit, MIT; 对照轨（main 17 章版四课整合章，真增量登记于 B.1，不进本集叙事主线）"
+
+[s15m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s13_agent_teams/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "f8880aaaaedbd5c8"
+text_sha256 = "646b68c61a0e602d"
+bytes = 71053
+lines = 1891
+via = "pinned commit, MIT; 对照轨（main 17 章版）"
+
+[s15-site]
+url = "https://learn.shareai.run/zh/s15/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "6242a99cd186c07c"
+text_sha256 = "bd4c3c6b406514f7"
+bytes = 91237
+lines = 325
+via = "站点实况（集制骨架对照）"
+
+[doc-agent-teams]
+url = "https://code.claude.com/docs/en/agent-teams"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "cdb04bf7a76bcd2d"
+text_sha256 = "ef2d6f697fc47d8f"
+bytes = 461460
+lines = 762
+via = "官方补读（175 参考 [6]；权限冒泡/收件箱形态/实验开关语义）"

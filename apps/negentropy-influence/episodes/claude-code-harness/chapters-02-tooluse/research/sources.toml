@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s02-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s02_tool_use/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-29"
+raw_sha256 = "330277fcbc1a4cb4"
+text_sha256 = "e87777e41fb7ca37"
+bytes = 5542
+lines = 172
+via = "pinned commit, MIT"
+
+[s02-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s02_tool_use/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-29"
+raw_sha256 = "fde1337c5a17bc2f"
+text_sha256 = "5f75ce2fbfa34d80"
+bytes = 7646
+lines = 208
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s02f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s02_tool_use/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-29"
+raw_sha256 = "68a645eaf607e72e"
+text_sha256 = "af792d57fc838f22"
+bytes = 8198
+lines = 222
+via = "pinned commit, MIT; 站点轨对照（s02 独有「深入 CC 源码」附录，【三】级断言正源）"
+
+[s02f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s02_tool_use/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-29"
+raw_sha256 = "c2f55dba14b1e9f7"
+text_sha256 = "d87f1b6072720835"
+bytes = 8342
+lines = 190
+via = "pinned commit, MIT; 站点轨对照"
+
+[s02-site]
+url = "https://learn.shareai.run/zh/s02/"
+kind = "site"
+accessed = "2026-10-29"
+raw_sha256 = "1fc6c5d05263886b"
+text_sha256 = "08846b8b05d3ec2e"
+bytes = 57128
+lines = 236
+via = "站点实况（集制骨架对照）"
+
+[doc-tool-use-overview]
+url = "https://platform.claude.com/docs/en/build-with-claude/tool-use/overview"
+kind = "site"
+accessed = "2026-10-29"
+raw_sha256 = "c1926b8b08602949"
+text_sha256 = "e382ed228bea7eb5"
+bytes = 1283683
+lines = 119
+via = "官方补读（171 参考 [2]；工具定义/参数 schema/配对协议语义）"

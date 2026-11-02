@@ -1,0 +1,100 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s13-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s13_background_tasks/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "752eee73ced127ea"
+text_sha256 = "fd65fc7f95134c81"
+bytes = 11410
+lines = 261
+via = "pinned commit, MIT; 钉选轨（176 冻结正源·s13 单章；含六段「深入 CC 源码」附录=【三】级断言正源）"
+
+[s13-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s13_background_tasks/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "cd68265f806cdedb"
+text_sha256 = "e78bd3165cd0813f"
+bytes = 17212
+lines = 480
+via = "pinned commit, MIT; B.2 复算依据（关键词表/占位回执/120 秒超时复用）"
+
+[s13-site]
+url = "https://learn.shareai.run/zh/s13/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "f6f9e70f7ce472ac"
+text_sha256 = "b7cc79aa0644826d"
+bytes = 71444
+lines = 258
+via = "站点实况（集制骨架对照）"
+
+[s13m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s11_background_tasks/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "33508a7a0ef6c279"
+text_sha256 = "cb120c83099af996"
+bytes = 6882
+lines = 178
+via = "pinned commit, MIT; main 轨对照（s11：分派仅显式请求、无关键词兜底；无源码对照节）"
+
+[s13m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s11_background_tasks/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "78a1701d4a599d55"
+text_sha256 = "cdb138032f023c6a"
+bytes = 17998
+lines = 547
+via = "pinned commit, MIT; main 轨对照（自 ce8f9f18 前移仅 +6/-1：注释与空输入守卫，无机制变更）"
+
+[doc-tool-use-overview]
+url = "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "e9aecd202f8bcb82"
+text_sha256 = "cdcabb9b0b11b956"
+bytes = 1241134
+lines = 119
+via = "官方补读（176 参考 [8]；一次调用一结果的配对协议依据——占位回执+通知注入的协议根基）"
+
+[doc-scheduled-tasks]
+url = "https://code.claude.com/docs/en/scheduled-tasks"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "43cf6d0f7dd83404"
+text_sha256 = "3ede4421b085ea54"
+bytes = 335382
+lines = 564
+via = "官方补读（176 参考 [3]；§5 会话级任务默认形态/--resume 四类例外/.claude/scheduled_tasks.json 只列出不执行）"
+
+[doc-routines]
+url = "https://code.claude.com/docs/en/routines"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "e8ed667080c621b0"
+text_sha256 = "613216f32958b4a7"
+bytes = 449009
+lines = 705
+via = "官方补读（176 参考 [6]；§5 脱离会话三路对照·最小间隔一小时）"
+
+[doc-desktop-scheduled]
+url = "https://code.claude.com/docs/en/desktop-scheduled-tasks"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "aea2b5cc230b29d8"
+text_sha256 = "b4a9ec1eae1e5811"
+bytes = 289143
+lines = 528
+via = "官方补读（176 参考 [11]；§5 唤醒补跑 catch-up「missed six days runs once on wake」）"

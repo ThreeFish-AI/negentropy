@@ -1,0 +1,433 @@
+[
+  {
+    "id": "p0-01",
+    "scene": "P0",
+    "text": "这是一个会写命令、却永远在等你按回车的模型。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
+  },
+  {
+    "id": "p0-02",
+    "scene": "P0",
+    "text": "你让它列目录、跑脚本，它能写出正确的命令。"
+  },
+  {
+    "id": "p0-03",
+    "scene": "P0",
+    "text": "然后就没有然后了。",
+    "ttsText": "然后，就没有然后了。"
+  },
+  {
+    "id": "p0-05",
+    "scene": "P0",
+    "text": "你复制、粘贴、按回车，把输出贴回去，下一条命令才出来。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.15"
+    }
+  },
+  {
+    "id": "p0-06",
+    "scene": "P0",
+    "text": "每一个来回，你都在当它的牛马。",
+    "ttsText": "每一个来回，你都在当它的，牛马。"
+  },
+  {
+    "id": "p0-08",
+    "scene": "P0",
+    "text": "把这段来回交给程序，就是今天的事。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
+  },
+  {
+    "id": "p0-09",
+    "scene": "P0",
+    "text": "答案简单得出奇：一个循环，把执行结果喂回给模型自己——就这么给它接上一双手。"
+  },
+  {
+    "id": "p1-01",
+    "scene": "P1",
+    "text": "先把这个循环看清楚。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
+  },
+  {
+    "id": "p1-02",
+    "scene": "P1",
+    "text": "它只认两个信号：模型开口要工具，就继续转；不开口，就停。",
+    "ttsText": "它只认两个信号：模型开口要工具，就继续转；不开口，就停！"
+  },
+  {
+    "id": "p1-03",
+    "scene": "P1",
+    "text": "拆开，正好五步。"
+  },
+  {
+    "id": "p1-04",
+    "scene": "P1",
+    "text": "第一步，你的问题成为对话的第一条消息。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
+  },
+  {
+    "id": "p1-05",
+    "scene": "P1",
+    "text": "第二步，程序带着对话和工具清单，调一次模型。"
+  },
+  {
+    "id": "p1-06",
+    "scene": "P1",
+    "text": "第三步，回答原样存档，同时查有没有工具调用。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
+  },
+  {
+    "id": "p1-07",
+    "scene": "P1",
+    "text": "工具调用，就是模型在回答里说：这个操作请执行，参数备好了。"
+  },
+  {
+    "id": "p1-08",
+    "scene": "P1",
+    "text": "第四步，照单执行，把输出包成一条工具结果。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
+  },
+  {
+    "id": "p1-09",
+    "scene": "P1",
+    "text": "第五步，结果作为新消息塞回对话，回到第二步。"
+  },
+  {
+    "id": "p1-10",
+    "scene": "P1",
+    "text": "一个容易看漏的细节：工具结果，是以用户的身份塞回去的。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p1-10b",
+    "scene": "P1",
+    "text": "机制上说得通：不是它产出的内容，都算输入。"
+  },
+  {
+    "id": "p1-12",
+    "scene": "P1",
+    "text": "五步、两个信号、三十来行——最小可运行的 Harness 内核。",
+    "beatStart": true,
+    "ttsText": "五步、两个信号、三十来<行|HANG2>——最小可运行的 Harness 内核。",
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.14"
+    }
+  },
+  {
+    "id": "p1-13",
+    "scene": "P1",
+    "text": "分工就此立住：模型管决策，程序管执行。"
+  },
+  {
+    "id": "p2-01",
+    "scene": "P2",
+    "text": "光说骨架不形象，走个例子。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
+  },
+  {
+    "id": "p2-02",
+    "scene": "P2",
+    "text": "你说：帮我在购物清单里加一行牛奶，再念给我听。",
+    "ttsText": "你说：帮我在购物清单里加一<行|HANG2>牛奶，再念给我听。"
+  },
+  {
+    "id": "p2-03",
+    "scene": "P2",
+    "text": "第一轮，模型要求调用「写文件」这个工具。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
+  },
+  {
+    "id": "p2-03b",
+    "scene": "P2",
+    "text": "「写文件」的参数是文件写入路径和待写入的内容。"
+  },
+  {
+    "id": "p2-04",
+    "scene": "P2",
+    "text": "程序执行写入，清单多了一行牛奶，结果喂回去。",
+    "ttsText": "程序执行写入，清单多了一<行|HANG2>牛奶，结果喂回去。"
+  },
+  {
+    "id": "p2-05",
+    "scene": "P2",
+    "text": "第二轮，再开口：读文件，就是这份清单。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
+  },
+  {
+    "id": "p2-06",
+    "scene": "P2",
+    "text": "再执行，再喂回去。"
+  },
+  {
+    "id": "p2-07",
+    "scene": "P2",
+    "text": "第三轮，模型直接回答：清单现在是这些——没有工具调用，循环退出。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
+  },
+  {
+    "id": "p2-09",
+    "scene": "P2",
+    "text": "三次调用、两次执行——每一步决定，都踩在喂回的结果上。",
+    "ttsText": "三次调用、两次执行——每一步决定，都踩在，喂回的结果上。"
+  },
+  {
+    "id": "p3-01",
+    "scene": "P3",
+    "text": "骨架有了，躲不开一问：每圈转完，凭什么判断继续还是停？",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.12"
+    }
+  },
+  {
+    "id": "p3-03",
+    "scene": "P3",
+    "text": "一版查收尾字段——末尾那个「结束原因」标记，说继续就继续。",
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.10"
+    }
+  },
+  {
+    "id": "p3-04",
+    "scene": "P3",
+    "text": "另一版翻内容：回答里有没有工具调用块，有就转，没有就停。"
+  },
+  {
+    "id": "p3-05",
+    "scene": "P3",
+    "text": "平时两版没差别，可有一种情况，立刻见高下。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.14"
+    }
+  },
+  {
+    "id": "p3-06",
+    "scene": "P3",
+    "text": "那就是流式——回答像打字机一样，一个字一个字到达。"
+  },
+  {
+    "id": "p3-07",
+    "scene": "P3",
+    "text": "内容先到，字段后到：程序已看见调用，标记还停在旧值。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "afraid:0.12"
+    }
+  },
+  {
+    "id": "p3-08",
+    "scene": "P3",
+    "text": "等字段，等于把行动绑在迟到的信号上。"
+  },
+  {
+    "id": "p3-09",
+    "scene": "P3",
+    "text": "就像火警接警：听到着火和地址，车就该派出去，不必等这通报警按规矩收完尾。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.18"
+    }
+  },
+  {
+    "id": "p3-10",
+    "scene": "P3",
+    "text": "边界也交代：接警员晚点还能补派，循环错过这次，没有第二回。"
+  },
+  {
+    "id": "p3-11",
+    "scene": "P3",
+    "text": "实测说话：判据换回收尾字段，别的全不动。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.12"
+    }
+  },
+  {
+    "id": "p3-12",
+    "scene": "P3",
+    "text": "十轮只跑完八轮，落地的活儿七件变五件。",
+    "ttsText": "十轮只跑完八轮，落地的活儿，七件变五件。"
+  },
+  {
+    "id": "p3-13",
+    "scene": "P3",
+    "text": "模型已经开口要的两个调用，被静默丢弃。"
+  },
+  {
+    "id": "p3-14",
+    "scene": "P3",
+    "text": "教训一句话：字段晚到时，等字段，就是丢调用。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "教训一句话：字段晚到时，等字段，就是丢调用！"
+  },
+  {
+    "id": "p4-01",
+    "scene": "P4",
+    "text": "那真实的 Claude Code 呢？",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "surprised:0.15"
+    }
+  },
+  {
+    "id": "p4-02",
+    "scene": "P4",
+    "text": "拆解过 Claude Code 源码的同学们应该知道：管循环的那个文件，一千七百多行。",
+    "ttsText": "拆解过 Claude Code 源码的同学们应该知道：管循环的那个文件，一千七百多<行|HANG2>。"
+  },
+  {
+    "id": "p4-04",
+    "scene": "P4",
+    "text": "核心没变：同样不信收尾字段，改立一个「还要不要继续」的开关。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.08"
+    }
+  },
+  {
+    "id": "p4-04b",
+    "scene": "P4",
+    "text": "流式里一见工具调用块，开关就拨到「要」。"
+  },
+  {
+    "id": "p4-05",
+    "scene": "P4",
+    "text": "教学版只守一份对话列表；生产版的状态对象，十个字段各追一类。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
+  },
+  {
+    "id": "p4-06",
+    "scene": "P4",
+    "text": "退出路径不止一条：超长、报错、中止、轮次到顶，各有处置。"
+  },
+  {
+    "id": "p4-07",
+    "scene": "P4",
+    "text": "这些字段和路径，全是「出事了怎么办」的保险丝。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "happy:0.12"
+    }
+  },
+  {
+    "id": "p4-07b",
+    "scene": "P4",
+    "text": "真保险丝一烧就永久断路；这里的大多数，还能重试、还能续跑。"
+  },
+  {
+    "id": "p4-08",
+    "scene": "P4",
+    "text": "三十来行的骨架，就是那一千七百多行的核心。",
+    "ttsText": "三十来<行|HANG2>的骨架，就是那一千七百多<行|HANG2>的核心。"
+  },
+  {
+    "id": "p5-01",
+    "scene": "P5",
+    "text": "一句话收束：核心不长大，长大的是保险丝。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.15"
+    },
+    "ttsText": "一句话收束：核心不长大，长大的，是保险丝。"
+  },
+  {
+    "id": "p5-04",
+    "scene": "P5",
+    "text": "回到这双手：它手里只有 bash 一件家什。",
+    "beatStart": true,
+    "blockStart": true,
+    "cue": {
+      "emo": "melancholic:0.12"
+    }
+  },
+  {
+    "id": "p5-05",
+    "scene": "P5",
+    "text": "读文件要拼命令，找文件也要拼，又丑又容易错。"
+  },
+  {
+    "id": "p5-06",
+    "scene": "P5",
+    "text": "下期，给它真正的工具。"
+  },
+  {
+    "id": "p5-07",
+    "scene": "P5",
+    "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
+    "beatStart": true,
+    "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+    "blockStart": true,
+    "cue": {
+      "emo": "calm:0.10"
+    }
+  },
+  {
+    "id": "p5-08",
+    "scene": "P5",
+    "text": "今天的数字来自原作者的单方核查，没锁版本，计数会漂移。"
+  }
+]
