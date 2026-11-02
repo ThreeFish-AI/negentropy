@@ -1,5 +1,7 @@
 {
  "as_of": "2026-11-02",
+ "as_of_commit": "c30489f9c714b9cc4a0779c1fe9cd6d43c3d4d0e",
+ "baseline_note": "涉「knowledge 写端点鉴权 / 035 §11.1 文案」的判定与漂移记录按 I-245（同批合入）修复前基线成立；HEAD 现状以 I-245 为准（写端点聚合注入 knowledge:write 守卫、035 §11.1 已改写对齐）",
  "method": "五域并行取证 + 逐域对抗复核",
  "domains": {
   "D1-docmgmt": {
@@ -753,9 +755,9 @@
       "docs/.agents/issue.md:3027（I-196 详情块）",
       "docs/research/cognitive-context/013-context-layer-blueprint.md:725"
      ],
-     "gap": "最小闭环：CJK 查询路由 pg_trgm/LIKE 回退或入库 bigram 预切分（pg_trgm 本机可用）；中期 pg_search/ES 换真 BM25+BM25F；注释与文档先把「BM25」措辞改准",
+     "gap": "最小闭环：CJK 查询路由 pg_trgm/LIKE 回退或入库 bigram 预切分（pg_trgm 本机可用）；真 BM25 按 ADR-0002 选型（pg_textsearch 主选 / OpenSearch 扩容）；注释与文档先把「BM25」措辞改准",
      "effort": "L",
-     "risk": "pg_search AGPL/托管支持问题（方案 §5-F11 已警示）；换分词配置需全量重刷 search_vector"
+     "risk": "pg_search AGPL/托管支持问题（调研 §5-F11 已警示）；换分词配置需全量重刷 search_vector"
     },
     {
      "id": "C2",
@@ -1595,7 +1597,7 @@
      "id": "C1",
      "design_mechanism": "§5.1 内部运营平面：RBAC（角色×产品域），功能与文档操作分级",
      "status": "partial",
-     "as_built": "rbac.py 定义 admin/user 两角色与 knowledge:read/write 等 14 权限及 require_permission/require_role 工厂，但 knowledge 路由零调用（require_permission 全仓无使用）；admin 判定散见 interface/models/engine 的 require_admin 与 wiki 评论/批注 owner-or-admin；无「角色×产品域」维度",
+     "as_built": "rbac.py 定义 admin/user 两角色与 knowledge:read/write 等 12 权限及 require_permission/require_role 工厂，但 knowledge 路由零调用（require_permission 全仓无使用；I-245 已在本分析同批为全部写端点聚合注入 knowledge:write 守卫）；admin 判定散见 interface/models/engine 的 require_admin 与 wiki 评论/批注 owner-or-admin；无「角色×产品域」维度",
      "evidence": [
       "apps/negentropy/src/negentropy/auth/rbac.py:15",
       "apps/negentropy/src/negentropy/auth/rbac.py:38",

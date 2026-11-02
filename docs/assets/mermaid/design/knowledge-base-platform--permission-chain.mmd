@@ -1,46 +1,47 @@
 %%source: docs/concepts/design/knowledge-base-platform.md §5 权限管控（全链路权限流 + 身份四平面）
 %%slug: design/knowledge-base-platform--permission-chain
 %%type: workflow
-%%derived: 新创作，无原文 mermaid 块；五阶段权限链路（引入→编辑→索引→检索→集成），fail-closed 不变量
+%%derived: 新创作，无原文 mermaid 块；权限全链路：四泳道（源与摄取→版本与编辑→索引与检索→应用与终端）×四阶段（引入期→编辑与身份→索引与验权→检索交付），fail-closed 不变量
 %%fix: 评审 R2——M2「可选四眼」改为「可见性变更强制四眼」，与 §2.3/§5.2 一致
+%%fix: 源/图对账回写——图体与已入库 candidate（docs/diagrams/knowledge-base-platform--permission-chain/）节点/边/标签逐项同构：五阶段收敛为四泳道×四阶段（操作全审计由 architecture 图「审计日志」节点与权限平面承载，desktop-readability 收窄不设独立节点）、补「源系统」节点、删不可满足的 T4→W1 回边；泳道×阶段网格/双轨分组/卡片见 %%注释（建模与回执锚以 candidate JSON 为准）
+%%lane×phase 网格：列头=引入期/编辑与身份/索引与验权/检索交付（candidate phases）
+%%group: 内容轨——ACL 随文档流转（src→conn→aclcap→ver→edit→pub→mat→prefilter）
+%%group: 身份轨——终端验权（anon/cust→gate，在 pre-filter 合流为过滤谓词）
+%%card: 安全不变量（rose）——pre-filter fail-closed：判定不可用 = 全部不可见 / 融合与重排只接触已过滤候选，绝不后过滤 top-k / 拒答话术统一，不泄露「文档存在但无权限」
+%%card: 双轨合流（cyan）——内容轨（引入→编辑→索引）携带 ACL 物化流转 / 身份轨（匿名产品域 / 登录客户 ACL）在检索期合流为过滤谓词
 flowchart TD
-  subgraph IN["① 引入期"]
-    N1["连接器最小权限凭据<br/>密钥托管不落库"]
-    N2["捕获源 ACL 镜像<br/>随文档同步"]
-    N3["写入 DocumentVersion.acl<br/>不可变快照"]
-    N1 --> N2 --> N3
+  subgraph LN1["泳道：源与摄取"]
+    SRC["源系统"]
+    CONN["连接器"]
   end
 
-  subgraph ED["② 编辑期"]
-    M1["产品域 RBAC<br/>∩ 文档级授权"]
-    M2["草稿→评审→发布<br/>可见性变更强制四眼"]
-    M3["操作全审计<br/>字段级 diff"]
-    M1 --> M2 --> M3
+  subgraph LN2["泳道：版本与编辑"]
+    ACL["捕获 ACL 镜像"]
+    VER["DocumentVersion"]
+    EDIT["人工编辑"]
+    PUB["评审发布"]
   end
 
-  subgraph IX["③ 索引期"]
-    X1["Chunk 物化继承 ACL<br/>不放大不缩小"]
-    X2["ACL 变更<br/>→ 增量重刷受影响 chunk"]
-    X1 --> X2
+  subgraph LN3["泳道：索引与检索"]
+    MAT["Chunk 物化"]
+    PRE["组合 pre-filter"]
   end
 
-  subgraph RT["④ 检索期（安全不变量）"]
-    T1["组合 pre-filter<br/>权限+产品域+元数据+geo"]
-    T2["fail-closed<br/>判定不可用 = 全部不可见"]
-    T3["RRF 融合 + 重排<br/>只接触已过滤候选"]
-    T4["拒答话术统一<br/>不泄露文档存在性"]
-    T1 --> T2 --> T3 --> T4
+  subgraph LN4["泳道：应用与终端"]
+    ANON["匿名访客"]
+    CUST["登录客户"]
+    GATE["验权网关"]
+    ANS["有据答案"]
   end
 
-  subgraph AP["⑤ 集成期"]
-    W1["匿名访客<br/>Channel token = 产品域 scope"]
-    W2["登录客户<br/>IdP JWT → 增强 token"]
-    W3["验签 + 域名绑定<br/>ACL 属性展开为过滤谓词"]
-    W1 & W2 --> W3
-  end
-
-  N3 --> M1
-  M3 --> X1
-  X2 --> T1
-  W3 --> T1
-  T4 --> W1
+  SRC -->|拉取| CONN
+  CONN -->|随文档同步| ACL
+  ACL -->|写入 acl| VER
+  VER -->|基于 canonical| EDIT
+  EDIT -->|草稿→发布| PUB
+  PUB -->|触发索引| MAT
+  MAT -->|ACL 入索引| PRE
+  ANON --> GATE
+  CUST --> GATE
+  GATE -->|ACL 谓词注入| PRE
+  PRE -->|已过滤候选| ANS

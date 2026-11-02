@@ -143,7 +143,7 @@ IndexBuild 三策略：全量初建 / 增量（按版本 diff 重刷该文档 ch
 
 ### 5.2 全链路权限流
 
-![权限全链路：引入期捕获源 ACL 镜像写入版本；编辑期 RBAC∩文档授权、可见性变更强制四眼；索引期 chunk 继承 ACL；检索期组合 pre-filter fail-closed，融合重排只见已过滤候选、拒答不泄露存在性；集成期匿名走产品域 scope、登录客户换增强 token，双轨在 pre-filter 合流。](../../assets/architecture/design/knowledge-base-platform--permission-chain-dark.png)
+![权限全链路：引入期捕获源 ACL 镜像写入版本；编辑与身份阶段 RBAC∩文档授权、可见性变更强制四眼；索引与验权阶段 chunk 继承 ACL；检索交付阶段组合 pre-filter fail-closed，融合重排只见已过滤候选、拒答不泄露存在性；匿名访客走产品域 scope、登录客户换增强 token，双轨在 pre-filter 合流。](../../assets/architecture/design/knowledge-base-platform--permission-chain-dark.png)
 
 > 图源（可 diff 文本）：[`knowledge-base-platform--permission-chain.mmd`](../../assets/mermaid/design/knowledge-base-platform--permission-chain.mmd) · 交互版（下载到本地打开）：[`knowledge-base-platform--permission-chain.html`](../../assets/architecture/design/knowledge-base-platform--permission-chain.html)
 

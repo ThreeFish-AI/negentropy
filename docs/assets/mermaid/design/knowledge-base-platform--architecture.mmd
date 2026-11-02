@@ -3,69 +3,79 @@
 %%type: architecture
 %%derived: 新创作，无原文 mermaid 块；知识库平台参考架构（独立通用方案）
 %%fix: 评审 R1 blocker——L3 次序改为「组合 pre-filter 下推四路召回」在前，与 §3.3/§5.2 安全不变量一致
+%%fix: 源/图对账回写——图体与已入库 candidate（docs/diagrams/knowledge-base-platform--architecture/）节点/边/标签逐项同构：蓝绿索引版本入「检索与索引」卡片、L3 收敛为 组合pre-filter·下推四路→多路召回结果→RRF融合重排→引用锚定、横切边收敛为 ACL 同步→recall 谓词注入；卡片文案见下方 %%card 注释（建模与回执锚以 candidate JSON 为准）
+%%card: 安全不变量（rose）——权限谓词先合取再下推四路召回（非先召回后过滤），fail-closed / Chunk 物化继承版本 ACL，不放大不缩小；读写双审计 / 检索访问与编辑操作双审计，仅追加不可篡改
+%%card: 检索与索引（cyan）——四路索引（BM25/元数据/向量/地理）混合召回，RRF 融合 / 索引蓝绿版本：构建→校验→切换→下线，全程可回滚
+%%card: 闭环与重建（emerald）——canonical 版本库为 SSOT，任何索引可全量重放重建 / 线上反馈归因回流：评测集扩充、排序调参、知识补录 / 评测回归门控索引重建与检索策略变更
 flowchart TD
   subgraph L0["L0 源层"]
     S1["帮助中心 / CMS"]
-    S2["对象存储 PDF / Office"]
-    S3["业务库 / 工单历史"]
+    S2["文档文件"]
+    S3["业务数据"]
   end
 
   subgraph L1["L1 文档管理"]
-    C1["连接器框架<br/>webhook / 增量拉取 / 全量重扫"]
-    C2["同步状态机<br/>内容指纹 diff · tombstone"]
-    C3["文档版本库 SSOT<br/>DocumentVersion 不可变"]
-    C4["人工编辑工作流<br/>草稿→评审→发布"]
-    C1 --> C2 --> C3
-    C4 <-.-> C3
+    C1["连接器框架"]
+    C2["同步状态机"]
+    C3["人工编辑工作流"]
+    C4["文档版本库"]
   end
 
   subgraph L2["L2 索引构建"]
-    I0["索引编排器<br/>解析→分块→上下文富化"]
-    I1["BM25 倒排<br/>k1/b · 字段加权"]
-    I2["元数据索引<br/>结构化过滤下推"]
-    I3["向量 ANN<br/>HNSW · 模型版本绑定"]
-    I4["地理索引<br/>geo_point / geo_region"]
-    I5["蓝绿索引版本<br/>构建→校验→切换→下线"]
-    I0 --> I1 & I2 & I3 & I4
-    I1 & I2 & I3 & I4 --> I5
+    I0["索引编排器"]
+    I1["BM25 倒排"]
+    I2["元数据索引"]
+    I3["向量 ANN"]
+    I4["地理索引"]
   end
 
   subgraph L3["L3 检索服务"]
-    R1["组合 pre-filter<br/>权限+产品域+元数据+geo"]
-    R2["下推四路召回<br/>引擎内带谓词取 top-k"]
-    R3["RRF 融合<br/>k=60 起步"]
-    R4["Cross-Encoder 重排"]
-    R5["引用锚定"]
-    R1 --> R2 --> R3 --> R4 --> R5
+    R1["组合 pre-filter · 下推四路"]
+    R2["多路召回结果"]
+    R3["RRF 融合重排"]
+    R4["引用锚定"]
   end
 
   subgraph L4["L4 应用集成"]
-    A1["Channel 网关<br/>产品域绑定 · 限流"]
-    A2["官网 Widget<br/>JS SDK"]
+    A1["官网 Widget"]
+    A2["Channel 网关"]
     A3["Answer API"]
     A4["转人工 Webhook"]
-    A5["反馈回流<br/>赞/踩/转人工"]
-    A1 --> A2 & A3
-    A1 --> A4
-    A5 --> A1
   end
 
   subgraph XP["权限平面（横切）"]
-    P1["身份四平面<br/>内部 RBAC / 匿名产品域 / 客户 ACL / 机器调用方"]
-    P2["ACL 同步·物化·查询期 fail-closed·审计"]
-    P1 --- P2
+    P1["身份四平面"]
+    P2["ACL 同步与物化"]
+    P3["审计日志"]
   end
 
   subgraph XE["评测平面（横切）"]
-    E1["golden set 回归<br/>recall@k / faithfulness"]
-    E2["线上信号回流<br/>bad-case 归因闭环"]
-    E1 --- E2
+    E1["评测与反馈平面"]
   end
 
-  S1 & S2 & S3 --> C1
-  C3 --> I0
-  I5 --> R1
-  R5 --> A1
-  A5 -.-> E2
-  E1 -.-> R3
-  P2 -.L1~L4 全链路.-> L1 & L2 & L3 & L4
+  S1 -->|拉取| C1
+  S2 -->|上传| C1
+  S3 -->|视图| C1
+  C1 -->|指纹 diff| C2
+  C2 -->|新版本| C4
+  C3 -->|草稿/发布| C4
+  C4 -->|全量重放| I0
+  I0 --> I1
+  I0 --> I2
+  I0 --> I3
+  I0 --> I4
+  I1 -->|下推| R1
+  I2 --> R1
+  I3 --> R1
+  I4 --> R1
+  R1 --> R2
+  R2 -->|带谓词召回| R3
+  R3 --> R4
+  R4 -->|有据答案| A2
+  A2 --> A1
+  A2 --> A3
+  A2 -->|转人工| A4
+  P1 --> P2
+  P2 --> P3
+  P2 -->|谓词注入| R1
+  A1 --> E1

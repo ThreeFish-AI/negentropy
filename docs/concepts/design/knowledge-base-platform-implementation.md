@@ -62,7 +62,7 @@ tags:
 | P2-4 (M2) | 真 BM25 落地（选型已定，[ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)）：pg_textsearch 集成（k1/b 按索引；中文 zhparser 托管均不可装——分词方案需 PoC 验证，见 ADR-0002 §5 ④）+ 目标云兼容性验证；RLS 共享表 IDF 跨租户统计评估（必要时按产品域分区）；AWS/Azure 场景走兜底重算并外置 OpenSearch（BM25F `combined_fields`） | 集成 + 兼容矩阵 + IDF 隔离测试 | ADR-0002；方案 §3.1 | L |
 | P2-5 (M2) | 地理空间：PostGIS + geo_point/geo_region 列 + GiST + `<->` KNN + H3 分析列；参照点优先级链与降级 | migration + geo 检索腿 + 测试 | 方案 §3.1/§3.3；调研 §8 | L |
 | P2-6 (M2) | index_ver 蓝绿：双写、水位追平、回归门、别名原子切换；回滚先重放删除/ACL 事件；权限/内容分队列部分重索引 | 蓝绿编排器 + 回滚演练 | 方案 §3.2；Azure Resync 范式（§3-F5） | XL |
-| P2-7 (M3) | 嵌入双轨：中文 BGE-M3/Qwen3 自托管 + 西文 API；MRL 弹性维度与租户配额；换模型重建常态化 | 双轨接入 + 重建 runbook | 调研 §5-F7/F8/F9/F10 | L |
+| P2-7 (M3) | 嵌入双轨：中文 BGE-M3/Qwen3 自托管 + 西文 API；MRL 弹性维度与租户配额；换模型重建常态化 | 双轨接入 + 重建 runbook | 调研 §5-F7/F8/F9 | L |
 
 ## 5. P3 检索服务
 
