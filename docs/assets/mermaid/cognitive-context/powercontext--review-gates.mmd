@@ -1,0 +1,20 @@
+%%source: docs/research/cognitive-context/016-powercontext-context-runtime.md §治理机制（信源：oceanbase/powercontext master 5032075ad，core-concepts / review-candidates / experience-and-skill-lifecycle）
+%%slug: cognitive-context/powercontext--review-gates
+%%type: workflow
+%%derived: archify workflow v2（生成/评审/执行三权分立：模型只能提案，评审通过才成不可变 Revision，导出与执行权限各自独立；直接写入走各家族校验，召回只取已批内容）
+flowchart LR
+    M["生成模型<br/>从 Source 提案 · 无入库权"]
+    INBOX["评审收件箱<br/>Candidate pending · expected_version"]
+    DEC["评审决策<br/>通过=终态 / 驳回=终态"]
+    REV["不可变 Revision<br/>FAMILY/ID@REVISION · Lineage"]
+    EXP["显式导出<br/>仅 Skill · 精确 Revision"]
+    HOST["宿主本地副本<br/>可发现 ≠ 可执行"]
+    DIRECT["直接 Create/Replace<br/>免模型 · 各家族校验"]
+    RECALL["PreparedContext<br/>有界召回 · 字节预算"]
+    M -->|"提案"| INBOX
+    INBOX -->|"expected_version 一致"| DEC
+    DEC -->|"通过 · 写入"| REV
+    REV -->|"导出精确版本"| EXP
+    EXP -->|"宿主可发现"| HOST
+    DIRECT -->|"内容校验即正式版"| REV
+    REV -.->|"只取 active+已批"| RECALL
