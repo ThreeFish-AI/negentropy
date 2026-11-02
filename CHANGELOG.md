@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》《Autonomous Agents：自己看板，自己认领》《Worktree Isolation：一个任务，一个房间》《MCP 与插件：发现、命名、组装》后 ep20《综合回合：机制很多，循环一个》终章收官交付 v1（2026-11-02）——二十集系列全部交付
+
+- ⑥ 22 镜六场景分镜（零建图；G1 RISKY 0 放行——终章反串线从严扫描全过：回闪十八枚机制剪影零文字、零前集标题零集数序号、series-layers next=null 终章处置；3-A 输入条 caption-dup 豁免预注；judge 零微改进 v2 基线直冻）。⑦ me-bright/story TTS 56 句实测口径 5.0 分落窗。⑧ 环形走廊双态画法（远景环体细线四拍/近景走廊、中线即陶土橙环体——LoopRing 母题本体零改动外层包装）/十八机制剪影族（灰调零文字）/挂点槽+合流紫归位/岗亭输入钩子/三间准备室/恢复垫四徽章/岔口判读台正反同帧/三车道执行段/三圈走查（一句真输入拆两签四段全程可追）/名册 27 格+演进链 8→14→18→27/消融左红右绿/while True 五行代码剪影/五段组弧零文字装置族 + 片头孪生（组五 groupOf(20)=5、五大组进度全亮）。
+- ⑨ QA 修复 2 项：merge 色 #8260E8→#9074EE（对 bg 对比度 4.31→5.33 过 4.5 可达性门——series.json accents/storyboard 契约/theme.ts/planning §三/series.md 索引行五处同步、全工作区零残留）；storyboard「逐站点亮」→「逐槽点亮」（规则 7 词面）。三路走查 0 RISKY 0 WARN（一致性八项+终章专项全过——十八剪影组件源码级零文字、5-C 无下期卡、20 层 title 与 series.json 全量对账 mismatch=0；layman 诚实纠偏——自行作废一段无工具调用支撑的捏造读数并以真实重测覆盖）。
+- ⑩ 终渲 302.5s / 5 分 2.5 秒落窗 [4.4,5.6]；deliver 归档 `~/Documents/video/claude-code-chapters/综合回合：机制很多，循环一个 v1.mp4`。
+
+**系列收官**：《Claude Code 的 20 个核心机制》二十集（ep1 v3 + ep2–ep20 各 v1）全部交付，2026-10-30 建档 → 2026-11-02 全系列收官；全程零建图原生 Remotion 路线、克隆声配音、每集三路走查+机器门、四道 QA 门终态全绿。
 ### claude-code-chapters 继《Agent Loop：一个循环，让 Agent 开始了心跳》《Tool Use：多加一个工具，只加一行》《Permission：三道闸门，动手之前的裁决》《Hooks：扩展不进循环》《TodoWrite：把计划摆回模型眼前》《Subagent：过程隔离，只回结论》《Skill Loading：目录常驻，全文按需》《Context Compact：先整理，再总结》《Memory：索引与按需加载》《System Prompt：提示是拼出来的，不是写死的》《Error Recovery：报错先分类，循环不亡》《Task System：从执行清单到可认领的契约》《Background Tasks：慢命令丢后台，结果走通知》《Cron Scheduler：按时间表生产工作》《Agent Teams：文件收件箱与持久队友》《Team Protocols：对上号，才改状态》《Autonomous Agents：自己看板，自己认领》《Worktree Isolation：一个任务，一个房间》后 ep19《MCP 与插件：发现、命名、组装》制作轮收官交付 v1（2026-11-02）
 
 - ⑥ 20 镜六场景分镜（零建图；G1 修 RISKY1+WARN4 放行：R1 宿主名单第三条目 deploy/check→deploy/status（main 轨 code.py L205-210 与 gl-notes B.3 双源铁证——名单上屏即事实，两世界不混编）+教学版口径角标；0-B pushIn 动机错引修正；E5 轮次口径闭合为 B.2 显式引用；est 1317 字）；judge 三词锚同步（p1-06 白名单外/p2-06 没写过一行/p3-06 旧缓存）。⑦ me-bright/story TTS 54 句实测口径 4.9 分落窗。⑧ 前缀挂牌三段逐字拍上/归一网格字符级翻写（斜杠圆点拦下逐字符换下划线）/字符窗 0..64+拒收红牌（教学版口径）/统一工具池灌装-重灌-涟漪/对照表双列翻译/调用链四段去回同线+0 行签/旧池 Unknown tool 消融双轨（左调用1成功0↔右重建成功1+双断言签）/六通道矩阵/宿主名单三绿一黄装置族 + 片头孪生（组五 groupOf(19)=5）。
