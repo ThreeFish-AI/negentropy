@@ -1,0 +1,69 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s01-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s01_agent_loop/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-29"
+raw_sha256 = "00ce3791e20530d2"
+text_sha256 = "2d2b9f29d6793a90"
+bytes = 4659
+lines = 155
+via = "pinned commit, MIT"
+
+[s01-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s01_agent_loop/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-29"
+raw_sha256 = "8feaf7f73da6f9a7"
+text_sha256 = "e3360b8a7881bf1a"
+bytes = 4843
+lines = 153
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s01-site]
+url = "https://learn.shareai.run/zh/s01/"
+kind = "site"
+accessed = "2026-10-29"
+raw_sha256 = "50eae889b19c5f50"
+text_sha256 = "5c680dfb18b3624e"
+bytes = 51138
+lines = 226
+
+[s01f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s01_agent_loop/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-29"
+raw_sha256 = "1b52271434d051cc"
+text_sha256 = "66fe13c7d82a296b"
+bytes = 7710
+lines = 207
+via = "pinned commit, MIT; 站点轨对照（s01 独有「深入 CC 源码」附录，【三】级断言正源）"
+
+[s01f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s01_agent_loop/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-29"
+raw_sha256 = "f0bed0e007fd4ab5"
+text_sha256 = "593cdf223c1ba257"
+bytes = 4740
+lines = 137
+via = "pinned commit, MIT; 站点轨对照（判据之争反例：stop_reason 版教学码）"
+
+[doc-tool-use-overview]
+url = "https://platform.claude.com/docs/en/build-with-claude/tool-use/overview"
+kind = "site"
+accessed = "2026-10-29"
+raw_sha256 = "6dc1faa6f9ab5d4c"
+text_sha256 = "c9a00d74e0695761"
+bytes = 306195
+lines = 8
+via = "官方补读（171 参考 [2]；循环回喂语义与配对协议）。2026-10-29 观测：同日两态交替（text e382ed… ↔ c9a00d…，轮替构建产物，B 轨 WARN 设计内）；复核结论——本集仅引回喂/配对语义（稳定 API 行为，两态一致），无计数断言依赖此页，WARN 确认成立，指纹钉 c9a00d74 态"

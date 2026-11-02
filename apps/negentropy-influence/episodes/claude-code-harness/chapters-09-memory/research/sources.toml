@@ -1,0 +1,80 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s09-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s09_memory/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "ec5d2a5f49a0d402"
+text_sha256 = "2e08d1364496bfd5"
+bytes = 8159
+lines = 195
+via = "pinned commit, MIT"
+
+[s09-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s09_memory/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "fdebc11921c7e977"
+text_sha256 = "97e834f2fa2ff1c4"
+bytes = 27591
+lines = 786
+via = "pinned commit, MIT; 四件套常量与门控/回滚 LOC 实测依据"
+
+[s09f-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s09_memory/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "ba8b85dc56db4ceb"
+text_sha256 = "5701fe69627b090a"
+bytes = 13736
+lines = 280
+via = "pinned commit, MIT; 站点轨对照（s09 独有「深入 CC 源码」附录，【三】级断言正源）"
+
+[s09f-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s09_memory/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "2ccbf9f0b4b1abd5"
+text_sha256 = "e62d905d2a5a1cf3"
+bytes = 27121
+lines = 655
+via = "pinned commit, MIT; 站点轨对照（内嵌 s08 压缩管线/pre_compress 快照提取）"
+
+[s09-site]
+url = "https://learn.shareai.run/zh/s09/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "7e1551645ce60a68"
+text_sha256 = "51645677896d6e3e"
+bytes = 86020
+lines = 341
+via = "站点实况（集制骨架对照）"
+
+[doc-memory]
+url = "https://code.claude.com/docs/en/memory"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "985b95e1cef770f1"
+text_sha256 = "f031fcdcd189f000"
+bytes = 540118
+lines = 830
+via = "官方补读（173 参考 [2]；MEMORY.md 索引 200 行/25KB 与话题文件按需读取口径）"
+
+[doc-context-window]
+url = "https://code.claude.com/docs/en/context-window"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "92e12041cf1cc5b9"
+text_sha256 = "ac9e07c4648b934e"
+bytes = 277655
+lines = 476
+via = "官方补读（173 参考 [3]；压缩幸存表之记忆重注入条款）"

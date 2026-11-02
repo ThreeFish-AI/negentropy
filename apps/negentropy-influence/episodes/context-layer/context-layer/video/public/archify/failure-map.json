@@ -1,0 +1,107 @@
+{
+ "schema": 2,
+ "mode": "chapter",
+ "lead_sec": 0.48,
+ "story_sec": 22.28,
+ "total_wall_sec": 85.12,
+ "started_playback": true,
+ "clapper_found": true,
+ "measured_fps": 25.0,
+ "chapters": [
+  {
+   "id": "fm2-open",
+   "label": "十簇总览",
+   "index": 0,
+   "file": "failure-map--fm2-open.mp4",
+   "end_still": "failure-map--fm2-open-end.png",
+   "beats": 10,
+   "dwell_ms": 1100,
+   "lead_sec": 0.48,
+   "story_sec": 11.07,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "c1_koujing",
+    "c2_zhixing",
+    "c3_menjin",
+    "c4_yanzheng",
+    "c5_gongji",
+    "c6_yunhangshi",
+    "c7_jiexian",
+    "c8_jiyi",
+    "c9_zuzhi",
+    "c10_xiezuo"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "fm2-def",
+   "label": "定义执法三簇",
+   "index": 1,
+   "file": "failure-map--fm2-def.mp4",
+   "end_still": "failure-map--fm2-def-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.37,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "c1_koujing",
+    "c2_zhixing",
+    "c3_menjin"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "fm2-supply",
+   "label": "背书接入四簇",
+   "index": 2,
+   "file": "failure-map--fm2-supply.mp4",
+   "end_still": "failure-map--fm2-supply-end.png",
+   "beats": 4,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 4.51,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "c4_yanzheng",
+    "c5_gongji",
+    "c6_yunhangshi",
+    "c7_jiexian"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  },
+  {
+   "id": "fm2-ends",
+   "label": "末端三簇",
+   "index": 3,
+   "file": "failure-map--fm2-ends.mp4",
+   "end_still": "failure-map--fm2-ends-end.png",
+   "beats": 3,
+   "dwell_ms": 1100,
+   "lead_sec": 0.52,
+   "story_sec": 3.33,
+   "beat_offsets_sec": [],
+   "beat_nodes": [
+    "c8_jiyi",
+    "c9_zuzhi",
+    "c10_xiezuo"
+   ],
+   "measured_fps": 25.0,
+   "capture_fps": 61.0
+  }
+ ],
+ "capture": {
+  "mode": "cdp",
+  "scale": 2,
+  "encoder": "h264",
+  "crf": 16,
+  "fps": 25,
+  "out_h": 1440
+ },
+ "source": "/Users/cm.huang/conductor/workspaces/negentropy/lima/apps/negentropy-influence/episodes/context-layer/context-layer/video/public/archify/html/failure-map.html",
+ "slug": "failure-map",
+ "type": "architecture"
+}

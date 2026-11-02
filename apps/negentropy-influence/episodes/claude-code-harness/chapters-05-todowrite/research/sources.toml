@@ -1,0 +1,70 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s05-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s05_todo_write/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "92f4fa9f54ba2a56"
+text_sha256 = "5dd71b7d40fe43d1"
+bytes = 6736
+lines = 158
+via = "pinned commit, MIT; 钉选轨（站点同源修订 20 章版；s05 独有「深入 CC 源码」附录=【三】级断言正源）"
+
+[s05-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s05_todo_write/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "118dac9e16090b86"
+text_sha256 = "489d072254bf3758"
+bytes = 12588
+lines = 302
+via = "pinned commit, MIT; 钉选轨；nag 计数器/注入锚行与回填计数实测依据"
+
+[s05m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s05_todo_write/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "c71212f2f290ba1b"
+text_sha256 = "629966f8d7445a02"
+bytes = 5316
+lines = 149
+via = "pinned commit, MIT; main 轨对照（TodoManager 校验/reminder 进 tool results/渲染清单回填；17 章整合版无「深入 CC 源码」附录）"
+
+[s05m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s05_todo_write/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "4195fca02d7417f5"
+text_sha256 = "e60249960de3a437"
+bytes = 14008
+lines = 370
+via = "pinned commit, MIT; main 轨对照；TodoManager 20 条/单 in_progress 校验与 ast.literal_eval 锚行实测依据"
+
+[s05-site]
+url = "https://learn.shareai.run/zh/s05/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "a412b7eee5948071"
+text_sha256 = "d4967c3a6690d07f"
+bytes = 60709
+lines = 146
+via = "站点实况（集制骨架对照）"
+
+[doc-todo-tracking]
+url = "https://code.claude.com/docs/en/agent-sdk/todo-tracking"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "05cd396be35fc731"
+text_sha256 = "14974ed59484714e"
+bytes = 518707
+lines = 771
+via = "官方补读（172 参考 [4]；任务工具默认开关/多步任务建待办例示）"

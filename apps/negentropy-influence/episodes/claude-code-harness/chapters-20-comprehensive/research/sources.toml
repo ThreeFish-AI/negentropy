@@ -1,0 +1,60 @@
+# 非论文信源清单（可复现取证链，工具：$T/scripts/source_ledger.py）
+#
+# kind=repo 指向固定 commit，raw 指纹漂移即 FAIL（说明 URL 里的 ref 不是不可变引用）。
+# kind=site 指向线上页面，只对剥标签归一后的正文比对指纹，漂移报 WARN（去复核笔记）。
+# text_sha256 是判据；raw_sha256 仅供 repo 类硬校验与人工核对。
+
+
+[s20-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s20_comprehensive/README.md"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "3f4374f17351d190"
+text_sha256 = "ca28a7fc923773cb"
+bytes = 8516
+lines = 250
+via = "pinned commit, MIT"
+
+[s20-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/67a9126c6435a8654ba7a6f68c0fd2130f00a462/s20_comprehensive/code.py"
+kind = "repo"
+pinned_ref = "67a9126c6435a8654ba7a6f68c0fd2130f00a462"
+accessed = "2026-10-31"
+raw_sha256 = "9c44ca255bf5c57e"
+text_sha256 = "7520c6dcd081c371"
+bytes = 80007
+lines = 2130
+via = "pinned commit, MIT; LOC 实测依据"
+
+[s20m-readme]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s15_integrated_harness/README.zh.md"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "5de3adc14055c877"
+text_sha256 = "3604fdd48412c495"
+bytes = 12470
+lines = 245
+via = "pinned commit, MIT; main 轨对照（17 章整合版 s15_integrated_harness；增量=s08 新压缩管线+s13 加固语义，属 ep8/ep15 集叙事面，非本集正源）"
+
+[s20m-code]
+url = "https://raw.githubusercontent.com/shareAI-lab/learn-claude-code/7226f555d48900076eba126acf37c9ed5f002b5d/s15_integrated_harness/code.py"
+kind = "repo"
+pinned_ref = "7226f555d48900076eba126acf37c9ed5f002b5d"
+accessed = "2026-10-31"
+raw_sha256 = "257edee2483550e2"
+text_sha256 = "2b9341cffa883fb4"
+bytes = 128230
+lines = 3330
+via = "pinned commit, MIT; main 轨对照（LOC 实测依据；内置工具 26 个可数）"
+
+[s20-site]
+url = "https://learn.shareai.run/zh/s20/"
+kind = "site"
+accessed = "2026-10-31"
+raw_sha256 = "ff393a59cf53efb7"
+text_sha256 = "6636957b98a42259"
+bytes = 144393
+lines = 308
+via = "站点实况（集制骨架对照）"

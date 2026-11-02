@@ -1,0 +1,472 @@
+[
+ {
+  "id": "p0-01",
+  "scene": "P0",
+  "text": "这是一段每加一道检查，就烂一分的循环。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "melancholic:0.15"
+  },
+  "ttsText": "这是一段，每加一道检查，就烂一分的循环。",
+  "durationSec": 3.9
+ },
+ {
+  "id": "p0-02",
+  "scene": "P0",
+  "text": "闸门越挂越多——想挂的还排着队：动手前记日志，操作后自动提交。",
+  "durationSec": 6.502
+ },
+ {
+  "id": "p0-03",
+  "scene": "P0",
+  "text": "每加一项，就得动一次循环本体。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.10"
+  },
+  "durationSec": 2.65
+ },
+ {
+  "id": "p0-04",
+  "scene": "P0",
+  "text": "日志、检查、提醒、自动提交，一条条往里堆——很快，循环就认不出来了。",
+  "durationSec": 6.198
+ },
+ {
+  "id": "p0-05",
+  "scene": "P0",
+  "text": "病灶不在某一行代码，而在依赖方向：想扩展的是行为，改的却是核心流程。",
+  "beatStart": true,
+  "ttsText": "病灶不在某一<行|HANG2>代码，而在依赖方向：想扩展的是行为，改的却是核心流程。",
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.12"
+  },
+  "durationSec": 6.763
+ },
+ {
+  "id": "p0-06",
+  "scene": "P0",
+  "text": "今天的钩子：把扩展挡在循环外面。",
+  "blockStart": true,
+  "cue": {
+   "emo": "happy:0.15"
+  },
+  "ttsText": "今天的钩子——把扩展，挡在循环外面。",
+  "durationSec": 4.127
+ },
+ {
+  "id": "p1-01",
+  "scene": "P1",
+  "text": "先摆答案：一个注册表，四个事件。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.10"
+  },
+  "durationSec": 2.8
+ },
+ {
+  "id": "p1-02",
+  "scene": "P1",
+  "text": "注册表就是一个字典：事件名，对上一串挂上去的程序，事件一到，挨个跑。",
+  "ttsText": "注册表，就是一个字典——事件名，对上一串，挂上去的程序；事件一到，挨个跑。",
+  "durationSec": 5.39
+ },
+ {
+  "id": "p1-03",
+  "scene": "P1",
+  "text": "循环里只留事件触发这一种语句——跑什么，注册表说了算。",
+  "durationSec": 4.534
+ },
+ {
+  "id": "p1-04",
+  "scene": "P1",
+  "text": "四个事件，盖满一个周期。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.08"
+  },
+  "durationSec": 2.38
+ },
+ {
+  "id": "p1-05",
+  "scene": "P1",
+  "text": "输入提交后、进模型前：注入上下文。",
+  "durationSec": 3.15
+ },
+ {
+  "id": "p1-06",
+  "scene": "P1",
+  "text": "动手之前：可以拦截。",
+  "durationSec": 2.058
+ },
+ {
+  "id": "p1-07",
+  "scene": "P1",
+  "text": "动手之后：查副作用、查输出。",
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.10"
+  },
+  "durationSec": 2.81
+ },
+ {
+  "id": "p1-08",
+  "scene": "P1",
+  "text": "循环退出前：收尾统计。",
+  "durationSec": 2.502
+ },
+ {
+  "id": "p1-09",
+  "scene": "P1",
+  "text": "最妙的一步：三道闸门整个降格，成「动手之前」的一条普通回调。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "happy:0.12"
+  },
+  "ttsText": "最妙的一步：三道闸门整个降格，成「动手之前」的一条普通回调。",
+  "durationSec": 5.2
+ },
+ {
+  "id": "p1-10",
+  "scene": "P1",
+  "text": "教学版里，五条回调挂四个事件。",
+  "durationSec": 2.51
+ },
+ {
+  "id": "p1-11",
+  "scene": "P1",
+  "text": "「动手之前」就挂了两条——权限和日志，一起跑：模型动手前，先过这两条。",
+  "durationSec": 6.578
+ },
+ {
+  "id": "p1-12",
+  "scene": "P1",
+  "text": "从此循环里再无具名检查——四处事件触发，零个检查函数。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "surprised:0.12"
+  },
+  "durationSec": 5.1
+ },
+ {
+  "id": "p1-13",
+  "scene": "P1",
+  "text": "但有一个事件的权力大得反直觉：连「做完了」都能拦。",
+  "ttsText": "但有一个事件的权力大得反直觉：连「做完了」都能拦。",
+  "durationSec": 4.385
+ },
+ {
+  "id": "p2-01",
+  "scene": "P2",
+  "text": "先看收尾那个事件——判据说：没有工具调用了，该退了。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "surprised:0.10"
+  },
+  "durationSec": 4.81
+ },
+ {
+  "id": "p2-02",
+  "scene": "P2",
+  "text": "钩子却能把这一步拦下来。",
+  "durationSec": 2.098
+ },
+ {
+  "id": "p2-03",
+  "scene": "P2",
+  "text": "教学版的写法：退出前，先触发一次这个事件。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.08"
+  },
+  "durationSec": 4.01
+ },
+ {
+  "id": "p2-04",
+  "scene": "P2",
+  "text": "返回了内容，这段话就作为新的用户消息塞回对话，续跑一轮。",
+  "ttsText": "返回了内容，这段话，就作为新的用户消息，塞回对话，续跑一轮。",
+  "durationSec": 5.27
+ },
+ {
+  "id": "p2-05",
+  "scene": "P2",
+  "text": "返回空的，才真正退出。",
+  "durationSec": 2.34
+ },
+ {
+  "id": "p2-06",
+  "scene": "P2",
+  "text": "效果是：模型说「我做完了」，钩子说「还没——理由在这儿」。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "happy:0.10"
+  },
+  "ttsText": "效果是：模型说「我做完了」，钩子说「还没——理由在这儿」。",
+  "durationSec": 4.65
+ },
+ {
+  "id": "p2-07",
+  "scene": "P2",
+  "text": "原型里真跑过：第一次停机被拦，注入一条消息，多跑一轮核对。",
+  "durationSec": 5.1
+ },
+ {
+  "id": "p2-08",
+  "scene": "P2",
+  "text": "第二次放行，循环退出；实验全程，循环源码一行没动。",
+  "ttsText": "第二次放行，循环退出；实验全程，循环源码，一<行|HANG2>没动。",
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.12"
+  },
+  "durationSec": 4.87
+ },
+ {
+  "id": "p2-09",
+  "scene": "P2",
+  "text": "这个「退出权」，值多少钱？",
+  "ttsText": "这个「退出权」，值多少钱？",
+  "durationSec": 2.258
+ },
+ {
+  "id": "p3-01",
+  "scene": "P3",
+  "text": "实测说话：把续跑指令直接忽略，其余全开。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.10"
+  },
+  "durationSec": 4.615
+ },
+ {
+  "id": "p3-02",
+  "scene": "P3",
+  "text": "表面风平浪静，任务照常收尾。",
+  "durationSec": 3.105
+ },
+ {
+  "id": "p3-03",
+  "scene": "P3",
+  "text": "数字露馅：续跑一次变零，核对轮没发生——验收关卡五个，只过四个。",
+  "blockStart": true,
+  "cue": {
+   "emo": "afraid:0.14"
+  },
+  "ttsText": "数字露馅——续跑，一次变零；核对轮，没发生；验收关卡五个，只过，四个。",
+  "durationSec": 6.36
+ },
+ {
+  "id": "p3-04",
+  "scene": "P3",
+  "text": "教训一句话：退出权也是扩展点；关掉它，少一道质检。",
+  "ttsText": "教训一句话——退出权，也是扩展点；关掉它，少一道质检。",
+  "durationSec": 4.847
+ },
+ {
+  "id": "p3-05",
+  "scene": "P3",
+  "text": "反方向再拔一个：把「动手之前」的权限回调摘掉。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "afraid:0.12"
+  },
+  "durationSec": 3.94
+ },
+ {
+  "id": "p3-06",
+  "scene": "P3",
+  "text": "伤害直接显形：越界的文件写出去了，从零变一。",
+  "durationSec": 2.74
+ },
+ {
+  "id": "p3-07",
+  "scene": "P3",
+  "text": "该问用户的两处，一处都没问——问询次数，从二归零。",
+  "durationSec": 5.056
+ },
+ {
+  "id": "p3-08",
+  "scene": "P3",
+  "text": "拔回调就是拔闸门：权限降格成回调后，不是特权，是配置。",
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.15"
+  },
+  "ttsText": "拔回调，就是拔闸门——权限降格成回调后，不是特权，是，配置。",
+  "durationSec": 6.171
+ },
+ {
+  "id": "p3-09",
+  "scene": "P3",
+  "text": "挂上去，是质检和安全；拔下来，当场退化。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "surprised:0.12"
+  },
+  "ttsText": "挂上去——是质检和安全；拔下来——当场，退化。",
+  "durationSec": 3.15
+ },
+ {
+  "id": "p3-10",
+  "scene": "P3",
+  "text": "教学版就这四个——真实的 Claude Code，长什么样？",
+  "durationSec": 4.461
+ },
+ {
+  "id": "p4-01",
+  "scene": "P4",
+  "text": "拆解过 Claude Code 源码的同学们应该知道：真实的钩子事件，二十七个。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "surprised:0.12"
+  },
+  "durationSec": 6.565
+ },
+ {
+  "id": "p4-02",
+  "scene": "P4",
+  "text": "官方文档更细：三十多个——清单在长，骨架还是那四个。",
+  "cue": {
+   "emo": "surprised:0.12"
+  },
+  "durationSec": 4.88
+ },
+ {
+  "id": "p4-03",
+  "scene": "P4",
+  "text": "钩子交回的结果，生产版里是一张十四栏的表：阻塞错误注入对话，让模型自己纠错。",
+  "durationSec": 6.718
+ },
+ {
+  "id": "p4-04",
+  "scene": "P4",
+  "text": "第一条保险，是个不变式：钩子说放行，也压不过设置里的拒绝和询问。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.15"
+  },
+  "ttsText": "第一条保险，是个不变式——钩子说放行，也压不过，设置里的，拒绝和询问。",
+  "durationSec": 6.39
+ },
+ {
+  "id": "p4-05",
+  "scene": "P4",
+  "text": "像表决：允许要各方点头；一方摇头，就拦。",
+  "durationSec": 3.6
+ },
+ {
+  "id": "p4-06",
+  "scene": "P4",
+  "text": "摇头不是权重更大的票，是一票否决。",
+  "ttsText": "摇头，不是权重更大的票——是，一票否决。",
+  "durationSec": 3.829
+ },
+ {
+  "id": "p4-07",
+  "scene": "P4",
+  "text": "第二条保险，防转圈：收尾钩子报阻塞错误，循环带着标志重入。",
+  "beatStart": true,
+  "ttsText": "第二条保险，防转圈——收尾钩子报阻塞错误，循环，带着标志<重|CHONG2>入。",
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.10"
+  },
+  "durationSec": 5.9
+ },
+ {
+  "id": "p4-08",
+  "scene": "P4",
+  "text": "下一轮看见标志就不再触发——免得自纠和报错无限循环。",
+  "durationSec": 4.75
+ },
+ {
+  "id": "p4-08b",
+  "scene": "P4",
+  "text": "两条保险都上齐——这套设计，到底买到了什么？",
+  "durationSec": 4.018
+ },
+ {
+  "id": "p5-01",
+  "scene": "P5",
+  "text": "一句话收束：核心不变，能力各不牵连地往上叠。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.15"
+  },
+  "ttsText": "一句话收束——核心不变，能力，各不牵连地，往上叠。",
+  "durationSec": 4.715
+ },
+ {
+  "id": "p5-02",
+  "scene": "P5",
+  "text": "检查降格成回调——循环零硬编码，新能力都往固定挂点上加。",
+  "durationSec": 5.055
+ },
+ {
+  "id": "p5-03",
+  "scene": "P5",
+  "text": "不守它，复杂度压进核心，缠成没人敢动的泥球。",
+  "durationSec": 4.187
+ },
+ {
+  "id": "p5-04",
+  "scene": "P5",
+  "text": "只是，有件事这套机制管不住：开头定好的计划。",
+  "beatStart": true,
+  "blockStart": true,
+  "cue": {
+   "emo": "melancholic:0.12"
+  },
+  "durationSec": 4.1
+ },
+ {
+  "id": "p5-05",
+  "scene": "P5",
+  "text": "做着做着就漂了——走到哪、还剩几件，它说不清。",
+  "durationSec": 3.84
+ },
+ {
+  "id": "p5-06",
+  "scene": "P5",
+  "text": "下期，看看计划是怎么漂的。",
+  "durationSec": 2.414
+ },
+ {
+  "id": "p5-07",
+  "scene": "P5",
+  "text": "最后交代来源：这套视频的内容，改编自开源课程 Learn Claude Code。",
+  "beatStart": true,
+  "ttsText": "最后交代来源：这套视频的内容，改编自开源课程 <Learn|L ER1 N> <Claude|K L AO1 D> <Code|K OW1 D>。",
+  "blockStart": true,
+  "cue": {
+   "emo": "calm:0.10"
+  },
+  "durationSec": 6.171
+ },
+ {
+  "id": "p5-08",
+  "scene": "P5",
+  "text": "今天的生产细节，来自原作者的单方核查，没锁版本，计数会漂移。",
+  "cue": {
+   "emo": "calm:0.10"
+  },
+  "durationSec": 6.043
+ }
+]
