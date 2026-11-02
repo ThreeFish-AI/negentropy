@@ -60,7 +60,7 @@ WRITE_GUARD_EXEMPT: dict[tuple[str, str], str] = {
     ("POST", "/knowledge/base/{corpus_id}/graph/multi_hop_reason"): "只读推理检索",
     ("POST", "/knowledge/base/{corpus_id}/graph/global_search"): "只读检索",
     ("POST", "/knowledge/unified/search"): "只读检索",
-    ("POST", "/knowledge/unified/feedback"): "检索反馈信号，普通用户可写",
+    ("POST", "/knowledge/unified/feedback"): "检索反馈信号（端点无鉴权依赖，匿名可写，维持既有行为）",
     ("POST", "/knowledge/wiki/entries/{entry_id}/view"): "公开阅读计数",
     ("POST", "/knowledge/wiki/entries/{entry_id}/comments"): "端点自带 get_current_user，普通用户可评论",
     ("PATCH", "/knowledge/wiki/entries/{entry_id}/comments/{comment_id}"): "端点自带 get_current_user",
