@@ -11,7 +11,7 @@
 >   - 官方文档补读（B 型·site）：Anthropic「Tool use overview」（一次调用一结果的配对协议依据，冻结正文 §3.1 参考 [8]）、「Run prompts on a schedule」（§5 会话级任务默认形态 / `--resume` 恢复例外 / `.claude/scheduled_tasks.json` 复制后只列出不执行，参考 [3]）、「Automate work with routines」与「Schedule recurring tasks in Claude Code Desktop」（§5 脱离会话三路对照与唤醒补跑 catch-up，参考 [6][11]）——台账 `doc-tool-use-overview` / `doc-scheduled-tasks` / `doc-routines` / `doc-desktop-scheduled` 四条指纹存证（无字节副本）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s13「深入 CC 源码」附录中标「课程对 CC 源码的解读 / 源码考古」的断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`cc_async_scheduling_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest：基线四例分派 heuristic/sync/heuristic/explicit 各一、pip 通知末行 `Timeout (120s)`、摘要截 200 字；实验 e5 拔掉启发式兜底 → pip 分派 heuristic→sync、主循环阻塞 0s→600s，SELFTEST PASSED），按 **【一】** 级引用；s13 code.py 关键词表 / `run_in_background` 双闸门 / `bg_0001` 占位回执格式为钉选文件直接可数事实，按 **【一】** 级引用；§5 durable 的教学版细节源出 s14 章（本集未单独钉 s14 文件），按 **【二】** 级课程讲法处理（深化取证归 ep14）。
 > - **鲜度复核日期**：2026-10-31（分支 fix/s08-s20-sync-frontmatter-parser HEAD 仍为 `67a9126c`——GitHub branches API 复验未动；站点轨 s13 双件与站点页零漂移、main 轨前移差异定性见附录 B.1——台账五源存证）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文六处资产图链与一处跨篇互链（174 并发精读）已按新落位统一改写为跨目录五级上溯路径，并逐条 `test -e` 验证通过，文字内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文六处资产图链与一处跨篇互链（174 并发精读）已按新落位统一改写为跨目录六级上溯路径，并逐条 `test -e` 验证通过，文字内容零改动。
 
 
 # Learn Claude Code 并发与调度精读与通俗拆解（s13 后台任务 × s14 定时调度）

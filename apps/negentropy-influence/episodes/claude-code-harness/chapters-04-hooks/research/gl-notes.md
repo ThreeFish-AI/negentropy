@@ -11,7 +11,7 @@
 >   - 官方文档补读（B 型·site）：Anthropic「Hooks reference」（33 个事件清单日期口径、deny/ask 不变式官方原文——冻结正文 §6.4 参考 [3]）——台账 `doc-hooks` 指纹存证（无字节副本；WARN 复核结论见附录 B.1）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s04f 附录中标「材料（对 CC 源码）的核查 / 源码分析」的断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`lcc_tooling_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest：基线 turns 10/10 · executed 7 · stop_continued 1 · checkpoints 5/5；实验 5 忽略 Stop 续跑 → stop_continued 1→0、turns 8/10；实验 4 注销 PreToolUse 权限回调 → outside_writes 0→1、asked 2→0，SELFTEST PASSED），按 **【一】** 级引用；「HOOKS 注册表 4 事件 / 5 条回调注册」「循环内检查逻辑零硬编码」为钉选 code.py 直接可数事实（:137 HOOKS 定义、:213–217 五条 register_hook、agent_loop 内 4 处 trigger_hooks），按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-31（main 轨 s04：自旧系列旧钉 `ce8f9f18` 前移 13 提交，README.zh 仅 3 行代码注释英译中、code.py 仅空输入守卫 2 行（与 s01/s02 前移同款），无叙事影响；站点轨 s04f 双件指纹与旧系列 2026-10-09 登记逐字一致；站点页指纹零漂移；官方 hooks 页较旧系列 2026-10-07 登记有漂移、语义面复核成立——台账五源存证，见 B.1）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `docs/assets/` 相对链接层级已按新落位统一改写（`](../../assets/` → `](../../../../../../docs/assets/`，22 处 12 行、16 个目标逐条 `test -e` 验证通过），文字内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `docs/assets/` 相对链接层级已按新落位统一改写（`](../../assets/` → `](../../../../../../docs/assets/`，21 处 11 行、16 个目标逐条 `test -e` 验证通过），文字内容零改动。
 > - **术语两层口径**：笔记层随 171 终版用 LLM/Hook/Pipeline（利于回溯）；口播恒用「模型/钩子/管线」，口播英文例外清单不变（= Claude Code + Harness）——两层口径不传导。
 > - **信源补充**：无增量（2026-10-31 核，下游三件套未出现 GL 外事实；见 01 C 型§五）。
 
