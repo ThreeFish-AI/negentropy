@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--roadmap/knowledge-base-platform--roadmap.json",
+    "sha256": "46dd016e395d98b840970bf2dd796af4ee4ac9fd7cb4bde65df0453c5c4bf131",
+    "bytes": 6100
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.html",
+    "sha256": "b06babcf4b757cf6b8ccab4ebb84c3f43ca36b4bb079420c4747e9e78812f102",
+    "bytes": 770257
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2069,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedStretch": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "p0",
+            "from": "g0",
+            "to": "g1",
+            "label": "",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 2,
+          "stretch": 1.467
+        },
+        {
+          "relationship": {
+            "id": "p1",
+            "from": "g1",
+            "to": "g2",
+            "label": "",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 2,
+          "stretch": 1.479
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "g0 → g1 needs 2 bends: move node g0 or g1 so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "g1 → g2 needs 2 bends: move node g1 or g2 so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

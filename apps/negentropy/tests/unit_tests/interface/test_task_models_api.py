@@ -126,8 +126,7 @@ async def test_corpus_setting_rejects_global_only_task(admin_user):
                 corpus_id=corpus_id,
                 task_key="session.title",  # global scope
                 payload=TaskModelUpsert(model_config_id=uuid4()),
-                current_user=admin_user,
-            )
+            )  # knowledge:write 守卫经 Depends 注入，直呼不传用户
     detail = str(exc.value.detail) if hasattr(exc.value, "detail") else str(exc.value)
     assert getattr(exc.value, "status_code", None) == 400
     assert "not corpus-scoped" in detail

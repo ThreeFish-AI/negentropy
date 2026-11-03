@@ -1,0 +1,2631 @@
+{
+ "as_of": "2026-11-02",
+ "as_of_commit": "c30489f9c714b9cc4a0779c1fe9cd6d43c3d4d0e",
+ "baseline_note": "涉「knowledge 写端点鉴权 / 035 §11.1 文案」的判定与漂移记录按 I-245（同批合入）修复前基线成立；HEAD 现状以 I-245 为准（写端点聚合注入 knowledge:write 守卫、035 §11.1 已改写对齐）",
+ "method": "五域并行取证 + 逐域对抗复核",
+ "domains": {
+  "D1-docmgmt": {
+   "domain": "D1 · 文档管理（方案 §1 数据模型 + §2 全节）——连接器/同步、版本库、人工编辑、staleness/合规、预处理管线",
+   "capabilities": [
+    {
+     "id": "C1",
+     "design_mechanism": "§1 Source 连接器配置实体：类型（含 upload）、凭据引用、同步模式、信任档、权威策略、默认可见性（配置变更走四眼）",
+     "status": "divergent",
+     "as_built": "无连接器配置实体。DocSource 是每文档溯源记录（1:1 KnowledgeDocument，url/file_pdf/file_generic/text_input 四型）；提取路由配置存 corpus.config.extractor_routes（MCP server+tool+优先级+超时）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:213-246",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/extraction.py:325-368",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/source_tracking.py:310-325"
+     ],
+     "gap": "引入 Source 聚合（同步模式/凭据引用/信任档/权威策略），DocSource 降为 provenance 视图，extractor_routes 从 corpus.config 迁并入 Source",
+     "effort": "L",
+     "risk": "存量 corpus.config 取用面广（I-133 迁移链），需兼容期"
+    },
+    {
+     "id": "C2",
+     "design_mechanism": "§2.1 Connector SPI：discover → fetch → normalize → report，discover 分内容/ACL/删除三类探测",
+     "status": "partial",
+     "as_built": "fetch+normalize 由 DataExtractorProvider+MCP 工具路由承担（多 target 优先级 failover、schema 契约归一、LLM 规划适配）；report≈SourceTrackingService 策略族落 DocSource；无 discover——同步靠人工 POST 单文档",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/ingestion/extraction.py:2038",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/extraction.py:1062",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/source_tracking.py:56-76",
+      "apps/negentropy/src/negentropy/knowledge/routes/sources.py:57"
+     ],
+     "gap": "补 discover 阶段（内容/ACL/删除三类探测，后两类不降频）与统一 SPI 入口，替代逐端点手写触发",
+     "effort": "L",
+     "risk": "MCP 契约归一层已复杂（2918 行），需防叠加抽象"
+    },
+    {
+     "id": "C3",
+     "design_mechanism": "§2.1 三+一种同步模式：webhook 推送 / 增量拉取·CDC（游标） / 全量重扫 / 手动 upload 走同一管线",
+     "status": "partial",
+     "as_built": "upload=ingest_file/import_file 与其他通道共用管线（达标）；sync_source/sync_document 为人工触发的单次重拉，无游标无 CDC；全量仅 embedding 维度变更时对全部 source_uri 扇出 rebuild；无 webhook 入口、无定时增量（scheduler handlers 仅 watchdog 等）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/ingest.py:246",
+      "apps/negentropy/src/negentropy/knowledge/routes/sources.py:428-499",
+      "apps/negentropy/src/negentropy/knowledge/_shared.py:393-443",
+      "apps/negentropy/src/negentropy/engine/schedulers/handlers/pipeline_watchdog.py:26",
+      "搜索：grep webhook 于 knowledge/ 仅 wiki 出站 redeploy；grep sync 于 engine/schedulers/handlers/ 无同步任务"
+     ],
+     "gap": "补 webhook 入口（先落队列回 202）、定时增量（源侧游标/高水位）与周期全量重扫；Unified Scheduler 框架已在",
+     "effort": "XL",
+     "risk": "后端单 uvicorn worker，同步并发需闸门与队列化"
+    },
+    {
+     "id": "C4",
+     "design_mechanism": "§2.1 各通道写入幂等（version_key 去重），失败退避重试，超限入死信并告警",
+     "status": "partial",
+     "as_built": "按 (corpus,source_uri) 单事务 DELETE→INSERT 幂等替换；上传按 file_hash 内容寻址去重；embedding 指数退避 3 次/30s；MCP 多 target failover；pipeline 幂等键+expected_version。无死信队列与告警，失败停在 failed 待人工 retry（cancel/retry 端点齐）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-347",
+      "apps/negentropy/src/negentropy/storage/service.py:215-350",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/embedding.py:122-124",
+      "apps/negentropy/src/negentropy/knowledge/routes/pipelines.py:136",
+      "apps/negentropy/src/negentropy/knowledge/routes/pipelines.py:201"
+     ],
+     "gap": "补自动退避重试与超限死信+告警闭环（现仅 stale 强制失败与人工 retry）",
+     "effort": "M",
+     "risk": "需区分可重试/不可重试错误（I-086 教训）"
+    },
+    {
+     "id": "C5",
+     "design_mechanism": "§2.1 变更检测以 version_key 为准，未变内容不产新版本",
+     "status": "missing",
+     "as_built": "上传去重仅免重复存储：重复上传仍排队重新分块+重嵌并整源替换；URL sync 无内容比对一律重拉重替换。file_hash 只是上传去重键，非版本键",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/ingest.py:445-470",
+      "apps/negentropy/src/negentropy/knowledge/service.py:2735-2841",
+      "apps/negentropy/src/negentropy/models/perception.py:105",
+      "搜索：grep version_key|text_hash|content_hash 于 knowledge/ 与 models/ 零命中"
+     ],
+     "gap": "建 DocumentVersion+version_key=hash(正文+源侧 metadata+product_ids+acl)，未变即跳过下游全链",
+     "effort": "L",
+     "risk": "需先落 C9 版本实体，键设计防跨文档撞键"
+    },
+    {
+     "id": "C6",
+     "design_mechanism": "§2.1 删除传播：源侧删除产 tombstone→chunk 下线与索引摘除；版本不物理删（审计需要）",
+     "status": "divergent",
+     "as_built": "双删除入口语义分叉：delete_source 物理删 chunks+文档+blob；DELETE /documents 软删仅置 status（硬删也不删 chunks——knowledge 表无 document_id 列/FK），检索 SQL 不看文档状态→已删文档 chunks 仍可被召回。archive_source 以 metadata.archived 排除是唯一有效下线通道",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:2470-2540",
+      "apps/negentropy/src/negentropy/knowledge/routes/documents.py:577-605",
+      "apps/negentropy/src/negentropy/storage/service.py:459-538",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:841-850",
+      "apps/negentropy/src/negentropy/models/perception.py:63-85",
+      "apps/negentropy-ui/app/knowledge/base/page.tsx:698-706（UI 软删后未级联）"
+     ],
+     "gap": "收敛单一 tombstone 通道：文档删除级联 chunk 下线+检索面感知文档状态；版本化后保留审计态不物理删",
+     "effort": "M",
+     "risk": "存量已删文档的孤儿 chunks 需一次性清理（可复用 cleanup-orphans）"
+    },
+    {
+     "id": "C7",
+     "design_mechanism": "§2.1 摄取边界：连接器级白/黑名单作为权限之外的内容准入控制面（Glean §2-F2）",
+     "status": "missing",
+     "as_built": "唯一准入校验是 sync_source 的 http(s) scheme 检查；wiki docs→站点包有 include/exclude 但属导出非 KB 摄取；config 仅有 KG 跨库灰度 allowlist",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/sources.py:446-452",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_docs_ingest.py:350-364",
+      "apps/negentropy/src/negentropy/config/knowledge.py:307",
+      "搜索：grep whitelist|blacklist|allowlist|deny 于 knowledge/ 仅 KG 灰度清单"
+     ],
+     "gap": "Source 级域名/路径 allow-deny 清单，作为权限外的内容准入面",
+     "effort": "S",
+     "risk": "无"
+    },
+    {
+     "id": "C8",
+     "design_mechanism": "§2.1 权威策略：上游权威源本地改动存 overlay，上游新版自动 rebase、冲突入 KnowledgeTask；ACL 只读以源镜像为准",
+     "status": "missing",
+     "as_built": "无 overlay 概念。本地 chunk 编辑（PATCH chunks）在下次 sync/rebuild 的整源原子替换中被静默删除；无 ACL 字段",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/chunks.py:158-211",
+      "apps/negentropy/src/negentropy/knowledge/service.py:2735-2830",
+      "apps/negentropy/src/negentropy/models/perception.py:63-159（无 acl 列）",
+      "搜索：grep overlay|rebase 于 knowledge/ 零命中"
+     ],
+     "gap": "上游权威源本地改动须存 overlay 层并在上游新版到达时 rebase，冲突转任务而非覆盖丢失",
+     "effort": "L",
+     "risk": "与 C13 chunk 直编现状需先做取向裁决"
+    },
+    {
+     "id": "C9",
+     "design_mechanism": "§1/§2.2 DocumentVersion 不可变版本（version_key 内容寻址、canonical 内容+metadata+geo+acl 入版本、事件溯源 SSOT）；ACL/产品域入版本键",
+     "status": "missing",
+     "as_built": "KnowledgeDocument 单行原地变更：markdown_content 被 sync/refresh 直接覆写，_reactivate_document 重置全部提取态；CorpusVersion 仅 corpus 级统计快照且创建路径本身损坏（见 sot_drift D7）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:88-183",
+      "apps/negentropy/src/negentropy/storage/service.py:152-213",
+      "apps/negentropy/src/negentropy/knowledge/service.py:1854-1971",
+      "apps/negentropy/src/negentropy/models/perception.py:678-717"
+     ],
+     "gap": "建不可变 DocumentVersion 表+版本历史查询/回放；无 ACL/产品域概念可先以 app_name 租户键入版",
+     "effort": "L",
+     "risk": "存储与 blob 派生（markdown_uri/资产）需随版本锚定"
+    },
+    {
+     "id": "C10",
+     "design_mechanism": "§2.2 索引损坏或策略变更均可从版本库全量重放",
+     "status": "partial",
+     "as_built": "文档源 blob+markdown 持久化：rebuild_source 可从 blob 重提取重索引、ingest_document 可从已存 markdown 免提取索引。但 embedding 变更触发的全量 rebuild 对 URL 源必失败——rebuild 下载按 pgblob 解析，http URI 抛 ValueError",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:2843-3005",
+      "apps/negentropy/src/negentropy/knowledge/service.py:1613-1700",
+      "apps/negentropy/src/negentropy/knowledge/_shared.py:393-443",
+      "apps/negentropy/src/negentropy/storage/postgres_client.py:93-105",
+      "apps/negentropy/src/negentropy/storage/uri.py:43-46"
+     ],
+     "gap": "重放统一走版本库（URL 源重放已存 markdown），按 source 类型分派重放源，修 rebuild 对非 blob 源的崩坏",
+     "effort": "M",
+     "risk": "存量 URL 文档 markdown_extract_status 需先补齐"
+    },
+    {
+     "id": "C11",
+     "design_mechanism": "§2.2 同步调度按引用价值动态降频：长期未被引用的源拉长周期甚至暂停（Fin 90 天，§4-F3）；删除与 ACL 通道不降频",
+     "status": "missing",
+     "as_built": "无任何同步调度（见 C3）；retrieval_count 已在检索时自增累计，但无消费者；corpus 新鲜度仅作质量评分输入且该评分代码损坏",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3812-3842",
+      "apps/negentropy/src/negentropy/models/perception.py:77",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/corpus_engine.py:88-106",
+      "搜索：engine/schedulers/handlers/ 无 knowledge 同步 handler"
+     ],
+     "gap": "Unified Scheduler 上补按引用价值衰减的同步节奏（retrieval_count 数据已在）",
+     "effort": "M",
+     "risk": "无"
+    },
+    {
+     "id": "C12",
+     "design_mechanism": "§2.2 合规：预处理 PII 识别与脱敏；版本与 QAInteraction 设保留期，合规擦除走加密粉碎并级联 chunk/向量侧表/LLM 缓存/索引",
+     "status": "missing",
+     "as_built": "PII 能力（Presidio/正则/守门员）仅存在于 Memory 域 engine/governance/pii/*，知识摄取/存储/检索零接入（I-099 教训在 Memory 侧）；无保留期与擦除通道，hard delete 级联 blob+资产但 chunks 走另一入口",
+     "evidence": [
+      "apps/negentropy/src/negentropy/engine/governance/pii/gatekeeper.py",
+      "apps/negentropy/src/negentropy/storage/service.py:475-538",
+      "搜索：grep pii|presidio 于 knowledge/ 与 storage/ 零命中",
+      "docs/.agents/issue.md:108（I-099）"
+     ],
+     "gap": "摄取清洗阶段接入既有 Presidio 工厂（能力可复用）；保留期/擦除依赖版本化先行",
+     "effort": "M",
+     "risk": "中文识别器装配坑已修（I-101），复用时勿回退"
+    },
+    {
+     "id": "C13",
+     "design_mechanism": "§2.3 编辑只发生在 canonical 层（禁止直接改 chunk）",
+     "status": "divergent",
+     "as_built": "取向相反：chunk 可直接 PATCH（update_knowledge_chunk 改 content/is_enabled 并 family 级联动）与 regenerate-family 按新文本重切；canonical 正文无编辑端点（documents PATCH 仅 display_name/元数据，refresh_markdown 是重解析）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/chunks.py:158-211",
+      "apps/negentropy/src/negentropy/knowledge/routes/chunks.py:212-254",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3050-3119",
+      "apps/negentropy/src/negentropy/knowledge/schemas.py:637-652"
+     ],
+     "gap": "若采纳方案：chunk 编辑改写为 canonical 编辑+触发重切重嵌；或明确接受直改并补版本化与同步保护",
+     "effort": "L",
+     "risk": "UI 已按 chunk 编辑交互建成，改动有产品面影响"
+    },
+    {
+     "id": "C14",
+     "design_mechanism": "§2.3 Draft → 差异评审 → 发布（产新版本，触发增量索引）；内容编辑可配审批三态状态机（Confluence §2-F7）",
+     "status": "missing",
+     "as_built": "无草稿实体与内容发布流。WikiPublication 有 draft/published/archived 生命周期但作用于站点发布（catalog 条目视图版本递增），非文档内容版本",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:279-346",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_service.py:305-360",
+      "搜索：grep draft 于 knowledge/routes/documents.py|library.py 无内容草稿端点"
+     ],
+     "gap": "建 Draft（document_id+base_version+diff+状态）与发布动作触发该文档增量重索引",
+     "effort": "L",
+     "risk": "依赖 C9 版本实体"
+    },
+    {
+     "id": "C15",
+     "design_mechanism": "§2.3 可见性变更（ACL、产品域、internal→public）为独立权限，强制四眼审批",
+     "status": "missing",
+     "as_built": "WikiPublication.visibility / DocCatalog.visibility（PRIVATE/INTERNAL/PUBLIC）可随 PATCH 直接改，无审批环；knowledge 路由整体未挂 RBAC（require_permission 全仓零调用，中间件 OPTIONAL 模式放行）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:308-319",
+      "apps/negentropy/src/negentropy/models/perception.py:783-793",
+      "apps/negentropy/src/negentropy/knowledge/api.py:22-53",
+      "apps/negentropy/src/negentropy/engine/bootstrap.py:567-568",
+      "apps/negentropy/src/negentropy/auth/rbac.py:82",
+      "apps/negentropy/src/negentropy/auth/middleware.py:58-73"
+     ],
+     "gap": "可见性变更单列权限+四眼审批态+审计；先补 knowledge 写路径的 RBAC 依赖挂载",
+     "effort": "M",
+     "risk": "已上线 UI 无登录门槛（本地 OPTIONAL），收紧需灰度"
+    },
+    {
+     "id": "C16",
+     "design_mechanism": "§2.3 乐观锁 expected_version 防并发覆盖",
+     "status": "partial",
+     "as_built": "pipeline/graph run upsert 实现 expected_version+VersionConflict(409)；DocCatalog.version 注释称承担乐观锁，但文档/发布/可见性更新路径均未校验版本；KnowledgeDocument 无版本列",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/dao.py:299-304",
+      "apps/negentropy/src/negentropy/knowledge/exceptions.py:95-114",
+      "apps/negentropy/src/negentropy/models/perception.py:794-795"
+     ],
+     "gap": "文档与可见性写路径补 expected_version 校验（异常与映射已备好）",
+     "effort": "S",
+     "risk": "无"
+    },
+    {
+     "id": "C17",
+     "design_mechanism": "§2.3 操作者、时间、字段级 diff 全量审计（仅追加）",
+     "status": "missing",
+     "as_built": "无 knowledge 审计表：仅 structlog 事件（api_update_document 等）与 created_by 字段；MemoryAuditLog 属 Memory 域，KG 侧仅查询审计持久化",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/documents.py:320-324",
+      "apps/negentropy/src/negentropy/knowledge/routes/graph.py:967-971",
+      "搜索：grep audit 于 knowledge/ 无 append-only 审计实现"
+     ],
+     "gap": "增 append-only 审计表覆盖内容编辑、可见性变更与删除",
+     "effort": "M",
+     "risk": "无"
+    },
+    {
+     "id": "C18",
+     "design_mechanism": "§2.3 冲突处理：未发布 Draft 遇上游新版本 → 以 base_version 三路合并，失败转 KnowledgeTask",
+     "status": "missing",
+     "as_built": "无 Draft/base_version 概念；上游 sync 与本地 chunk 编辑互不知晓，冲突表现为本地编辑被整源替换静默覆盖",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:2735-2830",
+      "apps/negentropy/src/negentropy/knowledge/routes/chunks.py:158-211"
+     ],
+     "gap": "依赖 C14 Draft 落地后实现三路合并与冲突转任务",
+     "effort": "L",
+     "risk": "canonical 层现为 Markdown，可用结构化 md diff"
+    },
+    {
+     "id": "C19",
+     "design_mechanism": "§2.3 staleness 治理：每文档 verifier 与验证周期；编辑即失效；过期转未验证灰标+KnowledgeTask；验证态作检索期可过滤信号（Guru §2-F8/F9）",
+     "status": "missing",
+     "as_built": "无内容验证态。最近似机制是 PDF 解析保真巡检 patrol_status（NULL/in_progress/unfixable/done/source_unavailable+score+归属 Routine+重置入口）；corpus 新鲜度评分代码损坏且非文档级",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:140-159",
+      "apps/negentropy/src/negentropy/knowledge/routes/documents.py:388-425",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/corpus_engine.py:88-106",
+      "搜索：grep verifier|verified|staleness 于 knowledge/ 零命中"
+     ],
+     "gap": "patrol 状态机模式可复用为内容验证态（文档级状态+周期+检索过滤），成本低",
+     "effort": "M",
+     "risk": "需区分内容时效验证与解析保真巡检两个维度"
+    },
+    {
+     "id": "C20",
+     "design_mechanism": "§2.4 解析（HTML/PDF/Office→结构化 AST，保留标题层级与表格）→ 清洗",
+     "status": "partial",
+     "as_built": "PDF/URL 经 MCP 路由到 perceives 管线输出 Markdown（保标题/表格/公式/图片资产，多轮保真打磨）；本地仅 txt/md，HTML 仅 BeautifulSoup 简单抽取兜底；清洗含 NUL 剥离咽喉点与空行/换行归一。产物为 Markdown 非 AST",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/ingestion/extraction.py:2038",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/content.py:40-106",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/content.py:108-127",
+      "apps/negentropy/src/negentropy/knowledge/service.py:2273",
+      "docs/.agents/issue.md:103（I-094）"
+     ],
+     "gap": "Office 类型补齐；以 Markdown 为 canonical 可接受（方案允许），无需强上 AST",
+     "effort": "M",
+     "risk": "perceives 为独立服务，需保证其可用性（已有 failover 路由）"
+    },
+    {
+     "id": "C21",
+     "design_mechanism": "§2.4 分块：默认调参递归固定分块（实证仅次于 LLM 分块，§7-F4）",
+     "status": "implemented",
+     "as_built": "Fixed/Recursive/Semantic/Hierarchical 四策略+按策略判别式参数校验，默认 Recursive（与方案取向一致）；hierarchical 产父子 family，父块 searchable=false 不入索引不耗嵌入",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/ingestion/chunking.py:310-507",
+      "apps/negentropy/src/negentropy/knowledge/types.py:355-356",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3505-3583"
+     ],
+     "gap": "无",
+     "effort": "S",
+     "risk": "无"
+    },
+    {
+     "id": "C22",
+     "design_mechanism": "§2.4 上下文富化：标题路径前缀（按祖先 ACL 裁剪）+ LLM 50-100 token 块级语境 + late chunking 升级档",
+     "status": "divergent",
+     "as_built": "无标题路径注入、无 LLM 语境前缀、无 late chunking；以 hierarchical small-to-big 替代：子块命中后运行时提升父块上下文（_lift_hierarchical_matches），父块零嵌入成本",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3680-3766",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3542",
+      "搜索：grep contextual|breadcrumb|section_path|late chunking 于 knowledge/ 零命中"
+     ],
+     "gap": "标题路径前缀是低成本增量（递归切分已部分保留标题）；LLM 语境档可后置",
+     "effort": "M",
+     "risk": "父块提升的返回体膨胀需控 limit"
+    },
+    {
+     "id": "C23",
+     "design_mechanism": "§2.4 元数据抽取（规则+LLM，人工订正回流 few-shot 样本；产品域与 ACL 除外）",
+     "status": "partial",
+     "as_built": "规则抽取 title/author/摘要/source_url/重定向链落 DocSource；人工订正经 PATCH documents 写回 metadata_（author/source_url/published_at）；无 LLM 抽取与 few-shot 回流（CategorySuggestionResponse 为空壳 schema 无实现）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/ingestion/source_tracking.py:140-302",
+      "apps/negentropy/src/negentropy/knowledge/routes/documents.py:257-296",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle_schemas.py:201-206"
+     ],
+     "gap": "LLM 元数据抽取可挂 MCP 抽取管线；人工订正回流 few-shot 待建",
+     "effort": "M",
+     "risk": "须守方案不变量③：LLM 不写权限/域字段（现无此风险面）"
+    },
+    {
+     "id": "C24",
+     "design_mechanism": "§2.4 增量以文档为粒度，未变文本按 text_hash 复用 embedding",
+     "status": "partial",
+     "as_built": "增量粒度=(corpus,source_uri) 整文档原子替换（粒度达标）；但每次替换全量重分块+重嵌，无 text_hash 比对复用——未变文档也重耗 embedding API",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:2296-2390",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-347",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3612-3674",
+      "搜索：Knowledge 表无 text_hash 列（models/perception.py:63-85）"
+     ],
+     "gap": "chunk 级 text_hash 命中即复用旧 embedding，只对变更块重嵌",
+     "effort": "M",
+     "risk": "需旧块查询暂存（replace 事务内比对）"
+    },
+    {
+     "id": "C25",
+     "design_mechanism": "§1 不变量①：LLM 派生物按 (hash(正文+源侧 metadata), pipeline_ver) 缓存，重放取缓存保证确定性",
+     "status": "missing",
+     "as_built": "KG 抽取增量按上次成功 run 的 chunk id 集合做水位，但 chunk id 随整源替换再生（DELETE→INSERT 新 UUID）→任何重同步使水位全失效、全量重抽；翻译按产出文件 hash 去重（非输入指纹）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/graph/service.py:407-420",
+      "apps/negentropy/src/negentropy/knowledge/graph/repository.py:1908-1933",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-347",
+      "apps/negentropy/src/negentropy/knowledge/translation/service.py:465-471"
+     ],
+     "gap": "派生物缓存键改内容指纹+管线版本，与 chunk 确定性 ID 联动（见 reverse lesson L3）",
+     "effort": "L",
+     "risk": "KG 水位语义需同步迁移"
+    },
+    {
+     "id": "C26",
+     "design_mechanism": "§1 KnowledgeTask 闭环工单：来源（拒答/bad-case/冲突/过期验证）、关联文档，产出 Draft",
+     "status": "missing",
+     "as_built": "有 KnowledgeFeedback 反馈表（click/useful/not_useful/impression+query_text+query_mode）作数据面，但无工单实体、无状态流转、无→Draft 产出",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:720-757",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3812-3842",
+      "搜索：grep KnowledgeTask|工单 于 knowledge/ 零命中"
+     ],
+     "gap": "建 KnowledgeTask 实体接四类来源（反馈数据已可作 bad-case 池）",
+     "effort": "M",
+     "risk": "跨 P1/P3 职责边界需先定归属"
+    }
+   ],
+   "reverse_lessons": [
+    {
+     "id": "L1",
+     "lesson": "后台摄取/构建任务需完整状态机：阶段事件落库、协作式取消（cancelled≠failed）、崩溃后按 run resume，watchdog 定时把 running>30min 强转 failed、cancelling>5min 强转 cancelled，防进程崩溃遗留永久中间态",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:130-605",
+      "apps/negentropy/src/negentropy/knowledge/dao.py:96-160",
+      "apps/negentropy/src/negentropy/engine/schedulers/handlers/pipeline_watchdog.py:26-60",
+      "docs/.agents/issue.md:172（I-080 取消信号被状态机回写覆盖）"
+     ],
+     "design_section": "§2.1 连接器框架（任务可靠性）/§3.2 索引编排",
+     "value": "high",
+     "proposed_text": "同步与构建任务须有阶段事件+协作式取消+卡死收敛：watchdog 把超时 running/cancelling 强制转入终态"
+    },
+    {
+     "id": "L2",
+     "lesson": "整文档替换必须单事务原子 DELETE+INSERT（幂等锚=source_uri），防「删旧未插新」孤儿/丢数据；历史非幂等摄取遗留的孤儿 chunk 需按时间聚类识别、dry-run 审计+备份 CSV 后再物理清理",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-347",
+      "apps/negentropy/src/negentropy/knowledge/cleanup.py:13-51",
+      "apps/negentropy/src/negentropy/knowledge/routes/admin.py:37-170"
+     ],
+     "design_section": "§2.1 幂等写入",
+     "value": "high",
+     "proposed_text": "整文档替换须单事务原子 DELETE+INSERT；存量孤儿派生物按时间聚类识别、dry-run 审计后再清理"
+    },
+    {
+     "id": "L3",
+     "lesson": "chunk id 随整源替换再生会连锁摧毁下游：KG 增量水位按上次 chunk id 集合判定→重同步即全量重抽；反馈表 FK CASCADE→历史反馈随替换蒸发。chunk 身份须确定性派生，与方案的水位/缓存设计强耦合",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/graph/repository.py:1908-1933",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-347",
+      "apps/negentropy/src/negentropy/models/perception.py:731"
+     ],
+     "design_section": "§1 核心数据模型（Chunk）/§2.4 增量",
+     "value": "high",
+     "proposed_text": "chunk_id 须由 (document_id, text_hash, 序位) 确定性派生，防重同步改 ID 致增量水位与反馈外键失效"
+    },
+    {
+     "id": "L4",
+     "lesson": "内容寻址唯一约束必须覆盖软删行：同 hash 重传应复活软删文档（重传 blob+重置提取态+best-effort 清旧 blob）而非撞唯一键报错；库级（corpus 为 NULL 维度）去重需 partial unique index 补 PG NULL 互异",
+     "evidence": [
+      "apps/negentropy/src/negentropy/storage/service.py:84-124",
+      "apps/negentropy/src/negentropy/storage/service.py:152-213",
+      "apps/negentropy/src/negentropy/models/perception.py:161-179"
+     ],
+     "design_section": "§2.2 版本库（删除与去重语义）",
+     "value": "medium",
+     "proposed_text": "内容寻址唯一约束须覆盖软删行：同 hash 重传走复活而非冲突；NULL 维度以 partial unique index 补齐"
+    },
+    {
+     "id": "L5",
+     "lesson": "配置默认在建库时被固化进 corpus JSONB，代码默认值成死代码（改默认必须配套幂等数据迁移修存量）；MCP 同步阻塞调用须把超时预算显式注入被调方对齐；长解析需逐批超时+失败隔离+按内容指纹（非路径）断点，续传与完全重来分设入口",
+     "evidence": [
+      "docs/.agents/issue.md:3625-3662（I-133 及 SSOT split-brain follow-up）",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/extraction.py:370-374",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/extraction.py:843-884",
+      "apps/negentropy/src/negentropy/knowledge/routes/pipelines.py:201",
+      "docs/.agents/issue.md:3664（I-134 续传/重来双入口）"
+     ],
+     "design_section": "§2.1 连接器框架",
+     "value": "high",
+     "proposed_text": "连接器超时预算须显式传给被调方对齐；长解析逐批超时+失败隔离+按内容指纹断点，续传/重来分入口"
+    },
+    {
+     "id": "L6",
+     "lesson": "持久化前须有 NUL 剥离咽喉点：PostgreSQL text 列拒 \\x00，PDF 解析产物会夹带 NUL 字节，漏剥即整批写入抛 UntranslatableCharacterError——所有摄取路径收口单一咽喉点处理",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:2273"
+     ],
+     "design_section": "§2.4 清洗",
+     "value": "low",
+     "proposed_text": "清洗须含 NUL 剥离咽喉点：PG text 拒 \\x00，PDF 解析产物会夹带，漏剥即整批写入失败"
+    },
+    {
+     "id": "L7",
+     "lesson": "解析质量验证以「文档级巡检状态机」落地：patrol_status 五态（未检/在检/不可修/拟合成功/源缺失）+分数+归属 Routine（幂等守卫）+失败可重置入口，定时 Routine 自动核对并修复——可泛化为预处理质量验证态与检索期质量信号",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:140-159",
+      "apps/negentropy/src/negentropy/knowledge/routes/documents.py:388-425",
+      "docs/.agents/pdf-fidelity-patrol-status.md",
+      "docs/.agents/issue.md:158-161（I-158/I-159 巡检态教训）"
+     ],
+     "design_section": "§2.3 staleness 治理",
+     "value": "medium",
+     "proposed_text": "验证态可泛化为预处理质量巡检：文档级状态机+分数+定时例巡+失败可重置，作检索期质量信号"
+    },
+    {
+     "id": "L8",
+     "lesson": "上下文富化的零成本档位：hierarchical 父子分块让父块 searchable=false（不嵌入、不入检索索引），子块命中后运行时提升父块全文作上下文——在 LLM 语境注入之前可先启用，无额外推理成本",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3505-3583",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3680-3766"
+     ],
+     "design_section": "§2.4 上下文富化",
+     "value": "medium",
+     "proposed_text": "上下文富化可加零成本档：父子分块父块不嵌不索引、检索期提升父块，先于 LLM 语境注入启用"
+    },
+    {
+     "id": "L9",
+     "lesson": "摄取并发闸门：按 (server_id, source_kind) 维度信号量限流（PDF 工具共享 docling 池需串行、URL 独立引擎不被阻塞），排队超时与单次调用超时分离——排队发生在调用前，不侵蚀执行预算",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/ingestion/extraction.py:58-134"
+     ],
+     "design_section": "§2.1 连接器框架",
+     "value": "medium",
+     "proposed_text": "连接器按 (源系统,类型) 设并发闸门；排队超时与调用超时分离，排队不侵蚀执行预算"
+    }
+   ],
+   "sot_drift": [
+    {
+     "doc_claim": "035 §0：数据库权威定义为 schema/perception_schema.sql（链接却指向 models/perception.py），含 kb_hybrid_search/kb_rrf_search",
+     "code_fact": "链接目标错误且 SQL 文件实际在 docs/reference/cognizes/engine/schema/perception_schema.sql（文档/reference 侧非代码 SSOT）；真正权威是 db/migrations/versions/ 的 99 个 alembic 迁移，且其中无任何迁移创建 kb_hybrid_search/kb_rrf_search（grep 零命中，repository 调用靠 Python fallback 兜底）",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:23；grep kb_hybrid 于 apps/negentropy/src/negentropy/db/ 零命中；apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:966,1113（fallback 路径）"
+    },
+    {
+     "doc_claim": "035 §11.1：Edit 仅 admin 或 knowledge_manager 角色可创建/更新语料库（RBAC 保护）",
+     "code_fact": "ROLE_PERMISSIONS 只有 admin/user 两角色，knowledge_manager 不存在；require_permission 全仓零调用，knowledge 路由挂载未带任何鉴权依赖，AuthMiddleware 非 STRICT 模式放行无 token 请求",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:373；apps/negentropy/src/negentropy/auth/rbac.py:35-48；apps/negentropy/src/negentropy/engine/bootstrap.py:567-568；apps/negentropy/src/negentropy/auth/middleware.py:64-73"
+    },
+    {
+     "doc_claim": "035 §13.4：Document 物理删除→catalog_entries.document_id SET NULL 且 status=orphaned；Corpus 被删→级联所有 entries status=orphaned",
+     "code_fact": "FK SET NULL 真实存在，但 status=ORPHANED 无任何写入方：全仓 grep ORPHANED 仅模型枚举定义与迁移建枚举两处，无触发器无应用代码，条目失效后 status 仍为 ACTIVE",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:591-592；apps/negentropy/src/negentropy/models/perception.py:832,855-866；grep ORPHANED apps/negentropy/src/negentropy/ 仅 db/migrations/versions/0003_catalog_global_phase1_add_tables.py:111 与模型枚举"
+    },
+    {
+     "doc_claim": "035 §15.2：每个 Catalog 至多 1 个 LIVE Publication 的 partial unique index 为 WHERE status = 'LIVE'",
+     "code_fact": "实际迁移约束维度是 publish_mode = 'LIVE'；status 取值为 draft/published/archived，与文档所述 LIVE/ARCHIVED/SNAPSHOT 状态集不符（LIVE/SNAPSHOT 是 publish_mode 枚举）",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:692-695；apps/negentropy/src/negentropy/db/migrations/versions/0007_catalog_singleton_phase_a.py:93-104；apps/negentropy/src/negentropy/models/perception.py:281-321"
+    },
+    {
+     "doc_claim": "035 §13.5：snapshot 模式发布时冻结 (catalog_entries, document_versions)，后续变更不影响已发布版本",
+     "code_fact": "frozen_entries 仅冻结条目映射元数据，不冻结文档内容——代码注释自认「不冗余 markdown 内容，SSG 仍从 KnowledgeDocument 按 document_id 拉取」；文档无 versions 概念，源文档改动会穿透进所谓快照",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:600；apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_service.py:374-396"
+    },
+    {
+     "doc_claim": "035 §6.1：repository.py（链接指向 knowledge/dao.py）为数据访问层，承担 CRUD+四种检索模式",
+     "code_fact": "实际 KnowledgeRepository 在 knowledge/retrieval/repository.py；dao.py 是 Pipeline/Graph Run 记录 DAO（_upsert_run/finalize_stale_pipeline_runs），文档链接指错文件",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:111；apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294；apps/negentropy/src/negentropy/knowledge/dao.py:37"
+    },
+    {
+     "doc_claim": "035 §8：Pipeline Jobs 支持「全量重建 / 增量更新 / 回滚」",
+     "code_fact": "回滚无任何实现（知识域无 rollback 路由/服务，CorpusVersion.status 定义了 rolled_back 但无写入方）；且版本快照端点本身损坏：create_version_snapshot 传不存在的 triggered_by 参数必抛 TypeError（实测复现）、assess_quality 访问不存在的 KnowledgeDocument.embedding 列必抛 AttributeError、get_version_history 读 v.triggered_by 同错——POST /quality 与 POST /versions 均不可用",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:264；apps/negentropy/src/negentropy/knowledge/lifecycle/corpus_engine.py:192,111,233；apps/negentropy/src/negentropy/knowledge/routes/corpus.py:234,250；实测 `CorpusVersion(triggered_by='api')` → TypeError: invalid keyword argument；grep rollback 于 knowledge/routes/ 仅 db 事务回滚"
+    }
+   ],
+   "verification": {
+    "domain": "D1-docmgmt（知识库文档管理子系统）",
+    "verdicts": [
+     {
+      "id": "C1",
+      "verdict": "confirmed",
+      "note": "perception.py:213-246 DocSource 仅 document_id FK+source_type(url/file_pdf/file_generic/text_input)+URL/标题/作者/提取审计字段，无凭据引用/同步模式/信任档/可见性字段；全仓 grep 无 Connector/SyncConfig 类实体（仅 interface/mcp_client.py:247 McpConnectionResult，无关）；extraction.py:325-357 resolve_targets 确从 corpus config 的 extractor_routes 按 source_kind 取 targets(server_id/tool_name/priority/timeout_ms)；source_tracking.py:310-325 SourceTrackingService 四策略族写 DocSource。divergent 判定成立。"
+     },
+     {
+      "id": "C2",
+      "verdict": "confirmed",
+      "note": "extraction.py:2038 DataExtractorProvider.extract + 2079-2143 多 target extract_primary→extract_failover_N 优先级 failover；1062 normalize_tool_contract 做 schema 契约归一；2064 _extract_corpus_llm_config_id 支持 LLM 规划；source_tracking.py:56-76 策略抽象基类+report 落 DocSource；routes/sources.py:57 sync_document、428-499 sync_source 均为人工 POST。无 discover 成立。"
+     },
+     {
+      "id": "C3",
+      "verdict": "confirmed",
+      "note": "ingest.py:246-268 ingest_file 上传通道与其他通道共用 _ingest_text_with_tracker；sources.py:428-503 sync_source 人工单次重拉（建 pipeline run 后台执行）；_shared.py:393-449 _enqueue_embedding_rebuild 仅 embedding 变更时对全部 distinct source_uri 扇出 rebuild；grep webhook 于 knowledge/ 仅 wiki 出站 redeploy（wiki_service.py:305/344、wiki_redeploy.py）；engine/schedulers/handlers/ 目录 15 个 handler 无任何 knowledge 同步任务（仅 pipeline_watchdog/pdf_fidelity_patrol 等）。"
+     },
+     {
+      "id": "C4",
+      "verdict": "confirmed",
+      "note": "repository.py:294-347 replace_knowledge_by_source 同事务 bulk DELETE→INSERT（source_uri 幂等锚）；storage/service.py:215-350 upload_and_store 按 file_hash 去重（含并发 IntegrityError 回查）；embedding.py:122-124 _MAX_RETRIES=3；pipelines.py:126 expected_version+409、136 cancel 协作式取消、201-217 retry 双入口(resume=True/False)；无死信队列确认。唯一细化：pipeline_watchdog handler 自身错误经 metrics.kg_ok 暴露给 Dashboard/告警链路（watchdog.py:33-35），但摄取失败确无死信+告警闭环，partial 判定不受影响。"
+     },
+     {
+      "id": "C5",
+      "verdict": "confirmed",
+      "note": "ingest.py:435-462 重复上传(duplicate_document)仍无条件 background_tasks.add_task(execute_ingest_file_pipeline)；service.py:1168-1285 该 pipeline 对 duplicate 无跳过分支，_ingest_text_with_tracker 默认 persist_mode=replace(service.py:2279) 全量重分块重嵌；service.py:2735-2841 sync_source 重拉后直接 replace 无内容比对。grep version_key|text_hash|content_hash 于 knowledge/+models/ 实际有一处命中：lifecycle_schemas.py:425 source_text_hash 是 Wiki 注解锚定 DOM 快照哈希（仅 schema 定义、无消费者），与摄取版本检测无关，不影响 missing 判定。"
+     },
+     {
+      "id": "C6",
+      "verdict": "confirmed",
+      "note": "service.py:2470-2544 delete_source：pgblob:// 前缀时 hard delete 文档+blob，随后 delete_knowledge_by_source 物理删 chunks；documents.py:577-624 DELETE /documents soft_delete=not hard_delete 仅置 status='deleted'；storage/service.py:459-537 hard delete 仅删 blob(content/markdown/extracted_assets)+文档行，不触碰 chunks；Knowledge 表(perception.py:63-85)确无 document_id 列/FK；检索 SQL(repository.py:838-851)仅过滤 corpus/app/archived metadata/is_enabled/searchable，不看文档状态；archive_source 的 metadata.archived 排除是唯一有效下线通道（SQL 845 行 COALESCE）；UI page.tsx:698-714 软删不级联。divergent 成立。"
+     },
+     {
+      "id": "C7",
+      "verdict": "confirmed",
+      "note": "sources.py:442-450 sync_source 仅校验 http(s) scheme；wiki_docs_ingest.py:347-369 include_dirs/exclude_suffixes 属 docs→站点包导出；config/knowledge.py:307 cross_corpus_kg_app_allowlist 是 KG 灰度。细化：knowledge/ 内 grep whitelist 还命中 _shared.py:233 _MODELS_WHITELIST（corpus config 可改字段白名单）与 graph/extractors.py:200 _FRAMEWORK_NAME_WHITELIST（KG 框架名过滤），二者均非连接器级内容准入控制面，missing 判定不变。"
+     },
+     {
+      "id": "C8",
+      "verdict": "confirmed",
+      "note": "chunks.py:158-209 PATCH chunk 改 content/is_enabled；service.py:2735-2841 sync 后 persist_mode=replace 整源 DELETE→INSERT（新 UUID），本地 chunk 编辑被静默清除；perception.py:63-183 Knowledge/KnowledgeDocument 均无 acl 列；grep overlay|rebase 于 knowledge/ 零命中（实测确为零）。"
+     },
+     {
+      "id": "C9",
+      "verdict": "confirmed",
+      "note": "KnowledgeDocument(perception.py:88-183) 单行：markdown_content 被 sync/refresh 覆写（service.py:1898-1928 store_extracted_document_artifacts 回写）、_reactivate_document(storage/service.py:152-213) 重置全部提取态；CorpusVersion(perception.py:678-717) 仅 corpus 级统计快照。独立确认创建路径双重损坏：corpus_engine.py:186-193 构造 CorpusVersion(triggered_by=…) 传模型不存在字段（实际是 trigger_type）且缺 NOT NULL 的 app_name → 必抛 TypeError；routes/corpus.py:262 即调用此方法。"
+     },
+     {
+      "id": "C10",
+      "verdict": "confirmed",
+      "note": "service.py:2843-3005 rebuild_source 校验 pgblob:// 前缀(2872)后从 blob 重提取重索引；1613-1702 execute_ingest_document_pipeline 从已存 markdown 免提取索引（docstring「免重提取」+读取 markdown_extract_status=completed）；_shared.py:393-449 扇出含 http URL 源 + rebuild_source:2872 非 pgblob 抛 ValueError → embedding 变更触发的全量 rebuild 对 URL 源必失败；uri.py:42-44 parse_uri 同口径。"
+     },
+     {
+      "id": "C11",
+      "verdict": "confirmed",
+      "note": "无同步调度（见 C3 handlers 目录核实）；service.py:3812-3842 _record_match_retrievals 检索自增；corpus_engine.py:88-106 新鲜度评分，且 assess_quality:111 引用 KnowledgeDocument.embedding——该表无此列（embedding 在 Knowledge 表），构建查询即 AttributeError → 评分代码损坏确认，routes/corpus.py:244 在调用链上。一处措辞修正：retrieval_count 并非完全无消费者——_shared.py:638-651/690-702 有文档级 display_retrieval_count 统计展示、lifecycle_schemas.py:552 TrendingRequest 有 metric=retrieval_count（仅 schema 无实现路由）；应表述为「无调度类消费者」，missing 判定不变。"
+     },
+     {
+      "id": "C12",
+      "verdict": "confirmed",
+      "note": "engine/governance/pii/gatekeeper.py 存在于 Memory 域；grep pii|presidio 于 knowledge/+storage/ 实测零命中；issue.md 索引 108 行 I-099「F4 Presidio PII 在热路径上是死代码」属实（修复也仅 Memory 侧接线）；storage/service.py:475-537 hard delete 级联 blob+资产但 chunks 走 delete_source 另一入口；无保留期/擦除通道。"
+     },
+     {
+      "id": "C13",
+      "verdict": "confirmed",
+      "note": "chunks.py:158-209 update_document_chunk 可改 content/is_enabled（调 service.update_knowledge_chunk）；212-254 regenerate-family 按新文本重切；documents.py:255-326 PATCH documents 仅 display_name+author/author_url/source_url/published_at 元数据，无正文编辑端点；documents.py:565-574 refresh_markdown 是「从源重新解析」非编辑。取向与方案相反，divergent 成立。"
+     },
+     {
+      "id": "C14",
+      "verdict": "confirmed",
+      "note": "grep draft 于 documents.py/library.py 零命中（实测确认）；WikiPublication(perception.py:282-288) status draft/published/archived + version；wiki_service.py:300-361 publish/unpublish 是站点发布生命周期（SNAPSHOT 冻结+webhook 通知+部署 spawn），非文档内容版本流。missing 成立。"
+     },
+     {
+      "id": "C15",
+      "verdict": "confirmed",
+      "note": "perception.py:308-319 WikiPublication.visibility、783-793 DocCatalog.visibility；catalog.py:206-207 PATCH 直接接受 visibility 改写（仅 uppercase 归一，无审批环）；require_permission 全仓仅 auth/rbac.py:82 定义零调用；middleware.py:62-83 OPTIONAL 模式无 token/坏 token 均放行；knowledge/api.py:28-46 router 组合无权限依赖。一处证据勘误：bootstrap.py:567-568 实际是 knowledge router 挂载行（非 OPTIONAL 证据，OPTIONAL 证据在 middleware.py），不影响结论。"
+     },
+     {
+      "id": "C16",
+      "verdict": "confirmed",
+      "note": "dao.py:299-304 upsert expected_version 冲突返回 conflict；routes/pipelines.py:126-129 与 routes/graph.py:108 转 409；exceptions.py:95-116 VersionConflict；perception.py:774/794-795 DocCatalog.version 注释称乐观锁。grep 确认 expected_version 全 knowledge/ 仅 graph run 与 pipeline run 两处使用，文档/发布/可见性更新路径均未校验，KnowledgeDocument 无版本列。partial 成立。"
+     },
+     {
+      "id": "C17",
+      "verdict": "confirmed",
+      "note": "documents.py:320-324 仅 logger.info(\"api_update_document\")；graph.py:967-971 是查询审计持久化失败的日志；grep audit 于 knowledge/ 另仅 admin.py:37 dry_run 描述；无 append-only 审计表实现，仅 created_by 字段。"
+     },
+     {
+      "id": "C18",
+      "verdict": "confirmed",
+      "note": "grep draft/base_version 无内容草稿概念；C5/C8 已同证：sync_source/execute_sync_document_pipeline 的 persist_mode=replace 整源原子替换会静默删除本地 chunk 编辑（chunks.py PATCH 产物），上游与本地互不知晓、无冲突检测。"
+     },
+     {
+      "id": "C19",
+      "verdict": "confirmed",
+      "note": "grep verifier|verified|staleness 于 knowledge/ 实测零命中；perception.py:140-159 patrol_status 五态+score+routine_id 归属+patrol_updated_at；documents.py:388-395 reset-patrol 重置入口；corpus_engine.py:88-106 新鲜度非文档级且评分损坏（见 C11）。patrol 是 PDF 解析保真巡检非内容时效验证，missing 成立。"
+     },
+     {
+      "id": "C20",
+      "verdict": "confirmed",
+      "note": "PDF/URL 经 DataExtractorProvider→MCP 路由 perceives（I-133 记载 parse_pdf_to_markdown/auto_batch 多轮保真）；content.py:40-88 本地仅 txt/md/markdown；content.py:197 BeautifulSoup HTML 兜底+108-127 optimize_markdown_content 换行/空行归一；service.py:2271-2273 strip_nul_chars 咽喉点；issue.md:103 I-094 属实；产物为 Markdown 非 AST。"
+     },
+     {
+      "id": "C21",
+      "verdict": "confirmed",
+      "note": "chunking.py:310-335 chunk_text 分派 Fixed/Recursive/Semantic/Hierarchical；types.py:355-356 default_chunking_config→RecursiveChunkingConfig（默认 Recursive）；service.py:3505-3582 _build_hierarchical_chunks 父块 metadata searchable=False(3542)+子块 searchable=True+family_id 关联。implemented 成立。"
+     },
+     {
+      "id": "C22",
+      "verdict": "confirmed",
+      "note": "grep contextual|breadcrumb|section_path|late chunk 于 knowledge/ 实测零命中；service.py:3680-3765 _lift_hierarchical_matches 子块命中后按 family 取父块全文返回（带 matched_child_chunks 明细），配合 3542 父块不入检索索引零嵌入成本。以 small-to-big 替代语境注入，divergent 成立。"
+     },
+     {
+      "id": "C23",
+      "verdict": "confirmed",
+      "note": "source_tracking.py:140-159 UrlSourceTracker 规则抽取 title/URL/重定向链（策略族覆盖四型）；documents.py:255-296 PATCH 写回 metadata_(author/source_url/published_at)；lifecycle_schemas.py:201-206 CategorySuggestionResponse grep 确认仅 schema 定义+各路由 noqa F401 re-export，无任何端点实现。无 LLM 抽取与 few-shot 回流，partial 成立。"
+     },
+     {
+      "id": "C24",
+      "verdict": "confirmed",
+      "note": "_ingest_text_with_tracker(service.py:2258-2390) 每次全量 chunk+embed 后 replace；repository.py:294-347 INSERT 重新生成 UUID；Knowledge 表(perception.py:63-85)无 text_hash 列、grep 无复用逻辑；未变文档重摄入/重同步均重耗 embedding API。粒度=整文档原子替换达标。"
+     },
+     {
+      "id": "C25",
+      "verdict": "confirmed",
+      "note": "graph/service.py:405-422 incremental 按 prev_processed chunk id 集合过滤；graph/repository.py:1908-1934 get_processed_chunk_ids 取最近成功 kg_build_run 的 processed_chunk_ids；chunk id 随 replace_knowledge_by_source 新 UUID 再生 → 任何重同步水位全失效全量重抽；translation/service.py:458-471 upload_and_store 的 hash 是译文字节 hash（产出侧），非输入指纹。missing 成立。"
+     },
+     {
+      "id": "C26",
+      "verdict": "confirmed",
+      "note": "perception.py:720-757 KnowledgeFeedback 字段齐（knowledge_id FK CASCADE/corpus_id/query_text/query_mode/feedback_type click|useful|not_useful|impression/score）；service.py:3812-3842 记录检索侧数据；grep KnowledgeTask|工单 于 knowledge/+models/ 实测零命中，无工单实体/状态流转/Draft 产出。"
+     },
+     {
+      "id": "L1",
+      "verdict": "confirmed",
+      "note": "service.py:130-209 PipelineTracker 阶段事件+cancellation_summary 聚合；dao.py:96-165 finalize_stale_pipeline_runs running>30min→failed、cancelling>5min→cancelled（SQL 守卫防回写覆盖取消态）；pipeline_watchdog.py:26-60 定时调 KB+KG 双侧收敛；I-080 条目存在（索引行 89、详情 2115——取证引 issue.md:172 行号有误，内容相符）。经验成立。"
+     },
+     {
+      "id": "L2",
+      "verdict": "confirmed",
+      "note": "repository.py:294-347 单事务 DELETE→INSERT（docstring 明言防「已删旧但新未插入」）；cleanup.py:13-51 cluster_by_time 60s 时间窗聚类+check_index_completeness；admin.py:33-89 cleanup-orphans 默认 dry_run 审计、False 物理删除+backup CSV。"
+     },
+     {
+      "id": "L3",
+      "verdict": "confirmed",
+      "note": "graph/repository.py:1908-1934 水位按 chunk id 集合；replace_knowledge_by_source INSERT 新 UUID；perception.py:731 KnowledgeFeedback.knowledge_id FK ondelete=CASCADE——历史反馈随整源替换蒸发，连锁摧毁链完整。"
+     },
+     {
+      "id": "L4",
+      "verdict": "confirmed",
+      "note": "storage/service.py:215-280 check_duplicate 含 any status 软删行，命中软删行走 _reactivate_document(152-213) 重传 blob+重置提取态+best-effort 清旧 blob；perception.py:161-171 uq_knowledge_documents_corpus_hash 对 NULL 豁免+app_name+file_hash partial unique index 补 PG NULL 互异（0067 迁移注释）。"
+     },
+     {
+      "id": "L5",
+      "verdict": "confirmed",
+      "note": "issue.md I-133+follow-up 全证：corpus JSONB 建库固化 timeout_ms 使代码兜底成死代码（extraction.py:2074 条件永假）、超时预算注入 extraction.py:843-861 _maybe_inject_tool_timeout、_maybe_inject_resume 双入口、perceives 逐批超时+SHA-1 内容指纹 checkpoint；pipelines.py:201-217 retry 双入口（I-134）；issue.md 行号 3625-3662/3664 与 I-133/134 详情位置相符。"
+     },
+     {
+      "id": "L6",
+      "verdict": "confirmed",
+      "note": "service.py:2271-2273 strip_nul_chars 于 _ingest_text_with_tracker 入口，注释明言「全部摄入路径(file/url/refresh/rebuild) chunk 持久化的单一咽喉点」；I-133 follow-up 2 记载三处写库边界（mcp_tool_runs/markdown_content/chunk content）净化链。"
+     },
+     {
+      "id": "L7",
+      "verdict": "confirmed",
+      "note": "perception.py:140-159 patrol_status 五态注释（NULL/in_progress/unfixable/done/source_unavailable）+patrol_score+patrol_routine_id（幂等守卫注释）+patrol_updated_at；documents.py:388-395 reset-patrol 重置入口；issue.md:158-159 I-158/I-159 行号与内容相符；docs/.agents/pdf-fidelity-patrol-status.md 存在。"
+     },
+     {
+      "id": "L8",
+      "verdict": "confirmed",
+      "note": "service.py:3505-3582 hierarchical 父块 searchable=False（不入检索索引、不耗嵌入——检索 SQL COALESCE(metadata->>'searchable') 过滤）；3680-3765 子块命中运行时提升父块全文作上下文，零额外推理成本。"
+     },
+     {
+      "id": "L9",
+      "verdict": "confirmed",
+      "note": "extraction.py:58-132 _extraction_gate 按 (server_id, source_kind) 懒创建 Semaphore 限流，排队 wait_for(extraction_queue_timeout_seconds) 与单次调用超时分离，排队发生在 MCP 调用前不侵蚀执行预算，超时抛 ExtractionGateQueueTimeout 转 concurrency_queue_timeout。"
+     }
+    ],
+    "missed": [
+     {
+      "fact": "knowledge 子系统存在唯一严校验入口例外：/mcp/knowledge MCP 检索端点自带 bearer token 强校验（knowledge/mcp_server.create_kb_mcp_asgi_app），在 AuthMiddleware allowlist 中注释明言「严于全局 OPTIONAL 模式」——C15 的「knowledge 路由整体未挂 RBAC」应以此为边界（HTTP API 面 OPTIONAL 放行，MCP 面例外严校验）。",
+      "evidence": "apps/negentropy/src/negentropy/auth/middleware.py:58-60"
+     },
+     {
+      "fact": "retrieval_count 存在展示/统计层消费者：文档级 display_retrieval_count 汇总（父子块求和）与文档列表聚合统计；TrendingRequest schema 声明 metric=retrieval_count|feedback_positive|click_through 但无实现路由。C11 的「无消费者」应收窄为「无调度类消费者」。",
+      "evidence": "apps/negentropy/src/negentropy/knowledge/_shared.py:638-651,690-702; apps/negentropy/src/negentropy/knowledge/lifecycle_schemas.py:546-552"
+     },
+     {
+      "fact": "CorpusEngine 损坏点可精确钉定（补 C9/C11 的「见 sot_drift D7」引用）：① assess_quality 引用 KnowledgeDocument.embedding——该表无 embedding 列（向量在 Knowledge 表），构建查询即 AttributeError；② create_version_snapshot 构造 CorpusVersion(triggered_by=…) 传模型不存在字段（模型实为 trigger_type/build_run_id）且缺 NOT NULL 的 app_name → TypeError。routes/corpus.py:244/262 两个调用点（quality/version 端点）运行必炸。",
+      "evidence": "apps/negentropy/src/negentropy/knowledge/lifecycle/corpus_engine.py:111,186-193; apps/negentropy/src/negentropy/knowledge/routes/corpus.py:244,262; apps/negentropy/src/negentropy/models/perception.py:678-717"
+     },
+     {
+      "fact": "翻译子系统（knowledge/translation/service.py）是知识内容的第三条派生通道：译文按产出文件 hash 经 upload_and_store 去重后作为新文档落库，与 C25 的「LLM 派生物缓存不变量」评估相关（其去重键是产出内容 hash，非输入指纹+pipeline_ver）。",
+      "evidence": "apps/negentropy/src/negentropy/knowledge/translation/service.py:458-471"
+     }
+    ]
+   }
+  },
+  "D2-indexing": {
+   "domain": "D2 · 索引构建（方案 §3.1 四路索引 / §3.2 索引编排与版本）",
+   "capabilities": [
+    {
+     "id": "C1",
+     "design_mechanism": "§3.1 BM25 倒排：真 BM25（k1/b 可调）、字段加权 BM25F、长文档修正、中文分词（词典类）",
+     "status": "partial",
+     "as_built": "tsvector GIN + ts_rank_cd（english 配置，仅 content 单字段）。无 pg_search/Tantivy/ES，无 setweight 字段加权；PG 默认解析器把连续汉字当一个 token，中文关键词腿全失效（I-196 登记未修），知识库无 ILIKE 回退",
+     "evidence": [
+      "apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py:890-916",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:841-848",
+      "docs/.agents/issue.md:3027（I-196 详情块）",
+      "docs/research/cognitive-context/013-context-layer-blueprint.md:725"
+     ],
+     "gap": "最小闭环：CJK 查询路由 pg_trgm/LIKE 回退或入库 bigram 预切分（pg_trgm 本机可用）；真 BM25 按 ADR-0002 选型（pg_textsearch 主选 / OpenSearch 扩容）；注释与文档先把「BM25」措辞改准",
+     "effort": "L",
+     "risk": "pg_search AGPL/托管支持问题（调研 §5-F11 已警示）；换分词配置需全量重刷 search_vector"
+    },
+    {
+     "id": "C2",
+     "design_mechanism": "§3.1 元数据索引：结构化列+范围/倒排、过滤须 schema 声明（Indexable 字段级开关）、过滤下推引擎内执行",
+     "status": "partial",
+     "as_built": "JSONB metadata 列，semantic/keyword 两路在 SQL 内下推 metadata @> 包含过滤；但 metadata 无 GIN 索引、无结构化过滤列、无字段级声明；RRF 模式签名无 metadata_filter，静默丢弃过滤条件",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:780-781",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:831-836",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3292-3298",
+      "apps/negentropy/src/negentropy/models/perception.py:81"
+     ],
+     "gap": "加 metadata GIN（jsonb_path_ops）与 (corpus_id,app_name) 复合索引；RRF 路径补 metadata_filter 透传；如需产品域/语言等硬过滤再上声明式 filterable schema",
+     "effort": "M",
+     "risk": "RRF 丢过滤属正确性缺陷（过滤语义静默失效），优先级高于索引本身"
+    },
+    {
+     "id": "C3",
+     "design_mechanism": "§3.1 向量 ANN：HNSW M/efConstruction/efSearch、embedding 模型版本绑定索引（换模型=蓝绿全量重建不混用）、MRL 维度",
+     "status": "divergent",
+     "as_built": "pgvector 0.8.2、向量固定 vector(1536) 单列、cosine <=>。knowledge.embedding 无任何索引（HNSW 仅建在 kg_entities/kg_entity_canonical），语义检索为过滤后精确暴力扫；corpus 创建期 pin embedding_config_id，但换模型仅按「维度不同」触发 rebuild，同维换模型不触发→新旧向量空间静默混用，查询立即用新模型",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/base.py:129",
+      "apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py:880-887",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:750-766",
+      "apps/negentropy/src/negentropy/knowledge/routes/corpus.py:165-193"
+     ],
+     "gap": "为 knowledge.embedding 建 HNSW；重建触发判据改为模型标识（config_id）变更而非维度比对；rebuild 需覆盖 https/gs:// 源（现仅 pgblob，26/43 源会失败留旧向量）",
+     "effort": "L",
+     "risk": "同维换模型混空间已在真实配置路径可达（live 库 3 corpus 全暴露）；建 HNSW 前需评估过滤基数（现 brute-force 反而免疫过滤召回塌缩）"
+    },
+    {
+     "id": "C4",
+     "design_mechanism": "§3.1 地理空间：geo_point/geo_region、PostGIS GiST、KNN <->、H3/S2",
+     "status": "missing",
+     "as_built": "无任何地理能力。已搜 postgis/geography/geometry/geo_point/ST_DWithin/ST_Within/h3/gist 于 apps/negentropy/src/negentropy 与 pyproject.toml 全部 0 命中；live 库 pg_extension 仅 plpgsql+vector，无 postgis",
+     "evidence": [
+      "apps/negentropy/pyproject.toml（无 geoalchemy2/postgis/shapely/h3 依赖，全文检索 0 命中）",
+      "apps/negentropy/src/negentropy/models/perception.py:63-86（Knowledge 全字段无 geo）"
+     ],
+     "gap": "如需「附近网点/区域政策」场景：装 PostGIS、DocumentVersion/Chunk 加 geo 列、检索 SQL 加 <-> 谓词；当前语料为论文/文档型，暂无此查询需求",
+     "effort": "L",
+     "risk": "无实际 geo 需求前引入属过度设计（YAGNI）"
+    },
+    {
+     "id": "C5",
+     "design_mechanism": "§3.2 索引编排：Pipelines 运行记录、IndexBuild 任务态、取消/重试",
+     "status": "partial",
+     "as_built": "KnowledgePipelineRun（status/version/idempotency_key 唯一约束）+ PipelineTracker 分阶段（chunk/embed/persist）落 JSONB；操作族 ingest_text/url/file/document、replace/sync/rebuild_source、translate；有协作式取消、双入口断点续传重试、30min 看门狗收敛卡死 run",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/knowledge_runtime.py:40-58",
+      "apps/negentropy/src/negentropy/knowledge/service.py:843-894",
+      "apps/negentropy/src/negentropy/knowledge/routes/pipelines.py:201-392",
+      "apps/negentropy/src/negentropy/knowledge/dao.py:96-171"
+     ],
+     "gap": "无 corpus 级「全量初建」编排（唯一批量面是换 embedding 时的逐源 enqueue）；无 IndexBuild 的目标索引版本/水位概念；见 C8",
+     "effort": "S",
+     "risk": "后台任务走 FastAPI BackgroundTasks，进程重启丢任务（靠看门狗标 failed + 手动重试兜底）"
+    },
+    {
+     "id": "C6",
+     "design_mechanism": "§3.2 三策略：全量初建 / 增量（按版本 diff 重刷该文档 chunk）/ 重建",
+     "status": "partial",
+     "as_built": "sync_source（URL 重拉）与 replace/ingest 均为按 source_uri 的文档级全量重切+重嵌+原子替换；文档级 file_hash 去重仅作用于上传层（KnowledgeDocument 唯一约束），chunk 层无 text_hash 比对、未变文本不省 embedding",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:2735-2841",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-341",
+      "apps/negentropy/src/negentropy/models/perception.py:162-171"
+     ],
+     "gap": "重刷前按 content hash 比对跳过未变文档；chunk 级按 text_hash 复用 embedding（方案 §2.4 已写，落地缺失）",
+     "effort": "M",
+     "risk": "hash 锚需与幂等锚（source_uri）协调，避免再出一版 I-0072 式键漂移"
+    },
+    {
+     "id": "C7",
+     "design_mechanism": "§3.2 重建与回滚：策略/模型变更重建、CorpusVersion 版本快照与回滚",
+     "status": "divergent",
+     "as_built": "rebuild_source（pgblob 源重下载重嵌）可用；CorpusVersion 表+POST/GET /versions 路由存在但唯一写入函数 create_version_snapshot 传不存在的 triggered_by 列——实跑 TypeError 必崩（已验证），且缺必填 app_name/chunk_count；status=rolled_back 全仓无写入点，live 库表 0 行，纯死代码",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/corpus_engine.py:160-198",
+      "apps/negentropy/src/negentropy/knowledge/routes/corpus.py:250-303",
+      "apps/negentropy/src/negentropy/models/perception.py:678-718"
+     ],
+     "gap": "短期：修 TypeError 或删除死路由防误触；真回滚需 chunk 内容快照/重放机制，现完全没有",
+     "effort": "M",
+     "risk": "0 行表+崩溃 API 会在 M2 版本治理诉求出现时才暴露，属已知雷"
+    },
+    {
+     "id": "C8",
+     "design_mechanism": "§3.2 蓝绿索引版本：起建水位、构建期双写、切换前重放追平、回归门、别名原子切换、回滚先重放删除/ACL 事件",
+     "status": "missing",
+     "as_built": "无索引版本化任何要素。已搜 index_ver/index_version/blue-green/alias/watermark/shadow 于 knowledge/ 全 0 命中；替换为「每源同事务 DELETE+INSERT」的就地换版，构建期整库可见混合新旧",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-341（就地替换即全部机制）",
+      "apps/negentropy/src/negentropy/knowledge/service.py:2332-2360"
+     ],
+     "gap": "需引入 index_ver 列+双写+原子切换；或先接受文档级原子换版（见 reverse_lessons）并在方案里降档为可选机制",
+     "effort": "XL",
+     "risk": "单库规模下全量蓝绿收益有限，成本高；与 HNSW 引入绑定才真正需要"
+    },
+    {
+     "id": "C9",
+     "design_mechanism": "§3.2 IndexBuild 任务态（pending/building/validating/active/retired/failed）与 chunk 数据态（parsed→indexing→indexed，FastGPT 范式）",
+     "status": "divergent",
+     "as_built": "run 态为 pending/running/cancelling/cancelled/completed/failed（面向摄取而非索引版本）；chunk 无数据态——embed 在事务外算好、同事务原子落库，读者只见整旧或整新，故无「indexing 中间态」需求；隔离靠 semantic 过滤 embedding IS NOT NULL + metadata searchable/is_enabled/archived 标志（层叠父块 searchable=false）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:2316-2360",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3536-3543",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:757-766"
+     ],
+     "gap": "当前规模下原子替换已提供文档级隔离；若未来异步/分阶段构建（如嵌入回填）才需要显式 chunk 数据态",
+     "effort": "M",
+     "risk": "embed 阶段被跳过时（无 embedding fn）chunk 仍落库且关键词腿可见——半索引态无信号，需监控 null-embedding 占比"
+    },
+    {
+     "id": "C10",
+     "design_mechanism": "§3.2 写入按 (chunk_id, index_ver) 幂等，失败重试、超限入死信告警",
+     "status": "partial",
+     "as_built": "幂等锚=source_uri（replace 模式同事务 DELETE→INSERT；None 强制走 append 非幂等）；run 级有 idempotency_key 唯一约束+OCC（expected_version 冲突检测）；embedding 调用有指数退避重试；无死信队列——run 失败仅标 failed 待人工 retry",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:263-341",
+      "apps/negentropy/src/negentropy/knowledge/dao.py:298-341",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/embedding.py:169-260"
+     ],
+     "gap": "chunk_id 为随机 UUID 非内容寻址；无自动重试调度与 DLQ；换 chunk 粒度幂等需重设计主键",
+     "effort": "M",
+     "risk": "见 L5：URI 作幂等锚已被 0072 迁移证伪（同文档双份索引）"
+    },
+    {
+     "id": "C11",
+     "design_mechanism": "§3.2 staleness SLO 按通道分档（推送 P95≤5min / 拉取≤调度周期+构建时长），删除与 ACL 不降频",
+     "status": "missing",
+     "as_built": "无同步调度：sync_source/rebuild 全为手动 API 触发；调度器 handlers 里无任何 KB 同步任务；无 index lag/新鲜度指标（freshness_score 是 corpus 质量评分非索引滞后）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/engine/schedulers/handlers/（14 个 handler 无 KB sync）",
+      "apps/negentropy/src/negentropy/knowledge/routes/sources.py:428-494（手动触发）"
+     ],
+     "gap": "接入 UnifiedScheduler 加周期 sync handler + lag 监控；推送/webhook 通道完全未起步",
+     "effort": "L",
+     "risk": "周期重拉会放大无变更检测的重嵌成本（与 C6 绑定）"
+    },
+    {
+     "id": "C12",
+     "design_mechanism": "§3.1/§3.2 未索引数据对检索隔离",
+     "status": "partial",
+     "as_built": "主隔离机制=每源同事务原子替换（MVCC 下无半索引可见窗口）；辅以 embedding IS NOT NULL 过滤与 metadata archived/searchable/is_enabled 软标志；文档级有 markdown_extract_status（pending/unknown/completed）但那是解析态非索引态",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:757-770",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:1343-1352",
+      "apps/negentropy/src/negentropy/models/perception.py:125-131"
+     ],
+     "gap": "关键词腿对 null-embedding 与 archived=false 外的半成品无独立隔离位；依赖 ingest 原子性间接达成，可接受但需在文档中显式声明该替代机制",
+     "effort": "S",
+     "risk": "未来引入异步嵌入回填时现机制不设防"
+    },
+    {
+     "id": "C13",
+     "design_mechanism": "§1 核心数据模型：Chunk 向量存于按 (chunk_id, model_version) 键控的侧表",
+     "status": "divergent",
+     "as_built": "单列 Knowledge.embedding vector(1536)，无 model_version 维度；chunk 不记录产生向量的模型（corpus 级 config.models.embedding_config_id 是当前态非历史事实），无法审计某向量由哪个模型生成",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:71",
+      "apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py:552"
+     ],
+     "gap": "侧表化（chunk_id, model_version, embedding）+ 迁移回填 + 检索按当前模型过滤，是消除混空间问题的根治路径",
+     "effort": "L",
+     "risk": "与 HNSW/重建触发（C3）联动改造，需一次整体设计而非单点补丁"
+    }
+   ],
+   "reverse_lessons": [
+    {
+     "id": "L1",
+     "lesson": "语料创建期固化 embedding 模型 pin + 索引/查询两侧共用同一解析函数：防全局默认后续变更造成静默混维度/混模型（I-028/I-135 两案验证）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/_shared.py:270-299",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3597-3611",
+      "docs/.agents/issue.md（I-028/I-135 详情块）"
+     ],
+     "design_section": "§3.1 向量路（embedding 模型版本绑定索引）",
+     "value": "high",
+     "proposed_text": "语料创建期固化 embedding 模型 pin，索引与查询经同一解析路径取模型，防全局默认漂移"
+    },
+    {
+     "id": "L2",
+     "lesson": "引擎内原生路径（SQL 函数）必须随迁移交付并配存在性测试，降级必须可观测：kb_hybrid_search/kb_rrf_search 只活在参考 schema 里，线上永久静默回退 Python 数月无感（I-098 同型）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:966-977",
+      "docs/.agents/issue.md（I-098：『.sql schema 文件只是参考，不是生效源』）",
+      "docs/reference/cognizes/engine/schema/perception_schema.sql:317-474"
+     ],
+     "design_section": "§3.2 索引编排与版本（写入与降级）",
+     "value": "high",
+     "proposed_text": "原生执行路径依赖的 DB 对象须随迁移交付并测存在性，任何降级须计数告警而非静默回退"
+    },
+    {
+     "id": "L3",
+     "lesson": "换模型重建的触发判据必须是模型标识而非「维度不同」：维度相同≠向量空间兼容，Negentropy 同维换模型零重建即混空间；且重建管线只认 blob URI，url 源重建必败留旧向量",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/corpus.py:165-193",
+      "apps/negentropy/src/negentropy/knowledge/service.py:1985-1996"
+     ],
+     "design_section": "§3.1 向量路（换模型=蓝绿全量重建）",
+     "value": "high",
+     "proposed_text": "重建触发判据为模型标识变更而非维度比对；重建入口须覆盖全部源类型，失败源显式留痕"
+    },
+    {
+     "id": "L4",
+     "lesson": "文档粒度「同事务 DELETE+INSERT 原子换版」是蓝绿的零成本替身：MVCC 保证读者只见整旧或整新、失败自动回滚保旧版，嵌入在事务外先算好——单库中小规模无需索引版本机制",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:294-341",
+      "apps/negentropy/src/negentropy/knowledge/service.py:2316-2360"
+     ],
+     "design_section": "§3.2 蓝绿索引版本（单库起步现实段）",
+     "value": "medium",
+     "proposed_text": "文档粒度同事务原子换版可作蓝绿的低成本起步，先取得整旧或整新的可见性语义"
+    },
+    {
+     "id": "L5",
+     "lesson": "幂等锚不可选可变 URI：gs://→pgblob:// 迁移只改写文档表不改 knowledge.source_uri，重摄同文档绕过去重，live 库同一 PDF 双份各 1614 chunk（3228 行中一半冗余）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/db/migrations/versions/0072_rename_gcs_uri_columns.py:44-64",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:296-308"
+     ],
+     "design_section": "§3.2 幂等写入（(chunk_id, index_ver) 键控）",
+     "value": "high",
+     "proposed_text": "幂等锚须为不可变标识（文档 ID/内容 hash）；URI 类标识变更必须级联重写全部派生幂等键"
+    },
+    {
+     "id": "L6",
+     "lesson": "关键词腿分词配置×目标语言是移植 schema 的显式核对项：english tsvector 对中文子串全部落空且知识库无 ILIKE 回退，混合检索对中文退化为纯向量（I-196）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py:909-916",
+      "docs/.agents/issue.md（I-196 详情块）"
+     ],
+     "design_section": "§3.1 BM25 路（中文分词）",
+     "value": "high",
+     "proposed_text": "分词配置×目标语言须显式核对；CJK 场景配 bigram/词典分词或 LIKE 回退，并纳入中文子串回归"
+    },
+    {
+     "id": "L7",
+     "lesson": "构建 run 需看门狗把崩溃残留中间态收敛到终态，且持久化要「写前回读+乐观并发」防覆盖取消信号（R-7 race 修补），否则后台任务崩溃后永久 running",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/dao.py:96-171",
+      "apps/negentropy/src/negentropy/knowledge/service.py:546-606",
+      "apps/negentropy/src/negentropy/engine/schedulers/handlers/pipeline_watchdog.py:46"
+     ],
+     "design_section": "§3.2 IndexBuild 任务态",
+     "value": "medium",
+     "proposed_text": "构建 run 由看门狗按超时收敛残留中间态；状态写入用回读+版本号乐观并发，不覆盖取消信号"
+    },
+    {
+     "id": "L8",
+     "lesson": "部署侧扩展可用性要启动自检：brew 升级 PG 清掉手装 pgvector 致向量能力半瘫痪（旧连接可用新连接必炸），I-139 后落了 pgvector_check oneshot 自检 + env.py 建扩展",
+     "evidence": [
+      "apps/negentropy/src/negentropy/engine/schedulers/handlers/pgvector_check.py:27-54",
+      "apps/negentropy/src/negentropy/db/migrations/env.py:101-103",
+      "docs/.agents/issue.md（I-139 详情块）"
+     ],
+     "design_section": "§6 推荐起步组合（PostgreSQL 一库四能）",
+     "value": "medium",
+     "proposed_text": "pgvector 等部署侧扩展纳入启动自检与迁移前置，防宿主环境漂移致向量能力静默瘫痪"
+    }
+   ],
+   "sot_drift": [
+    {
+     "doc_claim": "035 §4（:66）：「索引：HNSW 向量索引 + GIN 全文索引 + JSONB 索引（见 perception_schema.sql）」",
+     "code_fact": "alembic 0001 仅对 knowledge 建 search_vector GIN 与 entity_type 部分索引；knowledge.embedding 无任何索引（HNSW 只建在 kg_entities/kg_entity_canonical），metadata 无 GIN；live 库 pg_indexes 实查确认（5 个索引无一命中）；参考 SQL 本身从未被执行",
+     "evidence": "apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py:872-916；psql 实查 negentropy.knowledge 索引清单"
+    },
+    {
+     "doc_claim": "035 §0（:23）/§6.4（:183）：「数据库权威定义 perception_schema.sql……kb_hybrid_search / kb_rrf_search」「优先使用数据库原生 kb_hybrid_search() 函数，自动降级」",
+     "code_fact": "两个函数从未被任何 alembic 迁移创建（live pg_proc 无 kb_%）；service.search 的 hybrid 模式从不调 repository.hybrid_search（Python 端 _merge_matches），rrf 每次调用必 UndefinedFunction 后回退 Python RRF——「优先原生」实际为「永远 Python」",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/service.py:3400-3445；apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:1066-1116"
+    },
+    {
+     "doc_claim": "035 §5.2（:89）/§6.2（:143）：「Keyword：search_vector + BM25 (ts_rank_cd)」",
+     "code_fact": "ts_rank_cd 非 BM25（无 IDF/字段加权，方案 §3.1 自己也明言）；且 english 配置对中文子串全失效（issue.md I-196 已确证并登记），代码注释与 API 文档沿用「BM25」措辞名不副实",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:838-848；docs/.agents/issue.md I-196"
+    },
+    {
+     "doc_claim": "035 §6.1（:111）：「[repository.py](…/knowledge/dao.py) - 数据访问（CRUD + 四种检索模式）」",
+     "code_fact": "四种检索模式实现在 knowledge/retrieval/repository.py（1352 行）；dao.py（341 行）只是 Graph/Pipeline run 记录 DAO，链接显示名与目标文件不符",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:44；apps/negentropy/src/negentropy/knowledge/dao.py:16"
+    },
+    {
+     "doc_claim": "035 §6.3（:158）：「EmbeddingFailed - 向量化失败 (500)」",
+     "code_fact": "I-026 修复后 EmbeddingFailed 映射 502 Bad Gateway（与 SearchError 的 500 区分），测试已锁定；035 未同步",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/api_helpers.py:117-124；apps/negentropy/tests/unit_tests/knowledge/test_search_resilience.py:124"
+    },
+    {
+     "doc_claim": "035 §8（:264）：「Pipeline Jobs：支持『全量重建 / 增量更新 / 回滚』」",
+     "code_fact": "无任何回滚机制：CorpusVersion 的 status=rolled_back 全仓无写入点，唯一快照写入函数 create_version_snapshot 传不存在的 triggered_by 列、实跑 TypeError 必崩（已实测），且缺必填 app_name/chunk_count；live 库 corpus_versions 0 行",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/lifecycle/corpus_engine.py:186-198（TypeError 'triggered_by' is an invalid keyword argument 已实测复现）"
+    }
+   ],
+   "verification": {
+    "domain": "D2-indexing",
+    "verdicts": [
+     {
+      "id": "C1",
+      "verdict": "confirmed",
+      "note": "实质全部成立：repository.py:838-852 确为 ts_rank_cd + plainto_tsquery('english') 单字段 content；migration 0001:890-916 确认 GIN(search_vector)+tsvector_update_trigger('pg_catalog.english', content)；grep pg_search/tantivy/elasticsearch/zhparser/jieba/setweight 于 src+pyproject 全 0 命中；I-196 确为「只登记不改码」（修复面开放），且其详情块明写「知识库检索没有这层回退」。两处引用勘误：issue.md:3027 实际落在 I-098 块，I-196 详情块在 :4897-4940；013 蓝图 CJK 登记在 §7.5（:742-744）而非 :725（:725 是 §7.3 RRF 对账表）。另补一档细化：unified_search.py:224-284 存在名义 ILIKE 路径（路由已挂 api.py:45），但它引用 Knowledge.plain_text/Knowledge.document_id——实测 hasattr 均为 False（模型与 live 表都无 plain_text）→ AttributeError 死代码，故「无可用的 ILIKE 回退」结论不变。"
+     },
+     {
+      "id": "C2",
+      "verdict": "confirmed",
+      "note": "repository.py:780-781（semantic：Knowledge.metadata_ @>）与 :831-836（keyword：metadata @> CAST）SQL 内下推确认；rrf_search 签名（repository.py:1021-1030）无 metadata_filter 形参，service.py:3292-3298 调用亦不传，而同函数 keyword 回退分支 :3267 传了 config.metadata_filter——证明 RRF 主路径静默丢弃过滤条件。grep -i indexable 全仓 0 命中（无字段级声明）；live 库 pg_indexes 实查 knowledge 表仅 pkey/GIN(search_vector)/entity_type 部分索引/arxiv_id 部分表达式索引/document_id 部分索引——metadata 确无 GIN。微补充：migration 0029 给 metadata->>'arxiv_id' 建了部分 BTREE 表达式索引（论文去重加速），非包含 GIN、不影响「无 GIN」结论，但属既存的定向元数据索引。"
+     },
+     {
+      "id": "C3",
+      "verdict": "confirmed",
+      "note": "live 库实测 SELECT extversion → vector 0.8.2，精确命中。models/base.py:129 DEFAULT_EMBEDDING_DIM=1536 + Vector(dim=1536)（migration:552）；repository.py:765 cosine <=>。live 库 knowledge 表索引清单实查无任何 embedding 索引；HNSW 仅 0001:881-888（kg_entities.embedding）与 0034:82-88（kg_entity_canonical.primary_embedding），均 m=16/ef_construction=64。corpus.py:167-182 确认 dim_changed = old_dim≠new_dim 才触发 rebuild，同维换模型零重建；_shared.py:275-299 创建期 pin + service.py:3597-3610 _resolve_embedding_fn 查询侧按 corpus config 现取（换 config 即换查询模型，60s TTL 按 config_id 键控）→ 新旧向量空间静默混用成立。"
+     },
+     {
+      "id": "C4",
+      "verdict": "confirmed",
+      "note": "grep postgis/geography/geometry/geo_point/ST_DWithin/ST_Within/h3/geoalchemy/shapely 于 src/negentropy + pyproject.toml 全 0 命中（独立复扫）；live 库 pg_extension 实查仅 plpgsql 1.0 + vector 0.8.2，无 postgis；Knowledge 模型（perception.py:63-85）全字段无 geo。missing 判定成立。"
+     },
+     {
+      "id": "C5",
+      "verdict": "confirmed",
+      "note": "knowledge_runtime.py:37-44 KnowledgePipelineRun 带 status/version/idempotency_key 且 UniqueConstraint(app_name, idempotency_key)；PipelineTracker（service.py:130+）stage 实名含 chunk/embed/persist（另有 download/document_store/markdown_store/extract_gate/source_tracking）；operation 族 grep 实证 ingest_text/ingest_url/ingest_file/ingest_document/replace_source/rebuild_source/sync_source/translate（另 import_document/sync_document/replace_by_source）；协作式取消在 service.py:878-881（PipelineCancelled→tracker.cancel）；retry 双入口（resume=True 断点续传/False 重跑）在 routes/pipelines.py:201-379；30min 看门狗 dao.py:96-178 finalize_stale_pipeline_runs（running>30min→failed，cancelling>5min→cancelled）由 pipeline_watchdog handler 实调。"
+     },
+     {
+      "id": "C6",
+      "verdict": "confirmed",
+      "note": "service.py:2735-2841 sync_source 全流程=Fetch→全量重切→全量重嵌→_ingest_text_with_tracker(persist_mode=replace)→replace_knowledge_by_source 原子 DELETE+INSERT，文档级全量替换确认；file_hash 唯一约束仅 KnowledgeDocument 层（perception.py:161-171：uq_knowledge_documents_corpus_hash + 库文档部分唯一索引）；chunk 层 grep text_hash/content_hash 仅命中 lifecycle_schemas.py:409/425（UI 载荷 schema 的 source_text_hash，非 knowledge 去重），未变文本每次 replace 都重嵌成立。"
+     },
+     {
+      "id": "C7",
+      "verdict": "confirmed",
+      "note": "本条为最强发现且完全复现：CorpusVersion 模型（perception.py:678-716）列集为 corpus_id/app_name/version_number/document_count/chunk_count/quality_score/config_snapshot/trigger_type/build_run_id/diff_summary/status——无 triggered_by；corpus_engine.py:186-193 唯一写入函数却传 triggered_by=triggered_by；本机 uv run 实测实例化即抛 TypeError: 'triggered_by' is an invalid keyword argument for CorpusVersion，POST /base/{id}/versions（routes/corpus.py:250-278）必 500。grep rolled_back 全仓：corpus_versions 侧仅模型注释 :708，knowledge_strategy.py:122 的 rolled_back 属 EvolutionProposal 非 CorpusVersion，无写入点。live 库实查 negentropy.corpus_versions = 0 行。一处小口径修正：chunk_count 有 ORM default=0（非硬缺失），严格缺的是无默认的 app_name——但 TypeError 在构造期先炸，两列缺陷均无机会触发，divergent 结论不变。"
+     },
+     {
+      "id": "C8",
+      "verdict": "confirmed",
+      "note": "独立复扫 grep -iE 'index_ver|index_version|blue.?green|alias_switch|watermark|shadow_index' 于 src/negentropy/knowledge/ 0 命中（grep exit=1）；「版本机制」的实体确为 repository.py:294-347 每源同事务 DELETE→INSERT 就地换版 + service.py:2338-2365 persist 阶段原子落库。missing 判定成立。"
+     },
+     {
+      "id": "C9",
+      "verdict": "confirmed",
+      "note": "run 态实证：模型 default=pending + dao.py 使用 running/cancelling/cancelled/completed/failed，无 building/validating/active/retired；Knowledge 模型无任何 status/数据态列；service.py:2315-2365 embed 阶段事务外算好、persist 同事务原子落库（MVCC 读者只见整旧或整新）；隔离实证 repository.py:766-774（embedding IS NOT NULL + _active/_enabled/_searchable 过滤）与 :1342-1352 三个过滤表达式；层叠父块 searchable=False 实证 service.py:3535-3543（HIERARCHICAL 父块 metadata 写死 searchable: False）。"
+     },
+     {
+      "id": "C10",
+      "verdict": "confirmed",
+      "note": "repository.py:263-341：add_knowledge docstring 自述「纯追加，不做去重」，replace_knowledge_by_source 强制 source_uri 非 None（:309-314 ValueError），幂等锚=source_uri 成立；dao.py:298-329 OCC（expected_version 冲突→UpsertResult('conflict') + IntegrityError 捕获）+ 模型 idempotency_key 唯一约束；embedding.py:169-233 _call_with_retry 指数退避（base*2^(attempt-1)）+ 不可重试错误短路；无死信队列——失败仅标 failed，retry 路由仅受理 ingest_file/ingest_document（pipelines.py:236-240），人工触发。partial 判定成立。"
+     },
+     {
+      "id": "C11",
+      "verdict": "confirmed",
+      "note": "sources.py:428-498 sync_source 为手动 POST + BackgroundTasks；调度器 handlers 目录实列 14 个 .py（13 个 handler + __init__.py，取证说 14 个 handler 属含 __init__ 的文件计数，无实质影响），无一 KB 同步任务（pipeline_watchdog 是终态收敛非同步）；freshness 是 corpus_engine.py:38 质量评分维度「内容新鲜度（平均更新时间）」权重 0.15，非索引滞后指标。missing 判定成立。"
+     },
+     {
+      "id": "C12",
+      "verdict": "confirmed",
+      "note": "主隔离=每源同事务原子替换（repository.py:294-347，db.begin() 块内 DELETE+INSERT，异常自动回滚）；semantic 路径 embedding IS NOT NULL（:771）+ archived/searchable/is_enabled 软标志（:772-774 与 :1342-1352）；keyword 路径 SQL 内同款 COALESCE 过滤（:845-847）；markdown_extract_status 枚举实证 pending/unknown/completed（perception.py:125-130 + grep），确为解析态非索引态。partial 判定成立。"
+     },
+     {
+      "id": "C13",
+      "verdict": "confirmed",
+      "note": "perception.py:71 单列 embedding Vector(DEFAULT_EMBEDDING_DIM)；migration 0001:552 单列 Vector(dim=1536)；grep model_version/embedding_model 于 knowledge/ 与 perception.py 仅命中 _shared.py:430 的 rebuild 触发标签 'embedding_model_changed'（非 chunk 级记录）；corpus config.models.embedding_config_id 经 _shared.py:275-299 仅为当前态 pin，无历史事实审计能力。divergent 判定成立。"
+     },
+     {
+      "id": "L1",
+      "verdict": "confirmed",
+      "note": "_shared.py:275-299 _pin_default_embedding_config（创建期固化默认 embedding config_id，免疫全局默认后续变更）+ service.py:3597-3610 _resolve_embedding_fn（查询侧与 _attach_embeddings 索引侧对称共用同一解析）；issue.md 实锚：I-028 在 :895（标题即「查询时未使用 Corpus 自配 Embedding 模型，query/index 不一致」）、I-135 在 :3681（「新建 Corpus 未消费全局默认 Embedding 模型」），两案与经验描述吻合。"
+     },
+     {
+      "id": "L2",
+      "verdict": "confirmed",
+      "note": "grep kb_hybrid_search/kb_rrf_search 于 db/migrations/versions/ 0 命中；live 库 information_schema.routines 查 kb_% 空——两函数线上均不存在；repository.py:940-975 hybrid_search 异常即静默回退 _fallback_hybrid_search（Python 端），rrf_search 同构（:1082+ try/except 回退）；perception_schema.sql:317/396/474 恰为两函数定义与注释；I-098 原文含「.sql schema 文件只是参考，不是生效源」（issue.md I-098 块，约 :3036-3040 一带，取证引 :3027 落在该块内）。"
+     },
+     {
+      "id": "L3",
+      "verdict": "confirmed",
+      "note": "corpus.py:165-193 实证重建触发判据是维度不同（dim_changed）而非模型标识；service.py:1985-1996 execute_rebuild_source_pipeline 的 download 阶段走 DocumentStorageService.get_document_content_by_uri → _get_blob().download，postgres_client.py:93-94 明示「按 pgblob://{key} URI 下载字节」——只认 blob URI，URL 源（http/https）与遗留 gs:// 源重建必在 download 阶段失败（StorageError→KnowledgeError），replace 未执行、旧向量保留。"
+     },
+     {
+      "id": "L4",
+      "verdict": "confirmed",
+      "note": "repository.py:294-347 同事务 DELETE→INSERT（db.begin() 上下文，出块自动 COMMIT、异常自动 ROLLBACK）+ service.py:2315-2365 嵌入事务外先算（_attach_embeddings）再原子 persist——「零成本蓝绿替身」的机制描述与代码逐点吻合。"
+     },
+     {
+      "id": "L5",
+      "verdict": "confirmed",
+      "note": "migration 0072:42-46 _RENAMES 仅覆盖 knowledge_documents（gcs_uri→content_uri、markdown_gcs_uri→markdown_uri）与 mcp_trial_assets，不含 knowledge.source_uri；live 库实查同一 PDF 双份精确复现：corpus 40d46a2f 下 pgblob://…浪潮之巅…pdf n=1614 + gs://…浪潮之巅…pdf n=1614（合计 3228，一半冗余，与断言数字逐位吻合）；另 corpus 43bacd7e 的 Agentic_Design_Patterns.pdf 同病（gs://1771 + pgblob://1792），说明该缺陷非孤例。"
+     },
+     {
+      "id": "L6",
+      "verdict": "confirmed",
+      "note": "0001_init_schema.py:909-916 english 配置触发器 + repository.py:841/:848 同款查询口径实证；I-196 详情块（issue.md:4897-4940）含 PG16.14 实测（连续汉字单 token、子串匹配 f）与「知识库检索没有这层回退，是真正的全量失效」，登记未修（「本次只登记不改码」，修复三候选开放中）；013 蓝图 §7.5（:742-744）已按 I-196 销账登记 CJK 失效与三候选。"
+     },
+     {
+      "id": "L7",
+      "verdict": "confirmed",
+      "note": "dao.py:96-178 finalize_stale_pipeline_runs（running>30min 强制 failed、cancelling>5min 强制 cancelled）由 pipeline_watchdog handler（handlers/pipeline_watchdog.py:52 实调 dao）收敛卡死 run；service.py:546-605 _persist 实证「写前回读 + 乐观并发」双防线：pre-check 读 DB 遇 cancelling/cancelled 且本次非终态则跳写并接管 status（:566-573），upsert 携带 expected_version（:591-598），conflict 且非终态再接管（:599-604）；start() 另有 R-6 race A 修补（:238-249）。"
+     },
+     {
+      "id": "L8",
+      "verdict": "confirmed",
+      "note": "pgvector_check.py:25-53（取证引 :27-54，实际处理器 25-53）：oneshot handler 查 pg_extension.extversion，缺扩展/缺库分别给可观测日志与 hint；db/migrations/env.py:101-103 迁移前 CREATE EXTENSION IF NOT EXISTS vector；issue.md:3752 I-139 原文标题即「brew 升级 postgresql@16 清除手装 pgvector，本机向量能力静默瘫痪」，与经验描述吻合。"
+     }
+    ],
+    "missed": [
+     {
+      "fact": "live 库 knowledge 表存在 document_id 列与部分索引 ix_knowledge_document_id（WHERE document_id IS NOT NULL），但 Knowledge ORM 模型（perception.py:63-85）未声明该列——模型与库 schema 漂移，任何需要经 ORM 读写 document_id 的路径都拿不到该属性。",
+      "evidence": "psql 实查 information_schema.columns（knowledge 列序末位为 document_id）与 pg_indexes（ix_knowledge_document_id）；uv run 实测 hasattr(Knowledge, 'document_id') == False；perception.py:63-85 类体无 document_id/plain_text"
+     },
+     {
+      "fact": "unified_search 路由已注册（api.py:45 include），但其 _hybrid_search「keyword_fallback」模式引用 Knowledge.plain_text 与 Knowledge.document_id 两个不存在的 ORM 属性——该统一检索的混合模式一被调用即 AttributeError（500），是挂着路由的死代码；013 蓝图 §7.3（:725）把该 ILIKE 描述为在役检索入口，与实况不符。这细化了 C1 的「知识库无 ILIKE 回退」：主检索链路（keyword/hybrid/rrf）确无，名义 ILIKE 入口存在但已断。",
+      "evidence": "knowledge/retrieval/unified_search.py:224-284（Knowledge.plain_text/document_id 引用 + docstring 自述「简化实现…生产环境应接入现有 RAG 检索管道」）；uv run hasattr 双 False；api.py:23/:45 路由挂载"
+     },
+     {
+      "fact": "metadata 上并非「零索引」：migration 0029 为论文采集幂等去重建了 metadata->>'arxiv_id' 的部分表达式 BTREE 索引（live 库 ix_knowledge_arxiv_id 在册）——定向单键索引，不改变 C2「无包含 GIN、无字段级声明」的结论，但取证未提及这一既存机制。",
+      "evidence": "db/migrations/versions/0029_knowledge_arxiv_id_index.py:56-61；live 库 pg_indexes 输出 ix_knowledge_arxiv_id :: btree ((metadata ->> 'arxiv_id')) WHERE (metadata ? 'arxiv_id')"
+     },
+     {
+      "fact": "source_uri 双份冗余不止 L5 引用的浪潮之巅一案：Agentic_Design_Patterns.pdf 在 corpus 43bacd7e 下同样 gs://（1771 行）+ pgblob://（1792 行）并存，且两案行数不相等（1771≠1792、1614=1614），提示重摄时切块结果亦有漂移；live 库 knowledge 总行数 16813。",
+      "evidence": "psql 实查 GROUP BY corpus_id, source_uri ORDER BY count DESC：43bacd7e…Agentic_Design_Patterns.pdf pgblob://n=1792 / gs://n=1771；count(*)=16813"
+     },
+     {
+      "fact": "C7 的 versions 断裂面比「写入必崩」更宽：除 POST 崩溃外，GET /base/{id}/versions（routes/corpus.py:281-292）在 0 行下可用但永远返回空——整条版本快照/回滚能力对用户表现为「路由存在、功能空转」，与 C8 的「无版本化」在现象上叠加，归因时应区分（一个是缺机制，一个是有壳必崩）。",
+      "evidence": "live 库 corpus_versions=0 行；routes/corpus.py:281-292 get_corpus_versions 直接读空表；create_version_snapshot 是全仓唯一写入点且 TypeError 复现"
+     }
+    ]
+   }
+  },
+  "D3-retrieval": {
+   "domain": "D3 · 检索服务（方案 §3.3 混合检索执行计划 + §4.2 置信与引用）",
+   "capabilities": [
+    {
+     "id": "C1",
+     "design_mechanism": "§3.3「查询 → 意图解析（关键词/语义/地理/混合）」按检索模态分派",
+     "status": "divergent",
+     "as_built": "UnifiedRetrievalService.classify_intent 用正则关键词分 5 类任务意图（fact/exploration/comparison/navigation/graph_query）分派 graph/navigation/hybrid 三路；HybridPlanner 再映射为 5 意图但仅用于决定是否触发图扩展；无地理意图；承载分派的 /unified/search 路由实际损坏（见 C9）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:28-79",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:162-180",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:49-70",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:265-272"
+     ],
+     "gap": "意图轴是任务型而非方案的关键词/语义/geo/混合模态轴；KnowledgeService.search 仍靠客户端显式 mode；需重定义意图→模态映射并补 geo 维",
+     "effort": "M",
+     "risk": "正则规则中英文覆盖有限，且统一入口本身待修复"
+    },
+    {
+     "id": "C2",
+     "design_mechanism": "§3.3「组合 pre-filter 下推四路召回：各路在引擎内带谓词取 top-k」（重点：过滤在召回内还是召回后）",
+     "status": "partial",
+     "as_built": "semantic/keyword 召回把 corpus_id+app_name+archived+is_enabled+searchable 及可选 metadata @> 全部下推进 SQL WHERE 后再 ORDER BY/LIMIT，确为召回内过滤；但 rrf_search 不接受 metadata_filter（service 调用即丢弃，Python 回退硬编码 None）；DB 函数路径取回后才在 Python 过滤 archived/searchable；无 geo 谓词",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:766-781",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:843-851",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:947-949",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:1029",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:1145-1153",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3292-3299"
+     ],
+     "gap": "rrf 模式补 metadata_filter 透传；若启用 DB 函数须把软删/禁用谓词内置进函数；谓词现散落 SQL 字符串与 Python 两处，缺单一谓词构造器",
+     "effort": "M",
+     "risk": "两套谓词口径易漂移（图扩展路已漏，见 L5）"
+    },
+    {
+     "id": "C3",
+     "design_mechanism": "§3.3/§5.2 检索期权限+产品域为硬 pre-filter、fail-closed",
+     "status": "divergent",
+     "as_built": "权限粒度=app_name+corpus：SQL 召回内含 corpus/app 谓词；HybridPlanner effective=scoped∩accessible 空即空返回（fail-closed 形态正确），但 accessible 现为 settings.app_name 下全部 corpus（代码注释自认 RBAC 属 Phase 2）；chunk/document 无 ACL/visibility 字段；REST /search 的 app_name 取自客户端 payload 且路由无鉴权依赖（AuthMiddleware 默认 OPTIONAL）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:768-770",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:232-244",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:404-408",
+      "apps/negentropy/src/negentropy/knowledge/routes/search.py:43-49",
+      "apps/negentropy/src/negentropy/config/__init__.py:279-281",
+      "apps/negentropy/src/negentropy/auth/middleware.py:64-76",
+      "apps/negentropy/src/negentropy/models/perception.py:63-86"
+     ],
+     "gap": "产品域/ACL 谓词整体缺位（依赖 P4 权限平面先行）；REST 面至少应改服务端注入 app_name 并挂鉴权",
+     "effort": "XL",
+     "risk": "跨支柱依赖：无 Channel/ACL 数据模型时无处取谓词"
+    },
+    {
+     "id": "C4",
+     "design_mechanism": "§3.3「RRF 融合（k=60 起步，按 golden set 定参）」",
+     "status": "partial",
+     "as_built": "rrf 模式存在、k 默认 60（SearchConfig/PlannerConfig），但 DB 函数 kb_rrf_search 不在任何 alembic 迁移且调用 SQL 带 `:p_corpus_id::UUID` 绑定缺陷（实测 SQLAlchemy 把其解析为 `p_`/`p_corpus_i` 绑定）恒失败回退 Python RRF；API 默认 hybrid 实为 0.7×cosine+0.3×ts_rank_cd 裸分加权（尺度不可比）；无 golden set 定参；SearchRequest 未暴露 rrf_k",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:918-936",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:1060-1077",
+      "docs/reference/cognizes/engine/schema/perception_schema.sql:396",
+      "apps/negentropy/src/negentropy/knowledge/types.py:468-473",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3431-3438",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:350-363"
+     ],
+     "gap": "函数落迁移+改 CAST 绑定+默认路径切 RRF+建 golden set 校准 k；HybridPlanner seed 的 vector_rank/keyword_rank 取同一 hybrid 名次，三路 RRF 实为单路×2，需分路独立 rank",
+     "effort": "L",
+     "risk": "I-098 同类「缺函数+静默回退」已在 memory 侧发生过"
+    },
+    {
+     "id": "C5",
+     "design_mechanism": "§3.3「cross-encoder 重排（仅接触已过滤候选）」",
+     "status": "partial",
+     "as_built": "rerank 位置正确：融合后、作用于已过 corpus/软删谓词的候选；但默认 NoopReranker（所有 KnowledgeService 入口未注入 reranker，create_default_reranker 零调用方），仅 HybridPlanner 特性开关（enable_cross_corpus_kg 默认 False）接 LocalReranker；service 四个 rerank 调用点不传 config→默认 top_k=10 静默截断（实测 limit=20 返回 10 条）；LocalReranker 在 async 内同步 predict 阻塞事件循环",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:32-34",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:66-81",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:152-160",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3307",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3391",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3412",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3441",
+      "apps/negentropy/src/negentropy/knowledge/_shared.py:156-162",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:392-398",
+      "apps/negentropy/src/negentropy/config/knowledge.py:306"
+     ],
+     "gap": "注入真实 reranker；调用点显式传 top_k 与阈值并与 limit 对齐；rerank 池用 RECALL_MULTIPLIER 扩大而非裸 limit；predict 包 to_thread",
+     "effort": "M",
+     "risk": "后端单 worker，同步推理会冻结全站（memory 已有教训）"
+    },
+    {
+     "id": "C6",
+     "design_mechanism": "§4.2「答案逐断言挂 chunk/文档锚点，无锚断言按幻觉处理」",
+     "status": "partial",
+     "as_built": "检索侧 stable citation token 链路完备：多库结果按最终序注入 citation_id+IEEE formatted_citation+corpus_label+≤500 字 snippet（ADK 工具与 MCP 工具共用同一实现）；agent instruction 层 CITATION_PROTOCOL 强制 [N] 行内标注+参考文献节+摘录+「无来源论断须显式声明」；但逐断言回锚无生成后校验器（全仓 grep verify_citation/faithfulness 无命中），引用直链 source_uri 原文而非网关签名/发布链接",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:48-100",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:217-229",
+      "apps/negentropy/src/negentropy/agents/_citation_protocol.py:24-47",
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:108-146"
+     ],
+     "gap": "缺生成端逐断言回锚校验（无锚检测/丢弃/重生成）与引用出口管控；前端 [N] 解析已就绪可承接",
+     "effort": "L",
+     "risk": "属 P3 生成侧，需与 Widget/Answer API 域协作"
+    },
+    {
+     "id": "C7",
+     "design_mechanism": "§4.2「置信判定基于 cross-encoder 重排分并按产品域校准为概率；低于阈值走拒答/链接/转人工兜底」",
+     "status": "missing",
+     "as_built": "无任何置信判定与拒答阈值：RerankConfig.score_threshold 默认 0.0 且 planner 显式传 0.0；LocalReranker 默认逐查询 min-max 归一化（相对分冒充 [0,1] 置信）；检索零命中不拒答而是回退 Memory 检索（跨源兜底）；UnifiedSearchRequest.min_confidence 字段无任何消费方。已搜 knowledge/、agents/ 全部 abstain/拒答/confidence_threshold/min_score/relevance_threshold 关键词无命中",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:34",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:181-200",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:766",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:261-265",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle_schemas.py:491"
+     ],
+     "gap": "需重排分概率校准、按 Channel 的拒答阈值与兜底链（拒答话术/相关链接/转人工），依赖 C5 真实 reranker 先行；归一化分必须与置信解耦",
+     "effort": "L",
+     "risk": "阈值无 golden set 支撑时会拍脑袋定参（方案自身已警示）"
+    },
+    {
+     "id": "C8",
+     "design_mechanism": "§3.3「谓词来源纪律：产品域与 ACL 谓词只取自服务端；客户端参数只能追加收窄；结构化 DSL 参数化构造」",
+     "status": "divergent",
+     "as_built": "无产品域/ACL 谓词可守；实际租户谓词 app_name 在 REST /search 由客户端 payload 直接给定（resolve_app_name=payload.app_name‖全局默认），该路由无鉴权依赖；metadata_filter 客户端字典直入 JSONB @>（参数化、无注入，但无键白名单）；MCP 面较好：app_name 服务端固定、corpus_filter 只能收窄；ADK 面 scoped corpus 取会话 state 与 accessible 交集",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/search.py:49",
+      "apps/negentropy/src/negentropy/knowledge/routes/search.py:67",
+      "apps/negentropy/src/negentropy/config/__init__.py:279-281",
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:124-146",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:112-145",
+      "apps/negentropy/src/negentropy/knowledge/schemas.py:299-306"
+     ],
+     "gap": "租户/权限谓词改服务端注入（token/Channel 绑定），客户端参数仅收窄；metadata_filter 加键白名单校验",
+     "effort": "M",
+     "risk": "需与 auth 面联动，涉及既有前端调用契约"
+    },
+    {
+     "id": "C9",
+     "design_mechanism": "§5.2-3「重排器与所有返回文档派生信息的出口（facets/统计、补全、推荐、兜底链接）只接触已过滤候选」",
+     "status": "missing",
+     "as_built": "唯一 facets 出口 _build_facets 统计 DocSource.source_type 时无 corpus/app 过滤（跨租户全表聚合）；_graph_search ILIKE 查 KgEntity 无 corpus/app 过滤；navigation 空 scope 列出全 app Corpus；且承载它们的 /unified/search 路由已损坏：body.date_from 等字段不存在（实测 AttributeError）、_hybrid_search 引用 Knowledge 不存在的 document_id/plain_text 列、响应模型字段不匹配；无测试、无 UI 调用方",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:286-303",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:364-405",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:407-425",
+      "apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:52-62",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle_schemas.py:475-521",
+      "apps/negentropy/src/negentropy/models/perception.py:63-86"
+     ],
+     "gap": "统一入口先修复或下线；facets/graph/navigation 出口补 corpus 与权限过滤，统计口径限定已过滤候选",
+     "effort": "M",
+     "risk": "入口当前无人调用，但挂载即达，属潜伏越权面"
+    },
+    {
+     "id": "C10",
+     "design_mechanism": "§4.2「反馈采集 → QAInteraction 落库；四态结果回流」",
+     "status": "partial",
+     "as_built": "KnowledgeFeedback 表与 impression/click/useful/not_useful 记录、/unified/feedback 端点存在；但 _record_impression 构造缺 knowledge_id/corpus_id/app_name（均 NOT NULL）flush 恒失败且被静默吞掉，且传入不存在的 metadata 列；无四态（resolved/escalated/abandoned/confirmed）与 bad-case 四路归因回流",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:477-493",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:495-516",
+      "apps/negentropy/src/negentropy/models/perception.py:720-762",
+      "apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:75-93"
+     ],
+     "gap": "修 impression 写入字段；补四态语义与归因（检索 miss/排序错/生成错/知识缺失）回流",
+     "effort": "M",
+     "risk": "闭环需 P3 Channel 侧会话状态联动"
+    }
+   ],
+   "reverse_lessons": [
+    {
+     "id": "L1",
+     "lesson": "运行时依赖的 DB 检索函数必须随迁移交付并做存在性回归，降级必须可观测：kb_rrf_search/kb_hybrid_search 只存在于参考 .sql 未入迁移，且 `:param::UUID` 绑定缺陷使原生路径恒失败静默回退 Python（memory 侧同型缺陷 I-098 静默失效数月才被发现）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:928-936",
+      "docs/reference/cognizes/engine/schema/perception_schema.sql:317",
+      "docs/.agents/issue.md I-098（3027 行同类影响明确点名 kb_hybrid_search）"
+     ],
+     "design_section": "§3.3 混合检索执行计划",
+     "value": "high",
+     "proposed_text": "检索快路径依赖的引擎内函数/索引须随迁移交付并做存在性回归；任何降级必须打点可观测，禁静默回退。"
+    },
+    {
+     "id": "L2",
+     "lesson": "各语料库可独立绑定 embedding 模型，裸分（cosine 相似度）跨库不可比，跨库融合只能用名次（RRF）而非分数加权；Negentropy 跨库默认路径恰是裸分加权排序（citation_search），为反例",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:217-219",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3235-3238（I-028：per-corpus embedding 模型）"
+     ],
+     "design_section": "§3.3 混合检索执行计划",
+     "value": "high",
+     "proposed_text": "跨索引（各绑 embedding 版本）融合仅可用名次融合，裸相似度分不可跨索引比较。"
+    },
+    {
+     "id": "L3",
+     "lesson": "重排分逐查询 min-max 归一化会销毁绝对含义：全垃圾候选的 top-1 仍得 1.0，无法作拒答置信；置信判定必须用未经归一化的校准原始分",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:184-200",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:766（显式 normalize_scores=True）"
+     ],
+     "design_section": "§4.2 问答链路（置信判定）",
+     "value": "high",
+     "proposed_text": "置信用按产品域校准的原始重排分，禁止逐查询归一化分充当置信。"
+    },
+    {
+     "id": "L4",
+     "lesson": "查询侧 embedding 模型解析必须与索引侧对称（按 corpus/索引绑定版本解析，禁全局默认旁路），否则索引与查询向量空间错位、语义腿静默劣化（I-028：索引用 corpus 自配模型、查询用全局默认致 400/500）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3235-3238",
+      "docs/.agents/issue.md I-028"
+     ],
+     "design_section": "§3.1 向量 ANN（embedding 模型版本绑定索引）",
+     "value": "medium",
+     "proposed_text": "查询侧 embedding 按索引绑定版本对称解析，禁用全局默认旁路。"
+    },
+    {
+     "id": "L5",
+     "lesson": "派生扩展步（图扩展反查 chunk、hierarchical 父块回提）会绕开主召回的软删/禁用谓词：HybridPlanner 图扩展 SQL join knowledge 未挂 is_enabled/archived/searchable，禁用与归档 chunk 可经旁路漏出",
+     "evidence": [
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:606-625",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:1211-1217（父块查询缺 enabled/searchable）"
+     ],
+     "design_section": "§5.2 检索期（旁路出口清单）",
+     "value": "medium",
+     "proposed_text": "图扩展、父块回提等派生召回复用同一 pre-filter 谓词构造器，防旁路漏出。"
+    },
+    {
+     "id": "L6",
+     "lesson": "部分召回失败≠知识缺失：多库检索单库失败被吞掉后 count=0，会误触「空结果兜底/知识缺口」路径；须显式区分「检索失败」与「确无知识」，否则 DB 抖动被记成知识缺口",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:207-215",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:261-265"
+     ],
+     "design_section": "§4.2 问答链路（拒答是知识缺口信号）",
+     "value": "medium",
+     "proposed_text": "部分召回失败须显式上抛标记，不得与零命中混淆触发拒答或知识缺口任务。"
+    },
+    {
+     "id": "L7",
+     "lesson": "混合检索回归测试须按召回腿分别断言命中：中文内容遇 tsvector english 配置关键词腿全灭，被向量腿成功掩盖、测试恒绿数月（I-196）；融合级断言测不出单腿失效",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:841-848",
+      "docs/.agents/issue.md I-196"
+     ],
+     "design_section": "§4.4 评测与反馈闭环（离线回归门）",
+     "value": "high",
+     "proposed_text": "回归门按召回腿分别断言命中（含 CJK 子串用例），防单腿失效被融合结果掩盖。"
+    },
+    {
+     "id": "L8",
+     "lesson": "重排器截断参数须由调用方显式对齐检索 limit：rerank 调用不传 config 时默认 top_k=10 静默截断，API limit=20 实际只返回 10 条（实测复现），用户无感知丢结果",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:32-34",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/reranking.py:79-81",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3441"
+     ],
+     "design_section": "§3.3 cross-encoder 重排",
+     "value": "medium",
+     "proposed_text": "重排截断参数须与检索 limit 显式对齐，禁用重排器隐式默认值截断结果。"
+    },
+    {
+     "id": "L9",
+     "lesson": "查询侧 embedding 故障的降级矩阵：hybrid/rrf 优雅降级关键词检索、纯 semantic 显式失败上抛（502），并有单测锁定；客户机器人场景该矩阵决定故障期可用性",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3333-3346",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3244-3261",
+      "apps/negentropy/tests/unit_tests/knowledge/test_search_resilience.py:77-112"
+     ],
+     "design_section": "§4.2 问答链路",
+     "value": "medium",
+     "proposed_text": "查询侧 embedding 故障时混合模式降级关键词、纯语义显式失败，降级事件计入 SLI。"
+    }
+   ],
+   "sot_drift": [
+    {
+     "doc_claim": "035 §6.4（L183-184）「优先使用数据库原生 kb_hybrid_search() 函数、自动降级到 Python 端」，§0（L23）称 kb_hybrid_search/kb_rrf_search 为已生效的数据库权威定义",
+     "code_fact": "两函数不存在于任何 alembic 迁移（99 个迁移 grep 无命中，仅 docs/reference/.../perception_schema.sql 参考文件）；且调用 SQL 带 `:param::UUID` 绑定缺陷（SQLAlchemy 将 `:p_corpus_id::UUID` 解析为 `p_`/`p_corpus_i`）恒失败；KnowledgeService hybrid 模式实际不调用 kb_hybrid_search（走 semantic+keyword Python 融合），该函数调用点已死代码；rrf 模式恒走 Python 回退",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:928-936 与 1060-1077；db/migrations/versions/ 全量 grep kb_hybrid_search|kb_rrf_search 零命中；apps/negentropy/src/negentropy/knowledge/service.py:3431-3438；docs/concepts/subsystems/035-the-knowledge-base.md:183"
+    },
+    {
+     "doc_claim": "035 §4（L66）「索引：HNSW 向量索引 + GIN 全文索引 + JSONB 索引」、§5.2 图题「pgvector HNSW 语义」",
+     "code_fact": "knowledge.embedding 无任何向量索引：迁移中 HNSW 仅建于 kg_entities（0001:883-885）与 kg_entity_canonical（0034:84-86），语义检索实为按 WHERE 过滤的顺序扫描；knowledge 的 JSONB 仅 arxiv_id 表达式部分索引（0029），无通用 JSONB GIN",
+     "evidence": "apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py:883-897；db/migrations/versions/0034_kg_federated_canonical.py:84-86；grep 全迁移无 knowledge 表 embedding 索引；docs/concepts/subsystems/035-the-knowledge-base.md:66"
+    },
+    {
+     "doc_claim": "035 §6.1（L111）模块结构表把「repository.py（CRUD+四种检索模式）」链接指向 knowledge/dao.py；§0（L23）把权威 schema 链接指向 models/perception.py",
+     "code_fact": "检索 repository 实际位于 knowledge/retrieval/repository.py，dao.py 是运行记录 DAO；权威 SQL 定义实际在 docs/reference/cognizes/engine/schema/perception.sql（文档链接目标与语义均错位，mmd 图注亦自证该死链）",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:44；apps/negentropy/src/negentropy/knowledge/dao.py；docs/assets/mermaid/subsystems/035-kb--search-functions.mmd:6；docs/concepts/subsystems/035-the-knowledge-base.md:23"
+    }
+   ],
+   "verification": {
+    "domain": "D3-retrieval",
+    "verdicts": [
+     {
+      "id": "C1",
+      "verdict": "confirmed",
+      "note": "unified_search.py:28-79 五类意图正则（fact/exploration/comparison/navigation/graph_query，全仓无 geo 关键词，grep 零命中）；162-180 按意图分派 _graph_search/_navigation_search/_hybrid_search 三路；hybrid_planner.py:49-70 _INTENT_MAP 映射 5 意图、265-272 仅消费于图扩展触发门（intent∈{relation,multi_hop,explore,global_summary} 且 effective≥2）。三路分派的唯一承载 _get_retrieval_service 仅被 routes/unified_search.py 消费（grep 确认），该路由已损坏（见 C9 复核）。"
+     },
+     {
+      "id": "C2",
+      "verdict": "confirmed",
+      "note": "实读 repository.py：semantic（766-781）WHERE 含 corpus_id+app_name+embedding 非空+_active/_enabled/_searchable_filter_expr（1343-1351 定义 archived/is_enabled/searchable）+可选 metadata @>，先过滤后 ORDER BY/LIMIT；keyword（838-852）同构 SQL 下推。rrf_search 签名（1021-1030）无 metadata_filter 参数，Python 回退 1145/1153 硬编码 None，service.py:3292-3299 调用即丢弃；DB 函数路径 947-949/1090 取回后 Python 过滤 archived/searchable。全仓无 geo 谓词。partial 判定准确。"
+     },
+     {
+      "id": "C3",
+      "verdict": "confirmed",
+      "note": "repository.py:768-770 SQL 含 corpus/app 谓词；hybrid_planner.py:232-244 effective=scoped∩accessible 空即 PlannerResult.empty()（fail-closed 形态在）；perception.py:404-408 注释自认『暂以 settings.app_name 为 accessible 兜底，Phase 2 后续可接入 user RBAC 视图』；routes/search.py:49 _resolve_app_name(payload.app_name)‖全局默认、路由无鉴权 Depends；config/auth.py mode 默认 AuthMode.OPTIONAL + middleware.py:69-73 无 token 直接 call_next 放行；models/perception.py:63-86 Knowledge 与 88+ KnowledgeDocument 均无 ACL/visibility 列（visibility 仅存在于 WikiPublication:308 与 DocCatalog:783）。divergent 判定准确。"
+     },
+     {
+      "id": "C4",
+      "verdict": "confirmed",
+      "note": "rrf 分支存在（service.py:3241-3266）且 SearchConfig.rrf_k=60（types.py:473）、PlannerConfig.rrf_k=60（hybrid_planner.py:84）。独立复现绑定缺陷：sqlalchemy text() 对 kb_rrf_search SQL 解析出 binds=['p_','p_app_nam','p_corpus_i','p_limi','p_quer','p_query_embeddin']（::吃掉参数尾字符），execute 必抛错进 except→Python RRF；kb_rrf_search/kb_hybrid_search 在 99 个迁移文件中零命中、仅存在于参考 perception_schema.sql:317/396。hybrid 默认路径实为 merge_search_results 裸分 0.7×cosine+0.3×ts_rank_cd（types.py:527+）；全仓无 golden set 定参（唯一 golden 命中是 evolution handler 注释里的 golden 集成测试，无关）；schemas.py:299-306 SearchRequest 无 rrf_k。partial 判定准确。"
+     },
+     {
+      "id": "C5",
+      "verdict": "confirmed",
+      "note": "rerank 位置在融合后（service.py:3307/3391/3412/3441 四处均在召回/merge 之后）。_shared.py:153-161 _get_service 构造 KnowledgeService 不传 reranker→service.py:621 默认 NoopReranker；grep 全仓 create_default_reranker 零调用方（仅 __init__.py re-export）；LocalReranker 仅在 perception.py:388-398 planner 路径注入，而 use_planner 门（perception.py:190-201）要求 enable_cross_corpus_kg（config/knowledge.py KnowledgeFeatureFlags 默认 False）且 scoped_ids 非空。四处 rerank 调用均不传 config→NoopReranker.rerank 按 RerankConfig() top_k=10 截断（reranking.py:32/79-81）；reranking.py:159 同步 predict 在 async 内。partial 判定准确。"
+     },
+     {
+      "id": "C6",
+      "verdict": "confirmed",
+      "note": "citation_search.py:48-100 format_citation（IEEE，source_uri 退化路径直链原文）、217-229 按 combined_score 排序截顶后注入 citation_id+formatted_citation+corpus_label，snippet 截 MAX_SNIPPET_CHARS=500（:44）；perception.py:243-252 与 mcp_server.py:135-142 均调 search_kb_with_citations（同一实现）；_citation_protocol.py:22-38 CITATION_PROTOCOL 含 [N] 行内标注+参考文献节+≤100 字摘录+『无来源的论断须显式声明』。grep verify_citation/faithfulness 全仓零命中，无生成后校验器。partial 判定准确。"
+     },
+     {
+      "id": "C7",
+      "verdict": "confirmed",
+      "note": "RerankConfig.score_threshold 默认 0.0（reranking.py:33）且 threshold>0 才生效（181-182）；hybrid_planner.py:766 显式传 score_threshold=0.0+normalize_scores=True，reranking.py:185-200 逐查询 min-max 归一化（全垃圾候选 top-1 仍 1.0）；perception.py:261-265 count=0 不拒答而回退 Memory；lifecycle_schemas.py:491 min_confidence 字段 grep 全仓仅定义处一个命中、无任何消费方。knowledge/、agents/ 无 abstain/拒答阈值（grep 命中仅 canonical_linker 实体链接 min_score 与 agent.py 动作意图阈值，均非检索答案置信）。missing 判定准确。"
+     },
+     {
+      "id": "C8",
+      "verdict": "confirmed",
+      "note": "routes/search.py:49 app_name 取客户端 payload（_resolve_app_name 回退全局默认），路由无鉴权依赖；:67 metadata_filter=payload.metadata_filter 客户端字典直入（semantic 走 ORM op('@>')、keyword 走 CAST(:metadata_filter AS jsonb)，均参数化无注入，但无键白名单）。MCP 面 mcp_server.py:124-146 app_name=settings.app_name 服务端固定、corpus_filter 经 citation_search.py:131-145 只收窄；ADK 面 scoped_ids 来自 session state（perception.py:184-188）∩ accessible。divergent 判定准确。"
+     },
+     {
+      "id": "C9",
+      "verdict": "confirmed",
+      "note": "unified_search.py:418-423 _build_facets 对 DocSource.source_type 聚合无 corpus/app 谓词；296-302 _graph_search ILIKE KgEntity 无 corpus/app 过滤；375-378 _navigation_search 空 scope select(Corpus) 无 app_name 过滤。路由损坏独立复现：UnifiedSearchRequest 有 date_range/include_related_entities 而无 date_from/date_to/include_entities，实测三者均 AttributeError（uv run 实跑确认）；_hybrid_search 229-236 引用 Knowledge.document_id/plain_text，模型（models/perception.py:63-86）无此二列；响应模型 UnifiedSearchResponse 必填 mode_used/total_matches/total_estimated 与返回 dict（items/total/mode）不匹配。grep 全仓无测试、无 UI 调用方（_get_retrieval_service 仅 routes/unified_search.py 消费）。missing 判定准确。"
+     },
+     {
+      "id": "C10",
+      "verdict": "confirmed",
+      "note": "KnowledgeFeedback（models/perception.py:720-757）knowledge_id/corpus_id/app_name 均 nullable=False 且无 metadata 列。实测构造 KnowledgeFeedback(feedback_type='impression', query_text=..., metadata=...) 成功（metadata 因类属性 hasattr 通过被静默 setattr，非映射列）但三 NOT NULL 字段为 None→flush 必 IntegrityError，被 search() 的 except Exception: pass（190-193）吞掉。lifecycle_schemas grep 无 resolved/escalated/abandoned/confirmed 四态。partial 判定准确；更强事实见 missed。"
+     },
+     {
+      "id": "L1",
+      "verdict": "confirmed",
+      "note": "kb_rrf_search/kb_hybrid_search 在 src/negentropy/db/migrations/versions/（99 个迁移）零命中，仅 docs/reference/cognizes/engine/schema/perception_schema.sql:317/396；绑定缺陷 uv run 实测复现（binds 解析为 p_corpus_i 等）；docs/.agents/issue.md I-098（:3011-3035）同类问题影响段明确点名 kb_hybrid_search『schema 文件有、迁移没有』的断裂，与 lesson 一致。"
+     },
+     {
+      "id": "L2",
+      "verdict": "confirmed",
+      "note": "citation_search.py:217-219 跨库按 combined_score（各库各自 0.7/0.3 裸分加权）全局排序；service.py:3235-3238 注释自证 per-corpus embedding 模型解析（I-028 修复），各库分数量纲不可比仍被跨库直接比序，lesson 与 as-built 一致。I-028 在 issue.md:37 登记。"
+     },
+     {
+      "id": "L3",
+      "verdict": "confirmed",
+      "note": "reranking.py:185-200 逐查询 min-max 归一化（max==min 时跳过、否则压缩到 [0,1]，绝对含义销毁）；hybrid_planner.py:766 显式 normalize_scores=True。与 lesson 一致。"
+     },
+     {
+      "id": "L4",
+      "verdict": "confirmed",
+      "note": "service.py:3235-3238 查询侧 _get_corpus_config(corpus_id)+_resolve_embedding_fn(corpus_config)，与索引侧对称（注释点名修复 I-028），无全局默认旁路。lesson 成立且现行代码已按此修（I-028 issue.md:37 标记已完成）。"
+     },
+     {
+      "id": "L5",
+      "verdict": "confirmed",
+      "note": "hybrid_planner.py:606-617 图扩展反查 SQL JOIN knowledge k 仅带 m.corpus_id 过滤，无 k.is_enabled/archived/searchable 谓词；repository.py:1211-1217 父块查询有 _active_filter_expr（archived）但缺 _enabled/_searchable_filter_expr。旁路绕开软删/禁用谓词属实。"
+     },
+     {
+      "id": "L6",
+      "verdict": "confirmed",
+      "note": "citation_search.py:207-215 单 corpus 异常仅 logger.warning+continue，失败库贡献零结果；perception.py:261-265 payload['count']==0 不区分『检索失败』与『确无知识』一律回退 Memory。lesson 成立。"
+     },
+     {
+      "id": "L7",
+      "verdict": "confirmed",
+      "note": "repository.py:848 现行代码仍为 plainto_tsquery('english', :query)（:841 ts_rank_cd english）；I-196（issue.md:204/4897+）登记中文关键词腿全灭且『做』档仍开放（仅『写』档销账），融合级断言测不出单腿失效。lesson 与 as-built 一致。"
+     },
+     {
+      "id": "L8",
+      "verdict": "confirmed",
+      "note": "reranking.py:32 top_k=10 默认、:79-81 NoopReranker candidates[:config.top_k]；service.py:3307/3391/3412/3441 四处 rerank(query, results) 均不传 config；非 hierarchical 内容 _lift_hierarchical_matches 直接 match_list[:limit] 不回补。limit=20 被静默截到 10 的机制链完整成立。"
+     },
+     {
+      "id": "L9",
+      "verdict": "confirmed",
+      "note": "service.py:3333-3346 hybrid embedding 失败降 keyword、semantic 显式 raise；3244-3261 rrf 同款降级；tests/unit_tests/knowledge/test_search_resilience.py:77-120 三用例锁定（hybrid 回退/rrf 回退/semantic 上抛）+ :123-140 EmbeddingFailed→502 映射断言。降级矩阵与单测均在。"
+     }
+    ],
+    "missed": [
+     {
+      "fact": "/unified/feedback 端点本身恒 500、click/useful/not_useful 反馈与 impression 一样从未落库：record_feedback（unified_search.py:495-516）构造 KnowledgeFeedback(document_id=...)，document_id 不是该模型列，实测构造即抛 TypeError 'document_id' is an invalid keyword argument for KnowledgeFeedback，路由无捕获；即使去掉 document_id 也同样缺 knowledge_id/corpus_id/app_name 三个 NOT NULL 字段。取证 C10 只断言了 impression 落库恒失败，click/useful/not_useful 记录路径（端点存在的价值面）实际也全断。",
+      "evidence": "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:495-516; apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:75-93; 实测：KnowledgeFeedback(feedback_type='click', query_text='q', document_id=None, knowledge_id=None, metadata=None) → TypeError；models/perception.py:720-757 无 document_id/metadata 列且三 NOT NULL 字段缺席"
+     },
+     {
+      "fact": "hybrid DB 函数路径（kb_hybrid_search）与 rrf 同型 `:param::TYPE` 绑定缺陷且其 except 回退分支（repository.py:963-975）连日志都没有（rrf 分支尚有 kb_rrf_search_function_failed warning，1107-1112）——即 L1『降级必须可观测』在 kb_hybrid_search 上比取证描述更差：两路原生函数路径双双恒走 Python 回退，其中 hybrid 侧完全静默。",
+      "evidence": "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:963-975（bare except 直接 return _fallback_hybrid_search，无日志）vs 1105-1112（rrf 侧有 warning 日志）；实测 text() 对 kb_hybrid_search SQL 的 binds 同样解析为 p_corpus_i 等截尾名"
+     }
+    ]
+   }
+  },
+  "D4-permission": {
+   "domain": "D4 · 权限管控（方案 §5 全节：身份三平面 / ACL 三类主体 / 全链路权限流 / 多租户与隔离纵深）",
+   "capabilities": [
+    {
+     "id": "C1",
+     "design_mechanism": "§5.1 内部运营平面：RBAC（角色×产品域），功能与文档操作分级",
+     "status": "partial",
+     "as_built": "rbac.py 定义 admin/user 两角色与 knowledge:read/write 等 12 权限及 require_permission/require_role 工厂，但 knowledge 路由零调用（require_permission 全仓无使用；I-245 已在本分析同批为全部写端点聚合注入 knowledge:write 守卫）；admin 判定散见 interface/models/engine 的 require_admin 与 wiki 评论/批注 owner-or-admin；无「角色×产品域」维度",
+     "evidence": [
+      "apps/negentropy/src/negentropy/auth/rbac.py:15",
+      "apps/negentropy/src/negentropy/auth/rbac.py:38",
+      "apps/negentropy/src/negentropy/knowledge/routes/corpus.py:78",
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:657"
+     ],
+     "gap": "knowledge 写端点挂 require_permission；角色表补 knowledge_manager/编辑/审阅者并加产品域维度。可先复用现有工厂，改动集中路由层",
+     "effort": "L",
+     "risk": "默认 optional 鉴权模式下加依赖前须先切 STRICT，牵动 E2E 与 SSG 取数链路"
+    },
+    {
+     "id": "C2",
+     "design_mechanism": "§5.1 匿名访客平面：产品域硬隔离，判定粒度=Channel scope",
+     "status": "divergent",
+     "as_built": "无 Channel/Widget 实体（grep Channel 类零命中）；匿名暴露面=Wiki 静态导出站（GitHub Pages）+ 鉴权 optional 模式下无 token 直接放行；app_name 作租户软参数，未形成硬隔离",
+     "evidence": [
+      "apps/negentropy/src/negentropy/config/auth.py:29",
+      "apps/negentropy/src/negentropy/auth/middleware.py:69",
+      "scripts/publish-wiki-pages.sh:13"
+     ],
+     "gap": "建 Channel 实体（产品域绑定、corpus scope、允许身份集）并把匿名产品域谓词静态化；M1 可先以「app_name 强校验 + 白名单路由」过渡",
+     "effort": "XL",
+     "risk": "需先收敛 C15 租户键注入，否则 Channel scope 仍可被客户端 app_name 绕过"
+    },
+    {
+     "id": "C3",
+     "design_mechanism": "§5.1 登录客户平面：ABAC（套餐/区域属性→可见谓词），文档级 ACL",
+     "status": "missing",
+     "as_built": "登录仅 Google OAuth 内部用户：allowed_domains/allowed_emails 白名单 + admin_emails 定角色，roles 只有 admin/user；无客户账号、无属性模型、无 claims 兑换链",
+     "evidence": [
+      "apps/negentropy/src/negentropy/auth/service.py:141",
+      "apps/negentropy/src/negentropy/auth/service.py:155"
+     ],
+     "gap": "客户身份面整体缺失；需客户账号体系、属性→谓词模型与文档级 ACL 才能落地。已 grep customer/entitlement/subscription_plan 于 knowledge/、auth/、models/perception.py 零命中",
+     "effort": "XL",
+     "risk": "依赖 C4/C6（ACL 数据面）先行，否则谓词无判定对象"
+    },
+    {
+     "id": "C4",
+     "design_mechanism": "§5.2 引入期：随文档捕获源 ACL 镜像写入 DocumentVersion.acl（Glean 权限继承范式）",
+     "status": "missing",
+     "as_built": "DocSource/KnowledgeDocument/Document 版本模型均无 ACL 字段；连接器（URL/文件摄取）不捕获源侧权限",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:213",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/source_tracking.py:39"
+     ],
+     "gap": "Document/Version 加 acl JSONB 列 + 摄取管线捕获映射。已 grep -ri acl 于 knowledge/ 与 models/perception.py，仅论文引文命中（context_builder.py:14 等），无 ACL 字段",
+     "effort": "L",
+     "risk": "版本表加列需回填与索引重建；外部源（URL/GCS）多无权限面可捕获，映射表需按源类型降级"
+    },
+    {
+     "id": "C5",
+     "design_mechanism": "§5.2 编辑期：内容编辑权=RBAC∩文档级授权；可见性变更为独立权限、强制四眼审批",
+     "status": "missing",
+     "as_built": "Catalog/WikiPublication/Corpus 全部 CRUD 无任何鉴权依赖；Catalog.visibility 可经未认证 PATCH 直接改；WikiPublication.visibility 甚至不可经 API 设置；无审批/四眼机制",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/catalog.py:196",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_dao.py:153"
+     ],
+     "gap": "先挂编辑权限（C1），再为 visibility 变更加独立权限位与审批状态机。已 grep approval/four_eyes/四眼 于 knowledge/ 零命中",
+     "effort": "L",
+     "risk": "四眼需要审批人与通知链路，单人部署形态下需提供豁免开关"
+    },
+    {
+     "id": "C6",
+     "design_mechanism": "§5.2 索引期：Chunk 物化继承 ACL（作为可下推过滤字段建索引）",
+     "status": "divergent",
+     "as_built": "chunk（knowledge 行）已物化 corpus_id/app_name/is_enabled + metadata.archived/searchable，且三路检索 SQL 均把这些字段合入 WHERE——是 ACL 物化的现成管道；但继承的是 corpus 范围而非版本 ACL，无 acl 字段",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:63",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:765"
+     ],
+     "gap": "knowledge 表加 acl 列并纳入 _active/_searchable/_enabled 同族过滤表达式即可复用整条 pre-filter 管道",
+     "effort": "M",
+     "risk": "pgvector 查询组合更多谓词需验证迭代扫描计划不退化"
+    },
+    {
+     "id": "C7",
+     "design_mechanism": "§5.2 撤销覆盖表：ACL/删除收紧立即写 doc_id deny 并入 pre-filter，重刷完成前持续生效（收紧同步、放宽异步）",
+     "status": "divergent",
+     "as_built": "无 deny 表；但存在同构机制：chunk family 禁用即时翻转全家族 is_enabled（检索 SQL 立即生效）、文档软删走 metadata.archived——同步收紧的内容开关已验证可行。静态发布面则相反：unpublish 不重建站点、资产 immutable 缓存 1 年，撤销不生效",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3056",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:571",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_service.py:346",
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:533"
+     ],
+     "gap": "ACL 收紧复用 is_enabled 即时翻转范式写 deny 合入 pre-filter；静态面补 rebuild+CDN purge 管线",
+     "effort": "L",
+     "risk": "deny 表与重刷进度的对账逻辑易出竞态；静态面 purge 依赖 GitHub Pages 缓存 TTL 实际可控性"
+    },
+    {
+     "id": "C8",
+     "design_mechanism": "§5.2 检索期安全不变量①：权限过滤为硬 pre-filter，与产品域/元数据原子合取后在融合重排之前执行（绝不先取 top-k 再剔除）",
+     "status": "partial",
+     "as_built": "方向正确但覆盖不全：semantic/keyword 检索把 corpus_id+app_name+enabled/archived/searchable 全部压进 SQL WHERE 后才 ORDER/LIMIT；HybridPlanner 先做 scoped∩accessible 交集再 seed、重排在过滤后。漏洞：HTTP 端点 /knowledge/unified/search 从不注入 accessible_corpus_ids；graph_query 分支完全不带 corpus 过滤；facets 全库统计；accessible 集合=app 下全部 corpus（代码注释自认 Phase 2 接 RBAC）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:842",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:232",
+      "apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:50",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:165",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:296",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:404"
+     ],
+     "gap": "三层：路由层强制注入 accessible 集；graph/facets/navigation 路径补 scope；accessible 从 app 级升为用户 RBAC 视图（tool_context 已预留）",
+     "effort": "L",
+     "risk": "unified_search 参数签名收紧会破坏既有调用方，需按 Phase 计划灰度"
+    },
+    {
+     "id": "C9",
+     "design_mechanism": "§5.2 检索期安全不变量②：fail-closed——判定不可用/策略缺失默认拒绝；匿名产品域谓词静态化",
+     "status": "divergent",
+     "as_built": "整体默认 fail-open：鉴权 optional 无 token 放行；accessible_corpus_ids=None 即不过滤（Phase 1 兼容参数）；resolve_user_with_db_roles 在 DB 故障时回退 JWT 陈旧 roles（防误降级的 fail-soft，反向即降权不即时）；catalog 跨 app 断言在 corpus 为 None 时跳过。封闭侧仅 MCP bearer 比对失败 401、交集为空返回空、strict 模式 401",
+     "evidence": [
+      "apps/negentropy/src/negentropy/auth/middleware.py:69",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:100",
+      "apps/negentropy/src/negentropy/auth/deps.py:71",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/catalog_service.py:322",
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:243"
+     ],
+     "gap": "权限参数改必填非 Optional；null 属主断言按违规处理；生产切 strict；DB 角色解析失败需区分「提权拒绝、降权放行」的定向 fail-soft",
+     "effort": "L",
+     "risk": "strict 切换影响未带凭证的脚本与 SSG 构建链路，需先梳理服务账号"
+    },
+    {
+     "id": "C10",
+     "design_mechanism": "§5.2 检索期安全不变量③：重排器与所有派生信息出口（facets/统计/推荐/兜底链接）只接触已过滤候选",
+     "status": "partial",
+     "as_built": "HybridPlanner 的 rerank 只处理 seed 过滤后的候选（_fuse_and_rerank 在 _seed_retrieval 之后）；但 unified_search 的 _build_facets 接受 corpus_ids 形参却完全不使用、跨全部文档统计 source_types；graph 分支实体检索与子图上下文同样不 scoping——正是方案警告的 facets 侧信道泄漏实态",
+     "evidence": [
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:290",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:415"
+     ],
+     "gap": "把 effective scope 贯通到 facets 与 graph 路径（形参已在，接上即可），属小改",
+     "effort": "S",
+     "risk": "低；graph 路径 KgEntity 无 app 维度过滤需确认数据形态"
+    },
+    {
+     "id": "C11",
+     "design_mechanism": "§5.2 检索期安全不变量④：拒答话术统一，不泄露「文档存在但无权限」",
+     "status": "partial",
+     "as_built": "尚无问答/拒答场景（无 bot 兜底链）。现有信号：权限拒绝返回 mode=\"empty_permission\"，与无结果（mode=keyword_fallback 等）可区分，对外即构成存在性信号；wiki 不可见资产统一 404 不泄漏",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:155",
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:486"
+     ],
+     "gap": "empty_permission 字段应降为服务端日志信号，响应面与无结果同形；bot 落地时统一拒答话术",
+     "effort": "S",
+     "risk": "低；前端调试面板若依赖该字段需同步"
+    },
+    {
+     "id": "C12",
+     "design_mechanism": "§5.2 检索期安全不变量⑤：ACL 水位（zookie/at_least_as_fresh）；答案与语义缓存键=Channel+权限视图哈希，跨视图禁复用",
+     "status": "missing",
+     "as_built": "无 ACL 水位；当前无答案/语义缓存——HybridPlanner 两个 TTL 缓存（_cache_canonical/_cache_provenance）声明后从未 get/set；graph 缓存键=corpus_id+as_of，数据为 corpus 级公开面，无跨权限视图泄漏对象。ADK 会话按用户隔离但无权限视图哈希键",
+     "evidence": [
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:212",
+      "apps/negentropy/src/negentropy/knowledge/graph/service.py:1749"
+     ],
+     "gap": "引入缓存之日即需权限视图哈希键与 ACL 变更失效；当前无缓存故风险敞口为零。已 grep semantic_cache/answer_cache/zookie 零命中",
+     "effort": "M",
+     "risk": "非紧迫；一旦引入检索结果缓存而忘带权限键即成泄漏源，需与 C16 回归门同步"
+    },
+    {
+     "id": "C13",
+     "design_mechanism": "§5.2 集成期：登录客户经 IdP JWT 换增强 token（iss 白名单、aud=Channel、TTL≤15min、jti 一次性、属性版本号）",
+     "status": "missing",
+     "as_built": "自建 HMAC 双段 token：payload 仅 typ/iat/exp/sub/roles 等，无 aud/iss/jti；session TTL 默认 7 天；decode_session 不校验 typ==\"session\"（state token 误投会 KeyError→500 而非 401）；无 JWT 兑换链",
+     "evidence": [
+      "apps/negentropy/src/negentropy/auth/tokens.py:29",
+      "apps/negentropy/src/negentropy/auth/service.py:233",
+      "apps/negentropy/src/negentropy/config/auth.py:43",
+      "apps/negentropy/src/negentropy/auth/service.py:81"
+     ],
+     "gap": "短期补 typ 校验与短 TTL 选项（S）；客户增强 token 面随 C3 一起建。已 grep jti/aud 于 auth/ 零命中",
+     "effort": "M",
+     "risk": "缩短 TTL 影响前端会话续期，需配套 refresh"
+    },
+    {
+     "id": "C14",
+     "design_mechanism": "§5.2 集成期：Channel token 只含产品域 scope；机器调用方持低权限受限 token（Algolia secured key 范式）",
+     "status": "partial",
+     "as_built": "/mcp/knowledge 机器端点近似落地该思想：静态可配或每进程随机 bearer、secrets.compare_digest 恒时比对、仅两只读工具、scope=settings.app_name 全部 corpus、token 不落库（防 Split-Brain）。但 scope 粒度=整 app 而非 Channel，无按产品域细分",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:48",
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:243",
+      "apps/negentropy/src/negentropy/auth/middleware.py:58"
+     ],
+     "gap": "多产品时 token 绑定 Channel scope 并可按 corpus 白名单收窄；工具面已满足只读最小权限",
+     "effort": "M",
+     "risk": "token 轮换周期与 Routine 派发窗口的对齐（现为同进程注入天然一致）"
+    },
+    {
+     "id": "C15",
+     "design_mechanism": "§5.3 多租户与隔离纵深：共享表+tenant_id+RLS 兜底（set_config 事务级注入、FORCE RLS），防某一路漏挂谓词",
+     "status": "missing",
+     "as_built": "零 RLS：99 个 alembic 迁移与 src 全量 grep ROW LEVEL SECURITY/CREATE POLICY/set_config( 零命中（runner.py 命中为 _reset_config_for_retry 误匹配）。隔离全靠 app_name 列过滤，且 app_name 是客户端可传参数（缺省回退 settings.app_name）而非身份绑定；另有部分按-ID端点不过滤 app_name",
+     "evidence": [
+      "apps/negentropy/src/negentropy/config/__init__.py:279",
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:235",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:240",
+      "apps/negentropy/src/negentropy/models/perception.py:36"
+     ],
+     "gap": "先做网关级租户键强制注入（服务端解析、拒绝跨租户参数），再评估 RLS 兜底与独立 schema 演进",
+     "effort": "L",
+     "risk": "app_name 参数被 UI/脚本广泛使用，收紧需全链路梳理；RLS 需应用角色让渡表 owner"
+    },
+    {
+     "id": "C16",
+     "design_mechanism": "§5.3 CI 加「逐路删谓词」泄漏回归，strictPostFilter 差分作基线",
+     "status": "missing",
+     "as_built": "已有权限相关测试：跨 app catalog PermissionError 集成测试、planner 权限交集单测、auth middleware strict 401 单测；但无差分回归——C8/C10 的 graph/facets 漏挂谓词正是测试盲区",
+     "evidence": [
+      "apps/negentropy/tests/integration_tests/knowledge/test_catalog_cross_corpus.py:209",
+      "apps/negentropy/tests/unit_tests/agents/tools/test_hybrid_planner.py:124",
+      "apps/negentropy/tests/unit_tests/auth/test_middleware.py:64"
+     ],
+     "gap": "加「删权限谓词→结果集必须为空/facets 必须为零」的差分断言矩阵，覆盖 hybrid/graph/navigation/facets 四路",
+     "effort": "M",
+     "risk": "需两套数据夹具（有权/无权视图），测试库隔离要防跨 session 累积"
+    },
+    {
+     "id": "C17",
+     "design_mechanism": "§5.3 审计：管理与检索双审计，仅追加不可篡改",
+     "status": "missing",
+     "as_built": "仅散点 structlog 事件（corpus_deleted/api_update_catalog）与 kg_query_provenance 检索溯源表（尽力写、失败仅 warning）；无 knowledge 域追加式审计表（memory 域另有 memory_audit_logs）。检索 impression 审计实际已死：_record_impression 构造 KnowledgeFeedback 缺 knowledge_id/corpus_id/app_name 三个 NOT NULL 列，flush 必败且被 except:pass 吞掉",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/corpus.py:226",
+      "apps/negentropy/src/negentropy/knowledge/routes/graph.py:944",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:477",
+      "apps/negentropy/src/negentropy/models/perception.py:731",
+      "apps/negentropy/src/negentropy/db/migrations/versions/0001_init_schema.py:767",
+      "apps/negentropy/src/negentropy/models/internalization.py:87"
+     ],
+     "gap": "建 knowledge 域 append-only 审计表（管理动作+检索），修 impression 写路径（缺列或放宽表约束+显式失败遥测）",
+     "effort": "L",
+     "risk": "审计表写入量大需分区/保留期策略；impression 修复需与反馈分析链路对齐"
+    },
+    {
+     "id": "C18",
+     "design_mechanism": "§5.1/§5.2 可见性默认 internal、外部可见须显式声明——Wiki 公开发布路径的可见性控制（特别核实项）",
+     "status": "divergent",
+     "as_built": "字段层似有（DocCatalog/WikiPublication 各有 PRIVATE/INTERNAL/PUBLIC 枚举、默认 INTERNAL），但执行层全空：WikiPublication.visibility 不可经 API 设置（create/update schema 与 allowed_fields 均不含）、全仓读路径零引用；导出与 production 发布（推公开 GitHub Pages）只过滤 status='published'，无视 visibility——INTERNAL 甚至 PRIVATE 发布物照样进公开站；entry content 与资产端点无鉴权且不校验 publication 状态；publish 端点无鉴权依赖（代码注释「显式目标即授权」）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/lifecycle_schemas.py:214",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_dao.py:153",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_export_service.py:97",
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:292",
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:543",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_service.py:333"
+     ],
+     "gap": "导出/发布链加 visibility==PUBLIC 门 + publish 端点鉴权；content/asset 校验所属 publication 状态= published；schema 开放 visibility 字段并配 C5 四眼",
+     "effort": "M",
+     "risk": "历史已发布物多为 INTERNAL 默认值，收紧门会拦存量——需数据迁移一次性显式化"
+    }
+   ],
+   "reverse_lessons": [
+    {
+     "id": "L1",
+     "lesson": "方案三平面漏了机器调用方：Negentropy 为 Agent/MCP 检索单设只读端点，每进程随机 bearer（重启轮换、不落库防 Split-Brain）、恒时比对、工具面白名单仅两只读工具——机器身份与人类身份彻底分流",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:4",
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:48",
+      "apps/negentropy/src/negentropy/auth/middleware.py:58"
+     ],
+     "design_section": "§5.1 身份三平面",
+     "value": "high",
+     "proposed_text": "补第四平面：机器调用方走只读受限 token（每实例轮换、不落库），工具面白名单，与人类身份平面分流。"
+    },
+    {
+     "id": "L2",
+     "lesson": "JWT 内嵌 roles 是登录瞬间快照，DB 提权/降权后割裂致 403 误判（I-057）；解法=resolve_user_with_db_roles 单一实现按请求以 DB 为权威覆盖 JWT，且 config 级 admin 不可被 DB 降级。教训适用于一切「DB 持久化用户属性参与鉴权」场景（quota/flag/租户）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/auth/deps.py:42",
+      "docs/.agents/issue.md:1636"
+     ],
+     "design_section": "§5.2 集成期（增强 token 即时失效同命题的内部面）",
+     "value": "high",
+     "proposed_text": "内部面权限以 DB 为权威按请求解析，token 只证身份；DB 属性变更即时生效并单点收敛判定实现。"
+    },
+    {
+     "id": "L3",
+     "lesson": "静态发布是单向权限门：unpublish 只改 DB 状态并派发旁路 webhook，「实际站点产物不在本方法内更新」；且资产响应带 Cache-Control: public, max-age=31536000, immutable——撤销后 CDN/浏览器最长仍服务一年。方案撤销 SLO 只覆盖索引/检索面，未覆盖静态发布物化面",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_service.py:346",
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:533"
+     ],
+     "design_section": "§5.2 索引期撤销覆盖表（扩展到发布面）",
+     "value": "high",
+     "proposed_text": "静态发布面撤销=触发重建+CDN purge 并计入撤销 SLO；immutable 长缓存仅允许内容寻址 URL。"
+    },
+    {
+     "id": "L4",
+     "lesson": "鉴权三档（off/optional/strict）默认 optional＝路由层 fail-open：端点忘挂鉴权依赖即匿名可达（corpus 级联删除、production 发布均裸奔）。全局 allowlist 例外必须以子应用自带同等强校验为前提（/mcp/knowledge 注释明示此契约）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/config/auth.py:29",
+      "apps/negentropy/src/negentropy/auth/middleware.py:69",
+      "apps/negentropy/src/negentropy/knowledge/routes/corpus.py:202"
+     ],
+     "design_section": "§5.3 CI 泄漏回归（扩展为路由鉴权覆盖门）",
+     "value": "high",
+     "proposed_text": "加路由鉴权覆盖门：写端点无授权依赖即 CI 失败；默认拒绝、公开端点显式白名单并自带强校验。"
+    },
+    {
+     "id": "L5",
+     "lesson": "可选权限参数=系统性 fail-open：unified_search 的 accessible_corpus_ids 标注「权限红线」却设计为 Optional 兼容参数，结果 HTTP 层唯一调用点从未注入，红线在主入口形同虚设——权限上下文必须是必填参数，迁移期用显式 ALL 哨兵而非 None",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:100",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:121",
+      "apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:50"
+     ],
+     "design_section": "§5.2 检索期（fail-closed 的 API 签名面）",
+     "value": "high",
+     "proposed_text": "权限范围参数一律必填非 Optional，None 不得语义为全量；迁移期用显式 ALL 哨兵标记并告警。"
+    },
+    {
+     "id": "L6",
+     "lesson": "聚合层租户断言的 null 穿透：catalog 跨 app 校验写成 corpus.app_name != catalog.app_name 且仅在 corpus 非空时执行，而 Library 文档 corpus_id 可空——断言被静默跳过。租户一致性应直接比对主体自身的租户列，经可空外键取值必被穿透",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/catalog_service.py:322",
+      "apps/negentropy/src/negentropy/models/perception.py:98"
+     ],
+     "design_section": "§5.2 编辑期（跨域共享双方授权的执行细节）",
+     "value": "medium",
+     "proposed_text": "聚合层租户断言直接比对主体自身租户列；经可空外键解析失败或为 null 一律按违规拒绝。"
+    },
+    {
+     "id": "L7",
+     "lesson": "审计写路径静默 DOA：impression 审计构造缺 NOT NULL 列必致 flush 失败，又被 except:pass 吞掉——审计从未落库而系统无任何信号。审计写入须 fail-loud 或带独立遥测，且审计表 schema 必须与写入点实际可得的字段对齐（会话级事件无 chunk 外键）",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:477",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:192",
+      "apps/negentropy/src/negentropy/models/perception.py:731"
+     ],
+     "design_section": "§5.3 审计（仅追加之外的写入可观测性）",
+     "value": "medium",
+     "proposed_text": "审计写入失败必须显式告警可观测；审计表按事件粒度分表，不强制挂写点缺失的上下文外键。"
+    }
+   ],
+   "sot_drift": [
+    {
+     "doc_claim": "035 §11.1：Knowledge 系统受 RBAC 保护；View 所有已认证用户可看，Edit 仅 admin 或 knowledge_manager 角色可创建/更新语料库",
+     "code_fact": "knowledge 路由无任何鉴权依赖；knowledge_manager 角色不存在（ROLE_PERMISSIONS 仅 admin/user）；POST/PATCH/DELETE /knowledge/base* 未认证即可调用（默认 optional 模式无 token 放行）；knowledge:write 权限定义后全仓无消费",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:370-373 vs apps/negentropy/src/negentropy/auth/rbac.py:38-54、apps/negentropy/src/negentropy/knowledge/routes/corpus.py:78-101/202-231（grep require_permission 于 knowledge/ 零命中）"
+    },
+    {
+     "doc_claim": "035 §13.3 权限模型三级取交集：viewer 读取 Publication Entry 权限 = corpus 读权限 ∩ catalog 可见性 ∩ publication 可见性",
+     "code_fact": "读路径不存在任何交集判定：WikiPublication.visibility 与 DocCatalog.visibility 在全部读路径零引用（wiki 四模块 grep visibility 计数 0）；/wiki/entries/{id}/content 完全无鉴权且不校验 publication 状态；唯一交集是 assign 时的跨 app 断言",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:578-583 vs apps/negentropy/src/negentropy/knowledge/routes/wiki.py:543-570、apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_dao.py:396-422（grep visibility 于 routes/wiki.py、wiki_dao.py、wiki_service.py、wiki_export_service.py 均 0 命中）"
+    },
+    {
+     "doc_claim": "035 §13.3 关键拦截点引注为 catalog_service.py:315-319",
+     "code_fact": "跨 app PermissionError 实际位于 catalog_service.py:322-328（raise 在 L325），行号锚点漂移",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:585 vs apps/negentropy/src/negentropy/knowledge/lifecycle/catalog_service.py:322-328"
+    },
+    {
+     "doc_claim": "035 §13.5 live（默认）模式：实时跟随变更；SSG ISR 事件驱动增量刷新",
+     "code_fact": "wiki 已纯静态化，无运行时 ISR/revalidate——unpublish 仅改 DB 状态并派发旁路 webhook，「实际站点产物不在本方法内更新」；发布物靠静态导出脚本整体重建",
+     "evidence": "docs/concepts/subsystems/035-the-knowledge-base.md:599 vs apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_service.py:346-348、scripts/publish-wiki-pages.sh:96"
+    }
+   ],
+   "verification": {
+    "domain": "D4-permission",
+    "verdicts": [
+     {
+      "id": "C1",
+      "verdict": "confirmed",
+      "note": "rbac.py:38-54 实际定义 admin/user 两角色；PERMISSIONS 字典（rbac.py:15-34）实为 12 项而非 14 项（admin/users/knowledge/memory/chat/interface 六组各 read/write）——仅计数小误，不影响判定。require_permission/require_role 全仓仅 rbac.py 自身与 tests/unit_tests/auth/test_deps_and_rbac.py 引用，knowledge 路由零调用（所有 knowledge 路由均为裸 APIRouter()）；rbac 的 get_all_roles/get_all_permissions 仅被 auth/api.py 管理端信息展示使用。admin 判定散见 auth/api.py、interface/{definitions,models,task_models}_api.py、engine/api.py 的 require_admin/_require_admin；wiki 评论 delete owner-or-admin（wiki.py:657,662）、update 仅 owner。无「角色×产品域」维度。status=partial 成立"
+     },
+     {
+      "id": "C2",
+      "verdict": "confirmed",
+      "note": "grep class Channel/Widget 全 src 零命中。匿名暴露面实锤：scripts/publish-wiki-pages.sh 把 status=published 的 Wiki 推到公开 GitHub Pages（threefish-ai.github.io，36 行默认仓库）；config/auth.py:29 默认 AuthMode.OPTIONAL；middleware.py:69-73 无 token 且非 STRICT 直接 call_next 放行。app_name 为客户端可传软参数（corpus.py:88 _resolve_app_name(payload.app_name)，config/__init__.py:279-281 缺省回退 settings.app_name），无硬隔离。status=divergent 成立"
+     },
+     {
+      "id": "C3",
+      "verdict": "confirmed",
+      "note": "auth/service.py:141-155：Google OAuth，allowed_domains（hd）/allowed_emails 白名单（144-147），roles = ['admin'] if email in admin_emails else ['user']（155）——仅内部用户、仅 admin/user 两角色，无客户账号、无属性模型、无 claims 兑换链。status=missing 成立"
+     },
+     {
+      "id": "C4",
+      "verdict": "confirmed",
+      "note": "DocSource（perception.py:213-246）字段仅来源追踪元数据（source_type/url/title/author/extractor 等），无 ACL 字段；KnowledgeDocument（88-179）与 Corpus（31-60）同样无 ACL；全模型无 DocumentVersion 类、无 acl 列（grep acl 零命中）。source_tracking.py:39-48 TrackingContext 仅 tracker_run_id/corpus_id/app_name/mcp 信息，连接器不捕获源侧权限。status=missing 成立"
+     },
+     {
+      "id": "C5",
+      "verdict": "confirmed",
+      "note": "catalog.py PATCH /catalogs/{catalog_id}（196-217）无任何鉴权依赖，visibility 在 update_kwargs 内直接可改；WikiPublication.visibility 不可经 API 设置：Create/Update schema（lifecycle_schemas.py:214-237）均无该字段，wiki_dao.py:153-159 allowed_fields={name,slug,description,status,theme} 不含 visibility。corpus CRUD（corpus.py 78/104/125/202）同样无鉴权依赖。grep 四眼/four_eye/approval/审批 全 knowledge+auth 零命中。status=missing 成立"
+     },
+     {
+      "id": "C6",
+      "verdict": "confirmed",
+      "note": "Knowledge 模型（perception.py:63-85）物化 corpus_id/app_name/is_enabled + metadata_（archived/searchable 经 JSONB）；semantic_search（repository.py:766-778）与 keyword_search（838-852）均把 corpus_id+app_name+COALESCE(archived/false)+is_enabled+COALESCE(searchable/true) 压进 WHERE 后才 ORDER/LIMIT（hybrid 同构）；_active/_searchable/_enabled_filter_expr（1343-1352）实看确认。继承的是 corpus 范围而非版本 ACL，无 acl 字段。status=divergent 成立"
+     },
+     {
+      "id": "C7",
+      "verdict": "confirmed",
+      "note": "同步收紧机制实锤：knowledge/service.py:3050-3075 update_knowledge_chunk 有 family_id 即调 update_family_enabled_state（repository.py:571-596）整家族翻转 is_enabled，检索 SQL 立即生效；软删走 metadata.archived。静态发布面相反：wiki_service.py:343-361 unpublish 仅改状态+旁路 webhook，注释明言「实际站点产物不在本方法内更新」；wiki.py:536 资产响应 Cache-Control: public, max-age=31536000, immutable。status=divergent 成立"
+     },
+     {
+      "id": "C8",
+      "verdict": "confirmed",
+      "note": "HTTP 端点 routes/unified_search.py:50-63 只传 corpus_ids 等，从不传 accessible_corpus_ids（该参数仅 planner 链路注入）。graph_query 分支（retrieval/unified_search.py:165-166 → 297-302）KgEntity 查询只有 name ILIKE，零 corpus 过滤，且为可达 live 路径。facets 全库统计（418-423）属实但当前不可达（见 missed：_hybrid_search 引用不存在的列必 500）。accessible 集合=app 下全部 corpus，agents/tools/perception.py:404-408 注释自认「Phase 2 后续可接入 user RBAC 视图」。planner 交集（hybrid_planner.py:236-244）先于 seed（253）先于 rerank（290）。status=partial 成立"
+     },
+     {
+      "id": "C9",
+      "verdict": "confirmed",
+      "note": "五个锚点全实锤：middleware.py:69-73 OPTIONAL 无 token 放行；retrieval/unified_search.py:100 accessible_corpus_ids=None 即不过滤（137 仅非 None 才交集）；deps.py:71-72 DB 异常回退 JWT roles（fail-soft 防误降级，降权不即时）；catalog_service.py:322-324 corpus 为 None 时跳过跨 app 断言；mcp_server.py:243-249 bearer 比对失败 401。封闭侧另有 strict 401（middleware 71-72/81-82）、交集空返回空（unified_search 142-159）。status=divergent 成立"
+     },
+     {
+      "id": "C10",
+      "verdict": "confirmed",
+      "note": "planner 侧：_fuse_and_rerank（hybrid_planner.py:290）只处理 effective 过滤后的 seed 候选。unified_search._build_facets（407-425）接受 corpus_ids 形参完全不使用，source_types 统计跨全库 join 无任何过滤——代码实态与描述一致。唯一口径修正：_build_facets 仅被 _hybrid_search 调用，而 _hybrid_search 在构造 select 时引用 Knowledge.document_id/plain_text（229-249）两列在 ORM 模型上不存在，请求必 AttributeError→500，facets 侧信道泄漏是潜伏缺陷而非当前可达路径；graph 分支不 scoping 则是 live 泄漏。status=partial 成立"
+     },
+     {
+      "id": "C11",
+      "verdict": "confirmed",
+      "note": "retrieval/unified_search.py:150-159 权限拒绝返回 mode=\"empty_permission\"，与 keyword_fallback/graph/navigation 等 mode 可区分，构成存在性信号；wiki 资产端点不可见统一 404（wiki.py:509-513 DOCUMENT_NOT_FOUND、526-529 ASSET_NOT_FOUND；486 为文件名非法的 400，锚点略偏但语义成立）。无问答/拒答链路属实（检索服务无 bot 兜底）。status=partial 成立"
+     },
+     {
+      "id": "C12",
+      "verdict": "confirmed",
+      "note": "_cache_canonical/_cache_provenance 全文件仅 __init__ 声明两行（hybrid_planner.py:212-213），零 get/set——确为死缓存。graph/service.py:1747-1753 缓存键 f\"graph:{corpus_id}|as_of={as_of_key}\"，数据为 corpus 级、无跨权限视图对象。grep zookie/at_least_as_fresh/watermark（权限语义）零命中；无答案/语义缓存。status=missing 成立"
+     },
+     {
+      "id": "C13",
+      "verdict": "confirmed",
+      "note": "tokens.py:29-34 自建 HMAC 双段 token（payload.signature），_build_session_token（service.py:233-248）payload 仅 typ/iat/exp/sub/email/name/picture/roles/provider/subject/domain，无 aud/iss/jti；session_ttl 默认 60*60*24*7（config/auth.py:43）；decode_session（service.py:81-92）不校验 typ==\"session\"，state token（无 sub）经签名校验后 payload[\"sub\"] KeyError，middleware 只捕 TokenError → 500 而非 401。无 JWT 兑换链。status=missing 成立"
+     },
+     {
+      "id": "C14",
+      "verdict": "confirmed",
+      "note": "get_kb_mcp_token（mcp_server.py:48-61）：settings 静态值优先，否则每进程 secrets.token_urlsafe(32) 随机（重启轮换）；_guarded_app（240-260）secrets.compare_digest 恒时比对、失败 401；工具白名单仅 kb_search/kg_search_global 两只读工具（204-223）；scope=settings.app_name 经 resolve_corpus_scope 解析全部 corpus（124,162）；token 程序化注入不落库（模块 docstring 3-9 行防 Split-Brain）。scope 粒度=整 app 而非 Channel。status=partial 成立"
+     },
+     {
+      "id": "C15",
+      "verdict": "confirmed",
+      "note": "ROW LEVEL SECURITY/CREATE POLICY/set_config( 在 src 与 db 全量 grep 零命中（本次实测零输出）；迁移共 99 个（src/negentropy/db/migrations/versions/）。隔离全靠 app_name 列过滤，且 resolve_app_name（config/__init__.py:279-281）=客户端可传值 or settings.app_name（corpus.py:88 实际使用）；按-ID端点不过滤 app_name：wiki.py:235-249 GET /wiki/publications/{pub_id}、catalog.py:184-193 get_catalog 均无 app 谓词。status=missing 成立"
+     },
+     {
+      "id": "C16",
+      "verdict": "confirmed",
+      "note": "三个既有测试实看属实：test_catalog_cross_corpus.py:209-239 跨 app PermissionError；test_hybrid_planner.py:128-159（124 为「Permission Filter（accessible ∩ scoped）」节标题）交集空返空/None 回退 scoped 两用例；test_middleware.py:63-70 strict 无 token 401。grep strictPostFilter/差分/differential 零命中；facets/_graph_search 无任何泄漏断言测试（仅 test_types.py 提及 facets 类型）。无差分回归属实。status=missing 成立"
+     },
+     {
+      "id": "C17",
+      "verdict": "confirmed",
+      "note": "管理侧仅 structlog 事件（corpus.py:226-231 corpus_deleted；catalog.py:216 api_update_catalog）与 kg_query_provenance 检索溯源表（graph.py:944-969 try/except 失败仅 warning）；memory 域另有 memory_audit_logs（internalization.py:87-105）而 knowledge 域无追加式审计表。impression 审计 DOA 实锤：_record_impression（retrieval/unified_search.py:477-493）构造 KnowledgeFeedback 缺 knowledge_id/corpus_id/app_name，三列在 ORM（perception.py:731-733）与迁移 0001（0001_init_schema.py:768-770）均 NOT NULL，flush 必败且被 search() 190-193 except:pass 吞掉。status=missing 成立"
+     },
+     {
+      "id": "C18",
+      "verdict": "confirmed",
+      "note": "字段层：DocCatalog.visibility（perception.py:783-793）与 WikiPublication.visibility（307-319）均 PRIVATE/INTERNAL/PUBLIC 枚举、server_default INTERNAL。执行层全空实锤：WikiPublication create/update schema 与 wiki_dao allowed_fields 均不含 visibility；knowledge 域 grep visibility 仅 Catalog CRUD 透传（schemas/catalog_dao/catalog_service/routes），零读路径过滤；导出与生产发布只过滤 status='published'（wiki_export_service.py:97），INTERNAL/PRIVATE 发布物照样进公开 GitHub Pages；entry content（wiki.py:543-562）与资产端点（469-540）无鉴权、资产仅校验「被任一 WikiPublicationEntry 引用」不校验 publication 状态；publish 端点（292-319）无鉴权依赖，wiki_service.py:334-335 注释「显式目标即授权，不再受 wiki_pages_publish.enabled 门控」。status=divergent 成立"
+     },
+     {
+      "id": "L1",
+      "verdict": "confirmed",
+      "note": "mcp_server.py 模块 docstring（1-15 行）明确机器身份设计；48-61 静态可配或每进程随机 bearer；middleware.py:58-60 allowlist 注释明示「/mcp/knowledge 由子应用自带 bearer token 强校验，严于全局 OPTIONAL 模式」契约；工具面白名单仅 kb_search/kg_search_global 两只读工具；token 不落库（程序化注入防 Split-Brain）。全部属实"
+     },
+     {
+      "id": "L2",
+      "verdict": "confirmed",
+      "note": "deps.py:42-91 resolve_user_with_db_roles 单一实现：DB UserState.state.roles 覆盖 JWT roles，所有 DB 故障路径回退 JWT（71-72）；config 级 admin 不可被 DB 降级在登录侧双保险（auth/service.py:184-187）。docs/.agents/issue.md I-057（1636 行附近）实看：admin API 持续 403 根因即 JWT 登录瞬间快照与 DB roles 割裂，修复为 require_admin 统一走 DB 权威路径。deps.py docstring 内引的是 I-049（同族前序），判定不受影响"
+     },
+     {
+      "id": "L3",
+      "verdict": "confirmed",
+      "note": "wiki_service.py:343-361 unpublish 只改 DB 状态并 trigger_wiki_redeploy 旁路通知，docstring 明言「实际站点产物不在本方法内更新」；wiki.py:531-540 资产响应头 Cache-Control: public, max-age=31536000, immutable——撤销后 CDN/浏览器最长缓存一年。撤销 SLO 未覆盖静态物化面属实"
+     },
+     {
+      "id": "L4",
+      "verdict": "confirmed",
+      "note": "config/auth.py:29 默认 AuthMode.OPTIONAL；middleware.py:69-73 无 token 即放行（fail-open）；corpus.py:202-224 DELETE /base/{corpus_id} 级联删除无鉴权依赖；wiki.py:292-319 production 发布无鉴权依赖。allowlist 例外契约（middleware.py:58-60 注释：以子应用自带同等强校验为前提）属实"
+     },
+     {
+      "id": "L5",
+      "verdict": "confirmed",
+      "note": "retrieval/unified_search.py:100 参数 Optional 默认 None；118-122 docstring 标注「权限红线…Phase 1 暂为可选参数以保持向后兼容，Phase 2 起所有 Home Studio 链路必须显式注入」；routes/unified_search.py:50-63 唯一 HTTP 调用点从不注入——红线在主入口形同虚设。全部属实（且 planner 链路注入的 accessible 也是 app 全集兜底，见 C8）"
+     },
+     {
+      "id": "L6",
+      "verdict": "confirmed",
+      "note": "catalog_service.py:322-328：corpus 查询后仅 `if corpus is not None and corpus.app_name != catalog.app_name` 才抛 PermissionError；KnowledgeDocument.corpus_id 可空（perception.py:98-101，Library 文档 corpus_id IS NULL），断言被静默跳过。租户一致性经可空外键取值必被穿透，属实"
+     },
+     {
+      "id": "L7",
+      "verdict": "confirmed",
+      "note": "unified_search.py:477-493 构造缺三 NOT NULL 列（模型 perception.py:731-733、迁移 0001:768-770 双重确认），search() 190-193 except:pass 吞掉——审计从未落库且零信号。补充实看：record_feedback（495-516）同样 DOA——向 KnowledgeFeedback 传 document_id=/metadata= 两个模型上不存在的 kwarg（模型无 document_id 列且 metadata 为保留名），构造即 TypeError，/unified/feedback 端点必 500。教训成立且面更广"
+     }
+    ],
+    "missed": [
+     {
+      "fact": "统一检索服务主管线与 ORM schema 脱节，默认路径必 500（DOA）：retrieval/unified_search.py::_hybrid_search（229-249 行）引用 Knowledge.document_id 与 Knowledge.plain_text 两列，但 Knowledge 模型（perception.py:63-85）无这两列（grep 全 models/ 与 99 个迁移零命中），fact/exploration/comparison 意图（占默认分类绝大多数）在 select 构造时即 AttributeError。影响 C8/C10 口径：graph 分支无 corpus 过滤是 live 泄漏；_build_facets 全库统计虽属实但只被该崩溃路径调用，属潜伏缺陷；且整个 UnifiedRetrievalService 零测试引用（tests 下 grep unified_search/UnifiedRetrievalService 零命中）——这本身是 C16 测试盲区的又一实据",
+      "evidence": "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:229-249（引用 Knowledge.document_id/plain_text）；apps/negentropy/src/negentropy/models/perception.py:63-85（Knowledge 列定义无此二列）；routes/unified_search.py:45 挂载于 knowledge/api.py:45；grep plain_text 于 models/ 与 db/migrations/versions/ 均零命中"
+     },
+     {
+      "fact": "仓内存在唯一一处 ORM 级「漏挂谓词」兜底先例：perception.py 末尾 _require_corpus_filter_on_alias（1135-1152 行）在 Session do_orm_execute 事件层拦截所有直接 SELECT/UPDATE/DELETE kg_entity_alias 且 whereclause 无 corpus_id 的语句并 raise PermissionError（设计动机注释引 catalog_service 跨 app 拦截为先例）。C15/C16 取证未提及——它证明「逐路删谓词防漏挂」在仓内已有局部落地形态（仅覆盖 kg_entity_alias 单表，其余表无同类兜底），对 D4 方案的 RLS 兜底论证是有价值的现状锚点",
+      "evidence": "apps/negentropy/src/negentropy/models/perception.py:1094-1152（_whereclause_has_corpus_filter/_statement_touches_alias_table/_require_corpus_filter_on_alias）；模块注释 1074-1085 行明示防越权旁路动机"
+     }
+    ]
+   }
+  },
+  "D5-app-loop": {
+   "domain": "D5 · 应用集成与闭环（方案 §4 全节 + §2.3 KnowledgeTask 闭环 + 可观测性）",
+   "capabilities": [
+    {
+     "id": "C1",
+     "design_mechanism": "§4.1 Channel 模型：每产品一个 Channel，绑定产品域与 corpus scope、允许身份集、答案策略、限流与成本熔断、独立评测集，变更走四眼并审计",
+     "status": "missing",
+     "as_built": "无 Channel 实体。隔离仅靠 Corpus.app_name 分区（每进程单 app）；知识路由零 RBAC 依赖，auth 默认 OPTIONAL 放行匿名；KB 无限流与成本熔断（仅 memory 工具有进程内限流）。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:31-48（Corpus 以 app_name+name 唯一，无 Channel/product 字段）",
+      "apps/negentropy/src/negentropy/knowledge/api.py:28-47（router 无任何 Depends 权限依赖）",
+      "apps/negentropy/src/negentropy/auth/middleware.py:60-70 + apps/negentropy/src/negentropy/config/auth.py:28-29（默认 OPTIONAL，无 token 放行）",
+      "apps/negentropy/src/negentropy/engine/tools/memory_tools.py:47-60（限流仅存在于 memory 工具）",
+      "已 grep：src 内 channel|product_id|tenant_id|brand 于 knowledge/ 与 models/perception.py 零命中；knowledge/ 内 require_permission|require_role 零调用"
+     ],
+     "gap": "需新建 Channel 聚合（产品域绑定、scope⊆产品域校验、四眼、限流/熔断）并作为检索与发布端点的统一 scope 源。",
+     "effort": "L",
+     "risk": "与既有 app_name 分区及 Wiki 多租户路由融合，牵动权限平面（P4）。"
+    },
+    {
+     "id": "C2",
+     "design_mechanism": "§4.2 多轮问题→查询改写（指代消解、上下文补全）；§3.3 查询→意图解析（关键词/语义/地理/混合）",
+     "status": "partial",
+     "as_built": "意图解析有：UnifiedRetrievalService 正则五类意图 + HybridPlanner 复用；无显式改写阶段——多轮指代由 Agent LLM 自行组装工具 query 隐式承担。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:28-92（正则意图分类）",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:5,48（复用 classify_intent 做四阶段 Stage1）",
+      "已 grep：src 内 query_rewrite|rewrite_query|hyde|multi_query|查询改写|指代消解|condense 于检索链路零命中"
+     ],
+     "gap": "客服式多轮场景需补显式改写/Condense 步骤（或在 Agent instruction 固化改写契约），当前完全依赖模型自觉。",
+     "effort": "M",
+     "risk": "新增 LLM 调用带来延迟与成本；改写质量需评测。"
+    },
+    {
+     "id": "C3",
+     "design_mechanism": "§4.2 有据生成：答案逐断言挂 chunk/文档锚点，无锚断言按幻觉处理",
+     "status": "partial",
+     "as_built": "工具级落地完备：检索结果注入 citation_id+IEEE formatted_citation+snippet，六 Agent instruction 统一拼 CITATION_PROTOCOL（[N] 标注+原文摘录+严禁臆造），前端解析尾注。但无生成后逐断言回锚校验器。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:148-237（检索→snippet 截断→citation 注入 SSOT）",
+      "apps/negentropy/src/negentropy/agents/_citation_protocol.py:22-38",
+      "apps/negentropy/src/negentropy/agents/faculties/perception.py:13-15,64-85,110",
+      "apps/negentropy-ui/utils/citation-parser.ts + components/ui/MessageBubble.tsx:368（[N] 解析渲染）"
+     ],
+     "gap": "补「答案中 [N] ⊆ 工具返回 citation_id 集合」的生成后校验与无锚断言标记，把协议从提示约束升级为机器门。",
+     "effort": "M",
+     "risk": "转述句式易误判无锚，需容错与白名单。"
+    },
+    {
+     "id": "C4",
+     "design_mechanism": "§4.2 置信判定（cross-encoder 重排分校准为概率）→低于阈值走兜底：拒答话术/最相关文档链接/转人工",
+     "status": "divergent",
+     "as_built": "取向不同：无分数置信与拒答阈值——生产单例默认 NoopReranker，语义检索无最低相似度、恒返 top-k；count=0 时 ADK 路径回退个人 Memory 检索，MCP 路径返回固定「知识库无相关记录」反幻觉 note。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:621（默认 NoopReranker；_get_service 未注入 reranker）",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:762-775（语义检索无距离阈值）",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:264-265,272-352（KB 零结果→memory_fallback）",
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:42,143-144（零结果固定 note）",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:766（planner 路径 score_threshold=0.0）"
+     ],
+     "gap": "客服场景需分数校准置信+拒答阈值与兜底梯度；「KB 空→查个人记忆」对多租户客服是跨域泄漏取向，需收敛为拒答。",
+     "effort": "M",
+     "risk": "阈值须按 golden set 校准；回退语义变更是产品决策。"
+    },
+    {
+     "id": "C5",
+     "design_mechanism": "§4.2 拒答是知识缺口信号：未答问题生成 KnowledgeTask（Kapa 范式），形成 P1→P3 闭环；§1 KnowledgeTask 来源含拒答/bad-case/冲突/过期验证",
+     "status": "missing",
+     "as_built": "无 KnowledgeTask/缺口工单实体，零命中与拒答不产生任何回流任务；最接近的是 corpus 引用推荐与 6 维质量评估，均不产任务。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/corpus.py:295-309（仅跨语料引用建议）",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/corpus_engine.py:45,152,239,264（质量评估/版本快照/建议，无任务产出）",
+      "已 grep：src 内 KnowledgeTask|knowledge_gap|knowledge_task|bad_case|unanswered 零命中"
+     ],
+     "gap": "需新 KnowledgeTask 表 + 从「检索零命中、点踩、反馈归因」触发创建，并接通人工编辑（Draft）补录链路。",
+     "effort": "L",
+     "risk": "需与编辑工作流、反馈闭环（C11）联动，否则有表无源。"
+    },
+    {
+     "id": "C6",
+     "design_mechanism": "§4.2 生成侧防线：会话按（Channel,sub,权限视图哈希）隔离、chunk 不可信定界封装+注入扫描、受限 Markdown/链接图片白名单、Widget 沙箱、引用只指已发布 URL 或短签链接",
+     "status": "missing",
+     "as_built": "无 chunk 定界封装与注入扫描（全仓 grep 无 untrusted/注入扫描设施）；会话按 ADK user/session 隔离但无权限视图哈希；前端 react-markdown 默认不渲染原始 HTML（框架默认而非防线设计）；引用直链 source_uri 原文。（复核补充：公开 wiki 渲染面已有 rehype-sanitize 白名单层，可作 Widget 渲染沙箱现成参考件）",
+     "evidence": [
+      "apps/negentropy-ui/utils/markdown-plugins.ts:23-24（rehype 仅 KaTeX，无 sanitize/白名单层）",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:96-100（citation 直接携带原始 source_uri，无短签网关）",
+      "已 grep：src 内 untrusted|不可信|prompt injection|注入扫描 于 agents/knowledge/engine 零命中",
+      "apps/negentropy-wiki/src/components/markdown/MarkdownRenderer.tsx:4-69"
+     ],
+     "gap": "需补：chunk 边界定界与注入扫描、链接/图片白名单、短签引用网关、按权限视图哈希的缓存/会话隔离键。",
+     "effort": "L",
+     "risk": "横跨后端检索出口与前端渲染两层，改动面大。"
+    },
+    {
+     "id": "C7",
+     "design_mechanism": "§4.3 嵌入形态三件套：官网 Widget（JS SDK+public key）、Answer API（服务端集成）、转人工 Webhook（出站签名+目标白名单）",
+     "status": "missing",
+     "as_built": "三形态均无：后端 grep widget|handoff|escalat|转人工 零命中；对外仅检索型 REST（/knowledge/base/{id}/search、/unified/search）与 MCP 端点，答案生成只存在于内部 ADK Agent 聊天。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/search.py:43-106（纯检索端点，无生成）",
+      "apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:38-70（统一检索，无答案）",
+      "已 grep：src 内 widget|embed.js|handoff|escalat|转人工|human_handoff 零命中（排除 embedding 误配）"
+     ],
+     "gap": "Widget/Answer API/转人工 Webhook 全部待建，且依赖 Channel 与权限平面（C1/P4）先行。",
+     "effort": "XL",
+     "risk": "对外暴露面扩大，安全评审与限流成本熔断必须同批落地。"
+    },
+    {
+     "id": "C8",
+     "design_mechanism": "§4.2/§4.3 问答链路的实际消费形态（方案未列）：Agent 内置检索工具族（search_knowledge_base/global/with_papers + HybridPlanner 四阶段）",
+     "status": "implemented",
+     "as_built": "六 Agent 经 Perception Faculty 持三个 KB 检索工具；@corpus 范围由 session state 注入只收窄；HybridPlanner 路径（意图→种子检索→图扩展→RRF+重排+桥接）由 feature flag 灰度门控、异常自动降级 legacy。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/agents/faculties/perception.py:13-15,64-110（工具注册与互斥指引）",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:184-212（corpus scope 收窄+flag 门控+降级）",
+      "apps/negentropy/src/negentropy/agents/tools/hybrid_planner.py:180-303（四阶段管线）"
+     ],
+     "gap": "无",
+     "effort": "S",
+     "risk": "无"
+    },
+    {
+     "id": "C9",
+     "design_mechanism": "§4.2 问答链路的实际消费形态（方案未列）：知识库 MCP 只读检索端点，供外部 Agent（Routine 的 Claude Code）接入",
+     "status": "implemented",
+     "as_built": "引擎进程内挂载 /mcp/knowledge，两个只读工具（kb_search/kg_search_global）与 ADK 工具共享 citation_search 单一事实源；每进程随机 bearer（compare_digest 校验）程序化注入 mcp_config 不落库；零结果返回反幻觉 note。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:42,48-61,204-223,240-260",
+      "apps/negentropy/src/negentropy/engine/routine/orchestrator.py:70-81,1880-1886（白名单+运行期注入）",
+      "apps/negentropy/tests/unit_tests/knowledge/test_kb_mcp_server.py"
+     ],
+     "gap": "无",
+     "effort": "S",
+     "risk": "token 为进程级共享而非按 Channel/用户细分，跨产品时需收敛 scope。"
+    },
+    {
+     "id": "C10",
+     "design_mechanism": "§4.3 公开嵌入形态的实际载体（取向不同）：Wiki 发布——§4.1 语义上的对外文档 Channel",
+     "status": "divergent",
+     "as_built": "静态发布取向：publish 后经 HMAC 签名 webhook 触发 CI 导出已发布内容包→静态站重建→GitHub Pages，运行期零 DB 依赖；站内检索用 Pagefind 客户端索引；支持 LIVE/SNAPSHOT 双模式。但导出仅按 status=published 过滤、不校验 visibility。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_redeploy.py:1-30（fail-soft webhook+HMAC）",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_export_service.py:3,87-97（仅 status=published）",
+      "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_dao.py:109-139（list_publications 无 visibility 参数）",
+      "apps/negentropy-wiki/src/components/WikiSearchModal.tsx:20-45（Pagefind）"
+     ],
+     "gap": "补导出侧 visibility=PUBLIC 过滤（防 PRIVATE/INTERNAL 已发布站进公开静态包）；问答能力与运行时 Channel 形态属方案待建面（C7）。",
+     "effort": "S",
+     "risk": "静态化新鲜度取决于重建节奏，无 staleness SLO。"
+    },
+    {
+     "id": "C11",
+     "design_mechanism": "§4.4 线上回流：四态结果+升级原因、点踩与转人工样本入 bad-case 池；§1 QAInteraction 落库（脱敏、保留期）",
+     "status": "partial",
+     "as_built": "有表有端点但写入死链：knowledge_feedback 表存在；/unified/search 的 impression 因 NOT NULL 字段缺失+该路由从不 commit 而永不落库（异常被裸 except 吞掉）；/unified/feedback 传非法 document_id kwarg 恒 TypeError；UI 点赞点踩纯本地 state 不上报。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/perception.py:720-757 + db/migrations/versions/0001_init_schema.py:767-793（knowledge_id/corpus_id/app_name NOT NULL）",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:189-193,477-493,495-504（裸 except；impression 缺必填字段；record_feedback 传 document_id 非法列，实测 TypeError）",
+      "apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:38-70（search 路由无 commit）,76-99",
+      "apps/negentropy-ui/components/ui/MessageBubble.tsx:57-60,115-117,141-147（setFeedback 本地态）"
+     ],
+     "gap": "修复写入链路（必填字段+commit+合法列）、打通 UI 点踩上报、加四态 outcome 与 bad-case 归因消费方。",
+     "effort": "S",
+     "risk": "表已带 NOT NULL 外键，历史无数据无迁移负担；需定义 impression 口径防刷量。"
+    },
+    {
+     "id": "C12",
+     "design_mechanism": "§4.4 离线回归门：每 Channel 维护 golden set，docRecall/docPrecision/nDCG@k + RAGAS 四指标；索引重建与策略变更必须过回归门",
+     "status": "missing",
+     "as_built": "KB 无 golden set 与检索指标、无 RAGAS（grep recall@|ndcg|ragas|golden set 于 src/tests/scripts 仅 memory 域命中）；通用评测基座在：EvalSuite/SuiteRunner 带 holdout 防回流不变量，TARGET_KIND_KNOWLEDGE_RETRIEVAL 已入白名单但无 executor；仅有搜索性能基准。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/models/eval_suite.py:57-85（knowledge_retrieval 白名单空挂）",
+      "apps/negentropy/src/negentropy/engine/eval/runner.py:8（明示 retrieval executor 留后续）",
+      "apps/negentropy/tests/eval_tests/memory/eval_runner.py:2-6（MRR/NDCG/Hit@K 仅 memory 独立基线）",
+      "apps/negentropy/tests/performance_tests/knowledge/test_search_performance.py:7-10（仅延迟基准）",
+      "已 grep：src/tests/scripts 内 ragas|faithfulness|docRecall|golden.?set 零命中"
+     ],
+     "gap": "建 KB golden set + 检索指标 executor 挂到 SuiteRunner，并把「索引重建/检索参数变更过门」接为 pipeline 约束。",
+     "effort": "L",
+     "risk": "须沿用 holdout 不回流 proposer 的防 Goodhart 不变量。"
+    },
+    {
+     "id": "C13",
+     "design_mechanism": "§4.4 口径纪律：resolution 只按 bot 介入会话计且带时间窗与判定规则，可复算审计；评测按身份类型分层统计",
+     "status": "missing",
+     "as_built": "无 resolution 口径与任何四态判定规则，无按身份分层的评测统计；现有统计仅 wiki entry 浏览/评论/注解计数与 chunk 级 retrieval_count 自增。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:835-898（view/stats 计数）",
+      "apps/negentropy/src/negentropy/knowledge/service.py:3812-3835（_record_match_retrievals 仅自增）",
+      "已 grep：src 内 resolution|resolved|escalated|abandoned|confirmed 四态零命中（KB 链路）"
+     ],
+     "gap": "需先有四态采集（C11）再定义可复算 resolution 判定规则与分层统计视图。",
+     "effort": "M",
+     "risk": "无真实多身份流量前口径难校准，易造出不可复算指标。"
+    },
+    {
+     "id": "C14",
+     "design_mechanism": "§4.4 可观测性：SLI 含首字与检索 P95、可用率、拒答率、ACL 滞后；trace 带 channel 与 index_ver",
+     "status": "partial",
+     "as_built": "structlog 事件覆盖起止与模式（search_completed 无延迟字段，planner 路径有 stage_latencies_ms）；OTel span（embedding/HTTP）+ Langfuse LLM 追踪；tool_invocations 遥测含 p50/p95 但默认关。无 Prometheus、无拒答率/首字/ACL 滞后 SLI、trace 无 channel/index_ver。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3450-3456（事件无 latency）",
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:462-470（stage_latencies_ms）",
+      "apps/negentropy/src/negentropy/knowledge/ingestion/embedding.py:42-47 + instrumentation.py:1-60（OTel/Langfuse）",
+      "apps/negentropy/src/negentropy/engine/observability/tool_telemetry.py:138-152 + config/observability.py:41-44（p50/p95 默认关）",
+      "已 grep：src 与 pyproject 内 prometheus 零命中"
+     ],
+     "gap": "补检索 P95/拒答率/零命中 SLI、KB search 事件加延迟字段、tool_telemetry 灰度开启；channel/index_ver 待 Channel 落地后注入。",
+     "effort": "M",
+     "risk": "遥测写库默认关有原因（写放大），开启需灰度与截断上限。"
+    },
+    {
+     "id": "C15",
+     "design_mechanism": "§4.4 答案策略按 Channel 流量 A/B 灰度",
+     "status": "divergent",
+     "as_built": "KB 域仅布尔特性门控（enable_cross_corpus_kg 默认 False；allowlist/user 采样率配置字段存在但无任何消费方=死配置）；完整灰度回路在 memory 域：shadow→canary→promote/rollback 进化，sticky 分桶+最小样本+变异上下界+多样性护栏。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/config/knowledge.py:298-308（采样字段死配置，已 grep 消费方零命中）",
+      "apps/negentropy/src/negentropy/engine/evolution/canary.py:29-40（sticky hash 分桶）",
+      "apps/negentropy/src/negentropy/engine/evolution/decision.py:56-62（样本量/改进幅度/权重界常量）",
+      "apps/negentropy/src/negentropy/engine/evolution/eval_runner.py:1-16（仅 memory_retrieval_logs 分桶）"
+     ],
+     "gap": "把 memory 域进化回路范式平移到 KB 检索参数/答案策略，或最小步先把死配置采样字段接线成真灰度。",
+     "effort": "M",
+     "risk": "进化回路防 Goodhart 守卫须齐套移植，不可只搬分桶。"
+    }
+   ],
+   "reverse_lessons": [
+    {
+     "id": "L1",
+     "lesson": "反馈闭环「表在、链路死」：knowledge_feedback 建表后写入路径三处断裂（路由不 commit、NOT NULL 违约、非法列 kwarg 恒 500），裸 except 吞异常致零数据也无人察觉——反馈机制须与消费方同 PR 落地并端到端锁定。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/unified_search.py:189-193,477-504",
+      "apps/negentropy/src/negentropy/knowledge/routes/unified_search.py:38-70,76-99",
+      "docs/.agents/issue.md I-138（读路径契约须同 PR 接线并结构测试锁定）"
+     ],
+     "design_section": "§4.4 线上回流",
+     "value": "high",
+     "proposed_text": "反馈回流与消费方同 PR 落地并端到端锁定，禁裸 except 吞写入失败"
+    },
+    {
+     "id": "L2",
+     "lesson": "memory 域检索权重自进化回路：sticky hash 分桶（同会话恒同桶防指标串味）+ shadow→canary→promote/rollback + 最小样本量 50 + 变异上下界与单步限幅 + diversity≥0.8×基线防收敛塌缩 + 振荡/预算守卫。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/engine/evolution/canary.py:18-40",
+      "apps/negentropy/src/negentropy/engine/evolution/decision.py:50-62",
+      "apps/negentropy/src/negentropy/engine/evolution/eval_runner.py:52-60"
+     ],
+     "design_section": "§4.4 可观测性/A-B 灰度",
+     "value": "high",
+     "proposed_text": "A/B 灰度须会话粘性分桶+最小样本+变异界+多样性护栏，防串味与塌缩"
+    },
+    {
+     "id": "L3",
+     "lesson": "LLM-as-Judge 聚合分天然 ±20 振荡：点态零容差停滞判定误杀收敛中任务并永久污染文档状态；治本是锚定纵向评分（注入近 K 轮轨迹+历史最优），判分失败必须显式信号、不得静默计 0 分（失败≠低分）。",
+     "evidence": [
+      "docs/.agents/issue.md I-128@3554、I-152@3950（容差带 20 + 锚定纵向评估）",
+      "docs/.agents/issue.md I-198@4926（judge 解析失败合成 0 分、哨兵漏入 reduce）",
+      "apps/negentropy/src/negentropy/engine/eval/runner.py:990-997（judge 不可用计 0 入均值）"
+     ],
+     "design_section": "§4.4 离线回归门",
+     "value": "high",
+     "proposed_text": "回归门对 LLM 判分设容差带或锚定纵向评分；判分失败≠零分"
+    },
+    {
+     "id": "L4",
+     "lesson": "混合检索单信号失效须自动降级继续服务：embedding 上游 400 时 hybrid/rrf 退 keyword-only，降级态在返回 mode 显式标注（keyword_fallback）；上游故障映射 502 与自身 bug 的 500 区分；前端 allSettled 聚合必须处理 rejected 分支。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/service.py:3236-3290（embedding 失败回退 keyword+mode 标注）",
+      "docs/.agents/issue.md I-026@837（502 语义/降级契约/allSettled 反模式）"
+     ],
+     "design_section": "§3.3 混合检索执行计划 / §8 风险表",
+     "value": "high",
+     "proposed_text": "任一检索信号失效自动降级并显式标注降级态；上游故障映射 502"
+    },
+    {
+     "id": "L5",
+     "lesson": "零命中可观测：检索发生但零命中必须与「未发生检索」在日志/指标层可区分（零命中也落检索日志行、计入 total 分母），否则只写不读的断链不可见。",
+     "evidence": [
+      "docs/.agents/issue.md I-138@3726（zero_hit_rate 贯通 tracker→API→UI）",
+      "apps/negentropy/src/negentropy/engine/adapters/postgres/retrieval_tracker.py:73,208-222"
+     ],
+     "design_section": "§4.4 可观测性",
+     "value": "medium",
+     "proposed_text": "SLI 增零命中率，且与未发生检索可区分"
+    },
+    {
+     "id": "L6",
+     "lesson": "PDF 保真巡检闭环：按「真实发布渲染栈」渲染候选 Markdown 与源 PDF 逐页视觉对照，自拟合至合格分（95）；解析器改动须过非回归样本门（任一样本降幅>3 分禁合入）；巡检态落文档主表持久列（不放可衰减 Memory）。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py:1-30,162",
+      "apps/negentropy/src/negentropy/engine/routine/patrol_prompt.py:184-192（非回归门）",
+      "apps/negentropy/src/negentropy/engine/routine/patrol_wiki_env.py:1-16（真实渲染栈对照）",
+      "docs/.agents/issue.md I-158@4022"
+     ],
+     "design_section": "§2.4 预处理管线",
+     "value": "high",
+     "proposed_text": "预处理配源文件保真巡检：真实渲染栈逐页对照+改动过非回归样本门"
+    },
+    {
+     "id": "L7",
+     "lesson": "检索工具零结果返回结构化反幻觉哨兵（note=「如实说明无相关记录，严禁虚构引用」）；同时 LLM 生成的『无相关信息』哨兵文本不得漏入证据聚合/reduce（曾污染 GraphRAG 全局摘要）。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:42,143-144",
+      "apps/negentropy/src/negentropy/knowledge/graph/global_search.py:51 + docs/.agents/issue.md I-198@4926"
+     ],
+     "design_section": "§4.2 拒答兜底",
+     "value": "medium",
+     "proposed_text": "零结果返回结构化拒答哨兵；哨兵文本不得混入证据聚合"
+    },
+    {
+     "id": "L8",
+     "lesson": "Agent/MCP 是第四种嵌入形态：只读检索工具带引用元数据、凭证程序化注入不落库（落库即 Split-Brain，与引擎版本绑定、每进程随机 token、compare_digest 校验）、与内部工具共享检索+citation 单一事实源、进程内挂载零冷启动。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/mcp_server.py:1-21,48-61,240-260",
+      "apps/negentropy/src/negentropy/engine/routine/orchestrator.py:70-81,1880-1886",
+      "apps/negentropy/src/negentropy/knowledge/retrieval/citation_search.py:1-11（双通道 SSOT）"
+     ],
+     "design_section": "§4.3 嵌入形态",
+     "value": "high",
+     "proposed_text": "嵌入形态补第四路：Agent/MCP 只读检索工具面，凭证程序化注入不落库"
+    },
+    {
+     "id": "L9",
+     "lesson": "派生态 last-write-wins 必漂移：巡检态曾被「先 failed 后 cancelled」的 Routine 污染——须有以权威事实表为源、按语义优先级（非 cancelled>cancelled、最新>旧）重算的幂等 reconcile 兜底；cancelled 不算结论。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/engine/schedulers/handlers/pdf_fidelity_patrol.py:519-594（_collapse + _reconcile_patrol_status）",
+      "docs/.agents/issue.md I-159@4034"
+     ],
+     "design_section": "§3.2 索引编排与版本 / §2.3 状态机",
+     "value": "medium",
+     "proposed_text": "派生态按权威表幂等 reconcile；取消态不作结论"
+    },
+    {
+     "id": "L10",
+     "lesson": "CJK 关键词腿失效被向量腿掩盖：tsvector english 配置使中文子串全落空，混合检索退化为纯向量且测试恒绿——golden set 须逐检索腿断言命中（关键词腿单独过），并显式核对分词配置×目标语言。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/knowledge/retrieval/repository.py:841,848",
+      "docs/.agents/issue.md I-196@4897"
+     ],
+     "design_section": "§4.4 离线回归门",
+     "value": "medium",
+     "proposed_text": "golden set 逐检索腿断言命中，防向量腿掩盖关键词腿失效"
+    },
+    {
+     "id": "L11",
+     "lesson": "跨域 fallback 的越权风险：KB 零命中自动回退检索个人 Memory 并注入答案——个人助理合理，但多租户客服会把用户私有记忆泄给他人；fallback 源必须与 Channel scope 同域校验。",
+     "evidence": [
+      "apps/negentropy/src/negentropy/agents/tools/perception.py:264-265,272-352（memory_fallback 全量注入）"
+     ],
+     "design_section": "§4.2 兜底",
+     "value": "medium",
+     "proposed_text": "兜底回退源须与 Channel scope 同域，禁跨域回退泄漏"
+    }
+   ],
+   "sot_drift": [
+    {
+     "doc_claim": "035 §11.1（docs/concepts/subsystems/035-the-knowledge-base.md:369-374）：Knowledge 系统受 RBAC 保护，View 所有已认证用户可看，Edit 仅 admin 或 knowledge_manager 角色可创建/修改语料库",
+     "code_fact": "knowledge 全部路由零 RBAC 依赖（仅 wiki 评论/注解 7 处挂 get_current_user）；rbac.py ROLE_PERMISSIONS 只有 admin/user 两角色，knowledge_manager 角色不存在；auth 默认 OPTIONAL 模式下无 token 请求直接放行，POST /knowledge/base 建库无任何角色校验",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/api.py:28-47（无 Depends）；apps/negentropy/src/negentropy/auth/rbac.py:32-44；apps/negentropy/src/negentropy/auth/middleware.py:60-70；apps/negentropy/src/negentropy/config/auth.py:28-29；全仓 grep knowledge_manager 仅命中文档"
+    },
+    {
+     "doc_claim": "035 §9/§9.3（:269,:328-341）：指标含检索命中率、向量检索耗时、索引失败数；监控集成含 Prometheus 指标（可选）",
+     "code_fact": "无任何 Prometheus 集成（src 与 pyproject 均无），无命中率/索引失败指标实现；实际可观测面为 structlog 事件 + OTel span（embedding/HTTP）+ Langfuse LLM 追踪 + tool_invocations 遥测（默认关，p50/p95 聚合）",
+     "evidence": "apps/negentropy 与 pyproject.toml grep prometheus 零命中；apps/negentropy/src/negentropy/config/observability.py:41-44；apps/negentropy/src/negentropy/engine/observability/tool_telemetry.py:138-152"
+    },
+    {
+     "doc_claim": "035 §13.5（:595-602）：Wiki live 模式=「实时跟随变更；SSG ISR 事件驱动增量刷新」",
+     "code_fact": "Wiki 已纯静态化，无运行时 ISR/revalidate：publish 后经 webhook（可选 HMAC 签名、fail-soft）触发 CI 全量导出内容包+整站重建部署，新鲜度由「重建」取代「revalidate」",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_redeploy.py:1-30；apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_service.py:346（明示纯静态化后无 ISR）；scripts/publish-wiki-pages.sh"
+    },
+    {
+     "doc_claim": "035 §13.3（:576-585）：viewer 读取 Publication Entry 的权限=「对 document.corpus 有读权限 ∩ catalog 可见性 ∩ publication 可见性」三级取交集",
+     "code_fact": "该三级交集在读取路径无任何执行点：wiki 公开读取端点（/wiki/entries/{id}/content、/view、/stats）零鉴权零可见性判定；静态导出仅按 status=published 过滤，不校验 visibility——PRIVATE/INTERNAL 的已发布 publication 会被导出进公开静态站点",
+     "evidence": "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:543-560,835-898；apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_export_service.py:87-97；apps/negentropy/src/negentropy/knowledge/lifecycle/wiki_dao.py:109-139（无 visibility 参数）"
+    }
+   ],
+   "verification": {
+    "domain": "D5-app-loop（Negentropy 知识库子系统）",
+    "verdicts": [
+     {
+      "id": "C1",
+      "verdict": "confirmed",
+      "note": "Corpus 模型（models/perception.py:31-60）仅 app_name+name 唯一约束，无 Channel/product/tenant 字段，grep channel|product_id|tenant_id|brand 于 knowledge/ 与 perception.py 零命中复核一致；config/auth.py:28-29 默认 OPTIONAL + middleware.py:71-73 无 token 非 STRICT 直接放行坐实；限流仅在 engine/tools/memory_tools.py:43-66（进程内滑动窗），KB 链路无。限定一处表述：知识路由并非「零认证依赖」——wiki.py 6 个评论/注解管理端点（592/625/654/697/764/814）挂 Depends(get_current_user)，/mcp/knowledge 在全局 allowlist 外自带 bearer 强校验（middleware.py:58-60），但均为认证（authn）非 RBAC（authz），require_permission/require_role 零调用，不构成 Channel 缺席判定的反证。"
+     },
+     {
+      "id": "C2",
+      "verdict": "confirmed",
+      "note": "unified_search.py:28-92 正则五类意图（fact/exploration/comparison/navigation/graph_query）坐实；hybrid_planner.py 模块头 line 5 与 _INTENT_MAP(48-55) 证实 Stage1 复用 classify_intent；自查 grep query_rewrite|rewrite_query|hyde|multi_query|查询改写|指代消解 于检索链路零命中（condense 命中仅在 engine/routine/memory_extractor.py 事件压缩，与查询改写无关），多轮指代确由 Agent LLM 隐式承担。partial 判定准确。"
+     },
+     {
+      "id": "C3",
+      "verdict": "confirmed",
+      "note": "citation_search.py:148-237 逐 Corpus 检索→snippet 截断→按终序注入 citation_id+formatted_citation+corpus_label 坐实；_citation_protocol.py:22-38 [N] 标注+原文摘录+严禁臆造；六个 instruction 拼接坐实（agents/agent.py:229 + perception/contemplation/internalization/action/influence 五 Faculty 各一处）；前端 citation-parser.ts（CITATION_TOKEN_RE 128 行）+ MessageBubble.tsx:356-363 条件注入 p/li 渲染坐实；grep faithfulness|groundedness|verify_citation|attribution_check 零命中，无生成后逐断言回锚校验器坐实。"
+     },
+     {
+      "id": "C4",
+      "verdict": "confirmed",
+      "note": "service.py:621 `self._reranker = reranker or NoopReranker()`，且 _shared.py:153-161 生产单例 _get_service 确不注入 reranker；repository.py:766-778 语义检索 order_by(distance.asc()).limit 无距离阈值；agents/tools/perception.py:261-265 count=0 回退 _fallback_to_memory_search（272-352）；mcp_server.py:42,143-144 零结果固定反幻觉 note；hybrid_planner.py:766 score_threshold=0.0；拒答/refuse/refusal grep 零命中。无分数置信与拒答阈值的 divergent 取向坐实。"
+     },
+     {
+      "id": "C5",
+      "verdict": "confirmed",
+      "note": "grep KnowledgeTask|knowledge_gap|knowledge_task|bad_case|unanswered 于 src+tests+scripts 零命中；corpus.py:295-309 仅跨语料引用建议端点；corpus_engine.py 六维质量评估（QUALITY_WEIGHTS 36-43）、create_version_snapshot、suggest_cross_references（Jaccard 实体重叠）均不产任务。零结果/拒答无任何回流任务坐实。"
+     },
+     {
+      "id": "C6",
+      "verdict": "corrected",
+      "note": "主体成立：无 chunk 不可信定界与注入扫描（grep untrusted|prompt injection 于 agents/knowledge/engine 零命中，sanitize 命中仅为文件名/标签清洗）、无权限视图哈希（grep 零命中）、无 Widget 沙箱、citation 直携原始 source_uri（citation_search.py:96-100 + 前端 citation-parser.ts:159-163 直跳）。但「受限 Markdown/链接图片白名单」并非全缺：公开 wiki 渲染面 MarkdownRenderer.tsx:4-10,17-55,63-69 使用 rehype-raw + rehype-sanitize(wikiSanitizeSchema)——tag 白名单（剔除 script/iframe/object）、src 协议白名单（http/https/data）、img style 走 rehype-sanitize 内置 CSS 白名单，依赖 rehype-sanitize ^6.0.0。修正后 status=partial：wiki 公开面（C10 所指对外 Channel 的实际载体）已有输出编码白名单层，聊天答案面（negentropy-ui markdown-plugins.ts:21-24 仅 GFM+math+KaTeX）仍靠 react-markdown 框架默认，生成侧 prompt 注入防御两侧均无。"
+     },
+     {
+      "id": "C7",
+      "verdict": "confirmed",
+      "note": "routes/search.py:43-106 纯检索（返回 items+分数，无生成）；routes/unified_search.py:37-72 纯检索；grep widget|embed.js|handoff|escalat|转人工|human_handoff（排除 embedding 误配）零命中；graph.py 的 answer_entities 是实体 ID 列表非答案生成。答案生成只存在于内部 ADK Agent 聊天坐实。"
+     },
+     {
+      "id": "C8",
+      "verdict": "confirmed",
+      "note": "faculties/perception.py:12-18 三个 KB 检索工具默认集 + 64-110 互斥使用指引坐实；tools/perception.py:184-188 corpus scope 由 session.state.corpus_ids 注入只收窄、190-201 enable_cross_corpus_kg flag 门控、203-212 异常 planner_fallback_to_legacy 自动降级；hybrid_planner.py:218-299 四阶段（Intent→Seed→GraphExpand→Fuse+Rerank）管线坐实。implemented 判定准确。"
+     },
+     {
+      "id": "C9",
+      "verdict": "confirmed",
+      "note": "mcp_server.py:48-61 每进程 secrets.token_urlsafe(32) 随机 token（settings 静态优先）、204-223 两只读工具注册、240-260 compare_digest bearer 外包 ASGI、42,143-144 零结果 note；orchestrator.py:70-81 白名单含 mcp__knowledge、1880-1886 运行期程序化注入且注释明言「落库即 Split-Brain」；_kb_search_impl 与 ADK 工具共享 citation_search 单一事实源（tools/perception.py:360-361 注明正交提取同源）；tests/unit_tests/knowledge/test_kb_mcp_server.py 存在。implemented 判定准确。"
+     },
+     {
+      "id": "C10",
+      "verdict": "confirmed",
+      "note": "wiki_redeploy.py:1-19 fail-soft webhook（异常仅 WARN）+ 可选 HMAC-SHA256 签名坐实；wiki_export_service.py:87-97 仅 status=published 过滤；wiki_dao.py:109-140 list_publications 无 visibility 参数（模型 perception.py:308-313 visibility 列确实存在但导出不校验，缺口坐实）；WikiSearchModal.tsx:41-47 Pagefind 构建期产物懒加载；LIVE/SNAPSHOT 双模式坐实（perception.py:296-305 publish_mode 枚举 + negentropy-wiki/src/lib/wiki-api.ts:190）。静态发布取向坐实。"
+     },
+     {
+      "id": "C11",
+      "verdict": "confirmed",
+      "note": "唯一勘误：迁移文件实际路径为 src/negentropy/db/migrations/versions/0001_init_schema.py:767-793（取证少写 src/negentropy 前缀），行号与 NOT NULL 三字段（knowledge_id/corpus_id/app_name）、无 document_id 列均坐实。三处断裂逐一复核成立：(a) routes/unified_search.py:37-72 search 路由确无 commit，AsyncSessionLocal 上下文退出即回滚；(b) _record_impression（retrieval/unified_search.py:477-493）缺三个 NOT NULL 必填 → flush 必 IntegrityError，被 189-193 裸 except 吞；(c) /unified/feedback 传 document_id → KnowledgeFeedback 无该 mapped 属性 → SQLAlchemy 声明式构造器 TypeError → 恒 500（该路由 91 行的 commit 永远到不了）；(d) MessageBubble.tsx:58-60,113-117,140-147 setFeedback 纯本地 useState 不上报。附注：_record_impression 的 metadata kwarg 亦非列（Base.metadata 类级保留属性），静默 setattr 不落库，死链证据更足。「表在链路死」的 partial 判定准确。"
+     },
+     {
+      "id": "C12",
+      "verdict": "confirmed",
+      "note": "eval_suite.py:63,75 TARGET_KIND_KNOWLEDGE_RETRIEVAL 入白名单坐实；runner.py 头注明示「本模块提供 SkillExecutor（v1）；retrieval/agent executor 留后续」+ holdout 防回流不变量（visible_results_query 排除 holdout）；tests/eval_tests/memory/eval_runner.py:2-6 MRR@10/NDCG@10/Hit@K 仅 memory 独立基线；performance_tests 仅延迟基准；grep ragas|faithfulness|docRecall|golden set 零有效命中（golden 命中均为无关：状态机 golden 集成测试命名、数据集里 Golden Retriever 犬种文本）。missing 判定准确。"
+     },
+     {
+      "id": "C13",
+      "verdict": "confirmed",
+      "note": "wiki.py:835-898 view_count 原子 upsert 自增 + 评论/注解 active 计数；service.py:3812-3835 _record_match_retrievals 仅经 increment_retrieval_counts 自增（parent/child chunk 角色感知）；grep resolution|resolved|escalated|abandoned|confirmed 四态于 KB 链路零命中。无 resolution 口径与分层统计坐实。"
+     },
+     {
+      "id": "C14",
+      "verdict": "confirmed",
+      "note": "service.py:3449-3456 search_completed 事件字段（corpus_id/mode/三计数）确无 latency；perception.py:462-470 planner_search_completed 含 stage_latencies_ms；embedding.py:42-47 OTel span（gen_ai 标准属性）+ instrumentation.py litellm OpenTelemetry/Langfuse 回调；prometheus 于 src+pyproject 零命中。一处小勘误：p50/p95 实际落在 tool_stats_daily 聚合表列（models/tool_telemetry.py:150-151，迁移 0082），非 tool_telemetry.py:138-152（该段是采集 status/trace_id/latency_ms 的写入逻辑）；总开关 tool_telemetry_enabled 默认 False 坐实（config/observability.py:41-44）。partial 判定准确。"
+     },
+     {
+      "id": "C15",
+      "verdict": "confirmed",
+      "note": "config/knowledge.py:307-308 cross_corpus_kg_app_allowlist / cross_corpus_kg_user_sample_rate 全仓仅此定义、零消费方坐实（门控 perception.py:196-199 只读 enable_cross_corpus_kg 与 scoped_ids）；memory 域完整灰度回路坐实：canary.py:18-40 sha256 sticky 分桶（bucket_key 解耦 user_id 全同桶问题）、decision.py:50-62 MIN_SAMPLE_N=50/权重硬界 0.3-0.9/单步限幅 0.10/DIVERSITY_REGRESSION_RATIO=0.8、eval_runner.py:52-60 按 config_version 聚合 memory_retrieval_logs、orchestrator.py:7-8 shadow_eval→canary→promote/rollback/hold 状态机。divergent 判定准确。"
+     },
+     {
+      "id": "L1",
+      "verdict": "confirmed",
+      "note": "与 C11 同源三断点（不 commit/NOT NULL 违约/document_id 非法 kwarg）+ 裸 except 吞异常全部实看复核成立；docs/.agents/issue.md I-138@3726 锚点存在。「反馈机制须与消费方同 PR 落地」经验与代码事实互证。"
+     },
+     {
+      "id": "L2",
+      "verdict": "confirmed",
+      "note": "canary.py:18-40 sticky hash（同键全程同桶，bucket_key 优先级 thread_id>user_id，缺键→100 永不进 canary）；decision.py:50-62 常量逐一坐实（MIN_SAMPLE_N=50、HELPful 净改进 0.02、zero_hit 容许 0.01、权重界与单步 0.10、diversity 0.8）；eval_runner.py:52-60 窗口聚合坐实。"
+     },
+     {
+      "id": "L3",
+      "verdict": "confirmed",
+      "note": "eval/runner.py:990-991 `score = float(res.score) if res.score is not None else 0.0`——judge 不可用/解析失败确实合成 0 分入 scores 均值，坐实「失败≠低分」违反；I-128@3554、I-152@3950、I-198@4926 锚点均存在。"
+     },
+     {
+      "id": "L4",
+      "verdict": "confirmed",
+      "note": "service.py:3243-3277 rrf 路径 embedding 失败/不可用回退 keyword 检索且 mode=\"keyword_fallback\" 显式标注（3277）坐实；I-026@837 锚点存在。"
+     },
+     {
+      "id": "L5",
+      "verdict": "confirmed",
+      "note": "retrieval_tracker.py:70-76 docstring 明言「零命中也记录（retrieved_memory_ids=[]）」+ 208-222 zero_hit_rate=zero_hit/total 计入 total 分母坐实；I-138@3726 锚点存在。"
+     },
+     {
+      "id": "L6",
+      "verdict": "confirmed",
+      "note": "pdf_fidelity_patrol.py:1-30 节奏权威（默认 600s tick、合格阈值默认 95、巡检态 SSOT=knowledge_documents.patrol_status 列而非 Memory）；patrol_wiki_env.py:1-16 真实 wiki 渲染栈（next dev + MarkdownRenderer 全栈 + Playwright 截图）对照坐实；patrol_prompt.py:184-192 非回归门（任一样本降幅>3 分禁开 PR）坐实；I-158@4022 锚点存在。"
+     },
+     {
+      "id": "L7",
+      "verdict": "confirmed",
+      "note": "mcp_server.py:42,143-144 零结果结构化哨兵坐实；graph/global_search.py:50-51 prompt 明确要求「若社区与查询无关，明确说『无相关信息』」——正是该 LLM 生成哨兵文本曾漏入证据聚合/reduce 的源头（I-198@4926 锚点存在），两半证据互扣。"
+     },
+     {
+      "id": "L8",
+      "verdict": "confirmed",
+      "note": "与 C9 同源：compare_digest 校验、每进程随机 token 程序化注入 mcp_config 不落库（orchestrator.py:1880-1886 注释明言「落库即 Split-Brain」）、与 ADK 工具共享 citation_search 检索+citation SSOT、bootstrap 进程内 mount 零冷启动，全部实看坐实。"
+     },
+     {
+      "id": "L9",
+      "verdict": "confirmed",
+      "note": "_collapse_superseded_patrols（pdf_fidelity_patrol.py:519，一文一巡检收敛，保留 rank1 取消其余、幂等仅作用终态）与 _reconcile_patrol_status（:580，以每 doc 最新非 cancelled 终态 Routine 为权威、updated_at DESC、cancelled 非结论、幂等仅变更时写）双机制坐实；I-159@4034 锚点存在。"
+     },
+     {
+      "id": "L10",
+      "verdict": "confirmed",
+      "note": "repository.py:841,848 两处 plainto_tsquery('english', :query) 坐实——tsvector english 配置对中文子串全落空，关键词腿失效被向量腿掩盖的结构性风险属实；I-196@4897 锚点存在。"
+     },
+     {
+      "id": "L11",
+      "verdict": "confirmed",
+      "note": "perception.py:261-265 KB count=0 即触发 _fallback_to_memory_search，272-352 将个人 Memory 结果全量注入返回（含 combined_score=0.0 照返、search_mode=memory_fallback 标注），fallback 源无任何与检索 scope 的同域校验；多租户场景越权风险论断成立。"
+     }
+    ],
+    "missed": [
+     {
+      "fact": "wiki 公开渲染面已有一层显式输出编码白名单（rehype-raw + rehype-sanitize），并非「全仓无 sanitize/白名单设施」：wikiSanitizeSchema 在 defaultSchema 基础上放行 data: 图片协议、figure/figcaption 标签与 img 的 width/height/loading/decoding/style 属性（style 走 rehype-sanitize 内置 CSS 白名单防 expression()/javascript:）。这是 C10 所指「事实上的对外文档 Channel」上的真实防线，C6 的取证只扫了 negentropy-ui 侧而漏掉 negentropy-wiki 侧。",
+      "evidence": "apps/negentropy-wiki/src/components/markdown/MarkdownRenderer.tsx:4-10,17-55,63-69（rehypeRaw→rehypeSanitize(wikiSanitizeSchema)→rehypeKatex→rehypeSlug→rehypeHighlight 链）；apps/negentropy-wiki/package.json:39-40（rehype-raw ^7.0.0 / rehype-sanitize ^6.0.0）；engine/routine/patrol_wiki_env.py:1-16（巡检对照也复用该 sanitize 全栈）"
+     },
+     {
+      "fact": "知识路由并非整体匿名可达：wiki 评论/注解的 6 个写管理端点（POST/PATCH/DELETE comments 与 annotations）挂 Depends(get_current_user) 强制登录态，/mcp/knowledge 被排除在全局 OPTIONAL 中间件 allowlist 之外、由子应用自带 bearer 强校验。C1 的「auth 默认 OPTIONAL 放行匿名」全局成立，但「知识路由零权限依赖」应精确为「零 RBAC/授权依赖、非零认证依赖」。另 agents/tools/perception.py:369 的 _planner_search_knowledge_base 已预留 tool_context RBAC user 上下文注入挂点（ARG001 注释），表明 RBAC 是已识别未实现的扩展位。",
+      "evidence": "apps/negentropy/src/negentropy/knowledge/routes/wiki.py:592,625,654,697,764,814（Depends(get_current_user)）；apps/negentropy/src/negentropy/auth/middleware.py:58-60（/mcp/knowledge allowlist 注释：由子应用 bearer 强校验，严于全局 OPTIONAL）；apps/negentropy/src/negentropy/agents/tools/perception.py:369"
+     },
+     {
+      "fact": "工具遥测的 p50/p95 具体落点是 tool_stats_daily 每日聚合表（成功率/p50·p95 延迟/成本/调用量列），由迁移 0082 建立、模型层声明为「后续 GEPA proposer 的工具效果证据源」；C14 引 tool_telemetry.py:138-152 定位偏了一层（那是逐条采集 latency_ms/status/trace_id 的写入逻辑），结论（含 p50/p95 但默认关）不受影响。",
+      "evidence": "apps/negentropy/src/negentropy/models/tool_telemetry.py:139,150-151（p50_latency_ms/p95_latency_ms 列）；apps/negentropy/src/negentropy/db/migrations/versions/0082_tool_telemetry.py:10,149-150"
+     }
+    ]
+   }
+  }
+ }
+}

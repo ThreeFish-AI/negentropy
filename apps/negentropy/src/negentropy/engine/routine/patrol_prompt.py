@@ -170,7 +170,8 @@ Step C：wiki 渲染错还是 ui 渲染错？仅 wiki → render_wiki；仅 ui �
 
 ### B. Real-Render Gate（每 N=min(5, max_iter/3) 轮 / 达 inner 阈值 / FINALIZE 前必做一次）
 - 真 Rebuild（清 checkpoint 全量重跑 + 写生产 markdown_content）：调\
-  ``POST /knowledge/base/{corpus_id}/documents/{doc_id}/refresh_markdown`` body ``{"resume": false}``\
+  ``POST /knowledge/base/{corpus_id}/documents/{doc_id}/refresh_markdown`` body ``{"resume": false}``，\
+  请求头带 ``X-Negentropy-Service-Token: $NE_KNOWLEDGE_SERVICE_TOKEN``（知识库写端点鉴权，环境变量已注入）\
   （经 live perceives :2992；与本轮 worktree 代码改动**独立**——跨 Routine 合并部署后才反映代码杠杆）。
 - 重发 wiki：把生产 markdown_content 读回写 wiki 内容根（步骤 3 的 publish-candidate，markdown 换成生产态），\
   或直接 ``WikiExportService.export_single_entry``（含 asset bake）。

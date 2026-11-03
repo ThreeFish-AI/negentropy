@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--permission-chain/knowledge-base-platform--permission-chain.json",
+    "sha256": "f5ff49db3869106d537aaa75b8e9f1c20c4677b521d6f1fae51127c123474f9a",
+    "bytes": 5740
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--permission-chain.html",
+    "sha256": "f48a323025d3e64404aea200ddbded06e53b3ed96d67008279f678f58d236eed",
+    "bytes": 767496
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--permission-chain.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--permission-chain.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--permission-chain.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2027,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 4,
+      "routesOverSuggestedStretch": 4
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "w10",
+            "from": "gate",
+            "to": "prefilter",
+            "label": "ACL 谓词注入",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "w2",
+            "from": "conn",
+            "to": "aclcap",
+            "label": "随文档同步",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "bends": 3,
+          "stretch": 1.407
+        },
+        {
+          "relationship": {
+            "id": "w3",
+            "from": "aclcap",
+            "to": "ver",
+            "label": "写入 acl",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.414
+        },
+        {
+          "relationship": {
+            "id": "w4",
+            "from": "ver",
+            "to": "edit",
+            "label": "基于 canonical",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 2,
+          "stretch": 1.484
+        },
+        {
+          "relationship": {
+            "id": "w7",
+            "from": "mat",
+            "to": "prefilter",
+            "label": "ACL 入索引",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 3,
+          "stretch": 1.61
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "gate → prefilter needs 3 bends: move node gate or prefilter so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "conn → aclcap needs 3 bends: move node conn or aclcap so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "aclcap → ver needs 3 bends: move node aclcap or ver so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "ver → edit needs 2 bends: move node ver or edit so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "mat → prefilter needs 3 bends: move node mat or prefilter so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

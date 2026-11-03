@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import hmac
+import secrets
+
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 
 from negentropy.config import settings
+from negentropy.config.auth import AuthMode
 
 from .service import AuthService, AuthUser
 from .tokens import TokenError
@@ -100,6 +104,56 @@ async def get_current_user_with_db_roles(
     路径以避免每请求 DB 查询。
     """
     return await resolve_user_with_db_roles(user)
+
+
+SERVICE_TOKEN_HEADER = "x-negentropy-service-token"
+SERVICE_TOKEN_ENV = "NE_KNOWLEDGE_SERVICE_TOKEN"
+_service_token: str | None = None
+
+
+def get_knowledge_service_token() -> str:
+    """机器调用方（Routine / 内部脚本）的知识库写入凭证：每进程随机生成、不落库（重启轮换）。
+
+    与 ``/mcp/knowledge`` 的 per-process bearer 同构：经子进程 env（``SERVICE_TOKEN_ENV``）
+    程序化下发，人类身份平面不持有。
+    """
+    global _service_token
+    if _service_token is None:
+        _service_token = secrets.token_urlsafe(32)
+    return _service_token
+
+
+def _is_service_caller(request: Request) -> bool:
+    presented = request.headers.get(SERVICE_TOKEN_HEADER)
+    if not presented:
+        return False
+    # header 值经 latin-1 解码可含非 ASCII 字符；compare_digest 对非 ASCII str 抛 TypeError（500），
+    # 两侧统一 utf-8 编码为 bytes 后恒时比较。
+    return hmac.compare_digest(presented.encode("utf-8"), get_knowledge_service_token().encode("utf-8"))
+
+
+async def require_knowledge_write(request: Request) -> AuthUser | None:
+    """知识库写操作守卫：``knowledge:write`` 权限（roles 以 DB 为权威）或机器调用方 service token。
+
+    鉴权关闭（``enabled=False`` / ``mode=off``）时放行，与 ``AuthMiddleware`` 同口径；
+    其余模式一律 fail-closed——optional 模式下中间件对无 token 请求放行，写操作的拒绝在此兜底。
+
+    注意：service token 机器调用方路径仅在 optional/off 模式生效——strict 模式下
+    ``AuthMiddleware`` 先于路由守卫对无会话 token 的请求一律 401，机器调用方（不持有
+    人类会话 token）会被中间件拒绝；strict 部署若需机器调用方，须先决策中间件层的豁免机制。
+    """
+    # 局部 import：rbac 顶层依赖本模块的 get_current_user，避免循环导入。
+    from .rbac import has_permission
+
+    auth = settings.auth
+    if not auth.enabled or auth.mode == AuthMode.OFF:
+        return None
+    if _is_service_caller(request):
+        return None
+    user = await resolve_user_with_db_roles(get_current_user(request))
+    if not has_permission(user.roles, "knowledge:write"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="permission required: knowledge:write")
+    return user
 
 
 async def require_admin(

@@ -1,0 +1,39 @@
+%%source: docs/concepts/design/knowledge-base-platform-implementation.md §1 总路线图（六工作流 P0–P5 × 里程碑 M1–M3，横版：列=工作流，行=里程碑）
+%%slug: design/knowledge-base-platform--roadmap
+%%type: workflow
+%%derived: 新创作，无原文 mermaid 块；知识库平台独立新建平台实施路线
+%%fix: 初版六泳道纵版 viewport-height 不过（837×912），改为横版三泳道（M1/M2/M3）×六列（P0–P5）一次过门
+flowchart LR
+  subgraph M1["M1 单产品可用"]
+    G0["骨架·鉴权门<br/>strict+覆盖门"]
+    D0["版本库·原子换版<br/>确定性 chunk"]
+    I0["索引基线<br/>ts_rank+HNSW+元数据"]
+    R0["谓词·四模式<br/>RRF k=60"]
+    A0["Channel·匿名谓词<br/>fail-closed"]
+    W0["Answer API<br/>golden set v0"]
+    G0 --> D0 --> I0 --> R0 --> A0 --> W0
+  end
+  subgraph M2["M2 多产品·全索引"]
+    G1["队列·调度·死信<br/>watchdog"]
+    D1["连接器 SPI<br/>webhook/增量/重扫"]
+    I1["真 BM25·geo·蓝绿<br/>index_ver 水位"]
+    R1["真重排·置信校准<br/>逐腿回归门"]
+    A1["ACL 全链路<br/>撤销表·token·RLS"]
+    W1["Widget 沙箱·闭环<br/>四态·RAGAS 门"]
+  end
+  subgraph M3["M3 规模化·闭环"]
+    G2["运维常态化<br/>演练+runbook"]
+    D2["降频·合规·多语言<br/>擦除级联"]
+    I2["嵌入双轨<br/>MRL 弹性维度"]
+    R2["高精档（可选）<br/>ColBERT/SPLADE"]
+    A2["ReBAC 外置评估<br/>OpenFGA"]
+    W2["A/B·口径<br/>粘性分桶+护栏"]
+  end
+  G0 --> G1 --> G2
+  D0 --> D1 --> D2
+  I0 --> I1 --> I2
+  R0 --> R1 --> R2
+  A0 --> A1 --> A2
+  W0 --> W1 --> W2
+  G1 -.队列前置.-> D1
+  A1 -.权限前置.-> W1

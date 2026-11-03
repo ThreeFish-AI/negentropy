@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "3dbc67f4-9d4b-4199-9998-cf88f44dd454",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--roadmap/knowledge-base-platform--roadmap.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.html",
+  "specification": {
+    "sha256": "46dd016e395d98b840970bf2dd796af4ee4ac9fd7cb4bde65df0453c5c4bf131",
+    "bytes": 6100
+  },
+  "artifact": {
+    "sha256": "b06babcf4b757cf6b8ccab4ebb84c3f43ca36b4bb079420c4747e9e78812f102",
+    "bytes": 770257
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+    "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
+    "bytes": 12096
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+    "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
+    "bytes": 795966
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2830,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 2,
+      "routesOverSuggestedBends": 3,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "e7",
+            "from": "store",
+            "to": "indexer",
+            "label": "全量重放",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "right": {
+            "id": "e8",
+            "from": "indexer",
+            "to": "bm25",
+            "label": "",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "point": [
+            523.2,
+            350
+          ],
+          "sharedNode": "indexer"
+        },
+        {
+          "left": {
+            "id": "e9",
+            "from": "indexer",
+            "to": "meta",
+            "label": "",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "right": {
+            "id": "e10",
+            "from": "indexer",
+            "to": "vec",
+            "label": "",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            643,
+            420
+          ],
+          "sharedNode": "indexer"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e8",
+            "from": "indexer",
+            "to": "bm25",
+            "label": "",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "bends": 3,
+          "stretch": 1
+        },
+        {
+          "relationship": {
+            "id": "e17",
+            "from": "prefilter",
+            "to": "fusion",
+            "label": "带谓词召回",
+            "collectionIndex": 16,
+            "artifactIndex": 17
+          },
+          "bends": 4,
+          "stretch": 1.39
+        },
+        {
+          "relationship": {
+            "id": "e25",
+            "from": "aclsync",
+            "to": "recall",
+            "label": "谓词注入",
+            "collectionIndex": 24,
+            "artifactIndex": 25
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "indexer has 4 relationships facing its left side, which fits 3 ports: make that side at least 74px, or move some of those neighbours so they face another side of indexer.",
+      "store → indexer and indexer → bm25 cross next to indexer: move node store or bm25 so the two reach indexer from different sides (for example one level with it, one directly above or below it).",
+      "indexer → meta and indexer → vec cross next to indexer: move node meta or vec so the two reach indexer from different sides (for example one level with it, one directly above or below it).",
+      "indexer → bm25 needs 3 bends: move node indexer or bm25 so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "prefilter → fusion needs 4 bends: move node prefilter or fusion so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "aclsync → recall needs 3 bends: move node aclsync or recall so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

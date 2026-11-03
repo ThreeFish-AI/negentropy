@@ -1,0 +1,47 @@
+%%source: docs/concepts/design/knowledge-base-platform.md §5 权限管控（全链路权限流 + 身份四平面）
+%%slug: design/knowledge-base-platform--permission-chain
+%%type: workflow
+%%derived: 新创作，无原文 mermaid 块；权限全链路：四泳道（源与摄取→版本与编辑→索引与检索→应用与终端）×四阶段（引入期→编辑与身份→索引与验权→检索交付），fail-closed 不变量
+%%fix: 评审 R2——M2「可选四眼」改为「可见性变更强制四眼」，与 §2.3/§5.2 一致
+%%fix: 源/图对账回写——图体与已入库 candidate（docs/diagrams/knowledge-base-platform--permission-chain/）节点/边/标签逐项同构：五阶段收敛为四泳道×四阶段（操作全审计由 architecture 图「审计日志」节点与权限平面承载，desktop-readability 收窄不设独立节点）、补「源系统」节点、删不可满足的 T4→W1 回边；泳道×阶段网格/双轨分组/卡片见 %%注释（建模与回执锚以 candidate JSON 为准）
+%%lane×phase 网格：列头=引入期/编辑与身份/索引与验权/检索交付（candidate phases）
+%%group: 内容轨——ACL 随文档流转（src→conn→aclcap→ver→edit→pub→mat→prefilter）
+%%group: 身份轨——终端验权（anon/cust→gate，在 pre-filter 合流为过滤谓词）
+%%card: 安全不变量（rose）——pre-filter fail-closed：判定不可用 = 全部不可见 / 融合与重排只接触已过滤候选，绝不后过滤 top-k / 拒答话术统一，不泄露「文档存在但无权限」
+%%card: 双轨合流（cyan）——内容轨（引入→编辑→索引）携带 ACL 物化流转 / 身份轨（匿名产品域 / 登录客户 ACL）在检索期合流为过滤谓词
+flowchart TD
+  subgraph LN1["泳道：源与摄取"]
+    SRC["源系统"]
+    CONN["连接器"]
+  end
+
+  subgraph LN2["泳道：版本与编辑"]
+    ACL["捕获 ACL 镜像"]
+    VER["DocumentVersion"]
+    EDIT["人工编辑"]
+    PUB["评审发布"]
+  end
+
+  subgraph LN3["泳道：索引与检索"]
+    MAT["Chunk 物化"]
+    PRE["组合 pre-filter"]
+  end
+
+  subgraph LN4["泳道：应用与终端"]
+    ANON["匿名访客"]
+    CUST["登录客户"]
+    GATE["验权网关"]
+    ANS["有据答案"]
+  end
+
+  SRC -->|拉取| CONN
+  CONN -->|随文档同步| ACL
+  ACL -->|写入 acl| VER
+  VER -->|基于 canonical| EDIT
+  EDIT -->|草稿→发布| PUB
+  PUB -->|触发索引| MAT
+  MAT -->|ACL 入索引| PRE
+  ANON --> GATE
+  CUST --> GATE
+  GATE -->|ACL 谓词注入| PRE
+  PRE -->|已过滤候选| ANS

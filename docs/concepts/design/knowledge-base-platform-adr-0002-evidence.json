@@ -1,0 +1,1291 @@
+{
+ "as_of": "2026-11-02",
+ "note": "工程视角许可与托管可用性取证，非法律意见",
+ "tracks": {
+  "T1-pg-native": {
+   "research": {
+    "track": "PostgreSQL 内真 BM25 扩展（许可与托管可用性评估，工程视角，不构成法律意见；全部取证访问日期 2026-11-02）",
+    "options": [
+     {
+      "name": "ParadeDB pg_search（旧名 pg_bm25；Community / Enterprise 两版）",
+      "license": "Community 版为 AGPL-3.0-only（仓库 LICENSE 是未改动的 AGPLv3 全文）。Enterprise 版走商业许可，随 ParadeDB Cloud 提供，自托管需联系销售。工程判断：AGPL §13 只在修改了程序、且用户通过网络与修改版交互时触发源码提供义务，原样当数据库用一般不要求开放应用代码；但很多企业合规策略直接禁用 AGPL，需法务确认。",
+      "license_source_url": "https://github.com/paradedb/paradedb/blob/main/LICENSE",
+      "bm25_capability": "真 BM25，基于 Tantivy。k1/b 可以按字段分别配置（k1 范围 0–100，默认 1.2；b 范围 0–1，默认 0.75）。没有真正的 BM25F：多字段加权靠查询级 boost（-2048~2048）拆子查询再相加，属于近似。CJK 文档列有 Jieba（含繁简转换 chinese_convert）、Lindera（中文用 CC-CEDICT）、chinese_compatible、ICU 分词器。官方说明两版 SQL API 相同，据此推断 Community 也能用 Jieba。",
+      "pg_integration": "PG 扩展，必须加入 shared_preload_libraries；预编译包覆盖 PG15+。索引写法 `USING paradedb`，`USING bm25` 保留为向后兼容别名。Community 只支持单节点：BM25 索引不做物理复制，只在主库可用；HA、故障切换、只读副本都要 Enterprise。官方提供逻辑复制路径：托管 PG 作 publisher，ParadeDB 作 subscriber（要求 PG17+，结果最终一致）。",
+      "managed_availability": "RDS 和 Aurora 不可装：AWS 扩展清单（页面 Last-Modified 2026-11-02）里没有。Cloud SQL 不可装（清单 2026-10-26 更新）。AlloyDB 不可装（清单 2026-10-31 更新）。Azure Flexible Server 不可装（清单 2026-07-13 更新）。Supabase 不可装（扩展页 2026-11-02 实抓）。Neon 于 2026-03-19 对新项目弃用，2026-09-21 从存量项目移除。可行路径只有三条：自托管（含 CloudNativePG 或 Railway/Render/Fly/DO 等 PaaS，跑 Community）、ParadeDB Cloud（private preview，跑 Enterprise）、托管主库逻辑复制到自建 ParadeDB 节点。",
+      "maturity": "版本仍在 0.x：最新 v0.26.4 发布于 2026-10-29，周更节奏；9.4k stars，仓库当日仍有提交。相对 PG 原生 FTS 功能最全（分词器、聚合、facet、JOIN）。生产风险有两条：Community 没有索引复制，以及许可证是 AGPL。",
+      "evidence": [
+       "https://github.com/paradedb/paradedb/blob/main/LICENSE （访问 2026-11-02）",
+       "https://github.com/paradedb/paradedb#license （README License 段，访问 2026-11-02）",
+       "https://www.paradedb.com/docs/operate/deploy/enterprise （访问 2026-11-02）",
+       "https://www.paradedb.com/docs/operate/deploy/cloud.md （private preview，访问 2026-11-02）",
+       "https://www.paradedb.com/docs/operate/deploy/logical-replication/getting-started.md （访问 2026-11-02）",
+       "https://www.paradedb.com/docs/reference/indexing/create-index.md （BM25 Parameters 段，访问 2026-11-02）",
+       "https://www.paradedb.com/docs/reference/tokenizers/available-tokenizers/jieba.md （访问 2026-11-02）",
+       "https://github.com/paradedb/paradedb/releases/tag/v0.26.4 （2026-10-29，访问 2026-11-02）",
+       "https://neon.com/docs/extensions/pg_search （访问 2026-11-02）",
+       "https://github.com/paradedb/paradedb/pull/985 （pg_bm25 更名为 pg_search，2024-03-14，访问 2026-11-02）"
+      ]
+     },
+     {
+      "name": "pg_textsearch（Tiger Data / Timescale）",
+      "license": "PostgreSQL License（宽松许可，版权方 Tiger Data），仓库 LICENSE 原文可查。没有单独的商业版。对外 SaaS 的许可风险最低。",
+      "license_source_url": "https://github.com/timescale/pg_textsearch/blob/main/LICENSE",
+      "bm25_capability": "真 BM25，带 IDF、TF 饱和与长度归一，Top-k 用 Block-Max WAND。k1 默认 1.2（范围 0.1–10），b 默认 0.75（范围 0–1），按索引设置。不支持原生多字段 BM25F：多列只能拼成表达式或数组建在同一个索引里，或建多个索引后在应用侧融合。分词复用 PG text search config，text_config 为必填项。中文需要配合 zhparser 等中文 parser（README 有示例，v1.4.0 起加入 Chinese search）。v1.5.0 起支持 Boolean 和短语查询。",
+      "pg_integration": "PG 扩展，索引访问方法名为 `bm25`，查询用 `<@>` 运算符，分数为负值，越小越相关。必须加入 shared_preload_libraries 并重启。只支持 PG17 和 PG18。已知限制：语料统计包含 RLS 隐藏的行；分区表的 IDF 按分区各自计算；PL/pgSQL 中要显式写索引名；刚建完 BM25 索引时不支持 2PC。",
+      "managed_availability": "Cloud SQL：支持，要求 PG17+，需开 cloudsql.enable_pg_textsearch flag。release notes 2026-09-14 以 Feature 发布，文档没标 Preview；但 Tiger Data 2026-09-21 新闻稿称两家 Google 服务均为 public preview、GA 预计年内，口径冲突，建议按 Preview 对待。AlloyDB：Preview（release notes 2026-08-04），支持 PG17/18，扩展清单显示版本 1.3（2026-10-31 更新）。RDS 和 Aurora：不在扩展清单（2026-11-02）。Azure Flexible Server：不在清单（2026-07-13）；Microsoft Q&A 2026-02-04 的回答是“not currently on our roadmap”。另一个独立服务 Azure HorizonDB 以 preview 形式支持（文档 2026-07-07）。Neon：不提供，替代品是 lakebase_text。Supabase：不提供，社区 PR #2043 因扩展冻结在 2026-07-17 被关闭。Tiger Cloud：官方页称 v1.1.0 已 production-ready（页面无日期）。",
+      "maturity": "v1.0.0 GA 于 2026-03-27；最新 v1.5.1 发布于 2026-10-02，修复 spill/merge 并发损坏；约 4.0k stars，仓库当日仍有提交，CI 带 Coverity。从 v0.0.1 到 1.5.x 不到一年，迭代快，近期仍在修数据损坏类 bug。",
+      "evidence": [
+       "https://github.com/timescale/pg_textsearch/blob/main/LICENSE （访问 2026-11-02）",
+       "https://github.com/timescale/pg_textsearch （README：k1/b、Limitations、Chinese 段，访问 2026-11-02）",
+       "https://github.com/timescale/pg_textsearch/releases/tag/v1.0.0 （2026-03-27，访问 2026-11-02）",
+       "https://github.com/timescale/pg_textsearch/releases/tag/v1.5.1 （2026-10-02，访问 2026-11-02）",
+       "https://docs.cloud.google.com/sql/docs/postgres/pg-textsearch （Last updated 2026-10-26，访问 2026-11-02）",
+       "https://cloud.google.com/sql/docs/postgres/release-notes （2026-09-14 条目，访问 2026-11-02）",
+       "https://docs.cloud.google.com/alloydb/docs/ai/create-bm25-index （Preview，Last updated 2026-10-26，访问 2026-11-02）",
+       "https://cloud.google.com/alloydb/docs/release-notes （2026-08-04 条目，访问 2026-11-02）",
+       "https://cloud.google.com/alloydb/docs/reference/extensions （pg_textsearch 1.3，Last updated 2026-10-31，访问 2026-11-02）",
+       "https://www.tigerdata.com/newsroom/google-cloud-brings-native-bm25-full-text-search-to-alloydb-and-cloud-sql-via-tiger-datas-pg_textsearch （2026-09-21，访问 2026-11-02）",
+       "https://learn.microsoft.com/en-us/azure/horizondb/ai/full-text-search （ms.date 2026-07-07，访问 2026-11-02）",
+       "https://learn.microsoft.com/en-us/answers/questions/5760513/pg-textsearch-extension-support-on-azure-database （2026-02-04，访问 2026-11-02）",
+       "https://github.com/supabase/postgres/pull/2043 （2026-07-17 关闭，访问 2026-11-02）",
+       "https://www.tigerdata.com/docs/deploy/tiger-cloud/tiger-cloud-extensions/pg-textsearch （访问 2026-11-02）"
+      ]
+     },
+     {
+      "name": "VectorChord-bm25（vchord_bm25，TensorChord；配套 pg_tokenizer.rs）",
+      "license": "双许可，二选一：AGPLv3 或 Elastic License v2（ELv2）。ELv2 禁止把软件作为托管或管理型服务提供给第三方。配套的 pg_tokenizer.rs 是 Apache-2.0。社区 fork pgsty/vchord_bm25 只采用 AGPL-3.0。工程判断：客服 SaaS 不对外提供数据库服务，一般不触发 ELv2 的托管限制；但如果租户能直接访问 SQL 或检索能力，需要法务评估。",
+      "license_source_url": "https://github.com/supervc-stack/VectorChord-bm25/blob/main/LICENSE",
+      "bm25_capability": "真 BM25，用 Block-WeakAnd 实现。源码 Bm25IndexOptions 中有 k1/b 索引选项，README 没写文档。以 bm25vector 稀疏列为单位建索引，不支持 BM25F。分词由 pg_tokenizer 负责（bert/gemma2b/llmlingua2 预训练模型、自训练模型、jieba 中文预分词；日文 lindera 需要重编译）。README 明说“currently have only tested against English”。存在 bm25_limit 截断（默认 100）。",
+      "pg_integration": "两个 PG 扩展 vchord_bm25 和 pg_tokenizer，需要 shared_preload_libraries。索引写法 `USING bm25 (col bm25_ops)`，查询用 `<&>` 运算符，分数为负值。需要先把文本 tokenize 成 bm25vector 列（可用触发器维护），不能直接对 text 建索引。",
+      "managed_availability": "在 RDS、Aurora、Cloud SQL、AlloyDB、Azure Flexible、Neon、Supabase 七家的官方扩展清单中均未出现（访问 2026-11-02）。厂商自营托管（VectorChord Cloud）未核实：没抓到官方托管文档。实际只能自托管，例如 tensorchord/vchord-suite Docker 镜像。",
+      "maturity": "最新 release 0.3.0 发布于 2025-12-15，主仓最后一次提交是 2026-04-28，之后约 6 个月无提交。仓库已从 tensorchord 迁到 supervc-stack（一个 2026-05-14 创建的个人账号，简介写“New home for VectorChord suites”），官方没有公告说明迁移原因。381 stars。pgsty 维护的 AGPL fork 仍活跃（2026-11-02 有推送）。维护前景不确定。",
+      "evidence": [
+       "https://github.com/supervc-stack/VectorChord-bm25/blob/main/LICENSE （访问 2026-11-02）",
+       "https://github.com/supervc-stack/VectorChord-bm25 （README Limitation/License 段，访问 2026-11-02）",
+       "https://github.com/supervc-stack/VectorChord-bm25/releases/tag/0.3.0 （2025-12-15，访问 2026-11-02）",
+       "https://github.com/supervc-stack/pg_tokenizer.rs （Apache-2.0，访问 2026-11-02）",
+       "https://github.com/pgsty/vchord_bm25 （AGPL-3.0 fork，访问 2026-11-02）",
+       "https://www.elastic.co/licensing/elastic-license （ELv2 Limitations，访问 2026-11-02）"
+      ]
+     },
+     {
+      "name": "pgx-bm25（bm25_native，PGX Inc.）",
+      "license": "PostgreSQL License（Copyright 2026 PGX Inc.）。官方公告称“there is no separate commercial edition”。",
+      "license_source_url": "https://github.com/pgexperts/pgx-bm25/blob/main/LICENSE",
+      "bm25_capability": "真 Okapi BM25，支持原生多列 BM25F，可按字段设 k1、b、boost。k1 默认 1.2，b 默认 0.75，可以用 ALTER INDEX 在线修改，不需要 REINDEX。支持短语、邻近、Boolean、前缀通配和 snippet；提供 jsonb 查询构建器，用户输入不会被当作查询语法。分词只用 PG Snowball 词典，analyzer 固定为 english 管线，没有 CJK 分词。",
+      "pg_integration": "C 语言 PGXS 扩展，索引访问方法 `bm25_native`，用 `@@@` 匹配、`&@@` 排序。索引数据存在索引自身的页里，因此走 WAL、崩溃恢复和物理复制。支持 PG17 和 PG18。对 RLS 表会退化为过滤器路径，并有一些拒绝执行的语义。",
+      "managed_availability": "在七家托管 PG 官方清单中均未出现（访问 2026-11-02），只能自托管。",
+      "maturity": "v1.0.0 于 2026-10-06 发布，仓库同日创建，10 stars，属于极新项目。PostgreSQL.org News 2026-10-07 有公告。生产采用证据为零，暂不建议作为主选。",
+      "evidence": [
+       "https://github.com/pgexperts/pgx-bm25/blob/main/LICENSE （访问 2026-11-02）",
+       "https://github.com/pgexperts/pgx-bm25 （README BM25F/k1/b 段，访问 2026-11-02）",
+       "https://www.postgresql.org/about/news/pgx-bm25-10-bm25-ranked-full-text-search-as-a-native-postgresql-index-3396/ （2026-10-07，访问 2026-11-02）"
+      ]
+     },
+     {
+      "name": "lakebase_text（Neon / Databricks Lakebase Search，配套 lakebase_tokenizer）",
+      "license": "未核实。Neon 和 Databricks 文档都没写许可证，也没找到公开源码仓库。只能在 Neon 和 Databricks Lakebase 托管环境中使用，按专有托管组件对待。",
+      "license_source_url": "https://neon.com/docs/extensions/lakebase-text",
+      "bm25_capability": "真 BM25：lakebase_bm25 索引建在 tsvector 上，Top-k 用 Block-Max WAND。k1 默认 1.2、范围被限制在 [1.2, 2.0]；b 默认 0.75、范围 [0, 1]。语料统计在建索引时计算，靠 VACUUM 更新，不是增量更新。CJK 由 lakebase_tokenizer 提供内置的 tokenizer_chinese、tokenizer_japanese、tokenizer_korean 配置。不支持 BM25F，多字段需要自己合并 tsvector。",
+      "pg_integration": "托管侧预装的扩展，Neon 默认预加载。要求 PG16+，Neon 清单版本 0.1.3（PG16–18）。查询用 `<@>` 和 to_bm25query，分数为负值；兼容 tsvector 和 tsquery 生态。",
+      "managed_availability": "仅 Neon（PG16–18，0.1.3）和 Databricks Lakebase 可用（Databricks 文档 2026-09-15 更新）。Neon 官方定位是 pg_search 的 BM25 替代品。RDS、Aurora、Cloud SQL、AlloyDB、Azure、Supabase 都不可用。",
+      "maturity": "很新，版本 0.1.x。Neon 页面写明“Lakebase Search is developed by Databricks”。供应商锁定最强，离开 Neon 或 Databricks 无法迁移索引形态。",
+      "evidence": [
+       "https://neon.com/docs/extensions/lakebase-text （访问 2026-11-02）",
+       "https://neon.com/docs/ai/lakebase-search （访问 2026-11-02）",
+       "https://neon.com/docs/extensions/lakebase-tokenizer （访问 2026-11-02）",
+       "https://neon.com/docs/extensions/pg-extensions （lakebase_text 0.1.3 PG16–18，访问 2026-11-02）",
+       "https://docs.databricks.com/aws/en/oltp/projects/lakebase-text （Last updated 2026-09-15，访问 2026-11-02）",
+       "https://neon.com/docs/extensions/migrate-pg-search-to-lakebase-text （访问 2026-11-02）"
+      ]
+     },
+     {
+      "name": "pg_fts（gburd，个人项目）",
+      "license": "LICENSE 原文是 PostgreSQL License 式条款（Copyright 2025-2026 Gregory Burd），GitHub API 识别为 NOASSERTION。",
+      "license_source_url": "https://github.com/gburd/pg_fts/blob/main/LICENSE",
+      "bm25_capability": "仓库描述称是完整的 BM25 索引访问方法（WAND/MaxScore、分段存储、GenericXLog 崩溃安全）。k1/b 和 CJK 能力未核实：本轮没有读到参数文档。",
+      "pg_integration": "C 扩展，自定义索引访问方法，带 custom scan 计数下推。",
+      "managed_availability": "在七家托管 PG 官方清单中均未出现（访问 2026-11-02），只能自托管。",
+      "maturity": "仓库 2026-07-07 创建，7 stars，迭代极快（已到 1.15.1），单人维护。只适合作为观察对象。",
+      "evidence": [
+       "https://github.com/gburd/pg_fts （访问 2026-11-02）",
+       "https://github.com/gburd/pg_fts/blob/main/LICENSE （访问 2026-11-02）"
+      ]
+     },
+     {
+      "name": "PG 原生 FTS + SQL/应用层自算 BM25（不装扩展的兜底路径；含 pg_bestmatch.rs + pgvector sparsevec 变体）",
+      "license": "PostgreSQL 核心采用 PostgreSQL License。变体用到的 pgvector 是 PostgreSQL License 式条款，pg_bestmatch.rs 是 Apache-2.0。",
+      "license_source_url": "https://www.postgresql.org/about/licence/",
+      "bm25_capability": "官方文档原话是 ts_rank 和 ts_rank_cd “do not use any global information”，即没有 IDF，不是 BM25。可行的兜底做法：用 ts_stat 或自维护的 term→df 统计表加文档长度表，配合 unnest(tsvector) 取 tf，在 SQL 里按 BM25 公式重算分数；k1/b 完全自控，BM25F 可以按字段 tsvector 自行实现。代价有四点：要给 @@ 召回的全部候选打分，没有 WAND Top-k；df 统计要靠触发器或定时任务维护，存在一致性和陈旧问题；tsvector 每个 lexeme 最多 256 个位置，tf 会被截断；单个 tsvector 小于 1MB。CJK：zhparser 和 pg_jieba 不在任何受查托管清单里；pg_bigm 在 RDS、Aurora、Cloud SQL、AlloyDB 可用，PGroonga 在 Supabase 可用，但 PGroonga 的分数只是 TF。变体：在应用侧或 pg_bestmatch 中生成 BM25 稀疏向量，存进 pgvector sparsevec 做内积检索。sparsevec 索引上限是 1,000 个非零元素；pg_bestmatch 最后推送于 2024-11，接近停更。",
+      "pg_integration": "纯 SQL、tsvector、GIN，无需额外扩展；或在应用层计算统计和打分。",
+      "managed_availability": "七家托管 PG 全部可用，属于核心功能。pgvector 在各家托管清单普遍存在：Azure 清单有 vector，RDS/Aurora 清单命中 pgvector（访问 2026-11-02）。",
+      "maturity": "核心功能稳定。BM25 打分逻辑需要自研，正确性要用评测集对照 Lucene/ES 基线验证，延迟随命中集线性增长。",
+      "evidence": [
+       "https://www.postgresql.org/docs/current/textsearch-controls.html （ranking 不使用全局信息，访问 2026-11-02）",
+       "https://www.postgresql.org/docs/current/textsearch-features.html （ts_stat，访问 2026-11-02）",
+       "https://www.postgresql.org/docs/current/textsearch-limitations.html （256 positions/lexeme，访问 2026-11-02）",
+       "https://github.com/pgvector/pgvector （sparsevec 1,000 non-zero，访问 2026-11-02）",
+       "https://github.com/tensorchord/pg_bestmatch.rs （Apache-2.0，最后推送 2024-11-05，访问 2026-11-02）",
+       "https://pgroonga.github.io/reference/functions/pgroonga-score.html （TF only，访问 2026-11-02）",
+       "https://docs.aws.amazon.com/AmazonRDS/latest/PostgreSQLReleaseNotes/postgresql-extensions.html （pg_bigm/pgvector，访问 2026-11-02）"
+      ]
+     }
+    ],
+    "findings": [
+     {
+      "id": "F01",
+      "claim": "Neon 确认在 2026-03 对新项目弃用 pg_search：2026-03-19 起新项目不可用（2026-04-03 changelog），2026-09-21 起从存量项目移除。pg_search 现在 Neon 所有 PG 版本上都标 Unavailable，官方 BM25 替代品是 lakebase_text。",
+      "url": "https://neon.com/docs/extensions/pg_search",
+      "date": "2026-09-21"
+     },
+     {
+      "id": "F02",
+      "claim": "Neon changelog 原文是“As of March 19, 2026, it is not available for new Neon projects”，当时还允许存量项目继续使用。",
+      "url": "https://neon.com/docs/changelog/2026-04-03",
+      "date": "2026-04-03"
+     },
+     {
+      "id": "F03",
+      "claim": "ParadeDB Community 采用 AGPL-3.0；Enterprise 走商业许可，随 ParadeDB Cloud 提供，自托管需联系销售。",
+      "url": "https://github.com/paradedb/paradedb#license",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F04",
+      "claim": "ParadeDB Community 只支持单节点，BM25 索引不做物理复制，只在主库可用；高可用和只读副本只有 Enterprise 有。对外 SaaS 如果要求 HA，基本等于被迫购买商业许可。",
+      "url": "https://www.paradedb.com/docs/operate/deploy/enterprise",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F05",
+      "claim": "ParadeDB 最新版本 v0.26.4（2026-10-29）仍处于 0.x；ParadeDB Cloud 仍是 private preview，且所有部署都跑 Enterprise。",
+      "url": "https://github.com/paradedb/paradedb/releases/tag/v0.26.4",
+      "date": "2026-10-29"
+     },
+     {
+      "id": "F06",
+      "claim": "ParadeDB 官方提供托管 PG 接入路径：RDS/Aurora、AlloyDB、Cloud SQL、Azure、Supabase、Neon 作为逻辑复制 publisher，ParadeDB（PG17+）作为 subscriber。检索结果最终一致，DDL 需要两端同步执行。",
+      "url": "https://www.paradedb.com/docs/operate/deploy/logical-replication/getting-started.md",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F07",
+      "claim": "pg_textsearch 采用 PostgreSQL License，v1.0.0 于 2026-03-27 GA，最新 v1.5.1（2026-10-02）。只支持 PG17/18，必须 shared_preload_libraries；k1 默认 1.2（0.1–10），b 默认 0.75（0–1）。",
+      "url": "https://github.com/timescale/pg_textsearch",
+      "date": "2026-10-02"
+     },
+     {
+      "id": "F08",
+      "claim": "Cloud SQL for PostgreSQL 于 2026-09-14 以 Feature 发布 pg_textsearch，要求 PG17+ 和 R20260712.01_06 及以上维护版本，通过 cloudsql.enable_pg_textsearch flag 启用；文档没有 Preview 标记。",
+      "url": "https://cloud.google.com/sql/docs/postgres/release-notes",
+      "date": "2026-09-14"
+     },
+     {
+      "id": "F09",
+      "claim": "Tiger Data 新闻稿称 pg_textsearch 在 AlloyDB 和 Cloud SQL 都是 public preview，GA 预计在 2026 年内。这与 Cloud SQL 文档缺少 Preview 标记的口径冲突，建议按 Preview 对待。",
+      "url": "https://www.tigerdata.com/newsroom/google-cloud-brings-native-bm25-full-text-search-to-alloydb-and-cloud-sql-via-tiger-datas-pg_textsearch",
+      "date": "2026-09-21"
+     },
+     {
+      "id": "F10",
+      "claim": "AlloyDB 于 2026-08-04 以 Preview 推出 BM25 索引（pg_textsearch），支持 PG17/18；扩展清单列出 pg_textsearch 1.3，没有 pg_search 和 vchord_bm25。",
+      "url": "https://cloud.google.com/alloydb/docs/reference/extensions",
+      "date": "2026-10-31"
+     },
+     {
+      "id": "F11",
+      "claim": "RDS for PostgreSQL 和 Aurora PostgreSQL 的官方扩展清单（Last-Modified 2026-11-02）里没有 pg_search、pg_textsearch、vchord_bm25、pgx-bm25、zhparser；文本检索相关只有 pg_trgm、pg_bigm 和 pgvector。",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/PostgreSQLReleaseNotes/postgresql-extensions.html",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F12",
+      "claim": "Azure Database for PostgreSQL Flexible Server 扩展清单（updated 2026-07-13）的 82 个扩展里没有任何 BM25 扩展，也没有 zhparser 和 pg_bigm。",
+      "url": "https://learn.microsoft.com/en-us/azure/postgresql/extensions/concepts-extensions-versions",
+      "date": "2026-07-13"
+     },
+     {
+      "id": "F13",
+      "claim": "Microsoft Q&A 版主（标注为 Microsoft External Staff）答复称 pg_textsearch 在评估中，但“not currently on our roadmap”。同属 Azure 的独立服务 HorizonDB 以 preview 形式支持 pg_textsearch。",
+      "url": "https://learn.microsoft.com/en-us/answers/questions/5760513/pg-textsearch-extension-support-on-azure-database",
+      "date": "2026-02-04"
+     },
+     {
+      "id": "F14",
+      "claim": "Supabase 扩展列表里没有任何 BM25 扩展（有 PGroonga 和 RUM）。社区提交的 pg_textsearch PR 于 2026-07-17 被关闭，理由是平台扩展冻结。",
+      "url": "https://github.com/supabase/postgres/pull/2043",
+      "date": "2026-07-17"
+     },
+     {
+      "id": "F15",
+      "claim": "pg_textsearch 的 BM25 语料统计包含被 RLS 隐藏的行，分区表则按分区各自计算 IDF。多租户 SaaS 如果在共享表上建索引，会出现跨租户 IDF 污染和词频推断泄露；需要按租户分区或用部分索引隔离，或设置 pg_textsearch.allow_rls=off。",
+      "url": "https://github.com/timescale/pg_textsearch#limitations",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F16",
+      "claim": "pg_textsearch 的中文检索依赖 zhparser 之类的中文 text search parser，而 zhparser 不在 RDS、Aurora、Cloud SQL、AlloyDB、Azure 任何一家的托管清单里。推断：在 Cloud SQL/AlloyDB 上用 pg_textsearch 做中文检索，分词质量受限，需要 PoC 验证。",
+      "url": "https://github.com/timescale/pg_textsearch#chinese-full-text-search",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F17",
+      "claim": "VectorChord-bm25 采用 AGPLv3/ELv2 双许可二选一；最新 0.3.0 发布于 2025-12-15，主仓最后提交 2026-04-28；仓库已迁到 supervc-stack（2026-05-14 创建的账号）；README 写明只测试过英文。",
+      "url": "https://github.com/supervc-stack/VectorChord-bm25/blob/main/LICENSE",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F18",
+      "claim": "ELv2 禁止把软件作为托管或管理型服务提供给第三方。对内部使用 BM25 的客服 SaaS 一般不构成限制，但租户能直接用检索或 SQL 时需要法务复核（工程判断，不构成法律意见）。",
+      "url": "https://www.elastic.co/licensing/elastic-license",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F19",
+      "claim": "pgx-bm25 1.0 采用 PostgreSQL License，没有商业版；支持原生 BM25F（按字段设 k1/b/boost 且可在线修改）。只有 Snowball 分词，不支持 CJK；支持 PG17/18；仓库 2026-10-06 创建，属于极新项目。",
+      "url": "https://www.postgresql.org/about/news/pgx-bm25-10-bm25-ranked-full-text-search-as-a-native-postgresql-index-3396/",
+      "date": "2026-10-07"
+     },
+     {
+      "id": "F20",
+      "claim": "lakebase_text 由 Databricks 开发，要求 PG16+，Neon 版本 0.1.3。k1 范围被限制在 [1.2, 2.0]，CJK 由 lakebase_tokenizer 提供；文档没写许可证，也没有公开源码仓库。",
+      "url": "https://neon.com/docs/extensions/lakebase-text",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F21",
+      "claim": "PG 原生 ts_rank/ts_rank_cd 不使用任何全局信息（没有 IDF），所以不是 BM25；要拿到真 BM25，只能装扩展或自行用 ts_stat 等统计重算。",
+      "url": "https://www.postgresql.org/docs/current/textsearch-controls.html",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F22",
+      "claim": "三个扩展都注册了名为 bm25 的索引访问方法：pg_textsearch 用 `USING bm25`，vchord_bm25 用 `USING bm25`，ParadeDB 保留 `USING bm25` 作为 `USING paradedb` 的兼容别名。因此它们不能装在同一个数据库里，选型是互斥的。",
+      "url": "https://www.paradedb.com/docs/reference/indexing/create-index.md",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F23",
+      "claim": "ParadeDB pg_search 支持按字段配置 k1（0–100）和 b（0–1）；多字段加权靠查询级 boost，不是真正的 BM25F；中文有 Jieba（含繁简转换）、Lindera（CC-CEDICT）和 chinese_compatible 分词器。",
+      "url": "https://www.paradedb.com/docs/reference/tokenizers/available-tokenizers/jieba.md",
+      "date": "2026-11-02"
+     },
+     {
+      "id": "F24",
+      "claim": "pg_bm25 是 ParadeDB pg_search 的旧名（2024-03-14 合并的 PR #985 完成更名），不是独立候选。",
+      "url": "https://github.com/paradedb/paradedb/pull/985",
+      "date": "2024-03-14"
+     },
+     {
+      "id": "F25",
+      "claim": "Supabase 上可用的 PGroonga，其 pgroonga_score 只是 TF（命中关键词计数），不是 BM25。",
+      "url": "https://pgroonga.github.io/reference/functions/pgroonga-score.html",
+      "date": "2026-11-02"
+     }
+    ]
+   },
+   "verification": {
+    "track": "PostgreSQL 内真 BM25 扩展（许可与托管可用性评估，工程视角，不构成法律意见；全部取证访问日期 2026-11-02）——独立核验",
+    "checks": [
+     {
+      "target": "ParadeDB pg_search / license",
+      "verdict": "corrected",
+      "note": "写成 AGPL-3.0-only 不对，应为 AGPL-3.0-or-later。依据：源码文件头（如 https://raw.githubusercontent.com/paradedb/paradedb/main/pg_search/src/lib.rs 、pg_search/src/api/mod.rs、tokenizers/src/lib.rs）原文是 'either version 3 of the License, or (at your option) any later version'。Cargo.toml 写的是 license = \"AGPL-3.0\"，这是已弃用的 SPDX 写法，不区分 only 与 or-later；GitHub API 识别为 spdx AGPL-3.0。LICENSE 与 https://www.gnu.org/licenses/agpl-3.0.txt 逐行 diff，只有附录第 636–637 行换行位置不同，条款本身未改，'未改动的 AGPLv3 全文'这一说法成立。README License 段原文核实无误：Community 为 AGPLv3；Enterprise 是商业许可，随 ParadeDB Cloud 提供，自托管需 contact sales（https://github.com/paradedb/paradedb#license ，https://www.paradedb.com/docs/operate/deploy/enterprise.md）。§13 的触发条件是 'if you modify the Program'，与条款原文一致。"
+     },
+     {
+      "target": "ParadeDB pg_search / bm25_capability + pg_integration",
+      "verdict": "confirmed",
+      "note": "以下各项均与官方文档一致。k1 默认 1.2、范围 0–100，b 默认 0.75、范围 0–1，按字段配置（create-index.md 的 BM25 Parameters 段）。boost 取值 -2048~2048，出处是 https://www.paradedb.com/docs/reference/full-text/relevance-tuning.md ，不在原 evidence 清单里，建议补上。Jieba 支持 chinese_convert=t2s；Lindera 中文用 CC-CEDICT；另有 chinese_compatible 和 ICU。两版 SQL API 相同（enterprise 页原文）。预编译包覆盖 Postgres 15+，需加入 shared_preload_libraries（self-hosted/extension.md）。0.25.0 起改名为 USING paradedb，USING bm25 保留为别名。Community 不做 ParadeDB 索引的物理复制，索引只在主库可用，HA 和只读副本需要 Enterprise。逻辑复制要求订阅端 PG17+，结果最终一致（logical-replication/getting-started.md）。"
+     },
+     {
+      "target": "ParadeDB pg_search / managed_availability",
+      "verdict": "confirmed",
+      "note": "七份官方清单都没有 pg_search/paradedb。RDS 和 Aurora 页的 HTTP Last-Modified 均为 2026-11-02；Cloud SQL extensions 页 Last updated 2026-10-26；AlloyDB 2026-10-31；Azure Flexible extensions-by-name 页 updated_at 2026-07-13（ms.date 2026-07-10）；Supabase extensions 页命中 0 次。Neon 页原文为 'deprecated for new Neon projects on March 19, 2026'、'retired from existing projects on September 21, 2026'（https://neon.com/docs/extensions/pg_search.md ）。ParadeDB Cloud 处于 private preview，且只跑 Enterprise（cloud.md）。"
+     },
+     {
+      "target": "ParadeDB pg_search / maturity + evidence 日期",
+      "verdict": "corrected",
+      "note": "v0.26.4 的 published_at 为 2026-10-29T22:12Z，与原文一致；stars 9,472，与'9.4k'一致。有两处需要改。(1) PR #985（chore: rename pg_bm25 to pg_search）创建于 2024-03-14，合并于 2024-03-20（https://api.github.com/repos/paradedb/paradedb/pulls/985 ）；原文把 2024-03-14 当作更名日期，应改成'2024-03-20 合并'。(2) '仓库当日仍有提交'不严谨：main 最后一次提交是 2026-11-01T22:50Z（北京时间 11-02 06:50），repo 的 pushed_at 2026-11-02T08:56Z 来自其他分支。"
+     },
+     {
+      "target": "pg_textsearch / license",
+      "verdict": "confirmed",
+      "note": "LICENSE 首行是 'The PostgreSQL License'，免责条款中的主体写作 TIGER DATA（https://github.com/timescale/pg_textsearch/blob/main/LICENSE ）。LICENSE 文件本身没有 Copyright 行，版权声明在源码头 'Copyright (c) 2025-2026 Tiger Data, Inc.'（src/mod.c）。GitHub API 识别为 spdx PostgreSQL。'没有单独商业版'：README 和 LICENSE 都没有提到商业版或企业版，所以这只是'未发现'，不是官方明确声明。"
+     },
+     {
+      "target": "pg_textsearch / bm25_capability + pg_integration",
+      "verdict": "confirmed",
+      "note": "README 原文与各项一致：k1 默认 1.2、范围 0.1–10.0；b 默认 0.75、范围 0.0–1.0；text_config 必填；Top-k 用 Block-Max WAND；多列靠拼接表达式或 ARRAY[...]；中文用 zhparser 示例；v1.4.0 加入 'Chinese search'，v1.5.0 加入 'Boolean and phrase queries'。正式支持 PostgreSQL 17 和 18，PG19 beta 为 best-effort 且不发布预编译包。需要 shared_preload_libraries。<@> 返回负分。Limitations 段逐项核到：RLS 隐藏行计入语料统计；分区表 IDF 按分区各自计算；PL/pgSQL 中要显式写索引名；建 BM25 索引后不支持 PREPARE TRANSACTION（2PC）。"
+     },
+     {
+      "target": "pg_textsearch / managed_availability",
+      "verdict": "confirmed",
+      "note": "Cloud SQL：pg-textsearch 页 Last updated 2026-10-26，要求 PG17+，需开 flag cloudsql.enable_pg_textsearch，全页 'preview' 命中 0 次。release notes 中 'September 14, 2026 Feature' 条目还写了一个原文漏掉的前置条件：维护版本须为 R20260712.01_06 或更高。Tiger Data 新闻稿日期 2026-09-21，原文称 'public preview on both AlloyDB and Cloud SQL, with general availability expected later this year'，与 Google 文档的口径冲突确实存在。AlloyDB：release notes 2026-08-04 写的是 Preview；create-bm25-index 页带 Pre-GA 标注，要求 PG17/18，Last updated 2026-10-26；扩展清单显示 pg_textsearch 1.3，Last updated 2026-10-31。RDS 和 Aurora 清单命中 0 次。Azure Flexible 清单命中 0 次；Microsoft Q&A 中 2026-02-04T12:07Z 的回答原文为 'not currently on our roadmap. We don't have an ETA yet'。HorizonDB 文档标题带 (Preview)，ms.date 2026-07-07。Neon 清单无此扩展。Supabase PR #2043 于 2026-07-17 关闭，关闭理由是扩展冻结（引用 #1824）。Tiger Cloud 页原文为 'pg_textsearch v1.1.0 is production-ready on Tiger Cloud'。"
+     },
+     {
+      "target": "pg_textsearch / maturity",
+      "verdict": "corrected",
+      "note": "以下与原文一致：v1.0.0 发布于 2026-03-27；v1.5.1 发布于 2026-10-02，release note 写的是 'Fix concurrent spill/force-merge truncation corruption (#540)'；v0.0.1 发布于 2025-10-14，到 1.5.x 不到一年；stars 4,053；CI 中有 coverity.yml。需要改的是'仓库当日仍有提交'：main 最后一次提交是 2026-10-30T20:32Z，2026-11-02 当天只有 gh-pages 分支（基准报告页）在推送，没有代码提交。"
+     },
+     {
+      "target": "VectorChord-bm25 / license",
+      "verdict": "confirmed",
+      "note": "LICENSE 为 'Dual License Notice'，可在 AGPLv3 和 Elastic License v2 中二选一（https://github.com/supervc-stack/VectorChord-bm25/blob/main/LICENSE ）；GitHub 识别为 NOASSERTION。ELv2 原文是 'You may not provide the software to third parties as a hosted or managed service, where the service provides users with access to any substantial set of the features or functionality'（https://www.elastic.co/licensing/elastic-license ）。pg_tokenizer.rs 是 Apache-2.0。pgsty/vchord_bm25 的 LICENSE 是 AGPLv3 全文，README 写明只采用 AGPLv3。"
+     },
+     {
+      "target": "VectorChord-bm25 / bm25_capability + pg_integration",
+      "verdict": "corrected",
+      "note": "以下与原文一致：README 写的是 Block-WeakAnd；需要 bm25vector 列；索引写法 USING bm25 (embedding bm25_ops)；<&> 返回负分；bm25_catalog.bm25_limit 默认 100；Limitation 段原文为 'currently have only tested against English'；Lindera 需要重新编译；中文用 jieba。需要补正的是 k1/b 的取值范围，源码 crates/bm25/src/types.rs 中 Bm25IndexOptions 为：k1 默认 1.2、范围被限定在 [1.2, 2.0]；b 默认 0.75、范围 [0.0, 1.0]。另外 vchord_bm25 和 pg_tokenizer 两个扩展的 _PG_init 都会在未经 shared_preload_libraries 加载时直接报错，与原文'需要 preload'一致。"
+     },
+     {
+      "target": "VectorChord-bm25 / managed_availability",
+      "verdict": "confirmed",
+      "note": "RDS、Aurora、Cloud SQL、AlloyDB、Azure Flexible、Supabase、Neon 七份清单中 vchord 均命中 0 次。README 的 Getting Started 推荐 tensorchord/vchord-suite Docker 镜像。厂商自营托管未核实，原文的处理没有问题。"
+     },
+     {
+      "target": "VectorChord-bm25 / maturity",
+      "verdict": "corrected",
+      "note": "以下与原文一致：0.3.0 发布于 2025-12-15；main 最后一次提交 2026-04-28；stars 381；supervc-stack 是 User 账号，创建于 2026-05-14，bio 为 'New home for VectorChord suites'；tensorchord/VectorChord-bm25 现已 301 跳转到新仓。需要改两处。(1) 原文把 pgsty 版本称作'仍活跃（2026-11-02 有推送）'，有误导：pgsty/vchord_bm25 在 GitHub 上不是 fork 关系（fork=false），仓库本身就是 2026-11-02T09:13Z 新建的，当天推送是首批导入（加 PGSTY 版权、改 README 和 CI），不能算持续活跃的证据。(2) supervc-stack 仓库的 pushed_at 是 2026-08-05，来自 dependabot 分支，main 上确实无提交，与原文一致。"
+     },
+     {
+      "target": "pgx-bm25 / license",
+      "verdict": "confirmed",
+      "note": "LICENSE 首行为 'Copyright (c) 2026 PGX Inc.'，正文是 PostgreSQL License 条款；GitHub 识别为 spdx PostgreSQL。PostgreSQL.org News（2026-10-07 by PGX, Inc.）原文为 'released under the PostgreSQL License ... there is no separate commercial edition'。"
+     },
+     {
+      "target": "pgx-bm25 / bm25_capability + pg_integration",
+      "verdict": "corrected",
+      "note": "以下与 README 一致：原生多字段 BM25F；k1 默认 1.2（reloption 范围 [0, 1e30]），b 默认 0.75（范围 [0, 1]）；可用 k1_<col>、b_<col>、boost_<col> 按字段覆盖；'k1/b/boost are live'，用 ALTER INDEX 修改无需 REINDEX；USING bm25_native，@@@ 负责匹配、&@@ 负责排序；索引存在自身页中，继承 WAL、崩溃恢复和物理复制；支持 PG17 和 PG18；RLS 表上 @@@ 会退化为过滤器路径。需要修正的是'analyzer 固定为 english 管线'：README 说的是 analyzer reloption 只是保留项，只接受 'english'；但 language reloption 可以选 <language>_stem 词典（不限于 Snowball，只要能在 pg_catalog 中解析即可，如 german）。所以应表述为'单一 Snowball/ts_lexize 管线，language 可选，无 CJK 分词'。"
+     },
+     {
+      "target": "pgx-bm25 / managed_availability + maturity",
+      "verdict": "confirmed",
+      "note": "七份清单中 bm25_native 均命中 0 次（Neon 清单里有 5 处 'pgx' 子串，经核对与本扩展无关）。v1.0.0 发布于 2026-10-06T19:02Z；仓库创建于 2026-10-06T07:03Z；stars 10。"
+     },
+     {
+      "target": "lakebase_text / license + managed_availability",
+      "verdict": "confirmed",
+      "note": "Neon 的 lakebase-text、lakebase-search、lakebase-tokenizer 三个页面都没有许可证或源码仓库信息，原文标为'未核实'是对的。lakebase-search.md 原文为 'Lakebase Search is developed by Databricks'。Neon 清单中 lakebase_text 在 PG16、17、18 均为 0.1.3，PG14 和 PG15 无。页面写明要求 Postgres 16 或更高，库由 Neon 默认预加载。k1 默认 1.2、范围 [1.2, 2.0]；b 默认 0.75、范围 [0.0, 1.0]；语料统计在建索引时计算、由 VACUUM 更新，且不随 MVCC 版本化；Top-k 用 Block-Max WAND；<@> 返回负分。lakebase_tokenizer 会创建 tokenizer_chinese、tokenizer_japanese、tokenizer_korean 三个配置。Databricks 文档 Last updated 2026-09-15。Neon 的迁移页称 lakebase_text 为 pg_search 的 replacement。另有一个观察：lakebase_text 的 k1 范围 [1.2, 2.0] 与 VectorChord-bm25 源码完全相同，可能同源，但没有证据，不作结论。"
+     },
+     {
+      "target": "pg_fts / license + maturity",
+      "verdict": "confirmed",
+      "note": "LICENSE 原文为 'Copyright (c) 2025-2026, Gregory Burd'，条款是 PostgreSQL License，并自述 'This is the PostgreSQL License'；GitHub 识别为 NOASSERTION。漏掉的一点：LICENSE 末尾声明 vendor/sm.c 和 vendor/sm.h（sparsemap）适用各自上游许可，合规时需要单独看这两个文件头。仓库创建于 2026-07-07；stars 7；最新 v1.15.1 发布于 2026-10-29。七份清单命中 0 次。关于'k1/b 未核实'：README 的基准对比段写有 'both use k1 1.2, b 0.75'，可以确认默认值，但没有看到可调参数的文档。"
+     },
+     {
+      "target": "PG 原生 FTS + 自算 BM25 / license + capability + managed",
+      "verdict": "confirmed",
+      "note": "PostgreSQL 采用 PostgreSQL License（https://www.postgresql.org/about/licence/ ）。pgvector 的 LICENSE 为 PGDG/UC 版权的 PostgreSQL License 式条款；pg_bestmatch.rs 是 Apache-2.0，pushed_at 2024-11-05。文档原文核到：'the ranking functions do not use any global information'；'No more than 256 positions per lexeme'；tsvector 'must be less than 1 megabyte'；ts_stat 段存在。pgvector README 写的是 sparsevec 索引上限 1,000 个非零元素，存储上限 16,000 个非零元素。PGroonga 文档原文为 'Score is \"how many keywords are included\" (TF, Term Frequency)'。各托管清单的命中次数：pg_bigm 在 RDS 27、Aurora 16、Cloud SQL 10、AlloyDB 4；PGroonga 只在 Supabase 出现；zhparser 和 pg_jieba 在七份清单中均为 0；pgvector/vector 在 Azure（vector 0.8.2）、RDS、Aurora、Cloud SQL、AlloyDB、Neon、Supabase 中都有。"
+     }
+    ]
+   }
+  },
+  "T2-external": {
+   "research": {
+    "track": "外置检索引擎（External Search Engine）：Elasticsearch / OpenSearch / Typesense / Meilisearch / Tantivy / Quickwit / Vespa。这是工程视角的许可风险评估，不构成法律意见，核实日期为 2026-11-02。结论先行：(1) 7 个候选中，具备可调 k1/b 的真 BM25 且有 BM25F 字段加权的只有 OpenSearch（Apache-2.0，combined_fields 从 3.2 起提供）和 Elasticsearch（combined_fields 为近似 BM25F）。Vespa 有真 BM25，但跨字段只能逐字段加权求和，不是 BM25F；Tantivy/Quickwit 的 k1/b 硬编码。Typesense 和 Meilisearch 都不是 BM25，没有 IDF。(2) 中文分词：OpenSearch 托管面最全，AWS OpenSearch Service 同时列出 IK、Smart Chinese、HanLP、Pinyin，IK 词典可用包上传。Elastic Cloud Hosted 要上传 IK 这类自定义插件，须 Gold 及以上订阅；Elastic Serverless 和 AOSS 都不能装 IK。(3) 许可：Elasticsearch 官方二进制是 ELv2，作为 SaaS 后端（租户不直接访问 ES API）可以用；但自管部署的 RRF/linear retriever 需要 Enterprise 订阅，混合检索有成本。OpenSearch 的 RRF 免费，从 2.19 起提供。(4) 同步：AWS 上有托管 CDC 链路 OpenSearch Ingestion（RDS PG ≥16 / Aurora PG ≥16.4，限制较多）。其余方案走 Debezium（Apache-2.0）、pgsync（MIT）或应用侧 outbox 双写。",
+    "options": [
+     {
+      "name": "OpenSearch（含 Amazon OpenSearch Service / OpenSearch Serverless）",
+      "license": "Apache-2.0。2024-09-16 由 AWS 移交 Linux Foundation 旗下的 OpenSearch Software Foundation，治理为 TSC 主导、厂商中立（premier 成员为 AWS、SAP、Uber）。核心 analysis-smartcn 插件在主仓 plugins/ 目录下，同为 Apache-2.0。RRF 等混合检索能力没有付费墙。",
+      "license_source_url": "https://github.com/opensearch-project/OpenSearch/blob/main/LICENSE.txt",
+      "bm25_capability": "真 BM25：默认 similarity 为 BM25，k1 默认 1.2、b 默认 0.75、discount_overlaps 可在 index settings 中配置，similarity 可按字段指定。BM25F：combined_fields 查询从 3.2 起引入，官方文档写明使用 BM25F 算法，IDF 跨字段全局计算、长度归一按字段总长，字段权重用 title^4 语法；要求所有字段为 text 且使用同一 analyzer。混合检索：score-ranker-processor（RRF）从 2.19 起提供，rank_constant 默认 60，可设子句权重。CJK：主仓核心插件 analysis-smartcn 和 analysis-icu；社区 IK（infinilabs/analysis-ik，Apache-2.0，ik_smart/ik_max_word，支持远程热更新词典）同时支持 OpenSearch；AWS 另提供 HanLP、Pinyin、STConvert。jieba：opensearch-project 下没有官方 jieba 插件（未找到）。",
+      "pg_integration": "外置集群，必须同步。(a) AWS 托管 CDC：Amazon OpenSearch Ingestion（基于 Data Prepper，Apache-2.0）以 RDS/Aurora PostgreSQL 为源，先把快照导出到 S3 做全量，再走逻辑复制做增量，按主键映射 document_id。限制：RDS PG ≥16、Aurora PG ≥16.4；每条 pipeline 只对应一个 database；只支持同区域、同账号；只支持 Secrets Manager 认证；DDL 一般不支持（主键变更、改列名或类型、drop/truncate 都会破坏一致性）；无主键表须自定义 document_id；RDS Multi-AZ DB cluster 不支持；官方类型映射表未列出 pgvector 的 vector 和 PostGIS 的 geometry 类型（行为未核实）。(b) 自管：Debezium（Apache-2.0，pgoutput）接 Kafka 后写 OpenSearch、pgsync（MIT，逻辑复制直写 ES/OpenSearch），或应用侧 outbox 加 bulk 双写。",
+      "managed_availability": "Amazon OpenSearch Service：2026-07-30 宣布支持 OpenSearch 3.7，所有提供该服务的区域可用。插件表列出 IK (Chinese) Analysis（最低 OpenSearch 1.0）、Smart Chinese Analysis（1.0）、HanLP（2.11）、Pinyin、STConvert（1.3）、ICU、kuromoji。IK 自定义词典可以作为 package 上传并关联 domain，插件会自动加载。自定义插件（AnalysisPlugin/SearchPlugin 等）要求 OpenSearch ≥2.15，仅在文档列出的 14 个区域可用，每个 domain 最多 20 个插件，自定义插件引发的问题不计 SLA 赔付；文档中 descriptor 示例只写到 2.x，3.x 自定义插件是否支持未核实。Amazon OpenSearch Serverless：预装 ICU、kuromoji、nori、phonetic、Smart Chinese、stempel、ukrainian，未列 IK，也不支持自定义插件。GCP/Azure/Aiven 等第三方托管：未核实。核对日期 2026-11-02。",
+      "maturity": "最新 3.9.0（2026-09-29），2.19.7 维护线（2026-10-20）并行；GitHub 13.9k stars，2026-11-02 仍有推送。LF 基金会治理，周年报告称贡献者活跃度从 #70 升到 #17（为二手转述）。AWS 托管 3.x 版本线为 3.1/3.3/3.5/3.7。",
+      "evidence": [
+       "https://github.com/opensearch-project/OpenSearch/blob/main/LICENSE.txt（2026-11-02 访问，Apache License 2.0）",
+       "https://www.linuxfoundation.org/press/linux-foundation-announces-opensearch-software-foundation-to-foster-open-collaboration-in-search-and-analytics（2026-11-02 访问，发布于 2024-09-16）",
+       "https://docs.opensearch.org/latest/query-dsl/full-text/combined-fields/（2026-11-02 访问，Introduced 3.2、BM25F）",
+       "https://docs.opensearch.org/latest/im-plugin/similarity/（2026-11-02 访问，k1=1.2、b=0.75）",
+       "https://docs.opensearch.org/latest/search-plugins/search-pipelines/score-ranker-processor/（2026-11-02 访问，Introduced 2.19）",
+       "https://aws.amazon.com/about-aws/whats-new/2026/07/amazon-opensearch-service/（2026-11-02 访问，2026-07-30 支持 3.7）",
+       "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/supported-plugins.html（2026-11-02 访问）",
+       "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/custom-packages.html（2026-11-02 访问）",
+       "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/custom-plugins.html（2026-11-02 访问）",
+       "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-genref.html（2026-11-02 访问）",
+       "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/rds-PostgreSQL.html（2026-11-02 访问）",
+       "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/aurora-PostgreSQL.html（2026-11-02 访问）",
+       "https://github.com/infinilabs/analysis-ik（2026-11-02 访问）"
+      ]
+     },
+     {
+      "name": "Elasticsearch（含 Elastic Cloud Hosted / Serverless）",
+      "license": "源码：仓库默认三选一，即 AGPL-3.0-only、SSPL-1.0、Elastic-2.0（ELv2）；部分文件为 Apache-2.0 兼容许可；x-pack 目录下的代码仅限 ELv2。AGPL 选项于 2024-08-29 宣布，FAQ 称 8.16 GA 前生效，只覆盖源码中的免费部分。官方二进制默认发行版仍为 ELv2（FAQ 原文：Our releases will continue to be under the Elastic License）。客户端库为 Apache-2.0。ELv2 主要限制是不得把软件作为 hosted 或 managed service 提供给第三方（用户可访问其实质功能时即受限），不得绕过 license key，不得移除声明。ELv2 FAQ 明确允许在 SaaS 产品里用 ES 做搜索框。对本平台（客服 SaaS，租户不直接调用 ES API）的工程判定：ELv2 二进制可用；若选 AGPL 并修改源码对外提供网络服务，须开源修改。SSPL 不是 OSI 许可。另有订阅约束：自管 Basic（免费）不含 RRF/linear retriever，需要 Enterprise。",
+      "license_source_url": "https://github.com/elastic/elasticsearch/blob/main/LICENSE.txt",
+      "bm25_capability": "真 BM25：默认 similarity 为 BM25，k1 默认 1.2、b 默认 0.75，discount_overlaps 可配置；similarity 按字段指定（仅 text/keyword）。BM25F：combined_fields 基于 simple BM25F 公式，但官方声明是近似实现（scores will not obey the BM25F model perfectly），字段 boost 须 ≥1.0，所有字段须同 analyzer。混合检索：RRF 和 linear retriever 在自管场景需 Enterprise 许可，Basic 会返回 403 non-compliant；Elastic 人员 2025-06-13 在论坛确认，订阅矩阵也把这两项与 Standard/kNN retriever 分列。CJK：官方 analysis-smartcn（简体中文概率分词，不可配置；源码头为 ELv2/AGPL/SSPL 三许可，二进制 ELv2）和 analysis-icu；社区 IK（infinilabs，Apache-2.0，2026-05-11 修复 ES 9.4 构建，最后提交 2026-06-30）；jieba 插件 sing1ee/elasticsearch-jieba-plugin（MIT，最后推送 2025-11-28，维护活跃度偏低）。",
+      "pg_integration": "外置集群，必须同步。(a) Elastic 官方 PostgreSQL connector：只有 self-managed 版本，代码仓 elastic/connectors 为 ELv2；文档称兼容 PG 11–15，不支持增量同步，不同步权限，无主键表会被跳过（8.15 起可用 id_columns 绕过）。不适合作为主链路。(b) CDC：Debezium（Apache-2.0，RDS 上须设 plugin.name=pgoutput、rds.logical_replication=1）或 pgsync（MIT，基于逻辑复制）。(c) 应用侧 outbox 加 _bulk 双写。",
+      "managed_availability": "Elastic Cloud Hosted：运行在 AWS、GCP、Azure 上。可按部署启用官方插件，但官方页面没有逐一列出插件名，smartcn 和 icu 是否在 Hosted 提供清单中未核实。上传自定义插件（IK、jieba）需要 Gold、Platinum 或 Enterprise 订阅；词典类 bundle 各订阅级别都能上传。Elastic Cloud Serverless：可选 AWS、Azure、GCP 区域；预装 core analysis plugins（未逐一列名，smartcn 是否包含未核实）；不支持自定义插件、bundle 和语言分析器自定义词典，同义词只能走 Synonyms API，因此 IK 不可用。三大云原生托管服务都不提供 Elasticsearch（AWS 托管的是 OpenSearch）。核对日期 2026-11-02。",
+      "maturity": "最新 v9.5.5（2026-10-06），9.4.8 与 8.19.23 维护线并行；GitHub 78.5k stars，2026-11-02 仍有推送。许可史：2021 年从 Apache-2.0 改为 SSPL/ELv2，2024 年加回 AGPL。",
+      "evidence": [
+       "https://github.com/elastic/elasticsearch/blob/main/LICENSE.txt（2026-11-02 访问，三许可原文）",
+       "https://www.elastic.co/pricing/faq/licensing（2026-11-02 访问，变更日志最新 2024-08-29）",
+       "https://www.elastic.co/blog/elasticsearch-is-open-source-again（2026-11-02 访问，发布于 2024-08-29）",
+       "https://www.elastic.co/licensing/elastic-license（2026-11-02 访问，Limitations 条款）",
+       "https://www.elastic.co/licensing/elastic-license/faq（2026-11-02 访问）",
+       "https://www.elastic.co/docs/reference/elasticsearch/index-settings/similarity（2026-11-02 访问）",
+       "https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-combined-fields-query（2026-11-02 访问）",
+       "https://discuss.elastic.co/t/use-of-retrievers-in-the-search-api/379145（2026-11-02 访问，2025-06-13 回复）",
+       "https://www.elastic.co/subscriptions（2026-11-02 访问）",
+       "https://www.elastic.co/docs/deploy-manage/deploy/elastic-cloud/add-plugins-extensions（2026-11-02 访问）",
+       "https://www.elastic.co/docs/deploy-manage/deploy/elastic-cloud/differences-from-other-elasticsearch-offerings（2026-11-02 访问）",
+       "https://www.elastic.co/docs/reference/cloud/cloud-hosted/regions（2026-11-02 访问）",
+       "https://www.elastic.co/docs/reference/search-connectors/es-connectors-postgresql（2026-11-02 访问）",
+       "https://github.com/elastic/connectors/blob/main/LICENSE（2026-11-02 访问，ELv2）",
+       "https://www.elastic.co/docs/reference/elasticsearch/plugins/analysis-smartcn（2026-11-02 访问）"
+      ]
+     },
+     {
+      "name": "Vespa（含 Vespa Cloud）",
+      "license": "Apache-2.0（仓库 LICENSE 文件原文为 Apache License Version 2.0）。",
+      "license_source_url": "https://github.com/vespa-engine/vespa/blob/master/LICENSE",
+      "bm25_capability": "真 BM25：rank feature bm25(field) 实现 Okapi BM25，带 IDF；k1 默认 1.2、b 默认 0.75，avg_field_len 也可经 rank-properties 配置；字段须在 schema 里显式开启 index: enable-bm25。IDF 按 content node 本地统计，跨节点要一致须用 significance 注解。BM25F：没有原生 BM25F。多字段写成 rank-profile 里逐字段 bm25 的加权和（如 query(w1)*bm25(title)+query(w2)*bm25(body)），在饱和前不合并词频统计；nativeRank 可以一次接多个字段。CJK：默认 OpenNLP linguistics；Lucene Linguistics 开箱支持约 40 种语言（含中文），也可把额外的 Lucene 分析模块作为 Maven 依赖经 SPI 加载（文档以 kuromoji 为例，smartcn 未被明确提及，未核实）。没有语言探测，中文须显式设定 language，3 个词以内的短查询默认按英文处理。同一引擎内可直接做 BM25 加 ANN/tensor 混合排序。",
+      "pg_integration": "外置引擎，经 /document/v1 feed API 写入；没有官方 PG CDC connector（未找到），需要 Debezium 加自写 feeder，或应用侧双写。",
+      "managed_availability": "Vespa Cloud（Vespa.ai 官方）：prod zone 覆盖 AWS（美、欧、加、亚太多区）和 GCP（europe-west3/4、us-central1、us-east4、us-west1）；Azure 目前只有 dev zone（azure-eastus-az1）。AWS/GCP/Azure 原生托管不提供 Vespa。核对日期 2026-11-02。",
+      "maturity": "最新 v8.781.11（2026-11-02），几乎每天发版；GitHub 7.2k stars，2026-11-02 仍有推送。",
+      "evidence": [
+       "https://github.com/vespa-engine/vespa/blob/master/LICENSE（2026-11-02 访问）",
+       "https://docs.vespa.ai/en/reference/bm25.html（2026-11-02 访问）",
+       "https://docs.vespa.ai/en/linguistics/linguistics.html（2026-11-02 访问）",
+       "https://docs.vespa.ai/en/linguistics/lucene-linguistics.html（2026-11-02 访问）",
+       "https://docs.vespa.ai/en/cloud/zones.html（2026-11-02 访问）",
+       "https://docs.vespa.ai/en/performance/feature-tuning.html（2026-11-02 访问，bm25(title)+bm25(content) 写法）"
+      ]
+     },
+     {
+      "name": "Tantivy（Rust 全文检索库）",
+      "license": "MIT（仓库 LICENSE 文件，Cargo.toml 中 license = \"MIT\"）。",
+      "license_source_url": "https://github.com/quickwit-oss/tantivy/blob/main/LICENSE",
+      "bm25_capability": "真 BM25，带 IDF 和 fieldnorm 长度归一，但 k1/b 不可配置：src/query/bm25.rs 中 const K1 = 1.2、const B = 0.75 为硬编码常量，要调参只能 fork。BM25F：不支持。QueryParser 对多个默认字段做逐字段 OR 展开，set_field_boost 只是乘性权重。CJK：没有内置中文分词；第三方 tantivy-jieba（MIT，约 68 stars）成熟度低。",
+      "pg_integration": "这是库而不是服务，用作外置方案须自建服务层和同步链路（Debezium 或应用双写）。另一条路是嵌入 PG：ParadeDB pg_search 在 PG 内使用 Tantivy，许可为 AGPL-3.0，属于 PG 扩展路线，不在本路评估范围。",
+      "managed_availability": "不适用（库），没有托管服务。",
+      "maturity": "crates.io 最新 0.27.0（2026-10-17），GitHub release 0.26.1（2026-05-10）；16.4k stars，2026-10-30 仍有推送；由 quickwit-oss 维护。",
+      "evidence": [
+       "https://github.com/quickwit-oss/tantivy/blob/main/LICENSE（2026-11-02 访问）",
+       "https://github.com/quickwit-oss/tantivy/blob/main/src/query/bm25.rs（2026-11-02 经 GitHub API 读取，K1=1.2、B=0.75 常量）",
+       "https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html（2026-11-02 访问）",
+       "https://crates.io/crates/tantivy（2026-11-02 经 API 查询，0.27.0）",
+       "https://github.com/jiegec/tantivy-jieba（2026-11-02 访问，MIT）"
+      ]
+     },
+     {
+      "name": "Quickwit（基于 Tantivy 的分布式检索引擎）",
+      "license": "Apache-2.0（仓库 LICENSE）。原为 AGPL；Datadog 收购后，Quickwit 官方博客于 2025-01-09 宣布改为 Apache-2.0。Datadog 内部产品为闭源私有 fork。",
+      "license_source_url": "https://github.com/quickwit-oss/quickwit/blob/main/LICENSE",
+      "bm25_capability": "BM25 继承 Tantivy，k1/b 硬编码不可调；默认关闭，须在 doc mapping 里设 fieldnorms: true，并在查询中设 sort_by=_score 才会按 BM25 排序。没有 BM25F，只有 boost 乘子。CJK：chinese_compatible tokenizer 把每个 CJK 字符切成一个 token（须开启 record: position 才能做短语匹配），没有词级分词。",
+      "pg_integration": "面向 append-only 的日志和可观测场景。ES 兼容 _bulk 只支持 create，update/delete 会被忽略；删除只能走异步 delete-tasks，官方建议每小时或每天只做少量删除，且只作用于 mature split，可能延迟数小时。知识库文档频繁更新和权限撤销的场景很不适配。PG 同步须自建。",
+      "managed_availability": "未找到官方托管服务（未核实）。三大云原生托管都不提供 Quickwit。",
+      "maturity": "最新 v0.9.3（2026-10-22）；11.8k stars，2026-11-02 仍有推送。被收购后由社区维护，创始人在访谈中称审 PR 精力有限（二手来源）。",
+      "evidence": [
+       "https://github.com/quickwit-oss/quickwit/blob/main/LICENSE（2026-11-02 经 GitHub API 读取，Apache License 2.0）",
+       "https://quickwit.io/blog/quickwit-joins-datadog（2026-11-02 访问，发布于 2025-01-09）",
+       "https://quickwit.io/docs/configuration/index-config（2026-11-02 访问，chinese_compatible、fieldnorms）",
+       "https://quickwit.io/docs/overview/concepts/querying（2026-11-02 访问）",
+       "https://quickwit.io/docs/overview/concepts/deletes（2026-11-02 访问）",
+       "https://quickwit.io/docs/reference/es_compatible_api（2026-11-02 访问）"
+      ]
+     },
+     {
+      "name": "Meilisearch（含 Meilisearch Cloud）",
+      "license": "SPDX 为 MIT AND BUSL-1.1（双许可，从 v1.19 起）。Community Edition 为 MIT，可免费商用自托管。Enterprise Edition 指标注为 EE、位于 enterprise_editions 目录的代码，采用 Meili 改编版 BUSL-1.1：只允许非生产用途，生产使用须签商业协议，Change License 为 MIT，Change Date 为发布后 4 年。官方文档称 EE 独占功能只有 sharding（含 replication）。",
+      "license_source_url": "https://github.com/meilisearch/meilisearch/blob/main/LICENSE",
+      "bm25_capability": "不是 BM25，没有 IDF。排序靠 ranking rules 的 bucket sort 逐级决胜，默认顺序为 words、typo、proximity、attributeRank、sort、wordPosition、exactness。字段权重由 attributeRank 按属性优先级排序表达，没有数值权重，也没有 BM25F。CJK：分词器 Charabia（MIT）对中文做基于 jieba 词典的切分，并做 kvariant 归一。",
+      "pg_integration": "没有官方 PG connector。社区有 meilisync（Apache-2.0），走 wal_level=logical 加 wal2json 逻辑复制，RDS、Cloud SQL、Azure 均支持 wal2json。也可以应用侧双写。",
+      "managed_availability": "Meilisearch Cloud 共 9 个区域（FRA、PAR、LON、SGP、JPN、SYD、SFO、NYC、SAO）。官方只写明 PAR 运行在 AWS European Sovereign Cloud 上，其余区域的底层云厂商未核实。Cloud 运行的是 EE，可申请开启 sharding。三大云原生托管都不提供 Meilisearch。核对日期 2026-11-02。",
+      "maturity": "最新 v1.56.1（2026-11-02）；59.8k stars，2026-11-02 仍有推送。",
+      "evidence": [
+       "https://github.com/meilisearch/meilisearch/blob/main/LICENSE（2026-11-02 经 GitHub API 读取）",
+       "https://github.com/meilisearch/meilisearch/blob/main/LICENSE-EE（2026-11-02 经 GitHub API 读取）",
+       "https://www.meilisearch.com/docs/resources/self_hosting/enterprise_edition（2026-11-02 访问）",
+       "https://www.meilisearch.com/docs/learn/relevancy/ranking_rules（2026-11-02 访问）",
+       "https://www.meilisearch.com/docs/learn/resources/language（2026-11-02 访问）",
+       "https://www.meilisearch.com/docs/capabilities/platform/infrastructure/regions（2026-11-02 访问）",
+       "https://github.com/long2ice/meilisync（2026-11-02 访问，Apache-2.0）"
+      ]
+     },
+     {
+      "name": "Typesense（含 Typesense Cloud）",
+      "license": "服务端为 GPL-3.0（v31 默认分支的 LICENSE.txt），客户端库为 Apache-2.0。README 说明特意没有采用 AGPL：作为独立守护进程运行、不分发修改版时不触发 copyleft。工程判定：SaaS 内部署未修改的服务端，风险低；若修改并分发须开源。",
+      "license_source_url": "https://github.com/typesense/typesense/blob/v31/LICENSE.txt",
+      "bm25_capability": "不是 BM25。_text_match 是启发式打分，信号包括 token 重叠数、typo 编辑距离、邻近度，以及 query_by 字段顺序和 query_by_weights；text_match_type 可选 max_score、max_weight、sum_score。文档没有 IDF 或长度归一。维护者 kishorenc 在 issue #1373（2023-11-14）中回复 We don't support BM25 at the moment，该 issue 至今仍为 open。CJK：locale zh 交给 ICU 处理（官方描述为 Character-based segmentation）；可以用 pre_segmented_query 接入外部分词（如 jieba）后按空格切分。",
+      "pg_integration": "没有官方 PG connector。官方指南推荐的方式有：按 updated_at 轮询并 bulk upsert、CDC 监听写队列（文档只点名 MySQL 的 Maxwell）、ORM hook、缓冲表，以及 Airbyte；建议每晚全量重建并用 alias 原子切换。",
+      "managed_availability": "Typesense Cloud 共 26 个区域，按小时计费，可开 HA 和 SDN。sub-processors 页面的托管基础设施只列了 AWS。三大云原生托管都不提供 Typesense。核对日期 2026-11-02。",
+      "maturity": "最新 release v30.2（2026-04-19），默认分支已到 v31；27.1k stars，2026-10-30 仍有推送。",
+      "evidence": [
+       "https://github.com/typesense/typesense/blob/v31/LICENSE.txt（2026-11-02 经 GitHub API 读取，GPL v3）",
+       "https://github.com/typesense/typesense/blob/v31/README.md（2026-11-02 访问，Why the GPL license 一节）",
+       "https://typesense.org/docs/guide/ranking-and-relevance.html（2026-11-02 访问）",
+       "https://github.com/typesense/typesense/issues/1373（2026-11-02 访问，维护者评论 2023-11-14）",
+       "https://typesense.org/docs/guide/locale.html（2026-11-02 访问）",
+       "https://typesense.org/docs/guide/syncing-data-into-typesense.html（2026-11-02 访问）",
+       "https://cloud.typesense.org/（2026-11-02 访问）",
+       "https://cloud.typesense.org/legal/sub_processors（2026-11-02 访问）"
+      ]
+     }
+    ],
+    "findings": [
+     {
+      "id": "F01",
+      "claim": "Elasticsearch 仓库源码默认采用 AGPL-3.0-only、SSPL-1.0、ELv2 三选一；部分文件为 Apache-2.0 兼容许可；x-pack 目录下的代码仅限 ELv2。",
+      "url": "https://github.com/elastic/elasticsearch/blob/main/LICENSE.txt",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F02",
+      "claim": "Elastic 的 AGPL 只是源码中免费部分的一个额外选项。官方发行版仍为 ELv2（Our releases will continue to be under the Elastic License），客户端库为 Apache-2.0。",
+      "url": "https://www.elastic.co/pricing/faq/licensing",
+      "date": "FAQ 变更日志 2024-08-29；2026-11-02 访问"
+     },
+     {
+      "id": "F03",
+      "claim": "ELv2 的核心限制是不得把软件作为 hosted 或 managed service 提供给第三方（用户可访问其实质功能时），不得绕过 license key，不得移除声明。",
+      "url": "https://www.elastic.co/licensing/elastic-license",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F04",
+      "claim": "ELv2 FAQ 明确允许在 SaaS 产品里用 Elasticsearch 做搜索框；客户直接访问 ES API 和 Kibana UI 实质功能的托管服务不被允许。",
+      "url": "https://www.elastic.co/licensing/elastic-license/faq",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F05",
+      "claim": "自管 Elasticsearch 的 RRF 和 linear retriever 需要 Enterprise 许可，Basic 下返回 403 non-compliant。Elastic 人员 2025-06-13 在论坛确认；订阅矩阵把这两项与 Standard/kNN retriever 分列。",
+      "url": "https://discuss.elastic.co/t/use-of-retrievers-in-the-search-api/379145",
+      "date": "2025-06-13；2026-11-02 访问"
+     },
+     {
+      "id": "F06",
+      "claim": "Elasticsearch 的 combined_fields 基于 simple BM25F 公式，但官方声明为近似实现：字段 boost 须 ≥1.0，所有字段须使用同一 analyzer。",
+      "url": "https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-combined-fields-query",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F07",
+      "claim": "Elasticsearch 默认 similarity 为 BM25，k1 默认 1.2、b 默认 0.75，均可配置，similarity 可按字段指定。",
+      "url": "https://www.elastic.co/docs/reference/elasticsearch/index-settings/similarity",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F08",
+      "claim": "Elastic Cloud Hosted 上传自定义插件（如 IK、jieba）需要 Gold、Platinum 或 Enterprise 订阅；词典类 bundle 各订阅级别都能上传；官方插件可按部署启用。",
+      "url": "https://www.elastic.co/docs/deploy-manage/deploy/elastic-cloud/add-plugins-extensions",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F09",
+      "claim": "Elastic Cloud Serverless 预装 core analysis plugins（未逐一列名），但不支持上传自定义插件或 bundle，也不支持语言分析器的自定义词典，同义词只能走 Synonyms API。",
+      "url": "https://www.elastic.co/docs/deploy-manage/deploy/elastic-cloud/differences-from-other-elasticsearch-offerings",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F10",
+      "claim": "Elastic 官方 PostgreSQL connector 只有 self-managed 版本，兼容 PG 11–15，不支持增量同步，不同步权限，无主键表会被跳过；connector 代码仓为 ELv2。",
+      "url": "https://www.elastic.co/docs/reference/search-connectors/es-connectors-postgresql",
+      "date": "2026-11-02 访问（许可见 https://github.com/elastic/connectors/blob/main/LICENSE）"
+     },
+     {
+      "id": "F11",
+      "claim": "Elasticsearch 官方 analysis-smartcn 插件的源码文件头为 ELv2、AGPL-3.0-only、SSPL-1.0 三许可。",
+      "url": "https://github.com/elastic/elasticsearch/blob/main/plugins/analysis-smartcn/src/main/java/org/elasticsearch/plugin/analysis/smartcn/AnalysisSmartChinesePlugin.java",
+      "date": "2026-11-02 经 GitHub API 读取"
+     },
+     {
+      "id": "F12",
+      "claim": "Elastic Cloud Hosted 运行在 AWS、GCP、Azure 上；Serverless 在三家云各有部分区域可选。",
+      "url": "https://www.elastic.co/docs/reference/cloud/cloud-hosted/regions",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F13",
+      "claim": "OpenSearch 仓库许可为 Apache License 2.0；主仓 plugins/ 目录内含 analysis-smartcn、analysis-icu、analysis-kuromoji、analysis-nori 等核心分析插件。",
+      "url": "https://github.com/opensearch-project/OpenSearch/blob/main/LICENSE.txt",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F14",
+      "claim": "2024-09-16，AWS 把 OpenSearch 移交 Linux Foundation，成立 OpenSearch Software Foundation，由 TSC 治理，premier 成员为 AWS、SAP、Uber。",
+      "url": "https://www.linuxfoundation.org/press/linux-foundation-announces-opensearch-software-foundation-to-foster-open-collaboration-in-search-and-analytics",
+      "date": "2024-09-16"
+     },
+     {
+      "id": "F15",
+      "claim": "OpenSearch 的 combined_fields 从 3.2 起引入，使用 BM25F 算法（全局 IDF、按字段总长归一），用 ^ 语法设字段权重，要求所有字段为 text 且使用同一 analyzer。",
+      "url": "https://docs.opensearch.org/latest/query-dsl/full-text/combined-fields/",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F16",
+      "claim": "OpenSearch 默认 BM25，k1 默认 1.2、b 默认 0.75、discount_overlaps 默认 true，均可配置。",
+      "url": "https://docs.opensearch.org/latest/im-plugin/similarity/",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F17",
+      "claim": "OpenSearch 的 RRF（score-ranker-processor）从 2.19 起提供，Apache-2.0 下没有付费门槛。",
+      "url": "https://docs.opensearch.org/latest/search-plugins/search-pipelines/score-ranker-processor/",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F18",
+      "claim": "Amazon OpenSearch Service 于 2026-07-30 宣布支持 OpenSearch 3.7，所有提供该服务的区域可用。",
+      "url": "https://aws.amazon.com/about-aws/whats-new/2026/07/amazon-opensearch-service/",
+      "date": "2026-07-30"
+     },
+     {
+      "id": "F19",
+      "claim": "Amazon OpenSearch Service 插件表列出 IK (Chinese) Analysis（OpenSearch ≥1.0）、Smart Chinese（≥1.0）、HanLP（≥2.11）、Pinyin、STConvert（≥1.3）和 ICU。",
+      "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/supported-plugins.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F20",
+      "claim": "在 Amazon OpenSearch Service 上，IK 自定义词典可以作为 package 上传并关联 domain，插件会自动加载，无需 user_dictionary 参数。",
+      "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/custom-packages.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F21",
+      "claim": "AWS 自定义插件（AnalysisPlugin、SearchPlugin 等）要求 OpenSearch ≥2.15，仅在 14 个列出的区域可用，每个 domain 最多 20 个插件，自定义插件引发的问题不计 SLA 赔付；文档中 descriptor 示例只写到 2.x。",
+      "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/custom-plugins.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F22",
+      "claim": "Amazon OpenSearch Serverless 预装 ICU、kuromoji、nori、phonetic、Smart Chinese、stempel、ukrainian 等分析插件，未列 IK。",
+      "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-genref.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F23",
+      "claim": "OpenSearch Ingestion 以 RDS PostgreSQL 为源时，先导出 S3 快照，再走逻辑复制 CDC。要求 PG ≥16；每条 pipeline 一个 database；只支持同区域、同账号；只支持 Secrets Manager 认证；DDL 一般不支持；无主键表须自定义 document_id；不支持 RDS Multi-AZ DB cluster。类型映射表未列出 vector 和 geometry 类型。",
+      "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/rds-PostgreSQL.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F24",
+      "claim": "OpenSearch Ingestion 以 Aurora PostgreSQL 为源时要求 16.4 及以上，并须设置 rds.logical_replication=1、aurora.enhanced_logical_replication=1 等参数。",
+      "url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/aurora-PostgreSQL.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F25",
+      "claim": "IK Analysis 插件（infinilabs/analysis-ik，原 medcl）为 Apache-2.0，同时支持 Elasticsearch 和 OpenSearch，最近一次提交为 2026-06-30（修复 ik_smart），2026-05-11 修复了 ES 9.4 的构建。",
+      "url": "https://github.com/infinilabs/analysis-ik",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F26",
+      "claim": "Elasticsearch 的 jieba 插件 sing1ee/elasticsearch-jieba-plugin 为 MIT 许可，最后推送于 2025-11-28；opensearch-project 下没有官方 jieba 插件。",
+      "url": "https://github.com/sing1ee/elasticsearch-jieba-plugin",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F27",
+      "claim": "Typesense 服务端为 GPL-3.0、客户端为 Apache-2.0；README 说明特意没有选 AGPL，作为独立守护进程运行且不分发修改版时不触发 copyleft。",
+      "url": "https://github.com/typesense/typesense/blob/v31/README.md",
+      "date": "2026-11-02 访问（许可文件见 https://github.com/typesense/typesense/blob/v31/LICENSE.txt）"
+     },
+     {
+      "id": "F28",
+      "claim": "Typesense 维护者在 issue #1373 中回复 We don't support BM25 at the moment，该 issue 仍为 open；_text_match 由 token 重叠、typo、邻近度和字段权重构成。",
+      "url": "https://github.com/typesense/typesense/issues/1373",
+      "date": "2023-11-14；2026-11-02 访问"
+     },
+     {
+      "id": "F29",
+      "claim": "Typesense 的 CJK 处理靠 ICU locale（zh），官方建议 CJK 场景用 pre_segmented_query 接入外部 ML 分词。",
+      "url": "https://typesense.org/docs/guide/locale.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F30",
+      "claim": "Typesense Cloud 提供 26 个区域；sub-processors 页面的托管基础设施只列了 AWS。",
+      "url": "https://cloud.typesense.org/legal/sub_processors",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F31",
+      "claim": "Meilisearch 的 SPDX 为 MIT AND BUSL-1.1：EE 代码只允许非生产使用，生产须签商业协议，4 年后转为 MIT。",
+      "url": "https://github.com/meilisearch/meilisearch/blob/main/LICENSE-EE",
+      "date": "2026-11-02 经 GitHub API 读取"
+     },
+     {
+      "id": "F32",
+      "claim": "Meilisearch 官方文档称 Enterprise Edition 唯一的独占功能是 sharding；Community Edition 以 MIT 提供全文检索和 AI 检索。",
+      "url": "https://www.meilisearch.com/docs/resources/self_hosting/enterprise_edition",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F33",
+      "claim": "Meilisearch 的排序由 ranking rules 逐级决胜（words、typo、proximity、attributeRank 等），文档不涉及 BM25 或 TF-IDF；字段重要性用 attributeRank 的优先级顺序表达。",
+      "url": "https://www.meilisearch.com/docs/learn/relevancy/ranking_rules",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F34",
+      "claim": "Meilisearch 的分词器 Charabia 对中文（CMN）采用基于 jieba 词典的切分，并做 kvariant 归一。",
+      "url": "https://www.meilisearch.com/docs/learn/resources/language",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F35",
+      "claim": "Meilisearch Cloud 共 9 个区域，只有 PAR 写明运行在 AWS European Sovereign Cloud 上，其余区域的云厂商未披露。",
+      "url": "https://www.meilisearch.com/docs/capabilities/platform/infrastructure/regions",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F36",
+      "claim": "Tantivy 为 MIT 许可；BM25 的 K1=1.2、B=0.75 在源码中是硬编码常量，不可配置。",
+      "url": "https://github.com/quickwit-oss/tantivy/blob/main/src/query/bm25.rs",
+      "date": "2026-11-02 经 GitHub API 读取"
+     },
+     {
+      "id": "F37",
+      "claim": "Quickwit 官方博客于 2025-01-09 宣布加入 Datadog，并将以 Apache License 2.0 发布新版；仓库当前 LICENSE 为 Apache-2.0。",
+      "url": "https://quickwit.io/blog/quickwit-joins-datadog",
+      "date": "2025-01-09"
+     },
+     {
+      "id": "F38",
+      "claim": "Quickwit 的 chinese_compatible tokenizer 把每个 CJK 字符单独切开（须记录 position），不做词级分词；BM25 须开启 fieldnorms: true。",
+      "url": "https://quickwit.io/docs/configuration/index-config",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F39",
+      "claim": "Quickwit 的 ES 兼容 _bulk 只支持 create；删除只能走异步 delete-tasks，代价高，官方建议低频使用。",
+      "url": "https://quickwit.io/docs/overview/concepts/deletes",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F40",
+      "claim": "Vespa 的 bm25(field) 实现带 IDF 的 Okapi BM25，k1 默认 1.2、b 默认 0.75，可经 rank-properties 配置；按字段计算，字段须开启 enable-bm25；IDF 按节点本地统计。",
+      "url": "https://docs.vespa.ai/en/reference/bm25.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F41",
+      "claim": "Vespa Lucene Linguistics 开箱支持约 40 种语言（含中文），额外的 Lucene 分析模块可作为 Maven 依赖经 SPI 加载；默认 linguistics 为 OpenNLP。",
+      "url": "https://docs.vespa.ai/en/linguistics/lucene-linguistics.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F42",
+      "claim": "Vespa Cloud 的 prod zone 覆盖 AWS 和 GCP，Azure 只有 dev zone。",
+      "url": "https://docs.vespa.ai/en/cloud/zones.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F43",
+      "claim": "Debezium 为 Apache-2.0（3.7 stable 文档）。PG connector 支持 pgoutput 和 decoderbufs；在 RDS 上须设 rds.logical_replication=1、plugin.name=pgoutput，并授予 rds_replication 角色。",
+      "url": "https://debezium.io/documentation/reference/stable/connectors/postgresql.html",
+      "date": "2026-11-02 访问（许可见 https://github.com/debezium/debezium/blob/main/LICENSE.txt）"
+     },
+     {
+      "id": "F44",
+      "claim": "pgsync 为 MIT 许可，基于逻辑复制把 PostgreSQL 实时同步到 Elasticsearch 或 OpenSearch。",
+      "url": "https://github.com/toluaina/pgsync",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F45",
+      "claim": "RDS for PostgreSQL 开启逻辑解码须把静态参数 rds.logical_replication 设为 1 并重启，需要 rds_superuser 和 rds_replication 角色；支持原生 publication（pgoutput）。",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/PostgreSQL.Concepts.General.FeatureSupport.LogicalReplication.html",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F46",
+      "claim": "Cloud SQL for PostgreSQL 把 cloudsql.logical_decoding 设为 on 即可开启逻辑解码，支持 pgoutput、test_decoding、wal2json，改动须重启实例。",
+      "url": "https://docs.cloud.google.com/sql/docs/postgres/replication/configure-logical-replication",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F47",
+      "claim": "AlloyDB 用 alloydb.logical_decoding 标志开启 PostgreSQL 逻辑解码基础设施，默认关闭，改动会重启实例。",
+      "url": "https://docs.cloud.google.com/alloydb/docs/reference/alloydb-flags",
+      "date": "2026-11-02 访问"
+     },
+     {
+      "id": "F48",
+      "claim": "Azure Database for PostgreSQL flexible server 设 wal_level=logical 即可使用逻辑复制和逻辑解码，文档点名 Debezium；PG 17 起原生支持 failover 后保留逻辑槽。",
+      "url": "https://learn.microsoft.com/en-us/azure/postgresql/configure-maintain/concepts-logical",
+      "date": "ms.date 2026-07-08；2026-11-02 访问"
+     },
+     {
+      "id": "F49",
+      "claim": "Neon 可以作为 publisher 向外部 CDC 推送变更，所有用户可用，但开启后不可回退。",
+      "url": "https://neon.com/docs/guides/logical-replication-guide",
+      "date": "2026-11-02 访问（页面无日期）"
+     },
+     {
+      "id": "F50",
+      "claim": "Supabase 支持 publication 和 replication slot（pgoutput、wal2json），可接外部逻辑复制工具；托管 CDC 产品 Pipelines 仍是 public alpha，目标只有 BigQuery、ClickHouse、DuckLake、Snowflake。",
+      "url": "https://supabase.com/docs/guides/database/replication",
+      "date": "2026-11-02 访问（页面无日期）"
+     },
+     {
+      "id": "F51",
+      "claim": "ParadeDB（Tantivy 内嵌进 PG 的 pg_search）仓库许可为 AGPL-3.0，属于 PG 扩展路线，可作为跨路对照。",
+      "url": "https://github.com/paradedb/paradedb/blob/main/LICENSE",
+      "date": "2026-11-02 经 GitHub API 查询"
+     }
+    ]
+   },
+   "verification": {
+    "track": "T2-external 外置检索引擎许可与托管可用性核验（2026-11-02 实抓 GitHub raw/API、crates.io、厂商文档；工程视角，不构成法律意见）",
+    "checks": [
+     {
+      "target": "OpenSearch / license",
+      "verdict": "confirmed",
+      "note": "LICENSE.txt 原文为 Apache License 2.0，GitHub API spdx=Apache-2.0。LF 新闻稿日期 VIENNA – September 16, 2024，premier 成员为 AWS、SAP、Uber，原文写的是 vendor-neutral 和 overseen by a technical steering committee。plugins/ 目录下确有 analysis-smartcn 与 analysis-icu，build.gradle 中 SPDX 为 Apache-2.0。依据：https://raw.githubusercontent.com/opensearch-project/OpenSearch/main/LICENSE.txt ；https://www.linuxfoundation.org/press/linux-foundation-announces-opensearch-software-foundation-to-foster-open-collaboration-in-search-and-analytics"
+     },
+     {
+      "target": "OpenSearch / bm25_capability（combined_fields 3.2、BM25 默认值、RRF 2.19）",
+      "verdict": "confirmed",
+      "note": "combined-fields 页写明 Introduced 3.2，使用 BM25F 算法，IDF 跨字段全局计算。similarity 页 k1=1.2、b=0.75，discount_overlaps 可配。score-ranker-processor 页写明 Introduced 2.19，rank_constant 默认 60，有 weights 参数。opensearch-project 组织内搜 jieba 的仓库数为 0。IK 的 README 写明同时支持 Elasticsearch 和 OpenSearch，有 remote_ext_dict 热更新，GitHub API 许可为 Apache-2.0。"
+     },
+     {
+      "target": "OpenSearch / managed_availability（AWS OpenSearch Service）",
+      "verdict": "confirmed",
+      "note": "What's New 页标注 Posted on: Jul 30, 2026，正文为 3.7 is now available in all AWS Regions where Amazon OpenSearch Service is available。supported-plugins 表中：IK (Chinese) Analysis 1.0、Smart Chinese 1.0、HanLP 2.11、Pinyin 1.3、STConvert 1.3，ICU 与 kuromoji 列为 Included on all domains。custom-packages 页原文：IK 自定义词典作为 package 关联 domain 后 plugin automatically picks it up。custom-plugins 页：要求 ≥2.15，列出的区域正好 14 个，每个 domain 最多 20 个 plugin，自定义代码引发的问题不享 SLA credits，descriptor 只写到 2.15.0/2.x.0。小差异：what-is.html 版本清单只到 3.5/3.3/3.1，3.7 只出现在 What's New 公告里，属于文档滞后，不影响结论。"
+     },
+     {
+      "target": "OpenSearch / managed_availability（OpenSearch Serverless）",
+      "verdict": "confirmed",
+      "note": "serverless-genref 预装的分析插件为 ICU、kuromoji、Nori、Phonetic、Smart Chinese、Stempel、Ukrainian，没有 IK。serverless-overview 原文：Custom OpenSearch plugins aren't supported。依据：https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-genref.html ；https://docs.aws.amazon.com/opensearch-service/latest/developerguide/serverless-overview.html"
+     },
+     {
+      "target": "OpenSearch / pg_integration（OpenSearch Ingestion RDS/Aurora PG）",
+      "verdict": "confirmed",
+      "note": "rds-PostgreSQL 页：PostgreSQL 16 and higher；one PostgreSQL database per pipeline；须同 Region、同账号；Secrets Manager 是 only supported authentication mechanism；DDL generally not supported；RDS multi-AZ DB clusters are not supported。aurora-PostgreSQL 页：Aurora PostgreSQL 16.4 and higher。类型映射表中搜不到 vector 和 geometry，与断言一致。Data Prepper、Debezium 为 Apache-2.0，pgsync 为 MIT，均经 GitHub API 核对。"
+     },
+     {
+      "target": "OpenSearch / maturity",
+      "verdict": "confirmed",
+      "note": "GitHub API：3.9.0 发布于 2026-09-29，2.19.7 发布于 2026-10-20，stars 13,949，pushed_at 2026-11-02。断言里「贡献者活跃度从 #70 升到 #17」本身已标为二手，本轮没有核实。"
+     },
+     {
+      "target": "Elasticsearch / license",
+      "verdict": "confirmed",
+      "note": "LICENSE.txt 原文：默认 AGPL-3.0-only、SSPL v1、ELv2 三选一；也有 Apache-2.0 兼容的文件；仅 ELv2 的代码只在 x-pack 目录。licensing FAQ：AGPL 只覆盖 free portions；生效时间为 expected before the 8.16 release is generally available；原文 Our releases will continue to be under the Elastic License；client libraries 为 Apache 2.0；Change Log 最新一条为 August 29, 2024。博客署名 Shay Banon，日期 August 29, 2024。ELv2 Limitations 三条与断言一致。ELv2 FAQ 原文：put a search box on my cat-picture SaaS product. This is permitted。elastic/connectors 的 LICENSE 为 Elastic License 2.0。"
+     },
+     {
+      "target": "Elasticsearch / bm25_capability 与 RRF 订阅约束",
+      "verdict": "confirmed",
+      "note": "similarity 文档：k1 默认 1.2、b 默认 0.75；Only text-based field types like text and keyword 才支持按字段配置。combined_fields 文档原文：simple BM25F formula... scores will not obey the BM25F model perfectly；field boosts ≥1.0。论坛帖：2025-06-12 用户收到 403 non-compliant for [linear retriever]，2025-06-13 Elastic 人员 Carlos 回复 RRF and linear retrievers are under Enterprise license。订阅矩阵把「Retrievers: Standard, kNN, pinned, rescorer」和「Retrievers: linear, rule, RRF, text similarity re-ranker」分两行列出。smartcn 文档写 probabilistic、not configurable，源码头为 ELv2/AGPL/SSPL 三许可。IK：最后两次提交为 2026-05-11（fix build with ES 9.4.0）和 2026-06-30。sing1ee jieba 插件为 MIT，pushed 2025-11-28。"
+     },
+     {
+      "target": "Elasticsearch / managed_availability（Elastic Cloud Hosted / Serverless）",
+      "verdict": "confirmed",
+      "note": "add-plugins-extensions 原文：Uploading custom plugins requires a Gold, Platinum, or Enterprise subscription；bundles can be uploaded on all subscription levels, including Standard。differences 页 Serverless 一栏：Core analysis plugins (bundled)；Custom plugin/bundle uploads are not supported；Custom dictionaries for language analyzers are not supported；同义词走 synonyms API。ECH 的 provided plugins 子页实抓只拿到约 669 字节的外壳，smartcn/icu 是否在提供清单中仍未核实，与断言的「未核实」标注一致。"
+     },
+     {
+      "target": "Elasticsearch / managed_availability：「三大云原生托管服务都不提供 Elasticsearch」",
+      "verdict": "corrected",
+      "note": "这句不准确。修正为：AWS OpenSearch Service 仍提供 legacy Elasticsearch OSS（最高 7.10，即 Apache-2.0 时代的最后版本，有 EOS 时间表），但不提供 8.x/9.x。Azure 通过 Azure Native ISV Integration 提供「Elastic on Azure」，可以从 Azure portal 或 CLI 部署，账单走 Azure 订阅，由 Elastic 运维。它不是 Azure 自研服务，但对采购路径有影响。依据：https://docs.aws.amazon.com/opensearch-service/latest/developerguide/what-is.html （supports OpenSearch and legacy Elasticsearch OSS (up to 7.10)）；https://learn.microsoft.com/en-us/azure/partner-solutions/elastic/overview"
+     },
+     {
+      "target": "Elasticsearch / pg_integration（官方 PostgreSQL connector）",
+      "verdict": "confirmed",
+      "note": "es-connectors-postgresql 页：PostgreSQL versions 11 to 15 are compatible；available as a self-managed connector；does not currently support incremental syncs；Permissions are not synced；Tables with no primary key defined are skipped；In 8.15.0 新增 id_columns。"
+     },
+     {
+      "target": "Elasticsearch / maturity",
+      "verdict": "confirmed",
+      "note": "GitHub API：v9.5.5、v9.4.8、v8.19.23 都发布于 2026-10-06，stars 78,459，pushed_at 2026-11-02。仓库 spdx 为 NOASSERTION，原因是 LICENSE 是三许可，与断言不冲突。"
+     },
+     {
+      "target": "Vespa / license 与 bm25_capability",
+      "verdict": "confirmed",
+      "note": "LICENSE 原文为 Apache License 2.0，spdx=Apache-2.0。bm25 参考页：k1 默认 1.2、b 默认 0.75，都 Can be configured using rank-properties；要用 bm25 须开启 enable-bm25；跨节点保持同一 IDF 须用 significance 注解。Lucene Linguistics 原文：out-of-the-box provides analyzers for 40 languages，其中有 Chinese；额外模块以 analysis-kuromoji 为例作为 Maven 依赖加入，smartcn 没有被点名。"
+     },
+     {
+      "target": "Vespa / CJK 语言探测断言（「没有语言探测…3 个词以内默认英文」）",
+      "verdict": "corrected",
+      "note": "原断言把两种 linguistics 混在一起了。修正为：默认 OpenNLP linguistics 有语言探测（If no language is explicitly set... Vespa will run its configured language detector (by default, OpenNLP language detection)），但置信度 cutoff 为 0.02，queries with 3 terms or fewer will default to English。Lucene Linguistics 本身不提供语言探测（Lucene Linguistics doesn't provide language detection），喂数据和查询时都要显式传 language。结论仍然是中文场景应显式设定 language。依据：https://docs.vespa.ai/en/linguistics/linguistics.html ；https://docs.vespa.ai/en/linguistics/lucene-linguistics.html"
+     },
+     {
+      "target": "Vespa / managed_availability 与 maturity",
+      "verdict": "confirmed",
+      "note": "zones 页：Azure 只有 dev zone azure-eastus-az1；GCP prod zone 有 gcp-europe-west3-b、gcp-europe-west4、gcp-us-central1-a/b/c/f、gcp-us-east4-c、gcp-us-west1-c。GitHub API：v8.781.11 发布于 2026-11-02，stars 7,157，pushed_at 2026-11-02。"
+     },
+     {
+      "target": "Tantivy",
+      "verdict": "confirmed",
+      "note": "LICENSE 为 MIT 原文，Cargo.toml 中 license = \"MIT\"。src/query/bm25.rs 第 8–9 行为 const K1: Score = 1.2; const B: Score = 0.75;。crates.io API：max_version 0.27.0，发布于 2026-10-17。GitHub 最新 release 0.26.1 发布于 2026-05-10，stars 16,381，pushed_at 2026-10-30。docs.rs QueryParser 有 default fields 展开和 set_field_boost，页面中搜不到 BM25F。tantivy-jieba 为 MIT，68 stars。"
+     },
+     {
+      "target": "Quickwit / license（改许可时间与「Datadog 闭源私有 fork」）",
+      "verdict": "corrected",
+      "note": "Apache-2.0 本身成立：LICENSE 为 Apache 2.0 原文，spdx=Apache-2.0；AGPL 的历史也成立，LICENSE.md 有 2023-11-18 的提交「Add local AGPL license link」。需要修正两处。(1) 2025-01-09 的博客（François Massot）只是宣布 will soon release a new version under the Apache License 2.0；实际改许可的提交是「Relicense to Apache 2.0 (#5645)」，日期 2025-01-23，2025-02-25 还有一次「Fix license change」。(2) 引用的博客没有提到「Datadog 内部产品为闭源私有 fork」，这一点无法核实，应删除或另附来源。依据：https://quickwit.io/blog/quickwit-joins-datadog ；GitHub API repos/quickwit-oss/quickwit/commits?path=LICENSE"
+     },
+     {
+      "target": "Quickwit / bm25_capability、pg_integration、maturity",
+      "verdict": "confirmed",
+      "note": "index-config 页：fieldnorms 默认 false，并写明 Fieldnorms are required to calculate the BM25 Score；chinese_compatible 原文 Chop between each CJK character，Should be used with record: position。querying 页原文：By default, BM25 scoring is disabled。ES 兼容 API 页原文：only the create action of the bulk API is supported... delete or update are ignored。deletes 概念页：typically a few queries per hour or day is recommended，只作用于 mature splits，最坏要等 maturation_period。GitHub API：v0.9.3 发布于 2026-10-22，stars 11,759，pushed_at 2026-11-02。注意：data-deletion 文档路径会 404，现行路径是 https://quickwit.io/docs/overview/concepts/deletes 。"
+     }
+    ]
+   }
+  },
+  "T3-agpl-obligations": {
+   "research": {
+    "track": "AGPL-3.0 第 13 条义务边界：以 ParadeDB pg_search（AGPL）作为多产品客服 SaaS 的 PostgreSQL 后端扩展（工程视角许可风险评估，非法律意见；取证日 2026-11-02）",
+    "options": [
+     {
+      "name": "情形 A：未修改使用。自运维 PostgreSQL 加载原版 pg_search，只作 SaaS 后端，不对外交付任何副本",
+      "license": "AGPL-3.0。源文件头写的是 \"either version 3 ... or (at your option) any later version\"，实为 AGPL-3.0-or-later；Cargo.toml 与 GitHub 标的是 AGPL-3.0。另有 ParadeDB Enterprise 商业许可，即双许可",
+      "license_source_url": "https://github.com/paradedb/paradedb/blob/main/LICENSE",
+      "bm25_capability": "【本字段改作：义务】对 pg_search 本身没有源码提供义务。依据有三条。(1) §2 原文 \"explicitly affirms your unlimited permission to run the unmodified Program\"，并写明 \"You may make, run and propagate covered works that you do not convey, without conditions\"。(2) §13 的触发条件是 \"if you modify the Program\"。(3) §0 原文 \"Mere interaction with a user through a computer network, with no transfer of a copy, is not conveying\"，所以 SaaS 托管不算分发，§4–§6 不触发。唯一要做的是保留源码与二进制里原有的版权和许可声明。确定性：官方明文（AGPL 条文；FSF《Why the Affero GPL》也明说附加要求只针对 \"run a modified program on a server\"）",
+      "pg_integration": "【本字段改作：边界与集成形态】(1) 应用代码是否受影响：客服机器人应用通过 PostgreSQL 协议（socket）发 SQL。FSF FAQ #MereAggregation 认为 \"pipes, sockets ... normally ... separate programs\"，但通信语义足够紧密时也可能算合并，并且说这是 \"a legal question, which ultimately judges will decide\"。因此，应用经 SQL 访问不会把应用变成 AGPL 作品，这一点属普遍解读，不是明文。(2) pg_search 以共享库形式加载进 postgres 后端进程。按 FAQ #GPLPlugins，动态链接并共享数据结构的插件会和宿主构成单一组合程序；但在未修改情形下，这种组合本身不产生 §13 义务（普遍解读）。(3) 风险点：自研 C/Rust 扩展如果直接链接或调用 pg_search 内部符号，可能构成基于该作品的组合作品，从而落入情形 B 或 C（存疑，按从严处理）",
+      "managed_availability": "【本字段改作：合规路径与托管侧影响】(1) ParadeDB Community 只支持单节点。按其官方文档，ParadeDB 索引的高可用与只读副本只在 Enterprise 提供，在 Community 中索引只存在于主库。即使 AGPL 在许可上允许使用，生产级 HA 也需要商业许可（官方明文）。(2) ParadeDB Cloud 内含 Enterprise 商业许可，走这条路就不受 AGPL 约束（README 明文）。(3) Neon 已移除 pg_search：2026-03-19 起新项目不可用，2026-09-21 从既有项目下线，替代品是 lakebase_text（Neon 官方文档，2026-11-02 访问）。(4) RDS/Aurora、Cloud SQL/AlloyDB、Azure、Supabase 不在本路核查范围：未核实",
+      "maturity": "【本字段改作：确定性等级汇总】『未修改＋仅网络服务＝无源码义务』：官方明文。『应用经 SQL 访问不受传染』：普遍解读，FSF 自己承认最终由法院判断。『企业合规是否放行』：取决于各家政策，例如 Google 一律禁用。项目状态：最新 release v0.26.4（2026-10-29），仓库 2026-11-02 仍有推送；LICENSE 于 2023-10-04 改为 AGPL（commit 18eb80998）",
+      "evidence": [
+       "https://www.gnu.org/licenses/agpl-3.0.html （§0/§2/§13 条文；访问 2026-11-02；页面 $Date 2023-11-30）",
+       "https://www.gnu.org/licenses/why-affero-gpl.html （访问 2026-11-02；页面 $Date 2022-01-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#MereAggregation （访问 2026-11-02；FAQ 页 $Date 2026-01-13）",
+       "https://www.gnu.org/licenses/gpl-faq.html#GPLPlugins （访问 2026-11-02）",
+       "https://www.paradedb.com/docs/operate/deploy/enterprise （访问 2026-11-02）",
+       "https://github.com/paradedb/paradedb#license （访问 2026-11-02）",
+       "https://neon.com/docs/extensions/pg_search （访问 2026-11-02）",
+       "https://opensource.google/documentation/reference/using/agpl-policy （访问 2026-11-02；页面 Last updated 2026-10-26）"
+      ]
+     },
+     {
+      "name": "情形 B：修改后使用。fork 或 patch pg_search（如改打分、在源码中加中文 tokenizer 或词典逻辑、vendor 部分代码），只在自有云上提供 SaaS，不分发",
+      "license": "AGPL-3.0（文件头为 or-later，另有商业许可可选）",
+      "license_source_url": "https://github.com/paradedb/paradedb/blob/main/LICENSE",
+      "bm25_capability": "【本字段改作：义务】§13：修改版必须 \"prominently offer all users interacting with it remotely through a computer network (if your version supports such interaction) an opportunity to receive the Corresponding Source of your version\"，并通过网络服务器免费提供。FSF FAQ #UnreleasedModsAGPL 直接给了结论：网站上运行修改版 AGPL 程序的公司 \"must release the modified source code\"。需提供的范围是修改版 pg_search 的 Corresponding Source（§1）：包括它 \"specifically designed to require\" 的库（FAQ #AGPLv3CorrespondingSource：不同许可的依赖库也要一并提供，System Libraries 除外），不包括分离程序（应用代码），也不包括同进程中 pg_search 不依赖的其他扩展（pgvector、PostGIS 等，普遍解读）。提供方式可以是落地页或关于页上的源码链接；同一版本对同一用户只需提示一次（FAQ #AGPLProxy）。确定性：『修改即触发、范围为修改版作品』属官方明文",
+      "pg_integration": "【本字段改作：边界】(1) 什么算修改：§0 定义为 \"copy from or adapt all or part of the work in a fashion requiring copyright permission, other than the making of an exact copy\"。改源码、fork、复制部分代码进自有项目都算修改（官方明文）。通过 SQL 建索引、选 tokenizer 参数、调 GUC 等运行时配置不算修改（普遍解读）。运行时加载的自定义词典数据文件是否算修改：存疑。(2) 关键的不确定点：客服机器人的终端用户只和应用对话，应用再查询 PostgreSQL，这算不算 \"users interacting with it remotely\"？FAQ #AGPLv3InteractingRemotely 的判据是 \"expressly designed to accept user requests and send responses over a network\"，#AGPLv3ServerAsUser 的判据是 \"reasonable expectation that a person will be interacting with the program remotely\"。PostgreSQL 是网络服务器，但它直接面对的 client 是你的应用。FSF 没有明文覆盖这种间接访问，因此存疑。Google 政策按 \"can be accessed over a remote network interface\" 从严理解。工程上应当按『已触发』处理",
+      "managed_availability": "【本字段改作：合规路径】三选一，按推荐顺序。(1) 不在本地留存私有补丁，改动贡献回上游；ParadeDB 创始人在 HN 表态 \"The best way to avoid any such issue is to contribute changes to the upstream project\"（非正式表态）。(2) 公开修改版 pg_search 仓库，并在产品界面显著提供源码获取入口；只公开 pg_search 的修改版，应用代码不必公开（以应用与扩展保持分离为前提）。(3) 购买 ParadeDB Enterprise 商业许可，或使用 ParadeDB Cloud。各托管 PG 一般不允许加载自定义修改版扩展，这一点本路未核实",
+      "maturity": "【本字段改作：确定性等级】『修改＋网络服务＝须提供修改版源码』：官方明文。『间接访问（应用中转）是否构成 §13 所称 interacting』：存疑，没有判例或 FSF 明文。『义务范围只限修改版 pg_search 及其依赖，不及于应用』：普遍解读（Grafana Labs 的 AGPL 说明也把触发条件写成 \"modify ... and distribute or offer it as a service over a network\"）",
+      "evidence": [
+       "https://www.gnu.org/licenses/agpl-3.0.html （§0 modify 定义、§1 Corresponding Source、§13；访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#UnreleasedModsAGPL （访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#AGPLv3InteractingRemotely （访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#AGPLv3ServerAsUser （访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#AGPLv3CorrespondingSource （访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#AGPLProxy （访问 2026-11-02）",
+       "https://grafana.com/blog/qa-with-our-ceo-on-relicensing/ （2021-04-20 发布；访问 2026-11-02）",
+       "https://news.ycombinator.com/item?id=41249090 （ParadeDB 创始人 2024-08-14 评论；访问 2026-11-02）",
+       "https://opensource.google/documentation/reference/using/agpl-policy （Last updated 2026-10-26；访问 2026-11-02）"
+      ]
+     },
+     {
+      "name": "情形 C：分发（convey）。向客户交付私有化部署包、Docker 镜像或一体机，其中含 pg_search，修改与否均适用",
+      "license": "AGPL-3.0（文件头为 or-later，另有商业许可可选）",
+      "license_source_url": "https://github.com/paradedb/paradedb/blob/main/LICENSE",
+      "bm25_capability": "【本字段改作：义务】适用 §4/§5/§6：附上许可证全文、保留声明，并提供 Corresponding Source；以目标码形式交付时，须按 §6 列出的方式之一提供源码。FAQ #UnchangedJustBinary：即使未修改，\"if you distribute binaries, you must distribute the complete corresponding source code too\"。若已修改，还须标注修改（§5a），并把修改版整体以 AGPL 授权（§5c）。下游客户自行修改并对外提供网络服务时，§13 义务由下游承担。确定性：官方明文",
+      "pg_integration": "【本字段改作：边界】(1) 应用与 pg_search 同在一个镜像或介质中交付时，只要两者是 \"separate and independent works ... not combined with it such as to form a larger program\"，就构成 aggregate，按 §5 末段 \"does not cause this License to apply to the other parts of the aggregate\"（官方明文）。(2) 容器不改变上述判断（FAQ #AggregateContainers，官方明文）。(3) SQL/socket 通信是否保证『分离』：普遍解读如此，但 FSF 保留了『语义紧密即合并』的例外，属存疑边界。(4) 以下情况不算分发：公司内部复制和安装（FAQ #InternalDistribution）、委托承包商 \"exclusively on your behalf\" 代为运行（§2 第二段），均为官方明文",
+      "managed_availability": "【本字段改作：商业与合规影响】企业客户的开源政策往往会挡住含 AGPL 组件的私有化交付。Google 政策原文为 \"Code licensed under the GNU Affero General Public License (AGPL) MUST NOT be used at Google\"；Apache 把 \"GNU Affero GPL 3\" 列入 Category X，即不得纳入 ASF 产品。所以如果平台有私有化或本地部署路线，应提前准备商业许可（ParadeDB Enterprise 自托管需联系销售），或换用非 AGPL 的 BM25 方案。纯 SaaS 托管不涉及本情形",
+      "maturity": "【本字段改作：确定性等级】『分发即须附源码和许可证，修改与否都一样』：官方明文。『应用与扩展同镜像交付属 aggregate』：官方明文定义加普遍解读（分离程序的判定）。『客户企业政策放行』：因客户而异，属存疑或需商务谈判",
+      "evidence": [
+       "https://www.gnu.org/licenses/agpl-3.0.html （§4/§5/§6 与 aggregate 段；访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#UnchangedJustBinary （访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#AggregateContainers （访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#InternalDistribution （访问 2026-11-02）",
+       "https://www.gnu.org/licenses/gpl-faq.html#MereAggregation （访问 2026-11-02）",
+       "https://www.apache.org/legal/resolved.html （Category X；访问 2026-11-02）",
+       "https://opensource.google/documentation/reference/using/agpl-policy （Last updated 2026-10-26；访问 2026-11-02）",
+       "https://www.paradedb.com/docs/operate/deploy/enterprise （访问 2026-11-02）"
+      ]
+     }
+    ],
+    "findings": [
+     {
+      "id": "F01",
+      "claim": "【官方明文】AGPL §13 只在 \"if you modify the Program\" 时触发：修改版须向 \"all users interacting with it remotely through a computer network (if your version supports such interaction)\" 显著提供 Corresponding Source，并通过网络服务器免费提供",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "date": "访问 2026-11-02；页面 $Date 2023-11-30"
+     },
+     {
+      "id": "F02",
+      "claim": "【官方明文】AGPL §2 \"explicitly affirms your unlimited permission to run the unmodified Program\"；\"You may make, run and propagate covered works that you do not convey, without conditions\"。未修改且不分发时没有附加义务",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "date": "访问 2026-11-02；页面 $Date 2023-11-30"
+     },
+     {
+      "id": "F03",
+      "claim": "【官方明文】AGPL §0：\"Mere interaction with a user through a computer network, with no transfer of a copy, is not conveying.\" 自有云上的 SaaS 托管不算分发，§4–§6 不触发",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F04",
+      "claim": "【官方明文】AGPL §0 对 modify 的定义：\"copy from or adapt all or part of the work in a fashion requiring copyright permission, other than the making of an exact copy\"。按此定义，改源码、fork、复制部分代码都算修改；SQL 层配置不算修改属普遍解读",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F05",
+      "claim": "【官方明文】AGPL §5 末段：与 covered work 一起编入同一介质、但彼此 separate and independent 的作品构成 aggregate，\"does not cause this License to apply to the other parts of the aggregate\"",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F06",
+      "claim": "【官方明文】AGPL §1 规定 Corresponding Source 不含 System Libraries 及不加修改使用的通用工具，但包括作品 \"specifically designed to require\" 的共享库和动态链接子程序。修改 pg_search 后需公开的范围以此为界",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F07",
+      "claim": "【官方明文（FSF 解释）】FSF《Why the Affero GPL》：AGPL \"has one added requirement: if you run a modified program on a server and let other users communicate with it there, your server must also allow them to download the source code corresponding to the modified version running there\"",
+      "url": "https://www.gnu.org/licenses/why-affero-gpl.html",
+      "date": "访问 2026-11-02；页面 $Date 2022-01-02"
+     },
+     {
+      "id": "F08",
+      "claim": "【官方明文（FSF FAQ）】#UnreleasedModsAGPL：公司在网站上运行修改版 AGPL 程序，\"the company must release the modified source code\"",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#UnreleasedModsAGPL",
+      "date": "访问 2026-11-02；FAQ 页 $Date 2026-01-13"
+     },
+     {
+      "id": "F09",
+      "claim": "【存疑】FSF FAQ 判断『远程交互』的标准是 \"expressly designed to accept user requests and send responses over a network\"（#AGPLv3InteractingRemotely），以及 \"reasonable expectation that a person will be interacting with the program remotely over a network\"（#AGPLv3ServerAsUser）。FAQ 没有说明终端用户经应用间接查询数据库扩展的情况，客服 SaaS 的终端用户是否算 pg_search 的 interacting users 没有明文可依",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#AGPLv3InteractingRemotely",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F10",
+      "claim": "【普遍解读，FSF 自认最终由法院判断】#MereAggregation：pipes、sockets、命令行参数通常连接的是分离程序，但 \"if the semantics of the communication are intimate enough ... could be a basis to consider the two parts as combined\"，且 \"This is a legal question, which ultimately judges will decide\"。『应用经 SQL 访问不受传染』由此属普遍解读，不是明文",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#MereAggregation",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F11",
+      "claim": "【普遍解读（FSF 观点）】#GPLPlugins：动态链接且互相调用、共享数据结构的插件和主程序构成单一组合程序。pg_search 以共享库形式加载进 postgres 进程即属此类；自研扩展如果直接调用 pg_search 内部接口，可能构成基于 pg_search 的作品",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#GPLPlugins",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F12",
+      "claim": "【官方明文（FSF FAQ）】#AggregateContainers：判断是单一作品还是 aggregate 时，\"is unchanged by the involvement of containers\"。把应用和 pg_search 打进同一个 Docker 镜像，本身不改变结论",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#AggregateContainers",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F13",
+      "claim": "【官方明文（FSF FAQ）】#UnchangedJustBinary：分发二进制必须同时提供完整对应源码，未修改也一样；#InternalDistribution：组织内部复制和安装不算分发",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#UnchangedJustBinary",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F14",
+      "claim": "【官方明文（FSF FAQ）】#AGPLv3CorrespondingSource：修改版依赖的其他许可库（如 Expat、GPLv3）要一并纳入 Corresponding Source，System Libraries 除外；修改过的库须给出修改后的源码",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#AGPLv3CorrespondingSource",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F15",
+      "claim": "【官方明文（FSF FAQ）】#AGPLProxy：源码提示可以用落地页等常规消息渠道送达；同一版本已提示过的用户无需重复提示",
+      "url": "https://www.gnu.org/licenses/gpl-faq.html#AGPLProxy",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F16",
+      "claim": "【官方明文】OSI 于 2008-03-03 批准 AGPL-3.0（SPDX 标识 AGPL-3.0，steward 为 FSF）。OSI 许可页只载有元数据和条文，未见对 §13 义务的解释",
+      "url": "https://opensource.org/license/agpl-3.0",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F17",
+      "claim": "【企业政策，从严解读】Google 原文：\"Code licensed under the GNU Affero General Public License (AGPL) MUST NOT be used at Google\"；认为只要 \"the product or service can be accessed over a remote network interface\" 就可能触发，并对 AGPL 实行 \"aggressively-broad ban\"，连工作站安装都要经 OSPO 授权",
+      "url": "https://opensource.google/documentation/reference/using/agpl-policy",
+      "date": "访问 2026-11-02；页面 Last updated 2026-10-26"
+     },
+     {
+      "id": "F18",
+      "claim": "【基金会政策】Apache Software Foundation 把 \"GNU Affero GPL 3\" 列入 Category X（\"You may NOT include the following licenses within Apache products\"）",
+      "url": "https://www.apache.org/legal/resolved.html",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F19",
+      "claim": "【普遍解读（AGPL 厂商口径）】Grafana Labs CEO Q&A：\"Unmodified distributions are not affected\"；希望 \"modify the AGPL version and distribute or offer it as a service over a network\" 又不想承担 AGPL 义务的客户，可改用付费专有许可",
+      "url": "https://grafana.com/blog/qa-with-our-ceo-on-relicensing/",
+      "date": "发布 2021-04-20；访问 2026-11-02"
+     },
+     {
+      "id": "F20",
+      "claim": "【官方明文】ParadeDB 仓库 LICENSE 为 AGPL v3 全文，与 FSF agpl-3.0.txt 对比只有附录处一行换行差异。pg_search 源文件头写 \"either version 3 of the License, or (at your option) any later version\"，即 or-later；根 Cargo.toml 为 license = \"AGPL-3.0\"。2023-10-04 由 commit 18eb80998 改为 AGPL",
+      "url": "https://github.com/paradedb/paradedb/blob/main/pg_search/src/lib.rs",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F21",
+      "claim": "【官方明文】ParadeDB README：\"ParadeDB Community is licensed under the GNU Affero General Public License v3.0\"；\"ParadeDB Enterprise is commercially licensed and included with ParadeDB Cloud\"。自托管 Enterprise 需联系销售",
+      "url": "https://github.com/paradedb/paradedb#license",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F22",
+      "claim": "【官方明文】ParadeDB 文档：Community 版 \"supports single-node deployments\"；ParadeDB 索引的高可用与只读副本只在 Enterprise 提供，Community 的 ParadeDB 索引只存在于主库。生产 HA 形态因此在功能上就需要商业许可",
+      "url": "https://www.paradedb.com/docs/operate/deploy/enterprise",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F23",
+      "claim": "【未核实/未发现】ParadeDB 没有官方的『AGPL 使用者义务 FAQ』：文档索引 llms.txt 里没有 licensing FAQ，GitHub issues 中以 AGPL 检索只命中 #794（CLA 讨论）。官方博客《Why We Picked AGPL》（2024-08-03）只把 AGPL 概括为 \"provided that distributed, derivative works of the software are released under the same license\"，没提 §13 网络条款，不能当作义务指引；博客还说已向多家 Apache 许可项目发放商业许可",
+      "url": "https://www.paradedb.com/blog/agpl",
+      "date": "博客发布 2024-08-03；访问 2026-11-02"
+     },
+     {
+      "id": "F24",
+      "claim": "【存疑（非正式表态，无法律效力）】ParadeDB 创始人在 HN 上说：\"We don't believe AGPL should prevent you from self-hosting for your own internal usage ... If you are interested in using ParadeDB to power your own product, or would prefer a different license, we'd love to hear from you\"。可以看出厂商倾向把『用于自有产品』引向商务沟通",
+      "url": "https://news.ycombinator.com/item?id=38849928",
+      "date": "评论 2024-01-03；访问 2026-11-02"
+     },
+     {
+      "id": "F25",
+      "claim": "【托管商官方文档】Neon 已移除 pg_search：2026-03-19 起新项目不可用，2026-09-21 从既有项目下线，官方替代为 lakebase_text",
+      "url": "https://neon.com/docs/extensions/pg_search",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F26",
+      "claim": "【官方明文】ParadeDB 最新 release 为 v0.26.4（2026-10-29），仓库最近推送 2026-11-02，GitHub 识别许可为 AGPL-3.0，约 9.5k stars",
+      "url": "https://github.com/paradedb/paradedb/releases/tag/v0.26.4",
+      "date": "访问 2026-11-02"
+     },
+     {
+      "id": "F27",
+      "claim": "【工程结论（综合 F01–F24，非法律意见）】三种情形的边界如下。(1) 纯 SaaS 且不修改：对 pg_search 没有源码义务，属官方明文；应用不受传染属普遍解读。(2) 修改 pg_search：须向网络用户提供修改版 pg_search 源码；终端用户经应用间接访问是否触发属存疑，应按触发处理。(3) 私有化交付：必须附源码和许可证，并会遇到客户企业的 AGPL 禁用政策。建议的护栏有四条：不 fork pg_search，改动走上游；应用与扩展只经 SQL 交互，不自写链接 pg_search 内部符号的扩展；HA 或私有化需求出现时转商业许可；把 AGPL 组件登记进依赖许可清单并设 CI 门禁",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.html",
+      "date": "综合判断 2026-11-02"
+     }
+    ]
+   },
+   "verification": {
+    "track": "T3-agpl-obligations 独立核验：ParadeDB pg_search 在 AGPL-3.0 下的义务边界与托管可用性（取证日 2026-11-02）。实抓了 GNU 条文、Why-AGPL、GPL FAQ（$Date 2026/01/13）、ParadeDB LICENSE/README/源文件头/Cargo.toml、GitHub API（仓库 license、release、commit）、ParadeDB Enterprise 文档、Neon 文档、Google AGPL Policy、Apache resolved.html、Grafana 博客和 HN 评论。结果：条文与 FAQ 引语逐字核对全部命中；有一处日期错误（Grafana 博文实际为 2021-04-21），一处来源归属说过头（Cloud 不受 AGPL 约束属推论，README 原文没有这句），其余全部成立。",
+    "checks": [
+     {
+      "target": "情形 A：license（AGPL-3.0 / or-later / 双许可）",
+      "verdict": "confirmed",
+      "note": "raw LICENSE 为 GNU AFFERO GENERAL PUBLIC LICENSE Version 3。pg_search/src/lib.rs 文件头含 \"either version 3 of the License, or (at your option) any later version\"。根 Cargo.toml 第 22 行为 license = \"AGPL-3.0\"，pg_search/Cargo.toml 写的是 license = { workspace = true }。GitHub API 返回 license.spdx_id=AGPL-3.0。README 的 License 节写明 \"ParadeDB Enterprise is commercially licensed\"。来源：https://github.com/paradedb/paradedb/blob/main/LICENSE ；https://github.com/paradedb/paradedb#license"
+     },
+     {
+      "target": "情形 A：义务（§2/§13/§0 无源码义务）",
+      "verdict": "confirmed",
+      "note": "§2 的 \"explicitly affirms your unlimited permission to run the unmodified Program\" 和 \"You may make, run and propagate covered works that you do not convey, without conditions\"、§13 的 \"if you modify the Program\"、§0 的 \"Mere interaction ... is not conveying\" 均逐字命中，页面 $Date 为 2023/11/30。一处小偏差：『唯一要做的是保留版权和许可声明』在未分发情形下不是许可证施加的义务（§2 原文是 without conditions；保留声明属 §4/§5 的分发义务），只能算稳妥做法，不宜写成义务。来源：https://www.gnu.org/licenses/agpl-3.0.html"
+     },
+     {
+      "target": "情形 A：ParadeDB Community 单节点 / 索引 HA 与只读副本仅 Enterprise 提供",
+      "verdict": "confirmed",
+      "note": "官方文档原文：\"ParadeDB Community ... supports single-node deployments\"。功能对比表中 High availability 和 Read replica support 两项均为 Community ❌、Enterprise ✅。文档还写明 \"In a primary-replica topology, ParadeDB indexes in ParadeDB Community are only available on the primary\"。补充：同页也说明 Community 的堆表和 B-tree 等索引仍可走标准 PG 复制，所以『生产级 HA 需商业许可』只针对 BM25 索引层成立。来源：https://www.paradedb.com/docs/operate/deploy/enterprise"
+     },
+     {
+      "target": "情形 A：ParadeDB Cloud 内含 Enterprise 商业许可、不受 AGPL 约束（标注为 README 明文）",
+      "verdict": "corrected",
+      "note": "README 原文只有 \"ParadeDB Enterprise is commercially licensed and included with ParadeDB Cloud\"，没有『不受 AGPL 约束』的表述。应改为：『Cloud 内含商业许可的 Enterprise』属 README 明文；『因此不受 AGPL 约束』是推论，属普遍解读。来源：https://github.com/paradedb/paradedb#license"
+     },
+     {
+      "target": "情形 A：Neon 移除 pg_search 的日期与替代品",
+      "verdict": "confirmed",
+      "note": "Neon 文档原文：\"pg_search was deprecated for new Neon projects on March 19, 2026\"，\"retired from existing projects on September 21, 2026\"，\"Its replacement for BM25 search on Neon is lakebase_text\"。来源：https://neon.com/docs/extensions/pg_search"
+     },
+     {
+      "target": "情形 A：项目状态（v0.26.4 / 推送日 / 改 AGPL 的 commit）",
+      "verdict": "confirmed",
+      "note": "GitHub API：releases/latest 为 v0.26.4，published_at 2026-10-29T22:12:59Z；pushed_at 2026-11-02T08:56:41Z。commit 18eb809987d7 的作者与提交日期均为 2023-10-04，消息为 \"chore: Convert to APGL (#340)\"，改动文件包含 LICENSE。来源：https://github.com/paradedb/paradedb"
+     },
+     {
+      "target": "情形 A/B/C：Google AGPL Policy 引语与日期",
+      "verdict": "confirmed",
+      "note": "页面原文：\"Code licensed under the GNU Affero General Public License ( AGPL ) MUST NOT be used at Google\"；\"triggered if the product or service can be accessed over a remote network interface\"。页脚为 Last updated 2026-10-26 UTC。来源：https://opensource.google/documentation/reference/using/agpl-policy"
+     },
+     {
+      "target": "情形 B：§13 与 FAQ 引语（UnreleasedModsAGPL / InteractingRemotely / ServerAsUser / CorrespondingSource / AGPLProxy）",
+      "verdict": "confirmed",
+      "note": "5 个锚点都存在，引语逐字命中。其中 #AGPLProxy 原文为 \"If you know that a certain user has already been shown the offer, for the current version of the software, you don't have to repeat it\"，与报告中『同一版本只需提示一次』一致；但该条针对的是代理服务器场景，套用到本场景属类推。来源：https://www.gnu.org/licenses/gpl-faq.html"
+     },
+     {
+      "target": "情形 B：Grafana 博文证据日期（2021-04-20 发布）",
+      "verdict": "corrected",
+      "note": "页面署名日期和 JSON-LD 中的 datePublished 均为 2021-04-21，不是 2021-04-20。引语 \"modify the AGPL version and distribute or offer it as a service over a network\" 命中。修正值：2021-04-21 发布。来源：https://grafana.com/blog/qa-with-our-ceo-on-relicensing/"
+     },
+     {
+      "target": "情形 B：ParadeDB 创始人 HN 评论（2024-08-14）",
+      "verdict": "confirmed",
+      "note": "HN 页面显示 philippemnoel 于 Aug 14, 2024 发表的评论，原文为 \"The best way to avoid any such issue is to contribute changes to the upstream project\"。GitHub 用户 philippemnoel 的资料为 Philippe Noël，bio 写 \"CEO @paradedb\"。来源：https://news.ycombinator.com/item?id=41249090"
+     },
+     {
+      "target": "情形 C：§4/§5/§6、aggregate、§2 委托运行；FAQ UnchangedJustBinary/AggregateContainers/InternalDistribution；Apache Category X",
+      "verdict": "confirmed",
+      "note": "§5 aggregate 段的 \"separate and independent works\" 和 \"does not cause this License to apply to the other parts of the aggregate\"、§2 第二段的 \"exclusively on your behalf\" 均命中。三条 FAQ 原文命中。Apache resolved.html 的 Category X 清单中列有 \"GNU Affero GPL 3\"。来源：https://www.gnu.org/licenses/agpl-3.0.html ；https://www.gnu.org/licenses/gpl-faq.html ；https://www.apache.org/legal/resolved.html"
+     },
+     {
+      "target": "F01",
+      "verdict": "confirmed",
+      "note": "§13 原文 \"if you modify the Program, your modified version must prominently offer all users interacting with it remotely through a computer network (if your version supports such interaction) ... from a network server at no charge\" 逐字命中，页面 $Date 2023/11/30。来源：https://www.gnu.org/licenses/agpl-3.0.html"
+     },
+     {
+      "target": "F02",
+      "verdict": "confirmed",
+      "note": "§2 两处引语逐字命中。来源：https://www.gnu.org/licenses/agpl-3.0.html"
+     },
+     {
+      "target": "F03",
+      "verdict": "confirmed",
+      "note": "§0 原文 \"Mere interaction with a user through a computer network, with no transfer of a copy, is not conveying.\" 逐字命中。来源：https://www.gnu.org/licenses/agpl-3.0.html"
+     },
+     {
+      "target": "F04",
+      "verdict": "confirmed",
+      "note": "§0 的 modify 定义逐字命中。来源：https://www.gnu.org/licenses/agpl-3.0.html"
+     },
+     {
+      "target": "F05",
+      "verdict": "confirmed",
+      "note": "§5 末段 aggregate 定义及 \"does not cause this License to apply to the other parts of the aggregate\" 命中。来源：https://www.gnu.org/licenses/agpl-3.0.html"
+     },
+     {
+      "target": "F06",
+      "verdict": "confirmed",
+      "note": "§1 原文：\"does not include the work's System Libraries, or general-purpose tools or generally available free programs which are used unmodified\"，并包括 \"shared libraries and dynamically linked subprograms that the work is specifically designed to require\"。来源：https://www.gnu.org/licenses/agpl-3.0.html"
+     },
+     {
+      "target": "F07",
+      "verdict": "confirmed",
+      "note": "Why-AGPL 中 \"has one added requirement: if you run a modified program on a server ... modified version running there\" 逐字命中，页面 $Date 2022/01/02。来源：https://www.gnu.org/licenses/why-affero-gpl.html"
+     },
+     {
+      "target": "F08",
+      "verdict": "confirmed",
+      "note": "#UnreleasedModsAGPL 原文 \"the company must release the modified source code\" 命中，FAQ 页 $Date 2026/01/13。来源：https://www.gnu.org/licenses/gpl-faq.html#UnreleasedModsAGPL"
+     },
+     {
+      "target": "F09",
+      "verdict": "confirmed",
+      "note": "两条 FAQ 判据原文命中。FAQ 里确实没有谈到经应用间接访问数据库扩展的情形，标为存疑合理。来源：https://www.gnu.org/licenses/gpl-faq.html#AGPLv3InteractingRemotely ；https://www.gnu.org/licenses/gpl-faq.html#AGPLv3ServerAsUser"
+     },
+     {
+      "target": "F10",
+      "verdict": "confirmed",
+      "note": "#MereAggregation 原文：\"This is a legal question, which ultimately judges will decide\"；\"pipes, sockets and command-line arguments are communication mechanisms normally used between two separate programs\"；\"if the semantics of the communication are intimate enough, exchanging complex internal data structures, that too could be a basis to consider the two parts as combined\"。来源：https://www.gnu.org/licenses/gpl-faq.html#MereAggregation"
+     },
+     {
+      "target": "F11",
+      "verdict": "confirmed",
+      "note": "#GPLPlugins 原文：\"If the main program dynamically links plug-ins, and they make function calls to each other and share data structures, we believe they form a single combined program\"。措辞是 FSF 观点（we believe），标为普遍解读恰当。来源：https://www.gnu.org/licenses/gpl-faq.html#GPLPlugins"
+     },
+     {
+      "target": "F12",
+      "verdict": "confirmed",
+      "note": "#AggregateContainers 原文 \"is unchanged by the involvement of containers\" 命中。来源：https://www.gnu.org/licenses/gpl-faq.html#AggregateContainers"
+     },
+     {
+      "target": "F13",
+      "verdict": "confirmed",
+      "note": "#UnchangedJustBinary 原文 \"if you distribute binaries, you must distribute the complete corresponding source code too\"；#InternalDistribution 原文 \"the organization is just making the copies for itself\"，同条还写明 \"providing copies to contractors for use off-site is distribution\"。来源：https://www.gnu.org/licenses/gpl-faq.html#UnchangedJustBinary ；https://www.gnu.org/licenses/gpl-faq.html#InternalDistribution"
+     },
+     {
+      "target": "F14",
+      "verdict": "confirmed",
+      "note": "传入的内容截断在 \"Corresponding S\"，可核对的部分成立。#AGPLv3CorrespondingSource 原文：\"if your modified version depends on libraries under other licenses, such as the Expat license or GPLv3, the Corresponding Source should include those libraries (unless they are System Libraries)\"。截断之后的内容和后续 findings 没有拿到，未核验。来源：https://www.gnu.org/licenses/gpl-faq.html#AGPLv3CorrespondingSource"
+     }
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,287 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "知识库平台权限全链路",
+    "locale": "zh-CN",
+    "output": "docs/assets/architecture/design/knowledge-base-platform--permission-chain.html",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "ingest",
+      "label": "源与摄取"
+    },
+    {
+      "id": "govern",
+      "label": "版本与编辑"
+    },
+    {
+      "id": "idx",
+      "label": "索引与检索"
+    },
+    {
+      "id": "app",
+      "label": "应用与终端"
+    }
+  ],
+  "phases": [
+    {
+      "id": "ph-ingest",
+      "label": "引入期",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "ph-author",
+      "label": "编辑与身份",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "ph-index",
+      "label": "索引与验权",
+      "fromCol": 4,
+      "toCol": 4
+    },
+    {
+      "id": "ph-serve",
+      "label": "检索交付",
+      "fromCol": 5,
+      "toCol": 5,
+      "variant": "security"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-content",
+      "label": "内容轨：ACL 随文档流转",
+      "lane": "govern",
+      "fromCol": 1,
+      "toCol": 4
+    },
+    {
+      "id": "g-identity",
+      "label": "身份轨：终端验权",
+      "lane": "app",
+      "fromCol": 2,
+      "toCol": 4,
+      "variant": "security"
+    }
+  ],
+  "mainPath": [
+    "src",
+    "conn",
+    "aclcap",
+    "ver",
+    "edit",
+    "pub",
+    "mat",
+    "prefilter",
+    "answer"
+  ],
+  "nodes": [
+    {
+      "id": "src",
+      "lane": "ingest",
+      "col": 0,
+      "type": "external",
+      "label": "源系统",
+      "sublabel": "帮助中心/文件/库",
+      "width": 128
+    },
+    {
+      "id": "conn",
+      "lane": "ingest",
+      "col": 1,
+      "type": "backend",
+      "label": "连接器",
+      "sublabel": "最小权限凭据",
+      "tag": "密钥托管",
+      "width": 128
+    },
+    {
+      "id": "aclcap",
+      "lane": "govern",
+      "col": 1,
+      "type": "security",
+      "label": "捕获 ACL 镜像",
+      "sublabel": "随文档同步",
+      "width": 128
+    },
+    {
+      "id": "ver",
+      "lane": "govern",
+      "col": 2,
+      "type": "database",
+      "label": "DocumentVersion",
+      "sublabel": "acl 不可变快照",
+      "width": 136
+    },
+    {
+      "id": "anon",
+      "lane": "app",
+      "col": 2,
+      "type": "external",
+      "label": "匿名访客",
+      "sublabel": "产品域 scope",
+      "width": 126
+    },
+    {
+      "id": "edit",
+      "lane": "govern",
+      "col": 3,
+      "type": "frontend",
+      "label": "人工编辑",
+      "sublabel": "RBAC∩文档授权",
+      "tag": "乐观锁",
+      "width": 132
+    },
+    {
+      "id": "cust",
+      "lane": "app",
+      "col": 3,
+      "type": "frontend",
+      "label": "登录客户",
+      "sublabel": "JWT→增强 token",
+      "width": 132
+    },
+    {
+      "id": "pub",
+      "lane": "govern",
+      "col": 4,
+      "type": "backend",
+      "label": "评审发布",
+      "sublabel": "可见性变更强制四眼",
+      "width": 128
+    },
+    {
+      "id": "mat",
+      "lane": "idx",
+      "col": 4,
+      "type": "database",
+      "label": "Chunk 物化",
+      "sublabel": "继承·增量重刷",
+      "width": 128
+    },
+    {
+      "id": "gate",
+      "lane": "app",
+      "col": 4,
+      "type": "security",
+      "label": "验权网关",
+      "sublabel": "验签+域名绑定",
+      "width": 128
+    },
+    {
+      "id": "prefilter",
+      "lane": "idx",
+      "col": 5,
+      "type": "security",
+      "label": "组合 pre-filter",
+      "sublabel": "fail-closed",
+      "tag": "安全不变量",
+      "width": 128
+    },
+    {
+      "id": "answer",
+      "lane": "app",
+      "col": 5,
+      "type": "backend",
+      "label": "有据答案",
+      "sublabel": "过滤后融合重排",
+      "width": 134,
+      "tag": "拒答不泄露"
+    }
+  ],
+  "edges": [
+    {
+      "id": "w1",
+      "from": "src",
+      "to": "conn",
+      "label": "拉取"
+    },
+    {
+      "id": "w2",
+      "from": "conn",
+      "to": "aclcap",
+      "label": "随文档同步"
+    },
+    {
+      "id": "w3",
+      "from": "aclcap",
+      "to": "ver",
+      "label": "写入 acl"
+    },
+    {
+      "id": "w4",
+      "from": "ver",
+      "to": "edit",
+      "label": "基于 canonical"
+    },
+    {
+      "id": "w5",
+      "from": "edit",
+      "to": "pub",
+      "label": "草稿→发布"
+    },
+    {
+      "id": "w6",
+      "from": "pub",
+      "to": "mat",
+      "label": "触发索引",
+      "variant": "emphasis"
+    },
+    {
+      "id": "w7",
+      "from": "mat",
+      "to": "prefilter",
+      "label": "ACL 入索引"
+    },
+    {
+      "id": "w8",
+      "from": "anon",
+      "to": "gate",
+      "variant": "security"
+    },
+    {
+      "id": "w9",
+      "from": "cust",
+      "to": "gate",
+      "variant": "security"
+    },
+    {
+      "id": "w10",
+      "from": "gate",
+      "to": "prefilter",
+      "label": "ACL 谓词注入",
+      "variant": "security"
+    },
+    {
+      "id": "w11",
+      "from": "prefilter",
+      "to": "answer",
+      "label": "已过滤候选",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "安全不变量",
+      "items": [
+        "pre-filter fail-closed：判定不可用 = 全部不可见",
+        "融合与重排只接触已过滤候选，绝不后过滤 top-k",
+        "拒答话术统一，不泄露「文档存在但无权限」"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "双轨合流",
+      "items": [
+        "内容轨（引入→编辑→索引）携带 ACL 物化流转",
+        "身份轨（匿名产品域 / 登录客户 ACL）在检索期合流为过滤谓词"
+      ]
+    }
+  ]
+}

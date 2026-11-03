@@ -519,6 +519,10 @@ class ClaudeCodeService:
         触发时机（值越小压缩越早，预留更多 headroom；None=使用 CLI 默认值）。
         """
         env = inherited_env_without_engine_venv()
+        # 知识库写端点的机器调用方凭证（patrol 的 refresh_markdown 等内部 curl 用），每进程随机不落库。
+        from negentropy.auth.deps import SERVICE_TOKEN_ENV, get_knowledge_service_token
+
+        env[SERVICE_TOKEN_ENV] = get_knowledge_service_token()
         for key, value in ClaudeCodeService._credential_env(credential).items():
             if value is None:
                 env.pop(key, None)

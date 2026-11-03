@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "52af5718-24c0-4116-8415-d303fc2b241d",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--permission-chain/knowledge-base-platform--permission-chain.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--permission-chain.html",
+  "specification": {
+    "sha256": "f5ff49db3869106d537aaa75b8e9f1c20c4677b521d6f1fae51127c123474f9a",
+    "bytes": 5740
+  },
+  "artifact": {
+    "sha256": "f48a323025d3e64404aea200ddbded06e53b3ed96d67008279f678f58d236eed",
+    "bytes": 767496
+  }
+}

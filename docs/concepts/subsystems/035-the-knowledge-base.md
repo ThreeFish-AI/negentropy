@@ -23,6 +23,7 @@ tags:
 - **数据库权威定义**：[`schema/perception_schema.sql`](../../../apps/negentropy/src/negentropy/models/perception.py)（`corpus` / `knowledge` 表、索引、触发器、`kb_hybrid_search` / `kb_rrf_search`）。
 - **前端扩展约束**：[`framework.md` §11](../../../concepts/framework.md#11-扩展点与演进方向) 的扩展点与演进方向。
 - **调研文档**：[`034-knowledge-base.md`](../../research/knowledge-graph/034-knowledge-base.md)、[`035-knowledge-base-platform.md`](../../research/knowledge-graph/035-knowledge-base-platform.md)。
+- **对标与差距**：本子系统相对《[知识库平台技术方案](../design/knowledge-base-platform.md)》的逐机制差距判定与文档漂移清单见《[差距分析与补充诊断](../design/knowledge-base-platform-gap-analysis.md)》（as-of 2026-11-02，代码为准）。
 - **设计文档**：[`020-the-hippocampus.md`](../../reference/cognizes/engine/020-the-hippocampus.md)（Memory 遗忘曲线设计）。
 
 ## 1. 目标与边界
@@ -367,10 +368,11 @@ logger.error("database_error", details=exc.details)
 ### 11.1 Knowledge Base (知识库管理)
 
 > [!IMPORTANT]
-> **Authentication Required**: Knowledge 系统受 RBAC 保护。
+> **写操作受 RBAC 保护**（[`knowledge/api.py`](../../../apps/negentropy/src/negentropy/knowledge/api.py) 聚合层统一注入 `require_knowledge_write`）：
 >
-> - **View**: 所有已认证用户可查看公共知识库。
-> - **Edit**: 仅 `admin` 或 `knowledge_manager` 角色可创建/更像语料库。
+> - **Edit**：全部写方法端点需 `knowledge:write` 权限——`admin` 角色具备、`user` 角色不具备（roles 以 DB `user_states` 为权威按请求解析）；鉴权模式为 `optional` 时匿名写请求同样被拒（fail-closed）。只读语义的检索类 POST、Wiki 阅读计数与评论/注解（端点自带登录校验）在显式豁免清单中，新增写端点默认受保护，由覆盖门测试锁定（I-245）。
+> - **机器调用方**：Routine 内部调用（如 patrol 的 `refresh_markdown`）经 `X-Negentropy-Service-Token` 头携带每进程随机凭证（由 Claude Code 子进程环境变量 `NE_KNOWLEDGE_SERVICE_TOKEN` 注入，不落库）；该机器凭证仅在 optional/off 鉴权模式生效——strict 模式下 `AuthMiddleware` 先于路由守卫对无会话 token 请求一律 401。
+> - **View**：读端点当前未做身份校验（读路径的可见性控制见差距分析 D4）。
 
 作为静态知识的容器，支持对非结构化文档的**索引 (Indexing)**、**更新 (Upsert)** 与**混合检索 (Hybrid Search)**。
 

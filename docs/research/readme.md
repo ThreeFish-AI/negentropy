@@ -59,6 +59,7 @@
 | [Knowledge Base：RAG Pipeline & Hybrid Search](./knowledge-graph/034-knowledge-base.md) | KB 核心管道与混合检索 |
 | [Knowledge Base Fundamentals](./knowledge-graph/034a-knowledge-base-fundamentals.md) | Chunking / Embedding / RAG 基础理论 |
 | [腾讯 WeKnora 深度调研](./knowledge-graph/035-knowledge-base-platform.md) | WeKnora 与同类 RAG 框架对比 |
+| [知识库平台竞品与理论调研（四支柱）](./knowledge-graph/036-knowledge-base-platform-competitors.md) | 文档管理/索引构建/应用集成/权限管控四支柱：企业平台（Glean/Guru/Confluence）、云检索服务（Azure/AWS/Google/Algolia/ES）、客服 AI（Fin/Zendesk/Ada/Kapa）与开源增量，BM25F·SPLADE·ColBERT·过滤 ANN×ACL·Zanzibar·地理空间索引理论（七维 95 条发现逐维对抗核验，as-of 2026-11-02） |
 | [Cognee 深度调研](./knowledge-graph/040-cognee.md) | Cognee 记忆/知识框架 |
 | [Neo4j 图数据库调研](./knowledge-graph/050-neo4j.md) | Neo4j 承载 KG 的能力评估 |
 | [PostgreSQL 支撑 KG：Neo4j 替代路径](./knowledge-graph/051-postgres-neo4j.md) | 多模型 DB 全景与替代分析 |

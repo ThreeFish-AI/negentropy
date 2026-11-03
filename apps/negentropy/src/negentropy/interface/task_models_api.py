@@ -14,7 +14,8 @@
 
 设计要点：
     - 复用 ``models_api._require_admin`` 守卫（全局映射端点）。
-    - Corpus 级端点对 Corpus 拥有者开放（未来若引入精细化授权可改）。
+    - Corpus 级读端点对已登录用户开放；写端点（PUT/DELETE）须 ``knowledge:write`` 权限
+      （与 knowledge/api.py 聚合层守卫同口径，I-245；本路由独立挂载故显式挂守卫）。
     - 写操作后强制 ``invalidate_cache(prefix="task:")``，确保 resolver 60s TTL
       不阻碍即时生效。
     - 严格校验：
@@ -32,7 +33,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, delete, select
 
-from negentropy.auth.deps import get_current_user
+from negentropy.auth.deps import get_current_user, require_knowledge_write
 from negentropy.auth.service import AuthUser
 from negentropy.config.task_registry import (
     get_task,
@@ -248,7 +249,9 @@ async def upsert_corpus_task_setting(
     corpus_id: UUID,
     task_key: str,
     payload: TaskModelUpsert,
-    current_user: AuthUser = Depends(get_current_user),
+    # /knowledge 前缀的 corpus 级写端点：独立挂载于聚合 router 之外（bootstrap），
+    # 显式挂 knowledge:write 守卫（与 knowledge/api.py 聚合层注入同口径，I-245）。
+    _guard: AuthUser | None = Depends(require_knowledge_write),
 ) -> dict[str, Any]:
     """设置/更新某 Corpus 的任务映射。
 
@@ -310,7 +313,7 @@ async def upsert_corpus_task_setting(
 async def delete_corpus_task_setting(
     corpus_id: UUID,
     task_key: str,
-    current_user: AuthUser = Depends(get_current_user),
+    _guard: AuthUser | None = Depends(require_knowledge_write),
 ) -> dict[str, Any]:
     """删除某 Corpus 的任务映射（回退到全局映射 / 默认）。"""
     await _ensure_corpus_exists(corpus_id)
