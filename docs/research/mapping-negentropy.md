@@ -16,7 +16,7 @@ description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总
 | --- | --- | --- | --- |
 | 认知与上下文 | `HZ`（Horizon）、`OV`（OpenViking）、`OV-D`（漂移清单） | [011](./cognitive-context/011-horizon-context.md)、[014](./cognitive-context/014-openviking.md) | HZ：分支重评选，2026-09-17；OV：HEAD `a924fadd`，上游钉 `6227af51`（2026-10-22 复验，v0.5.1.1） |
 | Agent 基础设施：Skills | `SK-M`（规范映射）、`SK-A`（供应链） | [230](./agent-infra/230-agent-skills-standard.md)（含 090 一代吸收）、[220](./agent-infra/220-skills-supply-chain.md) | 091：分支无哈希；211：`95f5a532` @ 2026-09-26；221：2026-09-28 + 外部钉点 |
-| Agent 基础设施：Jev | `JV` | [200](./agent-infra/200-jev-system-one-model.md) | HEAD `95f5a532e` @ 2026-09-26 |
+| Agent 基础设施：Jev | `JV` | [200](./agent-infra/200-jev-system-one-model.md) | HEAD `f467ea141` @ 2026-11-03（I-247 换代重写，机制定义 §3–§6 未变） |
 | 自进化 | `PG`、`DR` | [142](./self-evolution/142-procedural-graphs.md)、[144](./self-evolution/144-dream-rsi.md) | 均为分支名，无本仓基线哈希与核验日 |
 | Agent Harness | `AN`（AI Native）、`HM`（Hermes）、`HM-D`（取证副产物） | [180](./agent-harness/180-ai-native-handbook.md)、[190](./agent-harness/190-hermes-agent.md) | AN：`161d6244`；HM：`2edf3ed5`，Hermes 钉 `068db016` |
 
@@ -516,7 +516,7 @@ Jev 对本仓的真增量不在接入更便宜的判断模型，而在四条可�
 
 **材料与登记**：
 
-- 材料机制定义与证据链：[200-jev-system-one-model.md](./agent-infra/200-jev-system-one-model.md) 的 §M1（闭合输出空间，§3）、§M2（共享 state 与隔离，§4）、§M3（校准概率，§5）、§M4（快慢分工，§6）及规律 1-5、争议 3（校准的领地）各节（§7）。
+- 材料机制定义与证据链：[200-jev-system-one-model.md](./agent-infra/200-jev-system-one-model.md) 的 §M1（闭合输出空间，§3）、§M2（共享 state 与隔离，§4）、§M3（校准概率，§5）、§M4（快慢分工，§6）及规律 1-5、争议 3（校准的领地）各节（§9）。
 - 落地建议中「做」档四项建议将在 [issue.md](../.agents/issue.md) 登记条目，并回链本节（锚点以本节「文件：行号」为准）。
 
 ## 自进化

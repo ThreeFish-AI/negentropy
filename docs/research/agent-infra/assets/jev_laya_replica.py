@@ -23,7 +23,7 @@ import sys
 import time
 from pathlib import Path
 
-# 复跑：先按 200 §9「laya 复刻实测」钉提交克隆信源到 $JEV_LAB_DIR（默认仓库根 .temp/jev-lab），
+# 复跑：先按 200 §8「laya 复刻实测」钉提交克隆信源到 $JEV_LAB_DIR（默认仓库根 .temp/jev-lab），
 # 产物写回 $JEV_LAB_DIR/laya-lab；本文件随笔记入库于 docs/research/agent-infra/assets/。
 JEV_LAB = Path(os.environ.get("JEV_LAB_DIR", Path(__file__).resolve().parents[4] / ".temp" / "jev-lab"))
 LAB = JEV_LAB / "laya-lab"

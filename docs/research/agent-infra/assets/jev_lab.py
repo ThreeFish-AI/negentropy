@@ -13,6 +13,7 @@
 用法：
   python3 jev_lab.py --selftest          # 全部场景断言，结尾打印 SELFTEST PASSED
   python3 jev_lab.py --break B1..B5      # 逐一拆掉一个机制，打印实测退化
+  python3 jev_lab.py --count <md>        # 字数门禁：剥围栏/图片行/URL，CJK+ASCII 词，>6000 退出码 2
 """
 
 from __future__ import annotations
@@ -364,11 +365,26 @@ def breakage(name: str) -> None:
 FITTED_T = fit_temperature(labeled_logits(DEV_SET))
 
 
+# ── 字数门禁（口径同 harness2_lab.count_words：剥围栏/图片行/URL，CJK 字符 + ASCII 词） ──
+def count_words(path: str) -> int:
+    import re
+
+    text = open(path, encoding="utf-8").read()
+    text = re.sub(r"```.*?```", "", text, flags=re.S)  # 代码围栏
+    text = re.sub(r"~~~.*?~~~", "", text, flags=re.S)
+    text = re.sub(r"^\s*!\[[^\]]*\]\([^)]*\)\s*$", "", text, flags=re.M)  # 图片行
+    text = re.sub(r"https?://\S+", "", text)  # URL
+    cjk = len(re.findall(r"[㐀-䶿一-鿿]", text))
+    words = len(re.findall(r"[A-Za-z]+(?:[-'’][A-Za-z]+)*", text))
+    return cjk + words
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--break", dest="brk")
     ap.add_argument("--dump", action="store_true", help="打印批量结果 JSON")
+    ap.add_argument("--count", metavar="MD", help="字数门禁（≤6000 退出码 0，超限退出码 2）")
     a = ap.parse_args()
     if a.selftest:
         selftest()
@@ -376,6 +392,10 @@ if __name__ == "__main__":
         breakage(a.brk)
     elif a.dump:
         print(json.dumps(run_batch(), ensure_ascii=False, indent=1))
+    elif a.count:
+        n = count_words(a.count)
+        print(f"{n}（剥围栏/图片/URL 口径：CJK 字符 + ASCII 词）")
+        sys.exit(0 if n <= 6000 else 2)
     else:
         ap.print_help()
         sys.exit(1)
