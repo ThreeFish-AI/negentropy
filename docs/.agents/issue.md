@@ -252,6 +252,7 @@
 | I-244 | agent-harness 182 dsh-superagent 精读入库：微信原文反爬的证据分级降级与「文章 vs 仓库」零实现清单 | ✅ 已完成 | 2026-11-01 | [详情](#I-244) |
 | I-245 | knowledge 写端点鉴权缺位（optional 模式 fail-open、035 声称 RBAC 但零执行）：聚合层统一注入 knowledge:write 守卫 + 机器调用方 service token + 覆盖门 | ✅ 已完成 | 2026-11-02 | [详情](#I-245) |
 | I-246 | #1220 分集目录两级化后路径深度回归（单层 glob/正则/parents[N] 失配）：系列钩子死链、TTS 元数据漏入库、archify html 被剥空白、分集脚本脱离 lint、287 条链接失效 | ✅ 已完成 | 2026-11-03 | [详情](#I-246) |
+| I-247 | Jev 精读 200 换代重写（上游 Jev 1.14.0 + 规约换代：总类比/考评实录退场 + 字数门 6000）：四桶审计重写并同步入站指针 | ✅ 已完成 | 2026-11-03 | [详情](#I-247) |
 
 ---
 
@@ -5824,3 +5825,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：任何把「层数」写死的路径规则在下一次归组时都会再次静默失效；`series-intro.tsx` 一类逐字节副本若新增集而不登记，孪生门同样静默；仓库根定位写 `parents[N]` 的脚本（含 `.temp/` 搬入的）应一并改为哨兵查找。
 
 **注意事项**：1120 个 TTS 元数据退出跟踪后，其他已检出 #1220 的 worktree 拉取时会从磁盘删除这些文件——拉取前先备份 `chapters-*/video/public/audio/{manifest.json,.engine,*.sha}`，或拉取后重跑 tts.py 由 tts-store 恢复。`patch-archify-html.py` 全量重跑会让 concurrency 的 two-waiting-deaths 与 multiagent 的 five-layer-dependency 跟进 canonical 新内容，属录制输入变更、需重录 QA，空白类修复只从 git 复原。冻结保留不改：issue.md 历史条目中的旧路径、CHANGELOG 链接文字、17 条 `%% derived` 标签、lab2 日志内容（含写死的 12 分母）；vibe-video.toml 与 storyboard 中「七路径」为带日期的挂载记录。mermaid README 110–114 行的单横线文件名死链在 #1220 之前即存在，不属本条。
+
+
+<a id="I-247"></a>
+## I-247：Jev 精读 200 换代重写
+
+- **问题描述**：旧稿 12,389 字（超 6000 硬门一倍）、按已废止规约承载总类比剧场/遴选纪要/费曼考评实录；上游 typesafe.ai 已换代到 Jev 1.14.0（2026-10-14：模型版本化、实验性 images/Box/262k、60/30 天弃用预警），第三方基准面同步演进（JevBench v1.4 密封集退役、laya 钉版 `55cf4c4` 从上游历史消失）。
+- **表因根因**：字数门为本次新增交付硬门；旧规约产物与现行 guided-learn 模板（禁总类比、零脚手架外泄）冲突；上游实质换代触发 §7 再精读协议。
+- **处理方式**：完整 Phase 0–5 换代重写——新快照 + Wayback 对照摄取（旧口径 8 组锚点逐字核）、四桶继承审计 21 单元零未分类、原型复跑（selftest/B1–B5 与旧稿逐字一致）、Checker 三路对账 35/36（唯一 FAIL 项按核验事实删改）、保真核对五检、盲评（吸收比较结构、拒绝不可溯源断言回退）与外行四测 T1–T4 出闸、final-polish §4.4 入站引用扫描零 STALE；机制章编号 §3–§6 保持不动使 mapping/mermaid/.mmd 钉点零漂移。
+- **后续防范**：演进型信源（版本化 docs 站、基准活站）再精读先跑新鲜度探针再动笔；钉版修订可能被上游 force-push 抹除（laya 先例），重要实测结果须随仓归档；子代理转述的断言（如「1.13 对 Box 400」）必须落快照可 grep 才准入正文。
+- **同类问题影响**：mapping-negentropy.md 版本钉与 §7→§9 指针已刷新；`jev_laya_replica.py` 注释 §9→§8；knowledge-map/readme 登记行更新并声明字数门 6000（5924）。

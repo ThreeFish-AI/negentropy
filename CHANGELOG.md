@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Jev 精读换代重写（200，上游 Jev 1.14.0，I-247，2026-11-03）
+
+- 重写 [200 Jev 精读与通俗拆解](docs/research/agent-infra/200-jev-system-one-model.md)：上游实质换代（Jev 1.14.0，2026-10-14——模型版本化 `jev-latest`/`jev-preview` + 实验性 images 输入/Box 定位类型/262k 危险区长上下文 + 60/30 天弃用预警）触发 guided-learn §7 换代重写协议；四桶继承审计 21 单元（保留 5/更新 12/删除 3/新增 1），总类比剧场、遴选纪要与费曼考评实录按现行规约移出正文（git 历史留档），1.14 新证据两说并陈融入受影响章；字数门 6000 内（5924，179 口径 count_words，`jev_lab.py` 新增 `--count` 机器门）。
+- 证据闭环：Checker 三路对账 35/36 PASS（唯一 FAIL 的「1.13 对 Box 400 拒答」活站无载已删）；JevBench v1.4 密封集退役、v1.8 对 1.14.0 三线实测入库（文字板 70.2 居 18、低于 1.13 的 71.4；图像板 24.3 对 26.4；Box 赛道仅 1.14 一行 75.71）；jaggedness 页 10-02 重写删去 refund/not_refund 1.19 与 0.22/0.01 表（改带时效表述并归档 Wayback 旧版）；laya 钉版 `55cf4c4` 已从上游历史消失（实测数字改锚仓内归档）；adapter 钉版 `e1d4cc9` 未变、公式锚点重验。
+- 涟漪面：机制章编号 §3–§6 保持不动，实证数字前移 §7、实验室 §8、规律争议 §9；mapping-negentropy.md §7→§9 指针与版本钉、mermaid/.mmd 钉点、`jev_laya_replica.py` 注释（§9→§8）同步；外行四测 T1–T4 与盲评出闸、保真核对五检全绿；knowledge-map/readme 登记行更新。
+
 ### episodes 两级化路径深度回归修复（I-246，2026-11-03）
 
 - 修复 [I-246](docs/.agents/issue.md#I-246)：#1220 把 `episodes/` 由一层 `<slug>-video/` 重组为两层 `<series>/<slug>/` 后，仓内按层数编码的规则（gitignore `*`、pre-commit `[^/]+`、脚本 `parents[5]`）整体失配；只读审计（4 模态 finder + 逐批对抗核验 + 完整性 critic）定位 9 类回归，按四批提交修复。
