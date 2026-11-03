@@ -21,7 +21,7 @@
 - **实验 E5 本集复算【一】级**（2026-10-31 selftest 18 断言全绿）：连接文档服务后不重建工具池 → `Unknown tool: mcp__docs__search`，重建后正常返回——「池是动态的，依赖它的缓存必须随它失效」。
 - **官方双页补读**：`doc-mcp`（命名归一 / 权限按全名书写 / `.mcp.json` 项目批准；128 字符阈值与教学 64 分歧登记 B.1，口播引 64 恒钉教学版口径）+ `doc-mcp-io`（开放标准定位；2026-10-31 收口复核同日变更、语义一致钉新态，见 B.1 WARN 处置行）。
 - **台账口径注意**：本集翻钉后目录名跨轨不共用（章节表 id=s19_mcp_plugin 为站点轨目录、main 轨目录为 s14_mcp_plugin），`sync` 按章节表拼 URL 会 404 报 FAIL 2——地图 SSOT 已登记为机制表达力缺口，`s19-readme/-code` 按 main 真实路径手工登记（指纹可 verify、audit 三断言全过），**跑 sync 跳过本集、以 audit + verify 为准**。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

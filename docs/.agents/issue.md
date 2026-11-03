@@ -4074,7 +4074,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 ## I-162：站点数字取自未水合 HTML 源码，把占位符写进口播（111 vs 331）（2026-08-19）
 
 - **表因**：第一集口播 p6-13a 说配套仓库「收录了**一百一十一篇**论文」、p6-13b 九章含「工具」「定义」两章——与真实数据（331 篇/330 唯一 id；九章为 引言/Harness/技能/记忆/环境/RL 与持续学习/元进化/评测/安全）不符。
-- **根因**：官方站点 `index.html:57` 的 `<dt id="stat-papers">111</dt>` 是**未水合占位符**，`app.js:333` 实际执行 `els.statPapers.textContent = String(papers.length)`（真实访客看到 331）；上一轮信源补充把 **HTML 源码当渲染结果读**，占位数字进入口播；九章清单则是基于占位数字的**推断**而非站点原文（`data/manuscript.json` 的 chapterOrder 才是权威）。旁证：`DEV_LOG.md` 明写 "331-paper data set unchanged"、`index.html` 加载 `papers.js?v=links-331`。取证链见 [paper-notes.md](../../apps/negentropy-influence/episodes/experience-era-agents-video/research/paper-notes.md)「2026-08 v3 重读校准」节。
+- **根因**：官方站点 `index.html:57` 的 `<dt id="stat-papers">111</dt>` 是**未水合占位符**，`app.js:333` 实际执行 `els.statPapers.textContent = String(papers.length)`（真实访客看到 331）；上一轮信源补充把 **HTML 源码当渲染结果读**，占位数字进入口播；九章清单则是基于占位数字的**推断**而非站点原文（`data/manuscript.json` 的 chapterOrder 才是权威）。旁证：`DEV_LOG.md` 明写 "331-paper data set unchanged"、`index.html` 加载 `papers.js?v=links-331`。取证链见 [paper-notes.md](../../apps/negentropy-influence/episodes/self-evolution/experience-era-agents/research/paper-notes.md)「2026-08 v3 重读校准」节。
 - **处理方式**：口播改「三百多篇」约数 + 画面标精确值 331 与取数日期（活数据说死数字到发布必陈旧）；paper-notes 记全取证链；九章按章序用片中已教过的词重写。
 - **后续防范**：**站点数字只能取自数据文件（JSON/CSV 端点）或水合后 DOM，绝不取 HTML 源码**；静态抓取（curl/gh api/wget）拿到的一切统计数字都应视为占位符直至与数据文件互证。同批连带教训：正文引用年份 ≠ 事件纪年（ClawHavoc [Jiang et al., 2026b] 是引用年）；统计单位口径以原文为准（>90% 的单位是 trials 不是场景）。
 - **同类影响与注意**：凡「官方工程站点信源补充」（skills/01 规范）都适用；提取数字时优先找 `/data/*.json` 类端点或页面脚本里的赋值语句。

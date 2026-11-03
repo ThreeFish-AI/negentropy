@@ -1,6 +1,6 @@
 # 《TodoWrite：把计划摆回模型眼前》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：微改进 v3 四句 + TTS 55 句 4.9 分 + QA 修复轮 14 项全验（叠印根因三处一次清）+ 终渲 155.5s / manifest 4.9 分+片头≈5.3 分落窗，`~/Documents/video/claude-code-chapters/TodoWrite：把计划摆回模型眼前 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 5 集（s05_todo_write 单章）；Stage ①–⑤ 已完成（信源钉复核维持站点轨 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 55 句 1358 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：微改进 v3 四句 + TTS 55 句 4.9 分 + QA 修复轮 14 项全验（叠印根因三处一次清）+ 终渲 155.5s / manifest 4.9 分+片头≈5.3 分落窗，`~/Documents/video/claude-code-chapters/TodoWrite：把计划摆回模型眼前 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 5 集（s05_todo_write 单章）；Stage ①–⑤ 已完成（信源钉复核维持站点轨 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 55 句 1358 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -19,7 +19,7 @@
 - **钉复核维持站点轨 `67a9126c`（未翻钉）**：main 轨 s05 自旧钉 `ce8f9f18` 前移 13 提交仅 2 行注释中文化 + 空输入守卫 2 行，无 ep2 式「为什么还要加工具」级正源增量；且 main HEAD 即钉点 `7226f555`（compare ahead 0、s05 零触碰）。反向差距成立——s05 独有「深入 CC 源码」附录（V1/V2 双任务系统 / `isTodoV2Enabled` / `activeForm` / verification nudge / Task System 五项增量）只在站点轨，本集【三】级断言正源在此。
 - **main 轨 `7226f555` 为对照轨**：TodoManager 三限校验（至多 20 条 / 单条 in_progress / 字面量解析不碰 eval）、reminder 追加进第三轮 tool results、渲染清单回填，经台账 `s05m-*` 补登（冻结正文 §3 差异一/二/四的对照实测锚）。
 - **实验 E1 本集复算【一】级**（2026-10-31 selftest）：拆掉 reminder → 三步只剩两步、漂移 0→7、收尾 False；阈值 1 提醒 6 次（消息 28 对 23）、阈值 999 与拆掉逐项相同。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

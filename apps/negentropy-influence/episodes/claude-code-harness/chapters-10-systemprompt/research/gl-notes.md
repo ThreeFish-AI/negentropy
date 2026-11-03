@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 10 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物，首产 2026-10-08；本冻结取其现行代次——2026-10-23 I-235 缩写首现注解后代次，此前历 2026-10-14 LLM 单名化与回填形态修复、2026-10-22 I-234 词族整改两轮文字面演进，机制与实测数字零变动——git 实测三代差异均为注解/措辞层）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](../../../../../../docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物，首产 2026-10-08；本冻结取其现行代次——2026-10-23 I-235 缩写首现注解后代次，此前历 2026-10-14 LLM 单名化与回填形态修复、2026-10-22 I-234 词族整改两轮文字面演进，机制与实测数字零变动——git 实测三代差异均为注解/措辞层）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s10 System Prompt）——主线为 §6（System Prompt：按真实状态组装——分段 / 按状态拼装 / 缓存三步 + episode D 走查 + 两轨分歧与真实 CC 三层缓存）＋§8 关键实证数字（20-30KB / ~150 字符行）＋§9 动手实验室（E4「组装判据改关键词猜测」为本集消融正例）＋§10.1 底层规律（规律四 按真实状态组装）＋附录 A 类比登记表；§2 的「三通道在 s10 组装处汇合」与 main 轨 s15_integrated_harness 汇合句作开场承接；§3–§5（TodoWrite / Subagent / Skill Loading）属本系列 ep5–ep7、§7（Error Recovery）属 ep11，本集只在全貌坐标里点名不重讲。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集主线正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s10-readme` / `s10-code`。正源理由：s10_system_prompt 是该机制唯一独立章形态——PROMPT_SECTIONS 四段「三恒加一按需」、`get_system_prompt` 进程内缓存（`json.dumps(context, sort_keys=True)` 比对键）的完整教学实现，与「深入 CC 源码」深潜附录（静态/动态 section 两类清单、`SYSTEM_PROMPT_DYNAMIC_BOUNDARY`、三层缓存、getUserContext vs getSystemContext、20-30KB / ~150 字符）均只在站点轨；main 轨 17 章版无 s10 目录（404 实测），机制以七键每轮重建形态隐式吸收进 s15_integrated_harness。
 >   - main 轨（对照登记）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文）——字节归档 `source-archive/7226f555/`、台账 `s10m-readme` / `s10m-code`（s15_integrated_harness：`assemble_system_prompt` 七段每轮重建、不加本地缓存，另拼当前时间/技能目录/记忆/MCP 服务器名——「哪个对？都对，目标不同」两轨分歧叙事支点）。冻结正文参考 [1] 所记 main 钉点 `ce8f9f18` 为 GL 取数时点，本集按系列地图前移至 `7226f555`，差异面复核见附录 B.1。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s10/ 台账 `s10-site`（2026-10-31 fetch，raw `d5a5e8a3c3df61c4` / text `98e21a327954ee17`，与旧系列 2026-10-07 基线零漂移）。
@@ -292,10 +292,10 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 
 ---
 
-*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](docs/research/agent-harness/assets/lcc_planning_lab.py)。*
-![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
+*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../../../../../docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](../../../../../../docs/research/agent-harness/assets/lcc_planning_lab.py)。*
+![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
 > 提取自冻结正文全部类比性表述（2026-10-07 编制）。口径：一物一喻，1–3 句点亮即切回机制画面，失配边界句随行；未登记类比不进口播。带 ※ 号条目因系列口径卡口播红线（禁旧版隐喻系词汇，词表含「台面」）**不进口播**，仅留登记备查。
@@ -311,7 +311,7 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 | 7 | 按需调页（虚拟存储） | 常驻与按需的分层：常驻集要小（目录/清单），缺页才按需调（正文全文） | 内存页调入不按次收流量费；上下文是每轮请求全额计费的稀缺资源（§5 的账），经济 LLM 更苛刻 | §10 规律三 |
 | 8 | 延展心智（把心智状态放进环境再读回来） | 状态外置：todo 存外部结构、渲染回可见文本，别考验记忆 | 认知科学的延展心智是哲学论题；工程的版本更朴素——别考验记忆，考验摆放（原文自带此限定） | §10 规律二 |
 
-> **承袭登记**（2026-10-31）：现行 172 正文不含类比登记表附录；本表自旧系列《Claude Code Harness Engineering》ep2「规划与协调」冻结件（同 GL 谱系 172、2026-10-14 第五次冻结代次，[原表](claude-code-planning/research/gl-notes.md)）逐字承袭，继续作为本集口播类比唯一准入清单（新系列沿用旧系列禁喻词表，见[系列信源地图 §四](source-map/claude-code-chapters.md)）。本集（s10 单章）拟用条目：**#4 提示欠了一屁股债**（P1 问题钩子）、**#5 写死的手稿 → 运行时拼装的配置**（主线机制对照）；#2 组装台面因「台面」在禁喻词表维持 ※ 不进口播（三通道汇合改工程直陈）；其余条目属同系列其他集取材面（#1/#8 归 ep5、#3 归 ep6、#7 归 ep7、#6 归 ep11，由各集冻结时自行圈定）。
+> **承袭登记**（2026-10-31）：现行 172 正文不含类比登记表附录；本表自旧系列《Claude Code Harness Engineering》ep2「规划与协调」冻结件（同 GL 谱系 172、2026-10-14 第五次冻结代次，[原表](../../../claude-code-explained/claude-code-planning/research/gl-notes.md)）逐字承袭，继续作为本集口播类比唯一准入清单（新系列沿用旧系列禁喻词表，见[系列信源地图 §四](../../../../source-map/claude-code-chapters.md)）。本集（s10 单章）拟用条目：**#4 提示欠了一屁股债**（P1 问题钩子）、**#5 写死的手稿 → 运行时拼装的配置**（主线机制对照）；#2 组装台面因「台面」在禁喻词表维持 ※ 不进口播（三通道汇合改工程直陈）；其余条目属同系列其他集取材面（#1/#8 归 ep5、#3 归 ep6、#7 归 ep7、#6 归 ep11，由各集冻结时自行圈定）。
 
 ## 附录 B · 本集复算与穿透记录（2026-10-31 · ep10 开工首核）
 

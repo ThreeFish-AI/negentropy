@@ -1,6 +1,6 @@
 # 《Hooks：扩展不进循环》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：G1 十项全过零 RISKY + TTS 55 句 4.8 分 + QA 修复轮 3 项 + 小白走查四重点全证 + 终渲 165.7s / manifest 4.8 分+片头 23.5s≈5.2 分落窗，`~/Documents/video/claude-code-chapters/Hooks：扩展不进循环 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 4 集（s04_hooks 单章）；Stage ①–⑤ 已完成（信源重钉 main `7226f555` + C 型冻结现行 171 同代次 + 策划 + 逐字稿 55 句 1305 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / ledger audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：G1 十项全过零 RISKY + TTS 55 句 4.8 分 + QA 修复轮 3 项 + 小白走查四重点全证 + 终渲 165.7s / manifest 4.8 分+片头 23.5s≈5.2 分落窗，`~/Documents/video/claude-code-chapters/Hooks：扩展不进循环 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 4 集（s04_hooks 单章）；Stage ①–⑤ 已完成（信源重钉 main `7226f555` + C 型冻结现行 171 同代次 + 策划 + 逐字稿 55 句 1305 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / ledger audit+verify 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -20,7 +20,7 @@
 - **站点轨 `67a9126c` 降为附录正源**：s04 独有「深入 CC 源码」附录（27 事件 / 14 字段 HookResult / allow 压不过 deny-ask 不变式 / stopHookActive）经台账 `s04f-*` 补登，断言恒【三】级。
 - **实验 5 本集复算【一】级**（2026-10-31 selftest）：忽略 Stop 续跑指令 → stop_continued 1→0、turns 10/10→8/10、checkpoints 5/5→4/5（核对轮没发生）——「退出权也是扩展点」的消融正例；实验 4（注销 PreToolUse 权限回调 → 越界写出 0→1、问询 2→0）同升【一】级。
 - **官方 hooks 页 `doc-hooks` 活增长**：2026-10-31 指纹重钉基线，deny/ask 不变式官方原文逐字在场；事件总数只趋势化进口播（「三十多个」），现值不口播。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 18 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后的现行主干代次——旧系列 ep5 冻结件取的是换代前 `0ecf6527c` 代次，两者在「认领是否自动切目录」上的表述分歧已在附录 B.1 以钉点源码定案）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](../../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后的现行主干代次——旧系列 ep5 冻结件取的是换代前 `0ecf6527c` 代次，两者在「认领是否自动切目录」上的表述分歧已在附录 B.1 以钉点源码定案）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s18 Worktree Isolation）——主线为 **§7（隔离：任务绑定的施工面）**；关联条目圈定：§10 关键实证数字表（仅取与本集机制相关行）、§12 底层规律（**规律 1** 状态入文件——`.tasks/`、`.worktrees/` 落盘共享的地基；**规律 3** 先查后写必须原子上锁——§7 绑定与认领的交界）、§13 适用边界第 2 条（**worktree 不是安全沙箱**——本集边界护栏卡正源）；§11 五组破坏实验不含 worktree 消融（原型零 worktree 代码，B.2 复核），本集核心消融由钉点 code.py 守卫沙箱实测补足（B.2，升【一】级）；§3–§6、§8、§9 属同系列其他集（ep12 任务系统 / ep15 团队 / ep16 协议 / ep17 自治 / ep19 MCP / ep20 综合），本集只作开场承接不重讲。
-> - **原始信源登记**（钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集主线正源，**钉选**）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s18-readme` / `s18-code`。钉选理由：s18 为站点 20 章版独有章（main 无 s18+，团队四课 s15–s18 整合进 s13_agent_teams），本系列集制骨架即 20 章版；s18 单章叙事完整（问题 → 方案 → 创建绑定 / cwd 切换 / 收尾三出口 / 事件流 → 相对 s17 变更表 → 「深入 CC 源码」附录），该附录（EnterWorktree / AgentTool isolation / name 校验 / 路径分支命名 / 状态管理）为本集【三】级断言正源；钉点双件指纹与旧系列 2026-10-02 台账登记逐字一致（B.1）。
 >   - main 轨（对照，不钉）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文）——字节归档 `source-archive/7226f555/`、台账 `s18m-readme` / `s18m-code`。worktree 内容并入其 §9「由任务选择工具的工作目录」/ §10「Worktree 移除由宿主负责」；三处语义加固（移除从 LLM 工具收敛为宿主侧函数、assignment lease 进程重启恢复、绑定损坏认领直接失败不回退仓库目录）作「生产化方向」对照证据，按【二】级课程讲法处理。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s18/ 台账 `s18-site`（2026-10-31 fetch，raw `56f6ba47849a0e15` / text `62f8bd916ae2a49c`，与旧系列基线条目**零漂移**）；
@@ -44,10 +44,10 @@ main 轨 s13_agent_teams 把「组队」这件事需要回答的问题列得很�
 
 ## 2. 全貌解剖
 
-先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
-![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](../../../../../../docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|
@@ -251,7 +251,7 @@ main 轨把「先提方案、等用户确认再开队友」写进系统提示词
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
 > 提取自旧系列 ep5 冻结件《多 Agent 平台》附录 A（「一栋楼的公共制度」一物一喻 SSOT）。
-> **承袭登记**（2026-10-31）：现行 175 正文已不含类比登记表；本表自旧系列 ep5 冻结件（同 GL 谱系、换代前 `0ecf6527c` 代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s18 单章）拟用条目：**门牌房**（§7 git 工作树一任务一目录——本集主线机制的正牌喻体，全套登记语义可用：中央账本、各改各的线、绑定只加房号不改状态、名字校验、拆房三出口、事件日志）；任务墙 / 递话口 / 值班钟作开场承接语境沿用（承接句不计新喻，语义面仍受各行失配拦截列约束）；其余条目属同系列其他集。旧系列禁喻词表（含「隔间」「插口」「收件格」「派工单」「班次」及「从一个到一群」句式）继续禁用，见[旧系列地图 §六](source-map/claude-code-explained.md)。
+> **承袭登记**（2026-10-31）：现行 175 正文已不含类比登记表；本表自旧系列 ep5 冻结件（同 GL 谱系、换代前 `0ecf6527c` 代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s18 单章）拟用条目：**门牌房**（§7 git 工作树一任务一目录——本集主线机制的正牌喻体，全套登记语义可用：中央账本、各改各的线、绑定只加房号不改状态、名字校验、拆房三出口、事件日志）；任务墙 / 递话口 / 值班钟作开场承接语境沿用（承接句不计新喻，语义面仍受各行失配拦截列约束）；其余条目属同系列其他集。旧系列禁喻词表（含「隔间」「插口」「收件格」「派工单」「班次」及「从一个到一群」句式）继续禁用，见[旧系列地图 §六](../../../../source-map/claude-code-explained.md)。
 
 | 本集名词（楼域） | 175 机制（§锚） | 允许携带的语义 | 失配拦截（不许借喻过界） |
 |---|---|---|---|

@@ -19,7 +19,7 @@
 - **钉站点轨 `67a9126c`**（维持系列建档规划钉）：s15 恰为「团队」单章（MessageBus 文件收件箱 / spawn_teammate 持久队友 / Lead inbox 注入三件套），章属「深入 CC 源码」附录（15 种消息类型 / 权限冒泡双向轮询 / 队友生命周期 / team config）是本集【三】级断言正源且 main 轨已删；站点页 s15 零漂移（2026-10-31 fetch 与旧系列基线双指纹一致）。
 - **main 轨 `7226f555` 降为对照登记**（台账 `s15m-*`）：s13_agent_teams 为四课整合章（README.zh.md 12 节 / code.py 1891 行 vs 站点轨 254 / 985 行），第 6–12 节吞并站点轨 s16/s17/s18 三章正源，直引必与 20 章 1:1 拆集冲突；真增量（锁+条件变量 / 运行时投递 / result 与 idle 两事件 / 先提案等确认）隔离在 gl-notes 附录 B.1 对照登记、不进主线（防提前吞并 ep16–18 正源）。
 - **实验 E3 本集复算【一】级**（2026-10-31 selftest 18 断言全绿）：拆统一消费入口放工具直读 → `req_000001` 永远 pending、再读 0 条（本集 P3 核心消融正例；钉选 code.py 双消费入口 `:740`/`:958` 直接可证）。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

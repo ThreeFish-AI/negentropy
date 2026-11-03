@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 6 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；本冻结取其**现行代次 = 2026-10-23 I-234 词族整改后代次**（「五次拆除实验 → 五次破坏性实验」等措辞与 invariant / system prompt / context 等术语括注扩充），与 ep1/ep2 同一冻结正文代次纪律）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](../../../../../../docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；本冻结取其**现行代次 = 2026-10-23 I-234 词族整改后代次**（「五次拆除实验 → 五次破坏性实验」等措辞与 invariant / system prompt / context 等术语括注扩充），与 ep1/ep2 同一冻结正文代次纪律）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s06 Subagent）——主线为 §4（开场「一间会议室 + 共用白板」喻 / 机制：task 工具 + 全新 messages + SUB_SYSTEM + 基础五件无 task + 递归一层 + 30 轮上限 / 边界：PreToolUse 照过、rm -rf / 被 deny list 拦 / 单步走查「找测试框架」/ 实测数字 direct vs subagent vs 回传全史 / CC 深读三种执行模式 + Fork 五组件 + 隔离粒度 + 权限冒泡 / 官方 15,000 tokens 告警线）＋ §1 病灶例（s06 例：读 30 个文件、聊 60 轮、messages 涨到 120 条——开场承接位）＋ §8 相关行（子代理轮数上限 30〔教学设定〕、15,000 tokens、原型 18.0 倍）＋ §9 实验室（M2 行号速查 + **实验 E2 为本集核心消融**）＋ §10 规律一（可见性即影响力）与争议二（隔离的粒度——Fork 缓存权衡）；§3（TodoWrite）属本系列 ep5、§5（Skill）属 ep7、§6/§7（System Prompt / Error Recovery）属 ep10/ep11，本集只作开场承接与下期钩子一笔带过，不重讲。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - main 轨（本集主线正源，**钉选轨**）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s06-readme` / `s06-code`。正源理由有三：其一，站点轨 s06 code.py 主/子循环判据仍写 `stop_reason != "tool_use"`（`:218` / `:330`），直引必与 ep1 所教「认内容块不认收尾字段」自相矛盾（ep2 翻钉同款理由），main 轨 `:291` / `:344` 均已是内容块判据 `if not tool_calls: return`；其二，自旧钉 `ce8f9f18` 前移 13 提交对 s06 仅 2 提交（`2f8cfb0` code.py REPL 空输入守卫 2 行，同 s01/s02 款；`a2f8162` README.zh.md 代码注释中文化，docs）——机制零变化；其三，main 版五决策表（对话 / 执行 / 返回值 / 委派深度 / 工具策略）与「这里隔离的是消息，不是进程或文件系统」措辞，正面服务本集「隔离什么、不隔离什么」的边界叙事（冻结正文 §2 学习焦点第三）。
 >   - 站点轨（CC 附录正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s06f-readme` / `s06f-code`（s06 独有「深入 CC 源码」附录六小节：三种执行模式 / Fork 缓存五组件 / 隔离粒度 readFileState / 递归 Fork 防护 / Permission Bubbling / Async vs Sync——【三】级断言正源；课程叙事例数 30 文件 / 60 轮 / 120 条与「开一个新终端」讲法亦仅在此轨，【二】级）。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s06/ 台账 `s06-site`（2026-10-31 fetch，raw `f73b509cd83671d0` / text `5485fb25c5a7b75c`，与 2026-10-07 基线零漂移）。
@@ -292,10 +292,10 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 
 ---
 
-*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](docs/research/agent-harness/assets/lcc_planning_lab.py)。*
-![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
+*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../../../../../docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](../../../../../../docs/research/agent-harness/assets/lcc_planning_lab.py)。*
+![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
@@ -311,7 +311,7 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 | 6 | 一碰就熄火的车 | 不处理错误的 Agent：一次服务端过载直接崩溃，不重试不换路 | 课程引语级类比（站点轨正文原话【二】）；原文未单独给失配边界，口播 1 句内引述即收 | §7 |
 | 7 | 按需调页（虚拟存储） | 常驻与按需的分层：常驻集要小（目录/清单），缺页才按需调（正文全文） | 内存页调入不按次收流量费；上下文是每轮请求全额计费的稀缺资源（§5 的账），经济 LLM 更苛刻 | §10 规律三 |
 | 8 | 延展心智（把心智状态放进环境再读回来） | 状态外置：todo 存外部结构、渲染回可见文本，别考验记忆 | 认知科学的延展心智是哲学论题；工程的版本更朴素——别考验记忆，考验摆放（原文自带此限定） | §10 规律二 |
-> **承袭登记**（2026-10-31）：本表自旧系列《规划与协调》集冻结件（[claude-code-planning/research/gl-notes.md](claude-code-planning/research/gl-notes.md)，同 GL 谱系 172、2026-10-14 合并主干代次）**逐字承袭**，继续作为本集口播类比唯一准入清单（现行 172 正文已不含本附录；承袭源说明文字随其冻结代次措辞保留，不追改）。站点轨 s06 正文自带的「换个角度：开一个新终端」操作性类比**未入本表、不进口播**（未登记类比不进口播纪律），口播喻体走已登记 #3。本集（s06 单章）拟用条目：**#3 会议室与主会场共用白板**（本集核心喻，双边界：结论隔离 + 副作用共享）；#1 聊天群刷屏作开场承接语沿用（属 §1 病灶总起、不计新喻）；其余条目属同系列其他集（#4–#6 属 §6/§7 → ep10/ep11，#7 属 §5/规律三 → ep7，#8 属 §3/规律二 → ep5，#2 ※ 禁用）。
+> **承袭登记**（2026-10-31）：本表自旧系列《规划与协调》集冻结件（[claude-code-planning/research/gl-notes.md](../../../claude-code-explained/claude-code-planning/research/gl-notes.md)，同 GL 谱系 172、2026-10-14 合并主干代次）**逐字承袭**，继续作为本集口播类比唯一准入清单（现行 172 正文已不含本附录；承袭源说明文字随其冻结代次措辞保留，不追改）。站点轨 s06 正文自带的「换个角度：开一个新终端」操作性类比**未入本表、不进口播**（未登记类比不进口播纪律），口播喻体走已登记 #3。本集（s06 单章）拟用条目：**#3 会议室与主会场共用白板**（本集核心喻，双边界：结论隔离 + 副作用共享）；#1 聊天群刷屏作开场承接语沿用（属 §1 病灶总起、不计新喻）；其余条目属同系列其他集（#4–#6 属 §6/§7 → ep10/ep11，#7 属 §5/规律三 → ep7，#8 属 §3/规律二 → ep5，#2 ※ 禁用）。
 
 
 ## 附录 B · 本集复算与穿透记录（2026-10-31 · ep6 开工首核）

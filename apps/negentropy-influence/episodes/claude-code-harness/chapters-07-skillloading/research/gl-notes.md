@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 7 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；本冻结取其 2026-10-23 现行代次——I-234「拆/失效」词族整改〔ae6247c5b〕+ I-235 缩写首现注解〔4876f80d3〕后版本，与 ep1/ep2 冻结的 171 同一整改代次谱系）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](../../../../../../docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；本冻结取其 2026-10-23 现行代次——I-234「拆/失效」词族整改〔ae6247c5b〕+ I-235 缩写首现注解〔4876f80d3〕后版本，与 ep1/ep2 冻结的 171 同一整改代次谱系）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s07 Skill Loading）——主线为 §5 Skill Loading（目录常驻，全文按需：6500 行的账 / 两级设计 / 单步走查 episode C / main 轨对照 / 真实 CC 对照 / 官方文档印证）＋§8 关键实证数字（~100 vs ~2000 tokens/skill、清单预算 ~1% 上下文上限 8000 字符、1536 字符截断、原型 8.3 倍）＋§9 动手实验室（实验 3「技能全文全量拼进 system prompt」为本集消融正例）＋§10.1 规律一（可见性即影响力，开场承接）/ 规律三（常驻与按需的分层，本集收束规律）＋附录 A 类比登记表；§1–§2（「每轮看到什么」三通道视角）作开场承接不重讲；§3–§4（TodoWrite / Subagent）属本系列 ep5/ep6；§6–§7（System Prompt / Error Recovery）属后续集，本集只作地图坐标一笔带过；下期钩子（s08 Context Compact）取钉点 README「接下来」节口径。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集钉选轨·叙事正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s07-readme` / `s07-code`。正源理由：本集全部数字锚（代码块行数注 2000/1500/3000 →「6500 行 system prompt……99% 的内容和当前任务无关」、两层设计表「~100 tokens/skill 每轮都带 / ~2000 tokens/skill 按需」）与【三】级正源「深入 CC 源码」附录四节（技能来源十类 / frontmatter 字段表 / 两级加载精确实现 / 教学简化是刻意的）只在站点轨在场，与 s08 的衔接金句同。
 >   - main 轨（对照轨）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s07m-readme` / `s07m-code`（SkillLoader 类封装、OS-aware 环境段、内容块循环判据——冻结正文 §5 对照句的依据；README.zh.md 已删数字锚与深读附录；自旧钉 `ce8f9f18` 前移后 README.zh.md 逐字节一致、code.py 仅空输入守卫 2 行，见附录 B.1）。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s07/ 台账 `s07-site`（2026-10-31 fetch，raw `41b64ba94eb69c7f` / text `9e3ffa1b6ec6622e`，与旧系列 planning 2026-10-07 基线零漂移）；
@@ -292,10 +292,10 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 
 ---
 
-*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](docs/research/agent-harness/assets/lcc_planning_lab.py)。*
-![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
+*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../../../../../docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](../../../../../../docs/research/agent-harness/assets/lcc_planning_lab.py)。*
+![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 

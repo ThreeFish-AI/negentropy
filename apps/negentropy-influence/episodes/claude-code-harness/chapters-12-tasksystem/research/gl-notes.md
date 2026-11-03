@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 12 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；2026-10-08 经 #1189 换代重写生成（171–175 五部分全新精读），其后经去比喻与词族整改（含 2026-10-22 I-234）至现行代次（路径最近触达 2026-10-23）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](../../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；2026-10-08 经 #1189 换代重写生成（171–175 五部分全新精读），其后经去比喻与词族整改（含 2026-10-22 I-234）至现行代次（路径最近触达 2026-10-23）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s12 Task System）——主线为 §3（任务系统：从执行清单到可认领的契约——六字段任务文件 / can_start 依赖检查与坏依赖 fail-closed / claim-complete 状态机 / 完成解锁报告 / 两轨实现深度对照 / 真实 CC 对应物）＋§10 关键实证数字（本集口径两条：「Lead 内置工具 8（s12）」「认领锁最多重试 30 次、退避 5–100 ms」）＋§11 动手实验室（实验 E1「坏依赖放行」为本集消融正例；E4 认领原子性仅认领面带过、深潜归 ep17）＋§12 底层规律（规律 1 共享状态出内存、入文件——任务板为其地基层例证；规律 3 仅作认领面一句承接）；§4–§9（团队 / 协议 / 自治 / 隔离 / 外部工具 / 综合回合）属本系列 ep15–ep20，本集只在组定位与下期钩子带过；§1–§2（问题与全貌）作开篇地图素材，规格表只取「可恢复的目标」一行。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集钉选轨）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s12-readme` / `s12-code`。钉选理由：其一，20 章版是本系列集制骨架，s12 目录号即本集章号（main 改号 s10 不入叙事）；其二，s12 独有「深入 CC 源码」附录五小节（TaskRecord 九字段 / Task 与 TodoWrite 两系统并存 / claimTask 双重文件锁 / 高水位标防 ID 重用 / 四个 Task 工具）是冻结正文 §3 真实 CC 段落的【三】级断言正源，钉 main 即失靶；其三，main 轨当前钉复核无正源级增量（见下条），冻结正文 §3 对 main 两阶段建图的既有覆盖仍然成立。
 >   - main 轨（对照副本）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s12m-readme` / `s12m-code`。2026-10-31 复核：自 175 引证钉 `ce8f9f18` 前移 13 提交，s10 README.zh.md 逐字一致（diff 0 行）、code.py 仅空输入守卫 2 行差异（与 s01/s02 前移同款，无叙事影响）——「改号 s12→s10 不改内容」在当前 main 钉仍成立，**不翻钉**，main 副本作对照。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s12/ 台账 `s12-site`（2026-10-31 fetch，raw `677fac3c8e0ad7eb` / text `342dcfbd0028fff5`，与旧系列台账基线条目零漂移）；
@@ -46,10 +46,10 @@ main 轨 s13_agent_teams 把「组队」这件事需要回答的问题列得很�
 
 ## 2. 全貌解剖
 
-先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
-![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](../../../../../../docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|
@@ -263,7 +263,7 @@ main 轨把「先提方案、等用户确认再开队友」写进系统提示词
 | 认证插座 | 标准协议外接（§8） | 连接→清单入池→`mcp__服务名__工具名` 前缀挂牌、每轮重组（弃缓存） | 插座不翻译语义——只统一「报名字」与「点名」；铭牌「只读/破坏性」是文字标注不是保险丝（不拦截） |
 | 环形走廊 | 全集成单循环（§9） | 四道准备→调模型→单岔口判据（有无工具调用块）→权限→三分发→回填/停止钩子、后台通知回流 | 走廊不是传送带——没有人推着谁走；只有一个岔口（判据），不是多级流水线 |
 
-> **承袭登记**（2026-10-31）：现行 175 正文（去比喻整改后代次）已不含本附录；本表自旧系列 ep5《多 Agent 平台：七件设施，一条走廊》冻结件（同 GL 谱系、2026-10-07 换代前代次，正文冻结至 `0ecf6527c`）逐字承袭，继续作为本集口播类比唯一准入清单——表头「本集」指旧系列 ep5，本系列各集只按行取用；禁喻词表唯一收敛处为[旧系列地图 §六 口播词表 SSOT](source-map/claude-code-explained.md)。本集（s12 单章）拟用条目初判：**任务墙**（§3 任务板六字段卡与状态机走查的主画面喻，失配边界句随行）；递话口 / 回执簿 / 值班钟 / 门牌房 / 认证插座 / 环形走廊属本系列 ep15–ep20 兄弟集，本集不启用（§4 快递柜、§6 电影院选座等冻结正文在体喻亦归相应兄弟集登记，本集不进口播）。
+> **承袭登记**（2026-10-31）：现行 175 正文（去比喻整改后代次）已不含本附录；本表自旧系列 ep5《多 Agent 平台：七件设施，一条走廊》冻结件（同 GL 谱系、2026-10-07 换代前代次，正文冻结至 `0ecf6527c`）逐字承袭，继续作为本集口播类比唯一准入清单——表头「本集」指旧系列 ep5，本系列各集只按行取用；禁喻词表唯一收敛处为[旧系列地图 §六 口播词表 SSOT](../../../../source-map/claude-code-explained.md)。本集（s12 单章）拟用条目初判：**任务墙**（§3 任务板六字段卡与状态机走查的主画面喻，失配边界句随行）；递话口 / 回执簿 / 值班钟 / 门牌房 / 认证插座 / 环形走廊属本系列 ep15–ep20 兄弟集，本集不启用（§4 快递柜、§6 电影院选座等冻结正文在体喻亦归相应兄弟集登记，本集不进口播）。
 
 ## 附录 B · 本集复算与穿透记录（2026-10-31 · ep12 开工首核）
 

@@ -1,6 +1,6 @@
 # 《System Prompt：提示是拼出来的，不是写死的》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 56 句 5.0 分 + QA 修复轮 5 项（红叉 flex 流内对位等）+ 终渲 196.8s / 5.0 分落窗，`~/Documents/video/claude-code-chapters/System Prompt：提示是拼出来的，不是写死的 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 10 集（s10_system_prompt 单章）；Stage ①–⑤ 已完成（钉点复核零漂移 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 56 句 1372 字（v2） + 三路双重校验 + 成文优化），机器门 build / pre-tts / ledger audit+verify 全绿（check_series 由系列层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 56 句 5.0 分 + QA 修复轮 5 项（红叉 flex 流内对位等）+ 终渲 196.8s / 5.0 分落窗，`~/Documents/video/claude-code-chapters/System Prompt：提示是拼出来的，不是写死的 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 10 集（s10_system_prompt 单章）；Stage ①–⑤ 已完成（钉点复核零漂移 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 56 句 1372 字（v2） + 三路双重校验 + 成文优化），机器门 build / pre-tts / ledger audit+verify 全绿（check_series 由系列层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -19,7 +19,7 @@
 - **钉站点轨 `67a9126c` 为主线正源**：s10_system_prompt 是 System Prompt 机制唯一独立章形态——四段 PROMPT_SECTIONS「三恒加一按需」+ `get_system_prompt` 进程内缓存（`json.dumps(context, sort_keys=True)` 比对键）的完整教学实现与「深入 CC 源码」深潜附录（【三】级断言唯一在场）都只在站点轨；main 轨 17 章版无 s10 目录（README.md 与 code.py @ `7226f555` 双 404 实测）。
 - **main 轨 `7226f555` 对照登记（台账 `s10m-*`）**：s15_integrated_harness 的七段 PROMPT_SECTIONS 每轮重建形态，是「两轨分歧——都对、目标不同」叙事支点；自冻结正文所记 `ce8f9f18` 前移 13 提交复核，`assemble_system_prompt` 函数体与七键字典两钉 cmp 逐字一致，对照叙事不受前移影响。
 - **原型 episode D 走查与消融 E4 本集复算【一】级**（2026-10-31 selftest）：状态判据下「提记忆」闲聊零误注入、缓存命中；判据改猜关键词 → 误注入 0→1、提示 113→147 字符跳变。
-- 站点实况零漂移；双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 站点实况零漂移；双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

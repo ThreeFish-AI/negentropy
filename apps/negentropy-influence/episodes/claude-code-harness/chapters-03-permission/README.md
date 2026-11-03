@@ -1,6 +1,6 @@
 # 《Permission：三道闸门，动手之前的裁决》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 3 集（s03_permission 单章）；Stage ①–⑤ 已完成（信源重钉 main `7226f555` + C 型冻结现行 171 同代次 + 策划 + 逐字稿 53 句 1363 字 + 三路双重校验 + 成文优化四轮评审与改动句复核），机器门 build / check_script --pre-tts / ledger audit·verify 全绿（check_series 由主代理系列层登记后统一执跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 3 集（s03_permission 单章）；Stage ①–⑤ 已完成（信源重钉 main `7226f555` + C 型冻结现行 171 同代次 + 策划 + 逐字稿 53 句 1363 字 + 三路双重校验 + 成文优化四轮评审与改动句复核），机器门 build / check_script --pre-tts / ledger audit·verify 全绿（check_series 由主代理系列层登记后统一执跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -21,7 +21,7 @@
 - **翻钉 main `7226f555`**（自系列建档的站点轨规划态钉复核翻钉）：站点轨 s03 判据仍写收尾字段（stop_reason）、直引必与本系列 ep1 所教「认内容块」自相矛盾；main 前移新增闸门 2 词边界正则＋测试点 5（「字符串表 → 词边界正则 → CC 分类器」三步走的第二步实件，本集 P4 叙事正源）与 SYSTEM 提示「裁决在执行之前」。
 - **站点轨 `67a9126c` 降为附录正源**：s03 独有「深入 CC 源码」附录（PermissionResult 四裁决 / 8 规则来源 / auto 分级判案）经台账 `s03f-*` 补登，断言恒【三】级；课程立场句原句锚 `s03f-readme`（main 已改写措辞，口播带课程归属、【二】级处理）。
 - **实验 3 本集复算【一】级**（2026-10-31 selftest）：用户放行压过硬拒绝 → deny_listed_executed 0→1、落地 7→8、轮次 10/10 不退化；实验 4 整体拆门 → outside_writes 0→1（次级消融）。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

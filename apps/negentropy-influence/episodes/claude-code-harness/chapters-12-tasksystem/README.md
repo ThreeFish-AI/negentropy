@@ -1,6 +1,6 @@
 # 《Task System：从执行清单到可认领的契约》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 54 句 5.2 分 + QA 0 RISKY 修复 6 项 + 终渲 234.2s / 5.2 分落窗，`~/Documents/video/claude-code-chapters/Task System：从执行清单到可认领的契约 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 12 集（s12_task_system 单章）；Stage ①–⑤ 已完成（双轨钉选复核钉站点轨 67a9126c + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1403 字 + 三路双重校验 + 成文优化 v1→v2），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 系列统一门由主代理跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 54 句 5.2 分 + QA 0 RISKY 修复 6 项 + 终渲 234.2s / 5.2 分落窗，`~/Documents/video/claude-code-chapters/Task System：从执行清单到可认领的契约 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 12 集（s12_task_system 单章）；Stage ①–⑤ 已完成（双轨钉选复核钉站点轨 67a9126c + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1403 字 + 三路双重校验 + 成文优化 v1→v2），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 系列统一门由主代理跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -19,7 +19,7 @@
 - **钉站点轨 `67a9126c`（不翻钉）**：main 前移复核（ce8f9f18→`7226f555`，ahead 13 提交）s10_task_system README.zh.md diff 0 行、code.py 仅空输入守卫 2 行——无冻结正文未覆盖的正源级增量；且「深入 CC 源码」附录五小节（TaskRecord 九字段 / claimTask 双重锁 30 次重试·5–100 ms / 高水位标 / 四个 Task 工具）只在站点轨在场，钉 main 即失靶【三】级正源。
 - **main 轨 `7226f555` 降为对照副本**：台账 `s12m-*` 登记——两阶段建图（先建卡拿编号再连依赖）、complete_task 归属人校验、工具 11 vs 站点 8 等差异面均已落在冻结正文 §3 覆盖内（P4 叙事正源）。
 - **实验 E1 本集复算【一】级**（2026-10-31 selftest）：坏依赖放行消融——基线 `Blocked by: ['task_999']` → 拆后 `Claimed task_005 (ghost)`；全量 18 断言全绿 · 128 行日志。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

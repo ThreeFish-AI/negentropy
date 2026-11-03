@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 14 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/176-claude-code-concurrency-relearn.md](docs/research/agent-harness/176-claude-code-concurrency-relearn.md)（guided-learn 独立重学精读；2026-10-13 入仓 #1182〔内容优化轮 2026-10-09〕，经 2026-10-22 I-234 词族整改、2026-10-23 I-235 缩写首现注解——本冻结取该现行代次）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/176-claude-code-concurrency-relearn.md](../../../../../../docs/research/agent-harness/176-claude-code-concurrency-relearn.md)（guided-learn 独立重学精读；2026-10-13 入仓 #1182〔内容优化轮 2026-10-09〕，经 2026-10-22 I-234 词族整改、2026-10-23 I-235 缩写首现注解——本冻结取该现行代次）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s14 Cron Scheduler）——主线为 §4 机制二（4.1 四层解耦 / 4.2 cron 表达式与 DOM·DOW OR 反直觉 / 4.3 判时三保险 / 4.4 非阻塞交付）＋§5 机制三（durable 持久化与「进程内」前提）；关联 §6 对照表 cron 各行、§7 关键实证数字（定时上限 50 与 7 天过期 / 官方抖动 / Routines 1 小时 / 桌面端补跑四行）、§8 动手实验室（e1–e4 四个 cron 实验）、§9.1 规律二–五、§9.2 争议二·三与 §10 适用边界——四档口径逐条圈定见附录 B.3；§3 机制一（s13 后台任务）属本系列 ep13，本集只作开场承接不重讲（实验 e5、规律一、争议一同属 ep13 素材面）。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集主线正源·钉选）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认 / code.py）——字节归档 `source-archive/67a9126c/`、台账 `s14-readme` / `s14-code`。钉选理由（默认钉成立，证据详见附录 B.1）：其一，冻结源 176 主讲站点轨，§4 四层解耦叙事与 s14 README「四层模型」节逐节对应，而 main 轨 README 无四层框架；其二，本集【三】级断言唯一正源（9 节「深入 CC 源码」附录）只在站点轨；其三，main 轨独有增量（至少一次交付加固）在冻结正文属 §5 注记与 §9.2 争议三的对照位，非主线依赖，不构成 ep2 式「正源级新增叙事节」翻钉要件。
 >   - main 轨（对照·m- 前缀）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md / code.py）——字节归档 `source-archive/7226f555/`、台账 `s14m-readme` / `s14m-code`（工程加固叙事对照：pending_delivery 先落盘 / 原子改名 / 失败回滚 / 至少一次交付）。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s14/ 台账 `s14-site`（2026-10-31 fetch，raw `6081e1cfb20982f4` / text `2165920cb96917b6`，与旧系列 2026-10-07 基线零漂移）。
@@ -19,7 +19,7 @@
 
 > [1] shareAI-lab, "Learn Claude Code: s13 Background Tasks & s14 Cron Scheduler," GitHub repository. [Online]. Available: https://github.com/shareAI-lab/learn-claude-code （commit 67a9126c，分支 fix/s08-s20-sync-frontmatter-parser，即站点线上版；2026-07-29，访问 2026-09-30）。
 >
-> 独立重学篇声明：本篇以指名材料为唯一输入全新写成；同主题的五层套件（按执行、规划、记忆、时机、协作五层精读该课程的系列篇）综观见 [174](docs/research/agent-harness/174-claude-code-concurrency.md)，逐章引语归系列 source-notes，本篇不重述。上游 main 分支为 17 章旧编号平行轨（同主题章在 `s11_/s12_`，英文原稿、无源码对照节、分派仅显式请求），与站点轨内容分叉，本篇主讲站点轨并在受影响处注记差异[9]。2026-10-09 优化轮：初稿保持独立重学不变；本轮仅按回源重证补入 main 轨受影响处注记（§3.2、§5）与官方补读数字（[10][11]），回源不成立的主题一律未收。
+> 独立重学篇声明：本篇以指名材料为唯一输入全新写成；同主题的五层套件（按执行、规划、记忆、时机、协作五层精读该课程的系列篇）综观见 [174](../../../../../../docs/research/agent-harness/174-claude-code-concurrency.md)，逐章引语归系列 source-notes，本篇不重述。上游 main 分支为 17 章旧编号平行轨（同主题章在 `s11_/s12_`，英文原稿、无源码对照节、分派仅显式请求），与站点轨内容分叉，本篇主讲站点轨并在受影响处注记差异[9]。2026-10-09 优化轮：初稿保持独立重学不变；本轮仅按回源重证补入 main 轨受影响处注记（§3.2、§5）与官方补读数字（[10][11]），回源不成立的主题一律未收。
 
 **一句话定位**：这两节教 Agent 把「等」从主循环里赶出去——慢命令丢到后台线程（同一程序里并行干活的另一条流水线；s13，空间维度），周期任务交给独立调度线程按时间表自动生产（s14，时间维度），主循环只消费「通知」与「触发」两种异步回执。
 
@@ -97,8 +97,8 @@ def should_run_background(tool_name, tool_input):
 
 教学版在每轮工具循环时顺手收集后台结果；生产版用一条通知队列把完成事件送进后续回合，不必等工具循环[1]。
 
-![后台任务占位回执与通知回注](docs/assets/architecture/agent-harness/claude-code-bg-tasks--placeholder-notification-loop-dark.png)
-图的语言：双闸分派决定去留，占位回执守住协议名额，通知以独立身份回流对话——图的文字源见 [.mmd 文件](docs/assets/mermaid/agent-harness/claude-code-bg-tasks--placeholder-notification-loop.mmd)，交互版 [HTML](docs/assets/architecture/agent-harness/claude-code-bg-tasks--placeholder-notification-loop.html)。
+![后台任务占位回执与通知回注](../../../../../../docs/assets/architecture/agent-harness/claude-code-bg-tasks--placeholder-notification-loop-dark.png)
+图的语言：双闸分派决定去留，占位回执守住协议名额，通知以独立身份回流对话——图的文字源见 [.mmd 文件](../../../../../../docs/assets/mermaid/agent-harness/claude-code-bg-tasks--placeholder-notification-loop.mmd)，交互版 [HTML](../../../../../../docs/assets/architecture/agent-harness/claude-code-bg-tasks--placeholder-notification-loop.html)。
 
 ## 4. 机制二：cron 定时调度与四层解耦
 
@@ -145,8 +145,8 @@ s14 的引子是闹钟——到点自响，不需要人盯着。机制上，定�
 
 端到端走查（材料的全周期剧本[1]）：启动时从磁盘恢复持久任务、起判时和交付两条线程 → 注册「每 2 分钟跑一次 date」 → 两分钟后判时命中、入队 → 交付线程发现队列有活且 Agent 空闲 → 注入「[Scheduled] run date」 → 模型像收到用户消息一样执行。全程不需要人输入任何东西。
 
-![cron 四层解耦](docs/assets/architecture/agent-harness/claude-code-cron--four-layer-decoupling-dark.png)
-图的语言：判时与执行互不相识，队列和锁是它们之间唯一的通道——图的文字源见 [.mmd 文件](docs/assets/mermaid/agent-harness/claude-code-cron--four-layer-decoupling.mmd)，交互版 [HTML](docs/assets/architecture/agent-harness/claude-code-cron--four-layer-decoupling.html)。
+![cron 四层解耦](../../../../../../docs/assets/architecture/agent-harness/claude-code-cron--four-layer-decoupling-dark.png)
+图的语言：判时与执行互不相识，队列和锁是它们之间唯一的通道——图的文字源见 [.mmd 文件](../../../../../../docs/assets/mermaid/agent-harness/claude-code-cron--four-layer-decoupling.mmd)，交互版 [HTML](../../../../../../docs/assets/architecture/agent-harness/claude-code-cron--four-layer-decoupling.html)。
 
 ## 5. 机制三：durable 持久化与「进程内」前提
 
@@ -298,13 +298,13 @@ python3 docs/research/agent-harness/assets/cc_async_scheduling_lab.py --selftest
 | 5 | 快递驿站 | 调度/队列/交付/消费四层解耦：商家按自己节拍发货（调度），包裹先存驿站（队列），你有空了去取（消费） | 驿站靠你自己上门；交付线程是主动拉起一轮执行，还会判断你是否空闲 | §4.2 |
 | 6 | 纸质日程本 | durable 定义与节拍分离：本子上写好的计划跨年都在（定义持久化了），但那天没人翻开本子，事就不会发生 | 纸本永远被动等人翻；durable 任务在进程重启后会自动被调度器重新拾起，下次到点照常触发 | §5 |
 
-> **承袭登记**（2026-10-31）：现行 176 正文不含类比登记表；本表自旧系列并发集冻结件（[claude-code-concurrency/research/gl-notes.md](claude-code-concurrency/research/gl-notes.md)，同 GL 谱系、174 代次，2026-10-07 编制）逐字承袭，继续作为本集口播类比唯一准入清单。本表锚点节号属 174 代次，与 176 冻结正文节号不对应（174 的 OR 语义在 §4.1、四层解耦在 §4.2，176 则互换了位置：OR 语义 §4.2、四层 §4.1）；类比物与失配边界仍有效，拟用条目已对照 176 正文重判如下。
+> **承袭登记**（2026-10-31）：现行 176 正文不含类比登记表；本表自旧系列并发集冻结件（[claude-code-concurrency/research/gl-notes.md](../../../claude-code-explained/claude-code-concurrency/research/gl-notes.md)，同 GL 谱系、174 代次，2026-10-07 编制）逐字承袭，继续作为本集口播类比唯一准入清单。本表锚点节号属 174 代次，与 176 冻结正文节号不对应（174 的 OR 语义在 §4.1、四层解耦在 §4.2，176 则互换了位置：OR 语义 §4.2、四层 §4.1）；类比物与失配边界仍有效，拟用条目已对照 176 正文重判如下。
 
 **本集（s14 单章）拟用条目初判**（2026-10-31，对照 176 冻结正文重判；正式裁决移交 ②/④）：
 
 - **#2 闹钟（强拟用·开场引子）**：176 §4.1 引子直接在场（「s14 的引子是闹钟——到点自响，不需要人盯着」），课程自喻、口播免归属句；其失配边界句（「闹钟不吃『正忙再等会』，交付线程会等空闲」）恰好压本集非阻塞交付知识点。
 - **#4 会员日规则（拟用·OR 反直觉点）**：机制锚 176 §4.2。注意 176 正文同位喻面为「家规：周末或下雨天才能吃零食」——同机制双喻面，口播二取一（初判取 176 正文家规喻面、按 #4 失配边界句式配边界；防一物双喻）。
-- **#5 快递驿站（拟用·四层解耦主画面）**：机制锚 176 §4.1 四角色。176 正文同位喻面「医院叫号」因「叫号」词族与[旧系列禁喻词表](source-map/claude-code-explained.md)「叫号器」相邻、且构成同机制双喻面，不进口播；口播按 #5 驿站喻面讲四层。
+- **#5 快递驿站（拟用·四层解耦主画面）**：机制锚 176 §4.1 四角色。176 正文同位喻面「医院叫号」因「叫号」词族与[旧系列禁喻词表](../../../../source-map/claude-code-explained.md)「叫号器」相邻、且构成同机制双喻面，不进口播；口播按 #5 驿站喻面讲四层。
 - **#6 纸质日程本（拟用·durable 前提收束）**：机制锚 176 §5「定义保留 ≠ 自动执行、重启不回补」——本集最易误解点；#6 边界句（「纸本永远被动等人翻；durable 任务在进程重启后会被调度器重新拾起」）与 176 §5 口径互证。
 - **#1 洗衣机、#3 点单取餐小票**：属 s13 后台任务（本系列 ep13 素材），本集不进口播。
 - **176 正文其余喻面**（网购下单/到货短信 §3.1、敲单人卫生间门 §4.4）：无登记条目，不进口播（一物一喻，不在视频阶段另造；ep13 若需网购喻面，届时由 ep13 冻结件处置）。

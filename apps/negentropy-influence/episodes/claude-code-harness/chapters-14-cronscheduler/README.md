@@ -20,7 +20,7 @@
 - **main `7226f555` 为对照轨（台账 `s14m-*`）**：main 前移独有增量（至少一次交付工程加固四件）在冻结正文属 §5 注记与 §9.2 争议三的对照位、非主线依赖——ep2 式「正源级新增叙事节」翻钉要件不成立。
 - **官方文档双页补读【二】级**：`doc-scheduled-tasks` / `doc-desktop-scheduled-tasks` 2026-10-31 语义面逐句复核与冻结正文一致（五十上限/七天过期/OR 语义原文在场；jitter 措辞演化、数值面不变）。
 - **实验 e3/e4 本集复算【一】级**（2026-10-31 selftest，对象 = 冻结源 §8 所指 `cc_async_scheduling_lab.py`）：e3「或」改「且」→ 周一 True→False 静默漏触发；e4 核心消融（交付线程无视忙锁硬注入）→ inj_busy False→True、walk_aways 5→0。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

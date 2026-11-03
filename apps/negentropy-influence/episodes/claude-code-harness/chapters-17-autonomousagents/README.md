@@ -20,7 +20,7 @@
 - **main `7226f555` 为对照轨（台账 `s17m-*`）**：s13_agent_teams §5–§7 承接冻结正文「main 轨把这步补齐了」——发现与认领两步化、`task_store_lock()` 进程锁＋文件锁双重临界区、锁内重读防 TOCTOU、无固定超时，全部钉点 code.py 可数【一】级。
 - **官方页 `doc-agent-teams` 时点快照【二】级**（2026-10-26 dateModified）：「任务认领用文件锁防同时抢任务」关键句同页在场，语义面复核成立。
 - **实验 E4 本集复算【一】级**（2026-10-31 selftest，18 断言全绿）：撤掉认领锁→无锁交错双方假成功、终值归后写者；装回锁→同场景仅一人成功＝本集核心消融。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

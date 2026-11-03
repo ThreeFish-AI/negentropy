@@ -1,6 +1,6 @@
 # 《Error Recovery：报错先分类，循环不亡》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 56 句 5.0 分 + QA 0 RISKY 修复 6 项 + 终渲 217.4s / 5.0 分落窗，`~/Documents/video/claude-code-chapters/Error Recovery：报错先分类，循环不亡 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 11 集（s11_error_recovery 单章）；Stage ①–⑤ 已完成（开工复核维持站点轨钉 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 56 句 1331 字（v2） + 三路双重校验 + 成文优化一轮收敛），机器门 build / pre-tts / ledger sync·audit·verify 全绿（check_series 由系列层统一跑；正文 est ≈5.2 分在窗 [4.4,5.6]、超幕预算 26 字，+片头 23.5s ≈5.6 分贴窗上沿——承 ep2 同款四舍五入口径，TTS 实测超上沿则删句）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 56 句 5.0 分 + QA 0 RISKY 修复 6 项 + 终渲 217.4s / 5.0 分落窗，`~/Documents/video/claude-code-chapters/Error Recovery：报错先分类，循环不亡 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 11 集（s11_error_recovery 单章）；Stage ①–⑤ 已完成（开工复核维持站点轨钉 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 56 句 1331 字（v2） + 三路双重校验 + 成文优化一轮收敛），机器门 build / pre-tts / ledger sync·audit·verify 全绿（check_series 由系列层统一跑；正文 est ≈5.2 分在窗 [4.4,5.6]、超幕预算 26 字，+片头 23.5s ≈5.6 分贴窗上沿——承 ep2 同款四舍五入口径，TTS 实测超上沿则删句）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -19,7 +19,7 @@
 - **钉站点轨 `67a9126c`（开工复核维持系列站点轨钉，与 ep2 翻钉 main 互为镜像——本集正源在站点轨）**：main 轨无 s11 独立章，错误恢复并入 s15_integrated_harness「压缩和恢复」小节（README 层仅 4 项压缩改写列表）；三路径分步走查与六节「深入 CC 源码」深潜（reason/transition 全表 17 行，【三】级断言唯一在场）只在站点轨；教学取值 64K/续写 3/压缩 1/重试 10/529×3 即站点轨 code.py 常量区逐行可数，零换算直引。
 - **main `7226f555` 对照轨（台账 `s11m-*`）**：对照三参数 16K/重试 3/529×2 已于该钉逐项复算成立；自冻结正文所记 `ce8f9f18` 前移后，「压缩和恢复」小节恢复列表逐字一致、恢复常量区零改动——「同一门课程两轨两组参数」即 P4 争议三的叙事支点。
 - **实验 5（本集核心消融）复算【一】级**（2026-10-31 selftest）：分类恢复改一刀切重试 → 10 次全撞墙、白等 175.6s（standalone 口径恒定；selftest 上下文 173.7s 为另一确定口径，gl-notes 附录 B.2 双登记），对照分类路径压缩一次 0.0s 恢复；episode E 走查基线齐复算（3.7s 恢复不切换、三连 529 切 model-backup 4.1s、压缩一次 messages 9→6、token 路径 8000→64000 续写 3/3）。
-- 站点实况零漂移（站点轨分支 HEAD 仍 `67a9126c`、main HEAD 仍钉点 `7226f555`）；双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 站点实况零漂移（站点轨分支 HEAD 仍 `67a9126c`、main HEAD 仍钉点 `7226f555`）；双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

@@ -19,7 +19,7 @@
 
 ```bash
 # 在工作区内执行。$T/$W/$P 见 vibe-video skill 的 references/PIPELINE.md 路径变量约定
-P=$W/episodes/agent-skills
+P=$W/episodes/agent-infra/agent-skills
 
 # ① 信源核验（C 型：gl-notes 冻结 + 活信源台账 verify）
 uv run --no-project $T/scripts/source_ledger.py --project $P verify

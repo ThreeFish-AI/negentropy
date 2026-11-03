@@ -23,7 +23,7 @@
 
 ```bash
 # 在工作区内执行。$T/$W/$P/$V 的定义见 vibe-video skill 的 pipeline/README.md 路径变量约定（唯一定义处）
-P=$W/episodes/dream-rsi
+P=$W/episodes/self-evolution/dream-rsi
 
 # ① A 型论文集：paper-notes.md 即事实源（arXiv HTML v1 分章并行提取 + 原型复跑一级证据；本地冻结 PDF 已 gitignore）
 

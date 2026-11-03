@@ -19,7 +19,7 @@
 - **钉站点轨 `67a9126c`**（维持系列建档规划钉，同 ep15 逻辑）：s16_team_protocols 是站点 20 章版唯一独立成章的协议课（README 243 行小节链 ProtocolState → 四步协议流程 → dispatch_message → match_response → consume_lead_inbox → 队友 idle loop，code.py 882 行协议专注），独有「深入 CC 源码」附录（teammateMailbox.ts 1184 行 / 三向关机 `:720-763` / ExitPlanModeV2Tool 计划审批 / Zod schema）是本集【三】级断言正源；站点页 s16 零漂移（2026-10-31 fetch 与旧系列 2026-10-02 基线双指纹一致）。
 - **main 轨 `7226f555` 降为对照登记**（台账 `s16m-*`）：s13_agent_teams 为团队四课合并章（README.zh.md 448 行 12 节，协议仅剩 §11/§12 两节且删尽 CC 附录），直引必与 20 章 1:1 拆集冲突；真增量（执行闸门 `_run_teammate_tool` + `work_version` 推进使旧批文作废）只作 P4 闸门对照取用、不入主线。
 - **实验 E2 本集复算【一】级**（2026-10-31 selftest 18 断言全绿）：拆掉类型校验 → 一条关机回复把 pending 的计划审批硬改成 approved；配套 E3（去掉统一消费入口 → 关机单永远 pending、二读 0 条）与 S2 防重探针（关掉状态检查 → 改写计数 1→2、反话副本翻案至 3）三件皆本集复算升【一】。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

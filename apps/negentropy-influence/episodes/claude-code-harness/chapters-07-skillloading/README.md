@@ -1,6 +1,6 @@
 # 《Skill Loading：目录常驻，全文按需》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 54 句 5.0 分 + QA 修复轮 9 项全验（计费叠印/穿模/两跳/金句帧/台账闭合）+ 终渲 183.9s / 5.2 分落窗，`~/Documents/video/claude-code-chapters/Skill Loading：目录常驻，全文按需 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 7 集（s07_skill_loading 单章）；Stage ①–⑤ 已完成（开工复核维持站点轨钉 + C 型冻结现行 172 整改代次 + 策划 + 逐字稿 54 句 1364 字 + 三路双重校验 + 成文优化四层 pass），机器门 build / pre-tts / ledger sync·audit·verify 全绿（正文 est ≈5.4 分在窗 [4.4,5.6]，超幕预算 59 字〔+20 界超 39〕、est+片头 23.5s ≈5.8 分超含片头窗上沿约 0.2 分——压窗删句或放行随审批裁决）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 54 句 5.0 分 + QA 修复轮 9 项全验（计费叠印/穿模/两跳/金句帧/台账闭合）+ 终渲 183.9s / 5.2 分落窗，`~/Documents/video/claude-code-chapters/Skill Loading：目录常驻，全文按需 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 7 集（s07_skill_loading 单章）；Stage ①–⑤ 已完成（开工复核维持站点轨钉 + C 型冻结现行 172 整改代次 + 策划 + 逐字稿 54 句 1364 字 + 三路双重校验 + 成文优化四层 pass），机器门 build / pre-tts / ledger sync·audit·verify 全绿（正文 est ≈5.4 分在窗 [4.4,5.6]，超幕预算 59 字〔+20 界超 39〕、est+片头 23.5s ≈5.8 分超含片头窗上沿约 0.2 分——压窗删句或放行随审批裁决）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -20,7 +20,7 @@
 - **main `7226f555` 降为对照轨**：SkillLoader 类封装与 OS-aware 环境段经台账 `s07m-*` 补登，引用须带轨道限定（本集叙事不依赖）；站点页 2026-10-31 fetch 零漂移。
 - **实验 3 本集复算【一】级**（2026-10-31 selftest）：技能全文全量拼进开场白 → 三轮总输入 3059→25323（多 22264、8.3 倍，随轮数放大）；episode C 基线 system 281 / 三轮 323→352→2384。
 - **官方文档页 `doc-skills` 较旧系列基线漂移**（文档站构建产物常态轮替）：语义面复核成立（正文按需加载 + 1,536 截断两断言逐字在场），1536 按「默认上限」口径口播（现页载明可经 skillListingMaxDescChars 配置）。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

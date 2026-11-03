@@ -1,6 +1,6 @@
 # 《Subagent：过程隔离，只回结论》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 54 句 4.8 分 + QA 修复轮 6 项全验（clamp01 钳位毁计数根因，字形 IoU 实证）+ 终渲 185.9s / manifest 4.8 分+片头≈5.2 分落窗，`~/Documents/video/claude-code-chapters/Subagent：过程隔离，只回结论 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 6 集（s06_subagent 单章）；Stage ①–⑤ 已完成（开工复核翻钉 main `7226f555` + C 型冻结现行 172 整改代次 + 策划 + 逐字稿 54 句 1331 字 + 三路双重校验 + 成文优化四层 pass 收口 v1→v2），机器门 build / pre-tts / ledger sync·audit·verify 全绿（正文 est ≈5.2 分在窗 [4.4,5.6]、含片头 23.5s 口径 ≈5.6 分；超幕预算 26 字 = ④⑤ 修稿采纳项累加，ep1 预算口径 1345 上限内）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 54 句 4.8 分 + QA 修复轮 6 项全验（clamp01 钳位毁计数根因，字形 IoU 实证）+ 终渲 185.9s / manifest 4.8 分+片头≈5.2 分落窗，`~/Documents/video/claude-code-chapters/Subagent：过程隔离，只回结论 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 6 集（s06_subagent 单章）；Stage ①–⑤ 已完成（开工复核翻钉 main `7226f555` + C 型冻结现行 172 整改代次 + 策划 + 逐字稿 54 句 1331 字 + 三路双重校验 + 成文优化四层 pass 收口 v1→v2），机器门 build / pre-tts / ledger sync·audit·verify 全绿（正文 est ≈5.2 分在窗 [4.4,5.6]、含片头 23.5s 口径 ≈5.6 分；超幕预算 26 字 = ④⑤ 修稿采纳项累加，ep1 预算口径 1345 上限内）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -19,7 +19,7 @@
 - **翻钉 main `7226f555`**（自系列建档的站点轨规划态钉开工复核翻钉）：站点轨 s06 判据仍写 `stop_reason` 收尾字段、直引必与本系列 ep1 所教「认内容不认字段」自相矛盾；main 版五决策表（对话 / 执行 / 返回值 / 委派深度 / 工具策略）与「这里隔离的是消息，不是进程或文件系统」措辞正面服务本集边界叙事（P4 正源）。
 - **站点轨 `67a9126c` 降为附录正源**：s06 独有「深入 CC 源码」附录六小节（三种执行模式 / Fork 缓存五组件 / 隔离粒度 / 递归防护 / 权限冒泡 / 异步路径）与课程例数（30 文件 / 60 轮 / 120 条）经台账 `s06f-*` 补登，附录断言恒【三】级、例数恒【二】级；站点页 2026-10-31 fetch 零漂移。
 - **实验 E2 本集复算【一】级**（2026-10-31 selftest）：子代理改回传全部子历史 → 主对话 4 条 / 147 字符涨到 16 条 / 2649 字符（约 18.0 倍）。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 
