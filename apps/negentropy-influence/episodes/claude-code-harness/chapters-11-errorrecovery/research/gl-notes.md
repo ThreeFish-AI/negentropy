@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 11 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；生成 2026-10-07，现行版最后修订 2026-10-23——I-234 词族整改 2026-10-22 + 缩写首现注解 2026-10-23 代次，仓内 commit `4876f80d3` 实测——本冻结取该现行代次，与 ep1/ep2 同一 I-234 整改后代次族）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](../../../../../../docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；生成 2026-10-07，现行版最后修订 2026-10-23——I-234 词族整改 2026-10-22 + 缩写首现注解 2026-10-23 代次，仓内 commit `4876f80d3` 实测——本冻结取该现行代次，与 ep1/ep2 同一 I-234 整改后代次族）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s11 Error Recovery）——主线为 §7 Error Recovery（分类恢复，循环不亡：三路径机制解构 / episode E 走查 / 真实 CC 对照 / main 轨 s15 取值对照）＋§8 关键实证数字表恢复路径三行（8K→64K、续写 ≤3、压缩 1 次；500ms×2^n 封顶 32s + 0–25% 抖动、重试 ≤10、529×3 切换；16K、3 次、529×2 main 轨取值）＋§9 动手实验室（实验 5「分类恢复改一刀切重试」为本集核心消融正例）＋§10 规律五（有界的分类恢复）与争议三（恢复预算给多少——本集主线争议）＋§11 适用边界与「材料没有证明的事」第 1 条（教学数字无实验支撑）；§10 规律一至四与争议一、二属同精读其他章（TodoWrite / Subagent / Skill / System Prompt = 本系列 ep5–ep10），本集只在系列坐标承接不重讲；§2 全貌表与附录 main 轨 s17_goal_loop 对照（「自动续跑的机制必须自带出口」——与 §7 有界恢复同一设计直觉）作背景参读。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集钉选与主线正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s11-readme` / `s11-code`。钉选理由有三：其一，main 轨（17 章整合版）无 s11 独立章——错误恢复并入 `s15_integrated_harness`「压缩和恢复」小节（README 层仅 4 项列表、code 层参数另取一档），单章成集所需的三路径完整叙事（问题 → 解决方案表 → 路径 1/2/3 逐步走查 → 合起来跑 → 相对 s10 变更表）只在站点轨；其二，六节「深入 CC 源码」深潜附录（十几种 reason/transition 全表 / 退避精确公式 attempt-1 / CONTINUATION 原文 / 流式暂扣 / 529 fallback 切换 / diminishing returns）只在站点轨——本集【三】级断言正源；其三，冻结正文 §7 的教学版取值口径（8K→64K、重试 10、529×3）即站点轨取值（§8 表「瞬态路径（站点轨取值）」），钉站点轨使正文零换算直引。
 >   - main 轨（对照）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s11m-readme` / `s11m-code`（错误恢复所在章 s15_integrated_harness；对照取值 16K/重试 3/529×2 已于该钉逐项复算，冻结正文 §7/§8 所记 main 轨参数全部保持成立——附录 B.1）；
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s11/ 台账 `s11-site`（2026-10-31 fetch，raw `8567c9997071b3ac` / text `77e6afc501af27f9`，与旧系列 2026-10-07 基线零漂移）；
@@ -292,10 +292,10 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 
 ---
 
-*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](docs/research/agent-harness/assets/lcc_planning_lab.py)。*
-![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
+*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../../../../../docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](../../../../../../docs/research/agent-harness/assets/lcc_planning_lab.py)。*
+![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 

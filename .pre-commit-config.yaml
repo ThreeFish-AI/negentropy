@@ -30,9 +30,9 @@ repos:
       # 13 文件 × 15 行纯空白 diff（ep5 实测 195 行噪音）
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-        exclude: (source-archive/|^docs/assets/architecture/|^apps/negentropy-influence/episodes/[^/]+/video/public/archify/html/)
+        exclude: (source-archive/|^docs/assets/architecture/|^apps/negentropy-influence/episodes/(?:[^/]+/){1,2}video/public/archify/html/)
       - id: end-of-file-fixer
-        exclude: (source-archive/|^docs/assets/architecture/|^apps/negentropy-influence/episodes/[^/]+/video/public/archify/html/)
+        exclude: (source-archive/|^docs/assets/architecture/|^apps/negentropy-influence/episodes/(?:[^/]+/){1,2}video/public/archify/html/)
       - id: check-yaml
         # pnpm 12 起根 pnpm-lock.yaml 是多文档 YAML（packageManagerDependencies 独占首个
         # 文档，见 I-175）；只豁免这份机器产物，手写 YAML 仍受单文档校验约束。
@@ -63,19 +63,20 @@ repos:
       # ── Python: negentropy-influence 的工作区与每集脚本（科普视频） ────────
       # 与 negentropy 同一 ruff 修订版；此前仅覆盖 apps/negentropy/，管线脚本无 lint 门。
       # pipeline/ 已于 2026-09 外置为 vibe-video skill（机制脚本随 skill 仓自行 lint），
-      # 本门改护 scripts/（工作区级薄包装）与 episodes/*/scripts/（分集薄包装）。
-      # episodes/*/scripts/ 在 2026-09-19 纳入：该目录原先只有三个薄包装，自
+      # 本门改护 scripts/（工作区级薄包装）与 episodes/<series>/<slug>/scripts/（分集薄包装；
+      # 正则 {1,2} 两档同 vibe-video 一/两级布局口径）。
+      # 分集 scripts/ 在 2026-09-19 纳入：该目录原先只有三个薄包装，自
       # archify_lead / archify_manifest / check_archify 起有了真实逻辑，必须同门。
-      # **不要放宽成 ^apps/negentropy-influence/** —— episodes/*/research/source-archive/
+      # **不要放宽成 ^apps/negentropy-influence/** —— episodes/<series>/<slug>/research/source-archive/
       # 是按固定提交归档的第三方源码证据快照，进 lint/format 门即毁其保真度。
       - id: ruff
         name: ruff lint (influence)
         args: [--fix, --exit-non-zero-on-fix]
-        files: ^apps/negentropy-influence/(scripts|episodes/[^/]+/scripts)/
+        files: ^apps/negentropy-influence/(scripts|episodes/(?:[^/]+/){1,2}scripts)/
         types_or: [python, pyi]
       - id: ruff-format
         name: ruff format (influence)
-        files: ^apps/negentropy-influence/(scripts|episodes/[^/]+/scripts)/
+        files: ^apps/negentropy-influence/(scripts|episodes/(?:[^/]+/){1,2}scripts)/
         types_or: [python, pyi]
 
   # ── Node.js: apps/negentropy-ui ──────────────────────────────────────────
@@ -154,7 +155,7 @@ repos:
         name: Twin files consistency
         language: system
         entry: uv run --no-project scripts/check_twin_files.py
-        files: ^(scripts/check_twin_files\.py|apps/negentropy-wiki/src/components/markdown/remark-math-sanitize\.ts|apps/negentropy-ui/utils/remark-math-sanitize\.ts|apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-explained/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-planning/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-memory/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-concurrency/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-multiagent/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-01-loop/video/src/components/series-intro\.tsx)$
+        files: ^(scripts/check_twin_files\.py|apps/negentropy-wiki/src/components/markdown/remark-math-sanitize\.ts|apps/negentropy-ui/utils/remark-math-sanitize\.ts|apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-explained/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-planning/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-memory/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-concurrency/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-explained/claude-code-multiagent/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-01-loop/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-02-tooluse/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-03-permission/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-04-hooks/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-05-todowrite/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-06-subagent/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-07-skillloading/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-08-contextcompact/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-09-memory/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-10-systemprompt/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-11-errorrecovery/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-12-tasksystem/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-13-backgroundtasks/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-14-cronscheduler/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-15-agentteams/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-16-teamprotocols/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-17-autonomousagents/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-18-worktreeisolation/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-19-mcpplugin/video/src/components/series-intro\.tsx|apps/negentropy-influence/episodes/claude-code-harness/chapters-20-comprehensive/video/src/components/series-intro\.tsx)$
         pass_filenames: false
 
   # ── 媒体固定资产登记制（默认不入库，登记才入库） ─────────────────────────

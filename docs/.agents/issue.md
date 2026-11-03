@@ -251,6 +251,7 @@
 | I-243 | self-evolution 145 Trustworthy RSI 精读入库：webReader 幽灵全文的元数据域漏核（作者块 12 人被幻影为单作者） | ✅ 已完成 | 2026-10-30 | [详情](#I-243) |
 | I-244 | agent-harness 182 dsh-superagent 精读入库：微信原文反爬的证据分级降级与「文章 vs 仓库」零实现清单 | ✅ 已完成 | 2026-11-01 | [详情](#I-244) |
 | I-245 | knowledge 写端点鉴权缺位（optional 模式 fail-open、035 声称 RBAC 但零执行）：聚合层统一注入 knowledge:write 守卫 + 机器调用方 service token + 覆盖门 | ✅ 已完成 | 2026-11-02 | [详情](#I-245) |
+| I-246 | #1220 分集目录两级化后路径深度回归（单层 glob/正则/parents[N] 失配）：系列钩子死链、TTS 元数据漏入库、archify html 被剥空白、分集脚本脱离 lint、287 条链接失效 | ✅ 已完成 | 2026-11-03 | [详情](#I-246) |
 
 ---
 
@@ -4074,7 +4075,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 ## I-162：站点数字取自未水合 HTML 源码，把占位符写进口播（111 vs 331）（2026-08-19）
 
 - **表因**：第一集口播 p6-13a 说配套仓库「收录了**一百一十一篇**论文」、p6-13b 九章含「工具」「定义」两章——与真实数据（331 篇/330 唯一 id；九章为 引言/Harness/技能/记忆/环境/RL 与持续学习/元进化/评测/安全）不符。
-- **根因**：官方站点 `index.html:57` 的 `<dt id="stat-papers">111</dt>` 是**未水合占位符**，`app.js:333` 实际执行 `els.statPapers.textContent = String(papers.length)`（真实访客看到 331）；上一轮信源补充把 **HTML 源码当渲染结果读**，占位数字进入口播；九章清单则是基于占位数字的**推断**而非站点原文（`data/manuscript.json` 的 chapterOrder 才是权威）。旁证：`DEV_LOG.md` 明写 "331-paper data set unchanged"、`index.html` 加载 `papers.js?v=links-331`。取证链见 [paper-notes.md](../../apps/negentropy-influence/episodes/experience-era-agents-video/research/paper-notes.md)「2026-08 v3 重读校准」节。
+- **根因**：官方站点 `index.html:57` 的 `<dt id="stat-papers">111</dt>` 是**未水合占位符**，`app.js:333` 实际执行 `els.statPapers.textContent = String(papers.length)`（真实访客看到 331）；上一轮信源补充把 **HTML 源码当渲染结果读**，占位数字进入口播；九章清单则是基于占位数字的**推断**而非站点原文（`data/manuscript.json` 的 chapterOrder 才是权威）。旁证：`DEV_LOG.md` 明写 "331-paper data set unchanged"、`index.html` 加载 `papers.js?v=links-331`。取证链见 [paper-notes.md](../../apps/negentropy-influence/episodes/self-evolution/experience-era-agents/research/paper-notes.md)「2026-08 v3 重读校准」节。
 - **处理方式**：口播改「三百多篇」约数 + 画面标精确值 331 与取数日期（活数据说死数字到发布必陈旧）；paper-notes 记全取证链；九章按章序用片中已教过的词重写。
 - **后续防范**：**站点数字只能取自数据文件（JSON/CSV 端点）或水合后 DOM，绝不取 HTML 源码**；静态抓取（curl/gh api/wget）拿到的一切统计数字都应视为占位符直至与数据文件互证。同批连带教训：正文引用年份 ≠ 事件纪年（ClawHavoc [Jiang et al., 2026b] 是引用年）；统计单位口径以原文为准（>90% 的单位是 trials 不是场景）。
 - **同类影响与注意**：凡「官方工程站点信源补充」（skills/01 规范）都适用；提取数字时优先找 `/data/*.json` 类端点或页面脚本里的赋值语句。
@@ -5806,3 +5807,20 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：memory、interface 等其他域若采用「optional 中间件 + 端点自挂」模式，同样存在漏挂风险，可复用本条的聚合层注入与覆盖门模式；读路径的可见性控制（visibility 三级取交集零执行）属差距分析 D4 的独立缺口，不在本条范围。
 
 **注意事项**：普通 `user` 角色因此失去知识库写权限，这与 035 原本声称的设计意图一致；UI BFF 的写路由已全部经 `buildAuthHeaders` 转发 cookie（已逐一扫描）。`TestGetCatalogDocuments` 的 4 例集成失败在基线上同样出现，原因是测试库跨会话累积数据导致全表计数断言漂移，与本修复无关。service token 比对须两侧 utf-8 编码后再 `compare_digest`（裸 str 比对遇非 ASCII header 值会 TypeError 500，已修复并加回归测试）；service token 机器调用方路径仅在 optional/off 鉴权模式生效——strict 模式下 `AuthMiddleware` 先于路由守卫拒绝无会话 token 的请求，strict 部署若需机器调用方须先决策中间件层豁免机制。
+
+<a id="I-246"></a>
+## I-246：#1220 分集目录两级化后路径深度回归（单层 glob/正则/parents[N] 失配）：系列钩子死链、TTS 元数据漏入库、archify html 被剥空白、分集脚本脱离 lint、287 条链接失效
+
+**问题描述**：#1220（2026-11-02）把 `apps/negentropy-influence/episodes/` 由一层 `<slug>-video/` 重组为两层 `<series>/<slug>/` 之后，在全新 worktree 提交任何触及 influence、CHANGELOG 或 knowledge-map 的变更都会被 series-consistency 钩子拦下：规则 5 报 `agent-infra/agent-skills/research/number-reconciliation.md` 6 条死链，指向 `lab2-*.log`。#1225 的评审修复因此两次 `--no-verify` 提交。
+
+**表因**：只读审计（4 模态 finder + 逐批对抗核验 + 完整性 critic）定位 9 类回归，按归因分两组——依赖层数的规则失配（①⑤⑥⑦）与重组漏扫的旧路径字面量（②③⑨），另有嵌套 `.gitignore` 搬移丢失（④）与链接重写剥 `../`（⑧）各一：① `.gitignore` 的 `episodes/*/video/public/audio/` 与 `*-end.png` 规则只匹配一层，#1220 因此把 1120 个 TTS 元数据（manifest/.sha/.engine）提交进库；② lab2 日志白名单仍写旧路径，6 份一级证据日志被记成 D 而非 R；③ 两集 archify html 忽略规则仍写旧路径；④ dream-rsi 嵌套 `.gitignore` 被根级裸 `.gitignore` 规则吞掉，版权 PDF 与 html-split 不再被忽略；⑤ pre-commit 空白钩子的 exclude 只匹配一层，multiagent 13 份 archify html 被剥掉 195 行行尾空白；⑥ influence ruff `files:` 只匹配一层，115 个分集脚本脱离 lint/format 门；⑦ 4 个 `patch-archify-html.py` 的 `parents[5]` 落到 `apps/`，脚本必崩；⑧ 二十讲 60 个 md 的 287 条相对链接被剥光前导 `../`；⑨ 11 个 README 的 `P=`、horizon README 的 `--project`、multiagent 脚本 docstring 的 cd 路径、29 个 `.mmd` 首行 source 指针与 issue.md 一条链接仍指旧路径。另修复 1 项非同根因缺口：#1220 squash 新增 chapters-02–20 共 19 份 `series-intro.tsx` 副本未登记孪生门（登记缺口，非层数问题），本批扩至 26 路径三面同步。
+
+**根因**：仓内路径约束有三类按「层数」编码——gitignore 的 `*` 只吃一级目录名、pre-commit 正则写 `[^/]+`、脚本写 `parents[N]`；重组只改了部分路径字面量，既没有枚举依赖层数的规则，也没有全仓 grep 旧 slug/旧路径字面量（含 `$W/episodes/<slug>` 与反引号形态）扫残留。被忽略的文件在作者工作区仍留盘，规则 5 只查磁盘存在性，于是作者本地全绿、提交树却丢件；git 对新路径上被忽略的文件记为删除，搬移在 `git status` 里看不出丢失。加深链接的步骤误把 `../` 全部剥掉，而规则 5 只认 `./`、`../` 开头的链接，裸链接整体漏检，CHANGELOG 记下「死链 312→0」的假绿。
+
+**处理方式**：分四批提交。① 忽略与钩子：audio/`*-end.png` 规则改 `**`（与 vibe-video 工作区模板同形），白名单与 archify html 忽略改新路径，dream-rsi 两条忽略改由根 `.gitignore` 承载；pre-commit 空白 exclude 与 ruff `files:` 改 `(?:[^/]+/){1,2}`；自 `c30489f9c^` 逐字节复原 6 份日志（blob 逐一比对）与 13 份 html（`git diff --ignore-space-at-eol` 为空）；1120 个 TTS 元数据 `git rm --cached` 退出跟踪（文件留盘）；孪生组 `series-intro-seed` 扩至 26 路径、三面同步。② 4 个脚本改为向上找 `.git` 定位仓库根，临时 worktree 实跑 4/4 exit 0。③ 287 条链接按 git 跟踪目标重算（零未解析/零歧义）并同步四集链接适配说明；README 复现命令、`.mmd` 首行指针、issue.md 链接改新路径；influence README 与 knowledge-map 去写死集数。④ 本条与 CHANGELOG 勘误。本机 tts-store 另建 13 个软链（链接名=新 slug、目标=原 `*-video` 目录、目录本体不动，未拉取 #1220 的主仓 checkout 仍可命中），ep1 新 slug 命中 57/57。
+
+**后续防范**：目录重组前后逐目录比对 `git ls-tree -r --name-only` 的旧/新文件清单，任何 D 无对应 R 即停；重组后全仓 `git grep` 旧 slug 与旧路径字面量必须清零（冻结记录除外）；路径规则优先写与深度无关的形式（gitignore `**`、正则 `{1,2}` 两档、向上找哨兵或 `.git`）；结构性变更的门禁必须在全新 worktree 跑，防本地被忽略文件掩盖死链。vibe-video 侧盲区（规则 5 漏查裸链接且只查磁盘存在性、同名组目录 orphan 扫描不下钻、source-archive 测试 glob 单层、tts-store 以叶名为键）经 RSI 回流机制仓。
+
+**同类问题影响**：任何把「层数」写死的路径规则在下一次归组时都会再次静默失效；`series-intro.tsx` 一类逐字节副本若新增集而不登记，孪生门同样静默；仓库根定位写 `parents[N]` 的脚本（含 `.temp/` 搬入的）应一并改为哨兵查找。
+
+**注意事项**：1120 个 TTS 元数据退出跟踪后，其他已检出 #1220 的 worktree 拉取时会从磁盘删除这些文件——拉取前先备份 `chapters-*/video/public/audio/{manifest.json,.engine,*.sha}`，或拉取后重跑 tts.py 由 tts-store 恢复。`patch-archify-html.py` 全量重跑会让 concurrency 的 two-waiting-deaths 与 multiagent 的 five-layer-dependency 跟进 canonical 新内容，属录制输入变更、需重录 QA，空白类修复只从 git 复原。冻结保留不改：issue.md 历史条目中的旧路径、CHANGELOG 链接文字、17 条 `%% derived` 标签、lab2 日志内容（含写死的 12 分母）；vibe-video.toml 与 storyboard 中「七路径」为带日期的挂载记录。mermaid README 110–114 行的单横线文件名死链在 #1220 之前即存在，不属本条。

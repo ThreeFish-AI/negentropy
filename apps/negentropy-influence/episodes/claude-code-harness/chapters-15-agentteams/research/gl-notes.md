@@ -2,16 +2,16 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 15 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后的现行主干代次——旧系列 ep5 冻结件所据为换代前版本，冻结至 `0ecf6527c`，本集取现行版）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](../../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后的现行主干代次——旧系列 ep5 冻结件所据为换代前版本，冻结至 `0ecf6527c`，本集取现行版）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s15 Agent Teams）——主线为冻结正文 §4（团队：文件收件箱与持久队友——消费式收件箱与快递柜边界 / spawn_teammate 持久队友与精简工具集 / Lead 收件箱注入与每秒轮询 / 子 Agent 与队友之别 / main 轨四处升级对照 / 权限冒泡）；关联条目圈定见附录 B.3——§10 关键实证数字（本集口径：Lead 内置工具 8→14→18→27 之 14 段、轮询节奏行）、§11 动手实验室（实验 E3「去掉统一消费入口」为本集核心消融正例）、§12 规律 4（读即消费，单点入口）与争议 2（组队要不要先过人工闸门——尾幕边界素材）。§3 任务板属本系列 ep12、§5 协议属 ep16、§6 自治认领属 ep17、§7 worktree 属 ep18、§8 MCP 属 ep19、§9 综合回合属 ep20，本集只作邻集坐标一笔带过、不重讲。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集主线正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s15-readme` / `s15-code`。正源理由：系列决策 20 章版 1:1 单章成集，s15 恰为「团队」单章（MessageBus 文件收件箱 / spawn_teammate_thread / inbox 注入三件套 + 权限冒泡），章结构与系列已交付集同款；且 s15 独有「深入 CC 源码」附录（15 种消息类型 / 权限冒泡双向轮询 / useInboxPoller 与 useSwarmPermissionPoller / 队友生命周期 / team config / 禁嵌套）是本集【三】级断言正源——main 轨已删 CC 附录。
 >   - main 轨（对照登记）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s15m-readme` / `s15m-code`。main s13_agent_teams 为四课整合章（README.zh.md 12 节、code.py 1891 行 vs 站点轨 254 行 / 985 行），第 6–12 节吞并站点轨 s16/s17/s18 三章叙事正源，直引必与单章成集冲突；其真增量（锁+条件变量收件箱 / 运行时投递 / result 与 idle 两事件 / 先提案等确认 / 认领两步化 / worktree 语义加固 / 约束闭环）登记于附录 B.1，不进本集叙事主线。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s15/ 台账 `s15-site`（2026-10-31 fetch，raw `6242a99cd186c07c` / text `bd4c3c6b406514f7`，与旧系列基线零漂移）；
 >   - 官方文档补读（B 型·site）：Anthropic「Agent teams」（权限冒泡 / 收件箱形态 / 实验开关语义，冻结正文 §4 与 §10 参考 [6]）——台账 `doc-agent-teams` 指纹存证（无字节副本；语义面复核见 B.1）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s15 README「深入 CC 源码」附录中标「真实 CC / CC 源码」的断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`lcc_multiagent_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest：18 断言全绿、SELFTEST PASSED；实验 E3 拆统一消费入口 → `req_000001 状态 = pending`、二读只剩 0 条），按 **【一】** 级引用；「Lead 工具 14 / 队友工具 4 / 队友 10 轮上限 / 轮询 1 秒 / 读后即删」为钉选 code.py 直接可数事实（行号见 B.3），按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-31（站点轨 s15 双件 raw 指纹与旧系列 2026-10-02 基线逐字一致；main 轨 s13 双件本日首登并完成 ce8f9f18→7226f555 前移核查；站点页指纹零漂移；官方 agent-teams 页当日 fetch 并完成语义面复核——台账六源存证）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `docs/assets/` 相对链接层级已按新落位统一改写（`../../assets/` → `../../../../../docs/assets/`，四处目标 `test -e` 验证通过），文字内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `docs/assets/` 相对链接层级已按新落位统一改写（`../../assets/` → `../../../../../../docs/assets/`，四处目标 `test -e` 验证通过），文字内容零改动。
 > - **术语两层口径**：笔记层随 175 现行版用 LLM / Lead / 队友 / MCP；口播层 LLM 作「模型」（口播英文例外清单不变 = Claude Code + Harness），Lead / 队友为机制角色专名、MCP 为协议专名，均保留原文——两层口径不传导。
 > - **信源补充**：无增量（2026-10-31 核，下游三件套未出现 GL 外事实；见 01 C 型§五）。
 
@@ -46,10 +46,10 @@ main 轨 s13_agent_teams 把「组队」这件事需要回答的问题列得很�
 
 ## 2. 全貌解剖
 
-先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
-![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](../../../../../../docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|

@@ -19,7 +19,7 @@
 
 ```bash
 # 在工作区内执行。$T/$W/$P/$V 的定义见 vibe-video skill 的 pipeline/README.md 路径变量约定（唯一定义处）
-P=$W/episodes/openviking
+P=$W/episodes/context-layer/openviking
 
 # ① 信源核验（B 型信源；A 型论文集跳过）
 uv run --no-project $T/pipeline/scripts/source_ledger.py --project $P verify

@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 20 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后的现行代次，覆盖多 Agent 平台七章、含 §9 综合回合）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写；其头注所记 main 轨钉点 `ce8f9f18` 为 GL 写作时钉点，本集开工复核已前移至 `7226f555`（见 B.1，冻结正文文字不动、对照登记取新钉）。
+> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](../../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后的现行代次，覆盖多 Agent 平台七章、含 §9 综合回合）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写；其头注所记 main 轨钉点 `ce8f9f18` 为 GL 写作时钉点，本集开工复核已前移至 `7226f555`（见 B.1，冻结正文文字不动、对照登记取新钉）。
 > - **本集取材范围**：单章集（s20 综合回合，系列终章）——主线为 §9（挂点表 / 两层计划 / 两种委派 / 工具池 27+动态外部 / 结语「机制很多，循环一个」）＋§10 关键实证数字（本集口径见 B.3：27 vs 26 工具池、8→14→18→27 演进链）＋§11 动手实验室（E5 为本集核心消融）＋§12 底层规律（规律 1 / 规律 5 承接「循环不变」主线）＋§13 适用边界（材料没有证明的事——并行加速比无实测）；§3–§8 六类设施属本系列 ep12 / ep15–ep19 各集，本集只作挂点回指、不重讲机制本体。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集钉选轨）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s20-readme` / `s20-code`。钉选理由（B.1 详证）：终章叙事正源在此轨——「结束亦是开始」收束节（while True 五行收束代码块 +「这就是全书的终点：机制很多，循环一个」结语，即冻结正文 §9 末段引文原身）与「相对 s19 的变化」11 行全量回归表为 main 轨所无；且 20 章版是本系列集制骨架，s20 终章位与 ep20 收束身份同构。
 >   - main 轨（对照轨，17 章整合版）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s20m-readme` / `s20m-code`。对照结论：其对 s20 的扩写增量（s08 新压缩管线量化 + s13 加固语义回灌）属本系列 ep8 / ep15 集叙事面、非本集正源级材料，且其尾节「接下来 s16 Workflow Runtime」为非终点章框架，故不翻钉（B.1 证据表）。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s20/ 台账 `s20-site`（2026-10-31 fetch，raw `ff393a59cf53efb7` / text `6636957b98a42259`，与旧系列 ep5 台账基线零漂移；分支 HEAD 2026-10-31 复验未动）。
@@ -46,10 +46,10 @@ main 轨 s13_agent_teams 把「组队」这件事需要回答的问题列得很�
 
 ## 2. 全貌解剖
 
-先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
-![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](../../../../../../docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|

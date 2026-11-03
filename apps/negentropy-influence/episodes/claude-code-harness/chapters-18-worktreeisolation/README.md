@@ -20,7 +20,7 @@
 - **main 轨 `7226f555` 对照不钉**：worktree 语义三处加固（移除收敛为宿主侧、assignment lease 重启恢复、绑定损坏认领即失败）作「生产化方向」对照，按【二】级课程讲法处理。
 - **官方 worktrees 页增量补证**（台账 `doc-worktrees`，175 参考清单未引、C 型五增量）：退出检查口径（changed/untracked/uncommitted/new commits）与教学版守卫同型 + 子代理 worktree 隔离专节，本集边界句锚定。
 - **本集核心消融复算【一】级**（2026-10-31 钉点 code.py 守卫沙箱探针，18 项断言全绿）：守卫在位，房内 1 个未提交文件去拆默认拒绝、房和线都在 ↔ 旁路强删（discard_changes=true）→ 文件无声蒸发、`wt/auth` 分支被 branch -D 连坐删除；lcc 原型零 worktree 代码（E1–E5 无一消融本集机制），消融不取自 GL 原型编号体系。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

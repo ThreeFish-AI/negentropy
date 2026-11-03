@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 8 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/173-claude-code-memory-management.md](docs/research/agent-harness/173-claude-code-memory-management.md)（guided-learn 产物，生成 2026-10-07；现行代次 2026-10-23 I-235 缩写首现注解批，末次触达提交 `4876f80d3`，另经 2026-10-22 I-234「拆/失效」词族整改）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/173-claude-code-memory-management.md](../../../../../../docs/research/agent-harness/173-claude-code-memory-management.md)（guided-learn 产物，生成 2026-10-07；现行代次 2026-10-23 I-235 缩写首现注解批，末次触达提交 `4876f80d3`，另经 2026-10-22 I-234「拆/失效」词族整改）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s08 Context Compact）——主线为 §3 全章（§3.1 消息配对红线 / §3.2 大结果落盘 / §3.3 中段裁剪与归档标记 / §3.4 已读缩短与未读豁免 / §3.5 全量摘要与报错应急 / §3.6 compact 工具与批次闭合 / §3.7 真实 CC 对照与官方印证）。B.3 圈定的关联条目：§5 数字表压缩侧教学常量行（触发 50 / 目标 30（新钉口径）· 批预算 200,000 · 落盘线 30,000 · 预览 2,000·1,000 · 豁免 120 · 阈值 50,000·80% · reactive 保 5 重试 1）；§6 压缩侧三实验（换序 / 去边界保护 / 去未读豁免）与 T4/T5 走查；§7.1 规律一（成本阶梯）· 规律二（失真递增）· 规律三（协议不变式塑造切点）；§7.2 争议一（可重得结果豁免）· 争议三（压缩后恢复）。§4（Memory 四件套）与 §6 记忆侧两实验、§7.1 规律四·五属本系列 ep9，本集只在下期钩子一笔带过（§1 规格表与 §2 全貌表涉记忆条目仅作承接语境，不展开）。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - main 轨（本集主线正源，2026-10-31 翻钉）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s08-readme` / `s08-code`。翻钉理由有三：其一，s08 在 main 为全重写，新增「为什么先整理工具结果」（四点论证：大文件可存盘重读 / 旧命令可重跑 / 最新几条最接近当前工作 / 纯结构操作不调模型）与「为什么顺序固定」两节，是本集「便宜的先跑贵的后跑」主线叙事正源（站点轨仅一句设计原则直陈）；其二，机制级演进全部只在 main——压前落盘占位带路径、seen/unseen 未读豁免、fit_tool_results、批次闭合、`[Compacted]` 双段结构与防注入，冻结正文 §3.4–§3.6 机制核心即以 main 为准；其三，自旧系列旧钉 `ce8f9f18` 前移 13 提交带实质增量（snip 触发/目标分离 50/30、`active_request` 可见性补回），正服务顺序主线。
 >   - 站点轨（CC 附录正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s08f-readme` / `s08f-code`（s08 独有「深入 CC 源码」附录六小块：执行顺序对照 / 执行顺序详解 / read_file 取舍 / 完整常量参考 / contextCollapse 与 sessionMemoryCompact / 压缩 prompt——【三】级断言正源）；
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s08/ 台账 `s08-site`（2026-10-31 fetch，raw `1c1c7d535eebf5d4` / text `7f727fdfea291ad1`，与旧系列 2026-10-07 基线零漂移）；
@@ -82,10 +82,10 @@ Agent（能自己调工具干活的 AI 助手）跑着跑着不动了。手里�
 CC 源码逐函数对照 + 官方文档行为印证 + 原型 selftest 与五次破坏性实验
 ```
 
-全景拓扑的图源见 [lcc-memory--panorama.mmd](docs/assets/mermaid/agent-harness/lcc-memory--panorama.mmd)。用文字说清这张图的结论：压缩侧是一条「预算→裁剪→缩短→兜底落盘→摘要」的固定主链，应急路径挂在 API 报错之后，所有破坏性动作都以磁盘上的 transcript（完整对话历史的留档文件）与落盘文件为恢复后盾；记忆侧是「存储→召回→提取→整理」的四件套小闭环，提取在回合结束触发，召回正文在下一轮注入；两套机制通过「压缩丢细节、记忆补细节」咬合，互不替代。
-![记忆管理全景：压缩管线主链+磁盘留档后盾+记忆四件套闭环的咬合](docs/assets/architecture/agent-harness/lcc-memory--panorama-dark.png)
+全景拓扑的图源见 [lcc-memory--panorama.mmd](../../../../../../docs/assets/mermaid/agent-harness/lcc-memory--panorama.mmd)。用文字说清这张图的结论：压缩侧是一条「预算→裁剪→缩短→兜底落盘→摘要」的固定主链，应急路径挂在 API 报错之后，所有破坏性动作都以磁盘上的 transcript（完整对话历史的留档文件）与落盘文件为恢复后盾；记忆侧是「存储→召回→提取→整理」的四件套小闭环，提取在回合结束触发，召回正文在下一轮注入；两套机制通过「压缩丢细节、记忆补细节」咬合，互不替代。
+![记忆管理全景：压缩管线主链+磁盘留档后盾+记忆四件套闭环的咬合](../../../../../../docs/assets/architecture/agent-harness/lcc-memory--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-memory--panorama.html`](docs/assets/architecture/agent-harness/lcc-memory--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-memory--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-memory--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-memory--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-memory--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-memory--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-memory--panorama-light.png)
 
 基础层与学习焦点的排序：配对约束和注入位置是基础，读到哪节用到哪节。最值得按顺序关注的是五件事：管线顺序的设计（为什么落盘必须在缩短之前，全篇最反直觉的工程决策）、配对保护与批次闭合（同一协议约束的两个化身）、main 轨的 seen/unseen 演进（站点轨到 main 轨最大的机制级变化）、记忆的索引常驻与正文按需（与 s07 技能加载结构相同的检索设计）、写入门控与整理原子性（记忆库的卫生制度）。
 
@@ -389,7 +389,7 @@ python3 lcc_memory_lab.py --scenario t4         # §3.4 的走查输入
 | 3 | 没拆的包裹与门口走廊 | fit_tool_results：刚送到、收件人还没看过的包裹再占地方也先留着；但门口走廊有承重上限，未读批次大到把门堵死时，先拍照登记再移进仓库，凭单据取回 | 原文自带边界：它说的是「未读不砍、超限才登记」，不涉及恢复成本的高低 | §3.4 |
 | 4 | 翻篇与续篇 | 压缩后恢复多少的争议两派：极简摘要派把压缩当「翻篇」（新阶段新上下文，干净可预测），结构化重建派当「续篇」（长任务中途不能失忆，必须重建工作现场） | 这对词本身是分歧的组织框架而非物象类比；口播引用须同时给出两派各自的假设（把压缩当什么），不单方面坐实任一派 | §7.2 争议三 |
 
-> **承袭登记**（2026-10-31）：现行 173 正文不含类比登记表（GL 伴生 analogy.md 不在场）。本表自旧系列 ep3 记忆管理冻结件 [claude-code-memory/research/gl-notes.md](claude-code-memory/research/gl-notes.md)（同 GL 谱系 173，2026-10-07 编制 · 2026-10-09 LLM 单名化重冻代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s08 单章）拟用条目初判：#1 草稿纸（开场承接沿用，冻结正文 §1 自带）、#2 已付款未到货的货与 #3 没拆的包裹与门口走廊（§3.4 未读豁免与 fit 兜底——本集机制核心正用）；#4 翻篇与续篇保守备选（压缩后恢复条款按【三】级归属直陈即可，若尾幕展开争议三再启用）；现行 173 §3 无表外新增类比物。
+> **承袭登记**（2026-10-31）：现行 173 正文不含类比登记表（GL 伴生 analogy.md 不在场）。本表自旧系列 ep3 记忆管理冻结件 [claude-code-memory/research/gl-notes.md](../../../claude-code-explained/claude-code-memory/research/gl-notes.md)（同 GL 谱系 173，2026-10-07 编制 · 2026-10-09 LLM 单名化重冻代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s08 单章）拟用条目初判：#1 草稿纸（开场承接沿用，冻结正文 §1 自带）、#2 已付款未到货的货与 #3 没拆的包裹与门口走廊（§3.4 未读豁免与 fit 兜底——本集机制核心正用）；#4 翻篇与续篇保守备选（压缩后恢复条款按【三】级归属直陈即可，若尾幕展开争议三再启用）；现行 173 §3 无表外新增类比物。
 
 ## 附录 B · 本集复算与穿透记录（2026-10-31 · ep8 开工首核）
 

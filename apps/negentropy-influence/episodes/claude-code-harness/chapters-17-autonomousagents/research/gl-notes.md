@@ -2,16 +2,16 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 17 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后现行代次——「多 Agent 平台」七章归并精读，其 §6 自治即本集单章主线）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](../../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 2026-10-07 换代重写后现行代次——「多 Agent 平台」七章归并精读，其 §6 自治即本集单章主线）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s17 Autonomous Agents）——主线为 §6（自治：空闲自认领与并发正确性——WORK/IDLE/SHUTDOWN 三阶段生命周期、收件箱优先于任务板、扫描三条件、认领原子性与 TOCTOU、身份重注入）＋§12 规律 3（先查后写必须原子上锁——本集收束规律）＋§12 争议 1（空闲队友超时退出还是长驻等待——本集核心争议）＋§10 关键实证数字（认领锁最多重试 30 次/退避 5–100 ms、轮询节奏四口径）＋§11 实验 E4（去掉认领原子性＝本集消融正例，B.2 已复算）；§3 任务板属 ep12、§4 团队收件箱属 ep15、§5 协议属 ep16、§7 worktree 属 ep18、§8 MCP 属 ep19、§9 综合属 ep20——本集只作开场承接与机制依赖带过，不重讲。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集钉选轨）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s17-readme` / `s17-code`。钉选理由：其一，本系列集制骨架即站点 20 章版，`s17_autonomous_agents` 自治单章**仅存在于该轨**（main 轨 s17＝Goal Loop 撞号异物，自治已并入 main `s13_agent_teams` 团队整合章、无单章形态）；其二，单章完整覆盖本集全部机制面（三阶段生命周期/扫描三条件/owner 检查/身份重注入/60 s 超时纪律），且独有「深入 CC 源码」附录（四机制组合空闲 / proper-lockfile 文件锁认领 / claimTaskWithBusyCheck 防 TOCTOU / 教学版 vs CC 对比表）＝【三】级断言正源——冻结正文 §6 的机制叙事正按该单章展开。
 >   - main 轨（对照轨）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s17m-readme` / `s17m-code`。承接冻结正文 §6「main 轨把这步补齐了」的对照断言：s13_agent_teams §5–§7（结果与 IDLE 双事件 / IDLE 先看收件箱再找 ready task / 发现和认领分成两步、认领必须原子执行）——`task_store_lock()` 进程内 RLock＋fcntl 文件锁双重临界区、锁内重读防 TOCTOU、忙检查、无固定超时，全部钉点 code.py 可实测（【一】级对照证据，B.2 已复算）。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s17/ 台账 `s17-site`（2026-10-31 fetch，raw `4928383da5a63ac9` / text `bd52a6acbbf32356`，与旧系列基线指纹零漂移）；
 >   - 官方文档补读（B 型·site）：Anthropic「Orchestrate teams of Claude Code sessions」（agent-teams：任务认领文件锁原句 / 实验性默认关 / 建议 3–5 队友——冻结正文 §6 与 §10 参考 [6] 的官方佐证）——台账 `doc-agent-teams` 指纹存证（无字节副本）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s17「深入 CC 源码」附录中标「据课程分析 / 材料核查 / 源码分析」的断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`lcc_multiagent_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest：18 断言全绿、SELFTEST PASSED；实验 E4 无锁交错 w1/w2 双写、终值 owner＝后写者、有锁仅一人成功），按 **【一】** 级引用；站点轨 code.py 轮询/超时参数（5 s / 60 s / 12 拍＝60//5 推导）与 main 轨 code.py 双重锁结构为钉点直接可数事实，按 **【一】** 级引用；官方文档佐证句（文件锁认领、实验性默认关）带「官方文档」归属，按【二】级文档讲法处理。
 > - **鲜度复核日期**：2026-10-31（站点轨 s17 双件指纹与旧系列 2026-10-02 登记逐字一致、分支 HEAD 未动；站点页 s17-site 指纹与旧系列基线零漂移；main 轨 s13_agent_teams 双件于 7226f555（ep1/ep2 同钉）首次按 s17 视角归档——台账六条＋归档双 LICENSE 存证）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `](assets/` 相对链接（5 处：全景 .mmd / dark·light PNG / .html）已统一改写为 `](docs/assets/`，逐条 `test -e` 验证通过，文字内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `](../../assets/` 相对链接（5 处：全景 .mmd / dark·light PNG / .html）已统一改写为 `](../../../../../../docs/assets/`，逐条 `test -e` 验证通过，文字内容零改动。
 > - **术语两层口径**：笔记层随 175 现行正文用 LLM/Harness/TOCTOU/临界区（利于回溯）；口播恒用「模型/装置/检查与写入之间的窗口/一次只许一个进人的代码段」等口语对应，口播英文例外清单不变（＝ Claude Code + Harness）——两层口径不传导。
 > - **信源补充**：无增量（2026-10-31 核，本集叙事所需事实面 GL 已全覆盖；见 01 C 型§五）。
 
@@ -46,10 +46,10 @@ main 轨 s13_agent_teams 把「组队」这件事需要回答的问题列得很�
 
 ## 2. 全貌解剖
 
-先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
-![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](../../../../../../docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|
@@ -252,7 +252,7 @@ main 轨把「先提方案、等用户确认再开队友」写进系统提示词
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
-> **承袭登记**（2026-10-31）：现行 175 正文已不含本附录（2026-10-07 换代重写后，类比表随旧代次退役）；本表自旧系列 ep5 冻结件（同 GL 谱系、2026-10-01 guided-learn 六阶段重制定稿代次，正文冻结至 `0ecf6527c`）[附录 A](claude-code-multiagent/research/gl-notes.md) **逐字承袭**，继续作为本集口播类比唯一准入清单（口径：一物一喻，1–3 句点亮即切回机制画面，失配拦截列＝禁区；未登记类比不进口播）。
+> **承袭登记**（2026-10-31）：现行 175 正文已不含本附录（2026-10-07 换代重写后，类比表随旧代次退役）；本表自旧系列 ep5 冻结件（同 GL 谱系、2026-10-01 guided-learn 六阶段重制定稿代次，正文冻结至 `0ecf6527c`）[附录 A](../../../claude-code-explained/claude-code-multiagent/research/gl-notes.md) **逐字承袭**，继续作为本集口播类比唯一准入清单（口径：一物一喻，1–3 句点亮即切回机制画面，失配拦截列＝禁区；未登记类比不进口播）。
 
 | 本集名词（楼域） | 175 机制（§锚） | 允许携带的语义 | 失配拦截（不许借喻过界） |
 |---|---|---|---|

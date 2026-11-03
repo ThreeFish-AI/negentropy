@@ -1,6 +1,6 @@
 # 《Background Tasks：慢命令丢后台，结果走通知》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：⑥ 22 镜六场景分镜（零建图，G1 修 2 RISKY+2 WARN 放行）→ ⑦ me-bright/story 克隆声 TTS 53 句 4.9 分 → ⑧ 等待砖压停/双闸门/登记表/通知卡装置族 + 片头孪生（组四首集，groupOf(13)=4）→ ⑨ QA 0 RISKY 修复 6 项（W1 noTag 下移恢复穿过读法、W2 飞出箭头 ok→mech 雾蓝轴、W3 RingExecSeg 恢复恒 6px、N1 done 灯改 notify、N2 残影 litP 0.52、N3「可」字判 OCR 噪声；导航错字 RISKY 判旧草渲帧误报、重渲后 Vision OCR 复核「名额与闸门」正确）+ 机器门全程零 WARN → ⑩ 终渲 294.3s / 4 分 54.3 秒落窗 [4.4,5.6]，`~/Documents/video/claude-code-chapters/Background Tasks：慢命令丢后台，结果走通知 v1.mp4`）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 13 集（s13_background_tasks 单章）；Stage ①–⑤ 已完成（信源钉选复核钉站点轨 67a9126c + C 型冻结现行 176（2026-10-23 代次）+ 策划 + 逐字稿 53 句 1308 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / 台账 audit+verify 全绿。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：⑥ 22 镜六场景分镜（零建图，G1 修 2 RISKY+2 WARN 放行）→ ⑦ me-bright/story 克隆声 TTS 53 句 4.9 分 → ⑧ 等待砖压停/双闸门/登记表/通知卡装置族 + 片头孪生（组四首集，groupOf(13)=4）→ ⑨ QA 0 RISKY 修复 6 项（W1 noTag 下移恢复穿过读法、W2 飞出箭头 ok→mech 雾蓝轴、W3 RingExecSeg 恢复恒 6px、N1 done 灯改 notify、N2 残影 litP 0.52、N3「可」字判 OCR 噪声；导航错字 RISKY 判旧草渲帧误报、重渲后 Vision OCR 复核「名额与闸门」正确）+ 机器门全程零 WARN → ⑩ 终渲 294.3s / 4 分 54.3 秒落窗 [4.4,5.6]，`~/Documents/video/claude-code-chapters/Background Tasks：慢命令丢后台，结果走通知 v1.mp4`）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 13 集（s13_background_tasks 单章）；Stage ①–⑤ 已完成（信源钉选复核钉站点轨 67a9126c + C 型冻结现行 176（2026-10-23 代次）+ 策划 + 逐字稿 53 句 1308 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts / 台账 audit+verify 全绿。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -20,7 +20,7 @@
 - **main 轨 `7226f555` 对照不翻钉**：s11 分派已收敛为仅显式请求（「不再按关键词猜测」＝「这条演化」对照物）；自旧钉 `ce8f9f18` 前移 13 提交仅 code.py +6/-1（不可达分支注释＋REPL 空输入守卫，与 ep1/ep2 前移同款）、README.zh.md 逐字一致——无正源级增量，副本落台账 `s13m-*` 对照。
 - **实验 e5 本集复算【一】级**（2026-10-31 selftest）：拔掉启发式兜底 → pip 分派 heuristic→sync、主循环阻塞 0 秒→600 秒；教学版两条限制（后台路径复用 120 秒超时、通知摘要截 200 字）同场实测在场。
 - **官方页语义面复核**：`doc-tool-use-overview`（一次调用一结果的配对协议依据）为多态轮替页，本集登记态复核成立、勿追指纹；`doc-routines`「最小间隔一小时」已从现行页消失——分歧处置为该数字不进口播。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

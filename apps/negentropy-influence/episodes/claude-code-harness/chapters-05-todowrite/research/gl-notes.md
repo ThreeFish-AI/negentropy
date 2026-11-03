@@ -2,9 +2,9 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 5 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；本冻结取现行代次——2026-10-23 I-235 缩写首现注解轮后代次（git `4876f80d3`），晚于旧系列规划冻结件所冻 2026-10-14 第五次冻结，两代差异全部为随文括注与「拆除→破坏」措辞、无断言面变化，见附录 B.1 备注）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/172-claude-code-planning-coordination.md](../../../../../../docs/research/agent-harness/172-claude-code-planning-coordination.md)（guided-learn 产物；本冻结取现行代次——2026-10-23 I-235 缩写首现注解轮后代次（git `4876f80d3`），晚于旧系列规划冻结件所冻 2026-10-14 第五次冻结，两代差异全部为随文括注与「拆除→破坏」措辞、无断言面变化，见附录 B.1 备注）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s05 TodoWrite）——主线为 §3（TodoWrite：把计划摆回 LLM 眼前——机制两半 / snake_case 三步走查 t1–t11 / episode A 实测 / 两轨差异四处）＋§8 关键实证数字（本集口径两行：「3 轮 nag 阈值=教学设定」、原型「去掉 reminder 2/3 步、7 个漂移动作」）＋§9 动手实验室（M1 行号锚、E1 破坏性实验=本集核心消融、阈值 1/999 两组实测）＋§10 规律一「可见性即影响力」、规律二「状态外置」、争议一「计划外显是补丁还是必需」（均为 s05 专属锚）＋附录 A 类比登记表；§1–§2 的统一视角（「LLM 每轮看到什么」三通道）作本集开场框架使用；§4–§7（Subagent / Skill Loading / System Prompt / Error Recovery）属本系列 ep6 / ep7 / ep10 / ep11，本集只在下期钩子一笔带过不重讲；§12 自测题第 3 问（争议一）可作收尾互动素材。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - 站点轨（本集钉选轨）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认）——字节归档 `source-archive/67a9126c/`、台账 `s05-readme` / `s05-code`。钉选理由（2026-10-31 开工复核）：main 轨 s05 自旧钉 `ce8f9f18` 前移 13 提交仅 2 行注释中文化 + 空输入守卫 2 行（无正源级增量，ep2 那种「为什么还要加工具」级新增节在 s05 不存在），且 main HEAD 即钉点 `7226f555`（compare ahead 0、s05 零触碰）；而 s05 独有「深入 CC 源码」附录（V1/V2 双任务系统 / isTodoV2Enabled / activeForm / verification nudge / Task System 五项增量）只在站点轨——【三】级断言正源在此。
 >   - main 轨（对照轨）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s05m-readme` / `s05m-code`（TodoManager 校验：至多 20 条 / 单条 in_progress / `ast.literal_eval` 解析不碰 eval；reminder 追加进第三轮 tool results；渲染清单作为 tool_result 回填——冻结正文 §3 差异一/二/四的对照实测锚）。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s05/ 台账 `s05-site`（2026-10-31 fetch，raw `a412b7eee5948071` / text `d4967c3a6690d07f`，与旧系列 2026-10-07 基线零漂移）；
@@ -291,10 +291,10 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 
 ---
 
-*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](docs/research/agent-harness/assets/lcc_planning_lab.py)。*
-![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
+*图源：本篇全景拓扑见 [lcc-planning--panorama.mmd](../../../../../../docs/assets/mermaid/agent-harness/lcc-planning--panorama.mmd)（五个装置在「每轮可见文本」三个通道上的汇合关系；交互版与双主题渲染由资产管线（仓库统一的图表产出脚本流程）统一产出）。原型：[lcc_planning_lab.py](../../../../../../docs/research/agent-harness/assets/lcc_planning_lab.py)。*
+![规划与协调全景：五个装置在「每轮可见文本」的三个通道上汇合](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-planning--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-planning--panorama-light.png)
 
 ## 附录 A · 类比登记表（本集口播类比唯一准入清单）
 
@@ -311,9 +311,9 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 | 7 | 按需调页（虚拟存储） | 常驻与按需的分层：常驻集要小（目录/清单），缺页才按需调（正文全文） | 内存页调入不按次收流量费；上下文是每轮请求全额计费的稀缺资源（§5 的账），经济 LLM 更苛刻 | §10 规律三 |
 | 8 | 延展心智（把心智状态放进环境再读回来） | 状态外置：todo 存外部结构、渲染回可见文本，别考验记忆 | 认知科学的延展心智是哲学论题；工程的版本更朴素——别考验记忆，考验摆放（原文自带此限定） | §10 规律二 |
 
-※ 禁用依据：[旧系列地图 §口播禁喻词表](source-map/claude-code-explained.md)（系列地图 §四指明继续禁用）含「台面」，组装台面同族意象不进口播；本集开场若用「三通道汇合」表述，改工程直陈（「汇合层」）。
+※ 禁用依据：[旧系列地图 §口播禁喻词表](../../../../source-map/claude-code-explained.md)（系列地图 §四指明继续禁用）含「台面」，组装台面同族意象不进口播；本集开场若用「三通道汇合」表述，改工程直陈（「汇合层」）。
 
-> **承袭登记**（2026-10-31）：现行 172 正文不含类比登记表；本表自旧系列《Claude Code Harness Engineering》ep2 规划冻结件（[claude-code-planning/research/gl-notes.md](claude-code-planning/research/gl-notes.md)，同 GL 谱系、172 第五次冻结 2026-10-14 代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s05 单章）拟用条目：**#1 聊天群刷屏**（开场痛点：长对话稀释早期目标，锚冻结正文 §1 s05 例）、**#8 延展心智**（机制收束：todo 存外部结构、渲染回可见文本——「别考验记忆，考验摆放」，锚 §10 规律二）；其余条目属同系列其他集（#3 → ep6、#7 → ep7、#4 / #5 / #2 → ep10、#6 → ep11），本集不启用。
+> **承袭登记**（2026-10-31）：现行 172 正文不含类比登记表；本表自旧系列《Claude Code Harness Engineering》ep2 规划冻结件（[claude-code-planning/research/gl-notes.md](../../../claude-code-explained/claude-code-planning/research/gl-notes.md)，同 GL 谱系、172 第五次冻结 2026-10-14 代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s05 单章）拟用条目：**#1 聊天群刷屏**（开场痛点：长对话稀释早期目标，锚冻结正文 §1 s05 例）、**#8 延展心智**（机制收束：todo 存外部结构、渲染回可见文本——「别考验记忆，考验摆放」，锚 §10 规律二）；其余条目属同系列其他集（#3 → ep6、#7 → ep7、#4 / #5 / #2 → ep10、#6 → ep11），本集不启用。
 
 
 ## 附录 B · 本集复算与穿透记录（2026-10-31 · ep5 开工首核）
@@ -335,7 +335,7 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 - 站点轨 raw：README.md `92f4fa9f54ba2a56`（6736 B / 158 行）· code.py `118dac9e16090b86`（12588 B / 302 行）——与旧系列 2026-10-07 登记/归档**逐字一致**（钉点不可变性双验，本集归档字节 cmp 通过）。
 - main 轨 raw：README.zh.md `c71212f2f290ba1b`（5316 B / 149 行）· code.py `4195fca02d7417f5`（14008 B / 370 行）。
 - LICENSE：两钉字节一致，sha256 `204ff5ee216c8f895268a23b66d959f82aa4d868e871e0690fbf2844eff8a26b`（承 ep1/ep2 归档复核）。
-- 站点实况 `s05-site`：raw `a412b7eee5948071` / text `d4967c3a6690d07f`（60709 B / 146 行）——与旧系列 2026-10-07 基线（[claude-code-planning/research/sources.toml](claude-code-planning/research/sources.toml) s05-site 条目）**零漂移**。
+- 站点实况 `s05-site`：raw `a412b7eee5948071` / text `d4967c3a6690d07f`（60709 B / 146 行）——与旧系列 2026-10-07 基线（[claude-code-planning/research/sources.toml](../../../claude-code-explained/claude-code-planning/research/sources.toml) s05-site 条目）**零漂移**。
 - 台账回执：`source_ledger.py verify`：**受检 6 · FAIL 0 · WARN 0**。
 - 官方页 `doc-todo-tracking`：2026-10-31 fetch text `14974ed59484714e`（518707 B / 771 行）vs 旧系列 2026-10-07 登记 text `1a2f87596ecfce22`（697732 B / 1812 行）——构建态重写（bytes −26%），verify 对本集登记基线通过、当日单态无两态交替迹象；**语义面复核（B 轨 WARN 复核纪律前置执行）**：本集所引断言现页逐字在场——"the four Task tools, or TodoWrite instead when you set `CLAUDE_CODE_ENABLE_TASKS=0`" / "This default set applies in Claude Code v2.1.268 and later" / "Newer models track multi-step work without a written todo list" / "Claude creates todos for most multi-step work, such as: Complex multi-step tasks requiring three or more distinct actions"；且现页新增默认启用模型清单（Opus 4.7 / Sonnet 4.6 / Haiku 4.5 及更早默认提供，其余模型需 opt-in）——断言未失效、反获增强；口播引官方口径一律带「截至 2026-10-31」。
 - GL 代次备注：现行 172 为 2026-10-23 I-235 缩写首现注解轮后代次（git `4876f80d3`），与旧系列规划冻结件所冻 2026-10-14 第五次冻结逐字 diff 复核——差异全部为随文括注（如「main HEAD（分支最新提交的指针）」「TodoManager（管理待办清单的类）」）与「拆除实验→破坏性实验」措辞，无断言面与数字变化。

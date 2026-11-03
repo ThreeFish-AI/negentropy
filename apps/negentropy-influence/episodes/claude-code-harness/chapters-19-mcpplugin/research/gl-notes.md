@@ -2,16 +2,16 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 19 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 **2026-10-07 换代重写后的现行主干代次**——旧系列 ep5 冻结的是换代前版本（正文冻结至 `0ecf6527c`），本系列取现行版为集事实源）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/175-claude-code-multi-agent-platform.md](../../../../../../docs/research/agent-harness/175-claude-code-multi-agent-platform.md)（guided-learn 产物；本冻结取其 **2026-10-07 换代重写后的现行主干代次**——旧系列 ep5 冻结的是换代前版本（正文冻结至 `0ecf6527c`），本系列取现行版为集事实源）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s19 MCP Plugin，main 轨对应 s14_mcp_plugin；章题「MCP Tools — 外接工具，标准协议」）——主线为 **§8 外部工具：发现、命名、组装**（三步机制 + main 轨生产级细节 + 缓存作废 + 真实版传输与官方印证）＋§10 关键实证数字（「外部工具全名 ≤ 64 字符、非法字符替换为下划线」行）＋§11 动手实验室（**实验 E5「连接后不重建工具池」为本集消融正例**；场景 C 的 C2/C3 断言为本集机制正例）＋§12 规律 5（能力接入走发现-命名-组装）＋§13 适用边界（教学 mock 定义域、源码转述不作运行时证据）＋§1 规格表「可扩展的能力」行与 §2 全貌表「外部工具池」行；§3–§7、§9 属本系列 ep12 / ep15–ep18 / ep20 各集，本集只作开场承接与下期钩子一笔带过，不重讲。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - main 轨（**本集正源 · 翻钉**）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，s14_mcp_plugin：README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s19-readme` / `s19-code`。翻钉理由（对比证据全表见附录 B.1）：main s14 相对站点轨 s19 有**三节机制级正源增量**——§6「权限由宿主配置决定」（`MCP_HOST_POLICY` 宿主策略表 + 未配置默认 confirm + 「readOnlyHint 不作为授权依据」，code.py L204 注释原话「Authorization comes from host configuration, never server descriptions.」）；§4 规范化撞名直接 raise + 全名超 64 字符拒绝；§7「工具输入错误留在工具边界内」。175 §8 的收束原则「**外部服务的自我描述不能当授权依据**」的教学实现载体只在 main 轨——站点轨教学版自述「只在 description 中用文本标注 (readOnly)/(destructive)，不做权限拦截」，直引站点轨无法支撑该叙事的【一】级载体。
 >   - 站点轨（对照 · CC 附录正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，s19_mcp_plugin：README.md 中文默认 / code.py）——字节归档 `source-archive/67a9126c/`、台账 `s19f-readme` / `s19f-code`（s19 独有「深入 CC 源码」八小节附录：6 种 transport / 工具池组装算法 / 命名规则 / 权限检查 / 配置优先级 / Channel 反向通知 / OAuth / 连接生命周期错误处理——**【三】级断言正源**；「无缓存」叙事（E5 实验锚）与 Lead 工具 17→18 计数亦在该轨）。
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s19/ 台账 `s19-site`（2026-10-31 fetch，raw `2d7a8cc14a0f0f1d` / text `cc3009bddeb4b61f`，与旧系列 ep5 台账 2026-10-02 登记基线指纹**零漂移**）。
 >   - 官方文档补读（B 型·site）：Anthropic「Connect Claude Code to tools via MCP」（命名归一规则 / 权限按 `mcp__` 全名书写 / `.mcp.json` 项目级批准，冻结正文 §8 与 §10 印证 [7]）——台账 `doc-mcp` 指纹存证；Model Context Protocol 官网（开放标准定位，冻结正文参考 [9]）——台账 `doc-mcp-io` 指纹存证（均无字节副本）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s19f 附录中「真实 CC / CC 源码核查」类断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`lcc_multiagent_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest：18 断言全绿、128 行日志；E5 不重建 → `Unknown tool: mcp__docs__search`、重建后正常返回；C2 `mcp__deploy__check` 按全名可调、C3 `normalize('inv-checker/search.user')` → `inv-checker_search_user`），按 **【一】** 级引用；「内置工具 5+1=6（main 轨）」「`MCP_HOST_POLICY` 4 条」「`BUILTIN_TOOLS` 18（站点轨）」为钉选 code.py 直接可数事实，按 **【一】** 级引用（分轨注明口径）。
 > - **鲜度复核日期**：2026-10-31（main 轨 s14 双件为系列地图 2026-10-29 建图首钉 `7226f555` 下本集首次取证；站点轨 s19f 双件指纹与旧系列 2026-10-02 登记逐字一致；站点页指纹零漂移——台账七源存证）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `](assets/` 相对链接 5 处已按新落位统一改写为 `](docs/assets/`（4 个目标 `test -e` 实测在位），文字内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `](../../assets/` 相对链接 5 处已按新落位统一改写为 `](../../../../../../docs/assets/`（4 个目标 `test -e` 实测在位），文字内容零改动。
 > - **术语两层口径**：笔记层随 175 终版用 LLM/Hook/Pipeline 等英文术语（利于回溯）；口播恒用「模型/钩子/管线」，口播英文例外清单 = Claude Code + Harness + MCP（Model Context Protocol 首现给全称再缩写）——两层口径不传导。
 > - **信源补充**：无增量（2026-10-31 核，本集下游三件套未起步；见 01 C 型§五）。
 
@@ -46,10 +46,10 @@ main 轨 s13_agent_teams 把「组队」这件事需要回答的问题列得很�
 
 ## 2. 全貌解剖
 
-先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
-![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
+先看整张地图（全景拓扑（各部分怎么连成整体的结构图）的文本源在[这里](../../../../../../docs/assets/mermaid/agent-harness/lcc-multiagent--panorama.mmd)，渲染产物由资产管线（本仓统一登记并渲染图表产物的流程）统一登记）。图的结论一句话可以说完：Lead 与每个队友各自跑一个结构相同的循环，六类设施全部是文件系统上的共享物，队友通过写收件箱和认领任务影响 Lead 的下一轮，而 Lead 从头到尾没有第二个循环。理解本篇内容，按三层进入：
+![多 Agent 平台全景：Lead 与队友各跑同构循环，六类设施全为文件系统共享物](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-multiagent--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-multiagent--panorama-light.png)
 
 | 层级 | 部分 | 回答的问题 | 性质 |
 |---|---|---|---|
@@ -252,7 +252,7 @@ main 轨把「先提方案、等用户确认再开队友」写进系统提示词
 
 ## 附录 A · 类比登记表（承袭自旧系列 ep5 冻结件，本集口播类比唯一准入清单）
 
-> **承袭登记**（2026-10-31）：本表自旧系列冻结件 [claude-code-multiagent/research/gl-notes.md](claude-code-multiagent/research/gl-notes.md) 附录 A（同 GL 谱系、175 换代前 `0ecf6527c` 代次的视频侧喻系登记）**逐字承袭**，继续作为本集口播类比唯一准入清单；一物一喻继承，不在视频阶段另造新比喻。原表为旧系列 ep5「一栋楼的公共制度」视觉叙事的域喻系（域词「走廊」），本系列（claude-code-chapters）为 1:1 拆集新系列，跨集域词避让与禁喻词表继续生效（[旧系列地图 §六](source-map/claude-code-explained.md)）。
+> **承袭登记**（2026-10-31）：本表自旧系列冻结件 [claude-code-multiagent/research/gl-notes.md](../../../claude-code-explained/claude-code-multiagent/research/gl-notes.md) 附录 A（同 GL 谱系、175 换代前 `0ecf6527c` 代次的视频侧喻系登记）**逐字承袭**，继续作为本集口播类比唯一准入清单；一物一喻继承，不在视频阶段另造新比喻。原表为旧系列 ep5「一栋楼的公共制度」视觉叙事的域喻系（域词「走廊」），本系列（claude-code-chapters）为 1:1 拆集新系列，跨集域词避让与禁喻词表继续生效（[旧系列地图 §六](../../../../source-map/claude-code-explained.md)）。
 
 | 本集名词（楼域） | 175 机制（§锚） | 允许携带的语义 | 失配拦截（不许借喻过界） |
 |---|---|---|---|
@@ -265,7 +265,7 @@ main 轨把「先提方案、等用户确认再开队友」写进系统提示词
 | 环形走廊 | 全集成单循环（§9） | 四道准备→调模型→单岔口判据（有无工具调用块）→权限→三分发→回填/停止钩子、后台通知回流 | 走廊不是传送带——没有人推着谁走；只有一个岔口（判据），不是多级流水线 |
 
 > **本集拟用条目初判**（2026-10-31，s19 单章）：
-> - 「认证插座」为唯一对应 §8 的条目，但**口播词面不启用**——「插座」属旧系列禁喻词表「插线口 / 插口」同族意象（[旧系列地图 §六](source-map/claude-code-explained.md)共通禁喻 + ep5 补充禁用「插口」；ep2 判例已把「插座」判为同族不进口播）。其机制语义按冻结正文工程直陈（「外部工具经标准协议接入」「统一命名空间挂牌」「每轮重组工具池」）；「铭牌只读不是保险丝」一行语义在 main 轨正源叙事中由 `MCP_HOST_POLICY` 宿主策略承载，口播无需喻体。
+> - 「认证插座」为唯一对应 §8 的条目，但**口播词面不启用**——「插座」属旧系列禁喻词表「插线口 / 插口」同族意象（[旧系列地图 §六](../../../../source-map/claude-code-explained.md)共通禁喻 + ep5 补充禁用「插口」；ep2 判例已把「插座」判为同族不进口播）。其机制语义按冻结正文工程直陈（「外部工具经标准协议接入」「统一命名空间挂牌」「每轮重组工具池」）；「铭牌只读不是保险丝」一行语义在 main 轨正源叙事中由 `MCP_HOST_POLICY` 宿主策略承载，口播无需喻体。
 > - 「环形走廊」为旧系列 ep5 集名域词，跨集避让，本集不启用（§9 属本系列 ep20）。
 > - 其余条目（任务墙 / 递话口 / 回执簿 / 值班钟 / 门牌房）属本系列 ep12 / ep15–ep18 各集的候选准入，本集不启用。
 > - 本集口播初判**零承袭喻体进场**：§8 冻结正文的机制表述（发现-命名-组装、前缀防顶名、池变缓存作废）本身具象度足够；若②审校需要具象喻，须回本表登记后再用（不在视频阶段另造）。

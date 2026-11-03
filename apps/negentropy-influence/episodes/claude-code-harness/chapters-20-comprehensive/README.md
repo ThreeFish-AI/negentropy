@@ -19,7 +19,7 @@
 - **站点轨 `67a9126c` 维持钉选**（开工复核不翻钉）：终章叙事件——「结束亦是开始」收束节（五行 while True 收束代码块 +「机制很多，循环一个」结语，冻结正文 §9 末段引文原身）与「相对 s19 的变化」11 行全量回归表仅此轨在册；20 章版是本系列集制骨架，s20 终章位与 ep20 收束身份同构。
 - **main 轨 `7226f555` 对照在册**（s20m-* 台账，字节归档随集）：扩写增量（s08 压缩管线量化 + s13 加固语义回灌）属 ep8/ep15 集叙事面、非本集正源级，尾节「接下来 s16」非终点章框架；两轨判据句同向（认 tool_use block 不认收尾字段），无 ep2 型翻钉被迫性。
 - **实验 E5 本集复算【一】级**（2026-10-31 selftest）：连接新服务沿用旧工具池 → `Unknown tool: mcp__docs__search`、每轮重组后恢复到手；selftest 18 断言全绿 / 128 行日志与冻结正文 §11 逐字互证；内置工具 27 件逐项可数（main 对照 26 件经 B.2 复算校正弃用不引）。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

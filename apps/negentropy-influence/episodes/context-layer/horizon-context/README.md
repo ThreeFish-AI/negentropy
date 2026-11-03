@@ -41,7 +41,7 @@ out/          渲染产物（gitignored）
 
 ```bash
 # 全链（vibe-video skill · 十阶段）
-uv run --no-project $T/scripts/pipeline.py --project apps/negentropy-influence/episodes/horizon-context \
+uv run --no-project $T/scripts/pipeline.py --project apps/negentropy-influence/episodes/context-layer/horizon-context \
   build && check            # ③④ 内容层（覆盖门自动串联）
 uv run --no-project --with playwright $T/scripts/record_archify_all.py --project <P>   # ⑥' 逐章录制
 uv run --no-project --with pillow $T/scripts/archify_lead.py --project <P>            # lead 白闪实测

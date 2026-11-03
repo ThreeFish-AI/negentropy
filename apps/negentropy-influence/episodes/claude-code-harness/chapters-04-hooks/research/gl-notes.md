@@ -2,16 +2,16 @@
 
 > **冻结登记**（2026-10-31 · vibe-video Stage ① C 型流程 · 系列 claude-code-chapters 第 4 集）
 >
-> - **GL 产物指针**：[docs/research/agent-harness/171-claude-code-tooling-execution.md](docs/research/agent-harness/171-claude-code-tooling-execution.md)（guided-learn 产物；本冻结取其 2026-10-23 I-234 词族整改后代次，与 ep1/ep2 同一冻结正文代次）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
+> - **GL 产物指针**：[docs/research/agent-harness/171-claude-code-tooling-execution.md](../../../../../../docs/research/agent-harness/171-claude-code-tooling-execution.md)（guided-learn 产物；本冻结取其 2026-10-23 I-234 词族整改后代次，与 ep1/ep2 同一冻结正文代次）。本文件正文自其一级标题起**逐字冻结**，禁止任何改写。
 > - **本集取材范围**：单章集（s04 Hooks）——主线为 §6（6.1 每加一个检查循环烂一分 / 6.2 机制解构·四个事件一个注册表 / 6.3 单步走查·Stop Hook 拦住「做完了」/ 6.4 生产版·事件清单、结果字段与两条保险）；关联条目：§7 关键实证数字（4→27→33 个 Hook 事件、14 字段 HookResult）、§8 动手实验室（实验 4「注销权限回调」与实验 5「忽略 Stop 续跑」为本集消融正反例）、§9.1 底层规律（规律 1 核心不变·能力正交叠加、规律 3 拒绝票比允许票重、规律 5 简洁内核加保护外圈）、§9.2 争议 1（课程检测谱系三步走——s04 回调内词边界正则是第三步在场证据）；§7–§8 涉 s01–s03 的数字（判据退化、编号配对等）属本系列 ep1–ep3，本集只作开场承接不重讲。各条目本集口径逐条圈定见附录 B.3。
-> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
+> - **原始信源登记**（均 B 型：在线文档/仓库；钉选决策与修订分叉叙事见[系列信源地图](../../../../source-map/claude-code-chapters.md)——章→集归属与钉值全系列唯一登记处）：
 >   - main 轨（本集主线正源，2026-10-31 翻钉）：`7226f555d48900076eba126acf37c9ed5f002b5d`（2026-10-27，README.zh.md 中文 / code.py）——字节归档 `source-archive/7226f555/`、台账 `s04-readme` / `s04-code`。翻钉理由有二：其一，判据措辞用内容块（README 循环示例与 code.py 均为 `tool_calls` 列表判据），与 ep1 所教「认内容不认收尾字段」同口径（站点轨 s04 仍写 `stop_reason`，直引必自相矛盾——与 ep2 翻钉理由一同款）；其二，Stop 事件行「收尾清理、决定是否继续循环」与「`Stop` 返回非 `None` 时，循环继续」把强制续跑写进教学正文——本集 Stop 续跑记忆点（§6.3）的正源措辞；站点轨把同一能力括注成「CC 还支持强制续跑」，实为教学版自身实现（两轨 code.py 均在场），归属说反了。
 >   - 站点轨（CC 附录正源）：`67a9126c6435a8654ba7a6f68c0fd2130f00a462`（fix/s08-s20-sync-frontmatter-parser，2026-07-29，README.md 中文默认；分支 HEAD 至 2026-10-31 未动，GitHub API 复核）——字节归档 `source-archive/67a9126c/`、台账 `s04f-readme` / `s04f-code`（指纹与旧系列 2026-10-09 登记逐字一致；s04 独有「深入 CC 源码」附录：27 个 hook 事件 / HookResult 14 字段 / Hook allow 压不过 deny-ask 不变式 / stopHookActive / hook_stopped_continuation +「教学版的简化是刻意的」对照表——【三】级断言正源）；
 >   - 站点实况（B 型·site）：learn.shareai.run/zh/s04/ 台账 `s04-site`（2026-10-31 fetch，raw `3ec4a442808b2a5d` / text `213cc53568f96038`，与旧系列 2026-10-07 基线零漂移）；
 >   - 官方文档补读（B 型·site）：Anthropic「Hooks reference」（33 个事件清单日期口径、deny/ask 不变式官方原文——冻结正文 §6.4 参考 [3]）——台账 `doc-hooks` 指纹存证（无字节副本；WARN 复核结论见附录 B.1）。
 > - **证据定级说明**：GL 对原始信源的转述一律按 B 型三级 **≤【二】** 处理；冻结正文与 s04f 附录中标「材料（对 CC 源码）的核查 / 源码分析」的断言按 **【三】** 级处理，归属由本系列首尾署源位承接、不得说成产品既成事实；`lcc_tooling_lab.py` 原型实测数字**本集已复算**（2026-10-31 selftest：基线 turns 10/10 · executed 7 · stop_continued 1 · checkpoints 5/5；实验 5 忽略 Stop 续跑 → stop_continued 1→0、turns 8/10；实验 4 注销 PreToolUse 权限回调 → outside_writes 0→1、asked 2→0，SELFTEST PASSED），按 **【一】** 级引用；「HOOKS 注册表 4 事件 / 5 条回调注册」「循环内检查逻辑零硬编码」为钉选 code.py 直接可数事实（:137 HOOKS 定义、:213–217 五条 register_hook、agent_loop 内 4 处 trigger_hooks），按 **【一】** 级引用。
 > - **鲜度复核日期**：2026-10-31（main 轨 s04：自旧系列旧钉 `ce8f9f18` 前移 13 提交，README.zh 仅 3 行代码注释英译中、code.py 仅空输入守卫 2 行（与 s01/s02 前移同款），无叙事影响；站点轨 s04f 双件指纹与旧系列 2026-10-09 登记逐字一致；站点页指纹零漂移；官方 hooks 页较旧系列 2026-10-07 登记有漂移、语义面复核成立——台账五源存证，见 B.1）。
-> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `docs/assets/` 相对链接层级已按新落位统一改写（`](assets/` → `](docs/assets/`，22 处 12 行、16 个目标逐条 `test -e` 验证通过），文字内容零改动。
+> - **链接适配说明**：本文件自 docs/research 迁入 research/ 后，正文 `docs/assets/` 相对链接层级已按新落位统一改写（`](../../assets/` → `](../../../../../../docs/assets/`，21 处 11 行、16 个目标逐条 `test -e` 验证通过），文字内容零改动。
 > - **术语两层口径**：笔记层随 171 终版用 LLM/Hook/Pipeline（利于回溯）；口播恒用「模型/钩子/管线」，口播英文例外清单不变（= Claude Code + Harness）——两层口径不传导。
 > - **信源补充**：无增量（2026-10-31 核，下游三件套未出现 GL 外事实；见 01 C 型§五）。
 
@@ -42,10 +42,10 @@
 
 ## 2. 全貌解剖
 
-先看一张最小的图（图源 [lcc-tooling--loop-simple.mmd](docs/assets/mermaid/agent-harness/lcc-tooling--loop-simple.mmd)）。它只有一圈主循环：你提一个要求，LLM 想下一步；要动工具，程序就替它执行、把结果交还，LLM 再接着想；不用动了，就交出结果。三个节点上的彩色徽标（§4 / §5 / §6）标明后续章节要把什么挂在哪里，现在不用看懂。
-![工具与执行 · 渐进图 L0：核心主循环一圈走到底，节点徽标标出 §4 / §5 / §6 的挂载点](docs/assets/architecture/agent-harness/lcc-tooling--loop-simple-dark.png)
+先看一张最小的图（图源 [lcc-tooling--loop-simple.mmd](../../../../../../docs/assets/mermaid/agent-harness/lcc-tooling--loop-simple.mmd)）。它只有一圈主循环：你提一个要求，LLM 想下一步；要动工具，程序就替它执行、把结果交还，LLM 再接着想；不用动了，就交出结果。三个节点上的彩色徽标（§4 / §5 / §6）标明后续章节要把什么挂在哪里，现在不用看懂。
+![工具与执行 · 渐进图 L0：核心主循环一圈走到底，节点徽标标出 §4 / §5 / §6 的挂载点](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-simple-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-tooling--loop-simple.html`](docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-tooling--loop-simple-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-tooling--loop-simple-light.png)
+> 交互版（下载到本地打开）：[`lcc-tooling--loop-simple.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-simple.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-simple-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-simple-light.png)
 
 这张图会跟着章节一起生长：§3 末补全循环本体，§4 末让执行按表分发，§5 末插进三道闸门；读完 §6，终态全景图（含生产保护层）在 §6 末尾等你回看。
 
@@ -113,9 +113,9 @@ turns 10/10 · executed 7 · denied 2 · asked 2 · pairing_errors 0 · checkpoi
 十个脚本轮次走完：七个工具调用落地，两次被闸门拦下，两次要用户点头，任务的五个检查点全部通过。判据换回收尾字段会怎样，见 §8 实验 1 的实测退化。
 
 **图进度 · L1**——循环本体补齐：UserPromptSubmit（用户提交输入时触发的事件）、Stop 钩子与 tool_result 回喂闭环进场，「要动用工具吗」的判据现在有了正式名字（工具调用块）。
-![工具与执行 · 渐进图 L1：循环本体完整化——两信号判据、Stop 续跑与 tool_result 回喂闭环](docs/assets/architecture/agent-harness/lcc-tooling--loop-full-dark.png)
+![工具与执行 · 渐进图 L1：循环本体完整化——两信号判据、Stop 续跑与 tool_result 回喂闭环](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-full-dark.png)
 
-> 交互版：[`lcc-tooling--loop-full.html`](docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html) · 双主题 [`dark`](docs/assets/architecture/agent-harness/lcc-tooling--loop-full-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-tooling--loop-full-light.png)
+> 交互版：[`lcc-tooling--loop-full.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-full.html) · 双主题 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-full-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-full-light.png)
 
 ## 4. Tool Use：工具分发——加一个工具只加两行
 
@@ -136,9 +136,9 @@ LLM 经常一次返回多个工具调用，比如「读一下 a.py 和 b.py，�
 材料对 CC 源码的核查，补齐了三个生产细节。其一，并发的判定没有「只读都能并发」这么粗：`isConcurrencySafe(input)` 按具体输入判定，`ls`（列目录的只读命令）可以并发，`rm` 不行；TaskCreate（任务创建工具，课程 s12 讲）虽然会改状态，但每次写的是不同文件，所以也可以并发。写操作之所以要隔离出并发批，是因为并发写会互相干扰：两个写操作抢同一份东西，或者一读一写交错、读到半成品。分区算法 `partitionToolCalls()` 把一串调用按原始顺序切成连续批：`[读 A, 读 B, glob, bash "rm x", 读 C]` 切成三批，前三个并发，删除单独串行，最后一个再单独成一个并发批，批与批之间严格保序。其二，CC 里每个工具调用都要过五步验证 Pipeline：schema 校验、工具级输入校验、PreToolUse Hook（可改输入、可拦截）、权限检查、执行。其三，每个工具都有结果长度上限，超限就落盘，LLM 看预览加路径；唯独读文件的上限是无穷大，否则读文件的结果被落盘成新文件，下次再读这个文件又触发落盘，会无限循环。
 
 **图进度 · L2**——执行展开为查表：「程序替它执行」现在是 `TOOL_HANDLERS` 按表分发，加一个工具只加两行；文件工具还要先过 safe_path 工作区边界。
-![工具与执行 · 渐进图 L2：执行展开为 TOOL_HANDLERS 查表分发与 safe_path 边界](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools-dark.png)
+![工具与执行 · 渐进图 L2：执行展开为 TOOL_HANDLERS 查表分发与 safe_path 边界](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools-dark.png)
 
-> 交互版：[`lcc-tooling--loop-with-tools.html`](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools.html) · 双主题 [`dark`](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools-light.png)
+> 交互版：[`lcc-tooling--loop-with-tools.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools.html) · 双主题 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-tools-light.png)
 
 ## 5. Permission：三道闸门——动手之前的裁决
 
@@ -165,9 +165,9 @@ auto 模式下，审批还能进一步自动化：先看「接受编辑」模式
 官方文档当前列出六种权限模式（default、acceptEdits、plan（只读规划、不改动文件的模式）、auto、dontAsk、bypassPermissions），并明确写出 bypassPermissions 只应在容器或虚拟机这类隔离环境里使用（截至 2026-10-07）[4]。
 
 **图进度 · L3**——三道闸门插进执行之前：硬拒绝、规则匹配、用户审批串成裁决链，拒绝也作为 tool_result 回喂；执行从「直接做」变成「过关才做」。
-![工具与执行 · 渐进图 L3：三道闸门插进执行之前——硬拒绝、规则匹配、用户审批与拒绝回喂](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates-dark.png)
+![工具与执行 · 渐进图 L3：三道闸门插进执行之前——硬拒绝、规则匹配、用户审批与拒绝回喂](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates-dark.png)
 
-> 交互版：[`lcc-tooling--loop-with-gates.html`](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html) · 双主题 [`dark`](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates-light.png)
+> 交互版：[`lcc-tooling--loop-with-gates.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates.html) · 双主题 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--loop-with-gates-light.png)
 
 ## 6. Hooks：Hook 注册表——扩展不进循环
 
@@ -199,9 +199,9 @@ turns 10/10 · stop_continued 1
 生产版里有两条保险最值得细看。其一是不变式（无论走哪条路都不许违反的规则）：**Hook 说 allow，也压不过设置里的 deny / ask 规则**，官方文档原文是「Deny and ask rules are still evaluated regardless of what the hook returns」[3]。允许要各方一致，拒绝只要一方摇头；任何一个来源，包括用户自己写的 Hook，都不能单方面放行被禁的操作。其二是 stopHookActive：Stop Hook 的阻塞错误会让循环带着标志重入，后续迭代看到这个标志，就不再触发 Stop Hook，避免「LLM 自纠、Hook 再报错、LLM 再自纠」无限转下去。此外，PostToolUse 还有一条优雅停机通道：返回阻止续跑的标志时，循环平静退出，算完成而非崩溃。
 
 **图进度 · 终态**——最后一块挂载完毕：一条主循环从「用户输入」一圈走到底，工具调用经 PreToolUse、三道闸门、查表执行、PostToolUse 回到 LLM；生产保护层的几个机制（needsFollowUp、auto 分类器、不变式、partitionToolCalls、stopHookActive）不再另起一层，直接以徽标标在它们守护的节点上。对照 §2 的 L0 简图，四次增强的每一步都应该能对上——如果哪一块对不上，回到对应章节再读一遍。
-![工具与执行全景（终态）：一个主循环一圈走到底，节点徽标标出生产保护机制](docs/assets/architecture/agent-harness/lcc-tooling--panorama-dark.png)
+![工具与执行全景（终态）：一个主循环一圈走到底，节点徽标标出生产保护机制](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama-dark.png)
 
-> 交互版（下载到本地打开）：[`lcc-tooling--panorama.html`](docs/assets/architecture/agent-harness/lcc-tooling--panorama.html) · 双主题渲染 [`dark`](docs/assets/architecture/agent-harness/lcc-tooling--panorama-dark.png) / [`light`](docs/assets/architecture/agent-harness/lcc-tooling--panorama-light.png)
+> 交互版（下载到本地打开）：[`lcc-tooling--panorama.html`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama.html) · 双主题渲染 [`dark`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama-dark.png) / [`light`](../../../../../../docs/assets/architecture/agent-harness/lcc-tooling--panorama-light.png)
 
 ## 7. 关键实证数字
 
@@ -329,7 +329,7 @@ turns 10/10 · stop_continued 1
 | 13 | 一条沟 | 「会写命令」与「会做事」之间的执行-观察缺口（§3.1） | 沟是静态间隔、可原地填平；这里的缺口要靠整条回路动态弥合，LLM 自身永远跨不过去 | §3.1；补登 2026-10-09（口播 p2-02 已用） |
 | 14 | 四件套收束：手·胆·挂点 | 回喂给手（执行与观察）、查表给更多的手（能力）、闸门给胆（敢用）、挂点给空间（扩展）——§1 四个特性的收束措辞 | 「胆」喻指敢用的保证来自边界而非勇气：LLM 照旧会尝试危险动作，拦它的是代码；手/挂点为冻结正文通行 diction，非新喻 | §1、§9.1；补登 2026-10-09（口播 p3-28 铺垫、p6-02 收束） |
 
-※ 两条的禁用依据：[系列口播词表 SSOT](source-map/claude-code-explained.md)（§六，禁旧版隐喻系 + 五集域词）含「插线口」「叫号器」，插座/喊号同族意象不进口播；口播改工程直陈（「循环只负责触发事件」「检查逻辑挂到固定事件上」，※ 条目释义句式亦不进口播）。
+※ 两条的禁用依据：[系列口播词表 SSOT](../../../../source-map/claude-code-explained.md)（§六，禁旧版隐喻系 + 五集域词）含「插线口」「叫号器」，插座/喊号同族意象不进口播；口播改工程直陈（「循环只负责触发事件」「检查逻辑挂到固定事件上」，※ 条目释义句式亦不进口播）。
 > **承袭登记**（2026-10-31）：现行 171 正文已不含本附录；本表自旧系列 ep1 冻结件（同 GL 谱系、2026-10-14 合并主干代次）逐字承袭（ep2 同款承袭先例），继续作为本集口播类比唯一准入清单。上游 guided-learn 伴生 analogy.md：不在场（承袭源自旧系列 ep1 冻结件重编表，其编制来源声明见表头注——.temp 沙箱已清理、不可复算）。本集（s04 单章）拟用条目：#8 拒绝票比允许票重（§6.4 Hook 不变式——allow 压不过 deny/ask，本集【三】级核心断言的口播承载喻）、#12 泥球（§6.1「每加一个检查，循环烂一分」反面教材的收束喻）；#1 接上一双手作开场承接语沿用（不计新喻，ep2 同款）；#6 骨架与保险丝列为备用（仅当开场承接引 30 行 vs 1729 行对比时启用）。**特别登记**：#10 墙面插座、#11 循环只喊号与本集题材天然同域（钩子注册表＝冻结正文 §6.2 的原喻），但两条均系 ※ 禁喻（插座/喊号同族，见下行禁用依据），口播一律改工程直陈（「循环只负责触发事件」「检查逻辑挂到固定事件上」）——特此登记防止本集因题材贴脸而误启用。
 
 

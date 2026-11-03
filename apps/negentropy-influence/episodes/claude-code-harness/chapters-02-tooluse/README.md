@@ -1,6 +1,6 @@
 # 《Tool Use：多加一个工具，只加一行》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 2 集（s02_tool_use 单章）；文案 2026-10-31 用户审批通过（基线 v1 + 制作轮微改进 5 句 → v2，50 句 1326 字）；⑥ 22 镜六场景分镜 v1（零建图原生路线，G1 对抗核验 1 RISKY + 4 WARN 全修）→ ⑦ me-bright/story 本人克隆声 TTS 50 句（MPS 水位 0 根治后续跑收官）→ ⑧ 六场景 3225 行 + 系列片头孪生挂载（Main 指纹与 ep1 同族 1c779384d763，drift 已登记）+ theme 概念色（琥珀 #EFB13C 对照表母题）；tsc/check --check-scenes/check_series 全绿。→ ⑨ QA 修复轮 13 项（3-A 插曲退场锚与全景 opacity 双根因、p5-04 未拦截活态等；帧级核验 5 直证+3 补帧确证）→ ⑩ 终渲 162s / 8742 帧 @30fps = 4 分 51.4 秒落窗，`~/Documents/video/claude-code-chapters/Tool Use：多加一个工具，只加一行 v1.mp4`。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 2 集（s02_tool_use 单章）；文案 2026-10-31 用户审批通过（基线 v1 + 制作轮微改进 5 句 → v2，50 句 1326 字）；⑥ 22 镜六场景分镜 v1（零建图原生路线，G1 对抗核验 1 RISKY + 4 WARN 全修）→ ⑦ me-bright/story 本人克隆声 TTS 50 句（MPS 水位 0 根治后续跑收官）→ ⑧ 六场景 3225 行 + 系列片头孪生挂载（Main 指纹与 ep1 同族 1c779384d763，drift 已登记）+ theme 概念色（琥珀 #EFB13C 对照表母题）；tsc/check --check-scenes/check_series 全绿。→ ⑨ QA 修复轮 13 项（3-A 插曲退场锚与全景 opacity 双根因、p5-04 未拦截活态等；帧级核验 5 直证+3 补帧确证）→ ⑩ 终渲 162s / 8742 帧 @30fps = 4 分 51.4 秒落窗，`~/Documents/video/claude-code-chapters/Tool Use：多加一个工具，只加一行 v1.mp4`。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -21,7 +21,7 @@
 - **翻钉 main `7226f555`**（自系列建档的站点轨规划态钉复核翻钉）：站点轨 s02 判据仍写收尾字段、直引必与本系列 ep1 所教「认内容不认字段」自相矛盾；main 前移新增「Bash 已经能做这些事，为什么还要加工具？」接口论证一节（本集 P1/P5 叙事正源）。
 - **站点轨 `67a9126c` 降为附录正源**：s02 独有「深入 CC 源码」附录（isConcurrencySafe / 分区算法 / 五步验证 / 结果落盘）经台账 `s02f-*` 补登，断言恒【三】级。
 - **实验 2 本集复算【一】级**（2026-10-29 selftest）：拔掉 tool_use_id 配对 → pairing_errors 0→2、轮次 10/10 不退化。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 

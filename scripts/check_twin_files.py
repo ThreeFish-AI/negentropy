@@ -54,7 +54,7 @@ TWIN_GROUPS: list[tuple[str, str, list[str]]] = [
     (
         "series-intro-seed",
         (
-            "CC 系列片头《一个循环》跨两系列六集 seeded 复制（skill 骨架「复制不共享」哲学："
+            "CC 系列片头《一个循环》跨两系列 25 集 seeded 复制（skill 骨架「复制不共享」哲学："
             "每集 video/ 须独立 pnpm install 可渲，共享 TS 源会把一集改动泄漏进已发布集）。"
             "组件内含台本/T 表/字幕三容器 SSOT，单边漂移=已发布集静默分叉；首条路径为"
             "series-assets canonical 种子（改动入口），逐集差异全数据驱动（IntroOverride），"
@@ -68,6 +68,25 @@ TWIN_GROUPS: list[tuple[str, str, list[str]]] = [
             "apps/negentropy-influence/episodes/claude-code-explained/claude-code-concurrency/video/src/components/series-intro.tsx",
             "apps/negentropy-influence/episodes/claude-code-explained/claude-code-multiagent/video/src/components/series-intro.tsx",
             "apps/negentropy-influence/episodes/claude-code-harness/chapters-01-loop/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-02-tooluse/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-03-permission/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-04-hooks/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-05-todowrite/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-06-subagent/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-07-skillloading/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-08-contextcompact/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-09-memory/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-10-systemprompt/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-11-errorrecovery/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-12-tasksystem/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-13-backgroundtasks/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-14-cronscheduler/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-15-agentteams/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-16-teamprotocols/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-17-autonomousagents/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-18-worktreeisolation/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-19-mcpplugin/video/src/components/series-intro.tsx",
+            "apps/negentropy-influence/episodes/claude-code-harness/chapters-20-comprehensive/video/src/components/series-intro.tsx",
         ],
     ),
 ]

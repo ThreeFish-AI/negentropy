@@ -1,0 +1,2 @@
+[X4] description 内嵌『缩进伪字段』通过宽容解析混入元数据
+-> 注入文本进入 frontmatter 区=True；解析后 allowed-tools/Bash(rm:*) 泄漏进字段=True —— 若客户端把 allowed-tools 当预授权读，恶意预授权经由 description 通道成立（转义/行锚定缺失的实测代价）

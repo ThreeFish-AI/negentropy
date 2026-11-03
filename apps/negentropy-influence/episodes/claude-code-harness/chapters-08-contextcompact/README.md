@@ -1,6 +1,6 @@
 # 《Context Compact：先整理，再总结》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 55 句 4.8 分 + QA 修复轮 8 项+W1 回炉全验 + 终渲 180.7s / 4.8 分落窗，`~/Documents/video/claude-code-chapters/Context Compact：先整理，再总结 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 8 集（s08_context_compact 单章）；Stage ①–⑤ 已完成（信源翻钉 + C 型冻结现行 173 + 策划 + 逐字稿 55 句 1325 字 + 三路双重校验 + 成文优化一轮），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 由编排层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](series.json)（工作区根）。
+> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 55 句 4.8 分 + QA 修复轮 8 项+W1 回炉全验 + 终渲 180.7s / 4.8 分落窗，`~/Documents/video/claude-code-chapters/Context Compact：先整理，再总结 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 8 集（s08_context_compact 单章）；Stage ①–⑤ 已完成（信源翻钉 + C 型冻结现行 173 + 策划 + 逐字稿 55 句 1325 字 + 三路双重校验 + 成文优化一轮），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 由编排层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -20,7 +20,7 @@
 - **站点轨 `67a9126c` 降为附录正源**：s08 独有「深入 CC 源码」附录六小块（query.ts 执行序对照 / 常量表 / contextCollapse 等）经台账 `s08f-*` 补登，断言恒【三】级；站点页 2026-10-31 fetch 零漂移。
 - **官方两页为活页**（2026-10-31 re-fetch 均已改版）：「先清理较早的工具输出再摘要」顺序句已从现行页消失——口播不引该快照句，顺序主张由【一】级钉选 code.py 执行序承担。
 - **核心消融 order_swap 本集复算【一】级**（2026-10-31，selftest 21 断言全绿基线）：budget 与 micro 换序 → 完整落盘 1→0 份、死占位 11 处——「顺序即数据生死」主线实证。
-- 双钉唯一登记处：[source-map/claude-code-chapters.md](source-map/claude-code-chapters.md)。
+- 双钉唯一登记处：[source-map/claude-code-chapters.md](../../../source-map/claude-code-chapters.md)。
 
 ## 复现流水线
 
