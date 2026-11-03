@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### episodes 两级化路径深度回归修复（I-246，2026-11-03）
+
+- 修复 [I-246](docs/.agents/issue.md#I-246)：#1220 把 `episodes/` 由一层 `<slug>-video/` 重组为两层 `<series>/<slug>/` 后，仓内按层数编码的规则（gitignore `*`、pre-commit `[^/]+`、脚本 `parents[5]`）整体失配；只读审计（4 模态 finder + 逐批对抗核验 + 完整性 critic）定位 9 类回归，按四批提交修复。
+- 忽略与钩子：`.gitignore` audio/`*-end.png` 目录规则改 `**`（与 vibe-video 工作区模板同形），lab2 日志白名单与两集 archify html 忽略改新路径，补回 #1220 丢失的 dream-rsi 论文 PDF/html-split 忽略（版权）；pre-commit 空白钩子 exclude 与 influence ruff `files:` 改 `{1,2}` 两档（115 个分集脚本重回 lint/format 门）。
+- 复原与退跟踪：自 `c30489f9c^` 逐字节复原 6 份 E1 lab2 一级证据日志（`number-reconciliation.md` 规则 5 死链 6→0，净 worktree 提交不再需要 `--no-verify`）与 multiagent 13 份被剥 195 行行尾空白的 archify html；二十讲 1120 个 TTS 元数据（manifest/.sha/.engine）退出跟踪、文件留盘。
+- 孪生门：`series-intro-seed` 组由 7 路径扩至 26 路径（种子 + 旧系列五集 + 二十讲），登记表/pre-commit/CI 三面同步，intro README 改不写死计数。
+- 脚本：4 个分集 `patch-archify-html.py` 仓库根定位改为向上找 `.git`（原 `parents[5]` 落到 `apps/`，脚本必崩）。
+- 链接与指针：二十讲 60 个 md 中被剥光前导 `../` 的 287 条裸相对链接按 git 跟踪目标重算（零未解析/零歧义）；11 个分集 README 复现命令与 horizon `--project` 改两级路径；29 个 agent-skills `.mmd` 首行 source 指针、issue.md I-162 链接改新路径；influence README 与 knowledge-map 作品总览去写死集数。
+- 勘误：「二十讲系列目录重组」条目所记「规则 5 死链 312→0」为假绿——规则 5 只认 `./`、`../` 开头的链接，被剥 `../` 的 287 条裸链接整体漏检；本次修复后二十讲目录相对链接 287/287 可解析。
+- 机制遗留：规则 5 漏查裸链接且只查磁盘存在性、同名组目录 orphan 扫描不下钻、source-archive 测试 glob 单层、tts-store 以集目录叶名为键（改名即孤立；本机已建 13 个旧→新 slug 软链）——属 vibe-video 机制缺陷，经 RSI 回流。
+
 ### 知识库平台两份 ADR 入库与 knowledge 写端点鉴权修复（I-245，2026-11-02）
 
 - 修复 [I-245](docs/.agents/issue.md#I-245)：knowledge 写端点鉴权缺位——聚合层统一注入 `knowledge:write` 守卫（默认拒绝）、机器调用方每进程随机 service token、写路由覆盖门测试；035 §11.1 与代码对齐。

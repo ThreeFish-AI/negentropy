@@ -251,6 +251,7 @@
 | I-243 | self-evolution 145 Trustworthy RSI 精读入库：webReader 幽灵全文的元数据域漏核（作者块 12 人被幻影为单作者） | ✅ 已完成 | 2026-10-30 | [详情](#I-243) |
 | I-244 | agent-harness 182 dsh-superagent 精读入库：微信原文反爬的证据分级降级与「文章 vs 仓库」零实现清单 | ✅ 已完成 | 2026-11-01 | [详情](#I-244) |
 | I-245 | knowledge 写端点鉴权缺位（optional 模式 fail-open、035 声称 RBAC 但零执行）：聚合层统一注入 knowledge:write 守卫 + 机器调用方 service token + 覆盖门 | ✅ 已完成 | 2026-11-02 | [详情](#I-245) |
+| I-246 | #1220 分集目录两级化后路径深度回归（单层 glob/正则/parents[N] 失配）：系列钩子死链、TTS 元数据漏入库、archify html 被剥空白、分集脚本脱离 lint、287 条链接失效 | ✅ 已完成 | 2026-11-03 | [详情](#I-246) |
 
 ---
 
@@ -5806,3 +5807,20 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 **同类问题影响**：memory、interface 等其他域若采用「optional 中间件 + 端点自挂」模式，同样存在漏挂风险，可复用本条的聚合层注入与覆盖门模式；读路径的可见性控制（visibility 三级取交集零执行）属差距分析 D4 的独立缺口，不在本条范围。
 
 **注意事项**：普通 `user` 角色因此失去知识库写权限，这与 035 原本声称的设计意图一致；UI BFF 的写路由已全部经 `buildAuthHeaders` 转发 cookie（已逐一扫描）。`TestGetCatalogDocuments` 的 4 例集成失败在基线上同样出现，原因是测试库跨会话累积数据导致全表计数断言漂移，与本修复无关。service token 比对须两侧 utf-8 编码后再 `compare_digest`（裸 str 比对遇非 ASCII header 值会 TypeError 500，已修复并加回归测试）；service token 机器调用方路径仅在 optional/off 鉴权模式生效——strict 模式下 `AuthMiddleware` 先于路由守卫拒绝无会话 token 的请求，strict 部署若需机器调用方须先决策中间件层豁免机制。
+
+<a id="I-246"></a>
+## I-246：#1220 分集目录两级化后路径深度回归（单层 glob/正则/parents[N] 失配）：系列钩子死链、TTS 元数据漏入库、archify html 被剥空白、分集脚本脱离 lint、287 条链接失效
+
+**问题描述**：#1220（2026-11-02）把 `apps/negentropy-influence/episodes/` 由一层 `<slug>-video/` 重组为两层 `<series>/<slug>/` 之后，在全新 worktree 提交任何触及 influence、CHANGELOG 或 knowledge-map 的变更都会被 series-consistency 钩子拦下：规则 5 报 `agent-infra/agent-skills/research/number-reconciliation.md` 6 条死链，指向 `lab2-*.log`。#1225 的评审修复因此两次 `--no-verify` 提交。
+
+**表因**：只读审计（4 模态 finder + 逐批对抗核验 + 完整性 critic）发现同一根因造成 9 类回归：① `.gitignore` 的 `episodes/*/video/public/audio/` 与 `*-end.png` 规则只匹配一层，#1220 因此把 1120 个 TTS 元数据（manifest/.sha/.engine）提交进库；② lab2 日志白名单仍写旧路径，6 份一级证据日志被记成 D 而非 R；③ 两集 archify html 忽略规则仍写旧路径；④ dream-rsi 嵌套 `.gitignore` 被根级裸 `.gitignore` 规则吞掉，版权 PDF 与 html-split 不再被忽略；⑤ pre-commit 空白钩子的 exclude 只匹配一层，multiagent 13 份 archify html 被剥掉 195 行行尾空白；⑥ influence ruff `files:` 只匹配一层，115 个分集脚本脱离 lint/format 门；⑦ 4 个 `patch-archify-html.py` 的 `parents[5]` 落到 `apps/`，脚本必崩；⑧ 二十讲 60 个 md 的 287 条相对链接被剥光前导 `../`；⑨ 11 个 README 复现命令、29 个 `.mmd` 首行 source 指针与 issue.md 一条链接仍指旧路径。
+
+**根因**：仓内路径约束有三类按「层数」编码——gitignore 的 `*` 只吃一级目录名、pre-commit 正则写 `[^/]+`、脚本写 `parents[N]`；重组只改了路径字面量，没有枚举依赖层数的规则。被忽略的文件在作者工作区仍留盘，规则 5 只查磁盘存在性，于是作者本地全绿、提交树却丢件；git 对新路径上被忽略的文件记为删除，搬移在 `git status` 里看不出丢失。加深链接的步骤误把 `../` 全部剥掉，而规则 5 只认 `./`、`../` 开头的链接，裸链接整体漏检，CHANGELOG 记下「死链 312→0」的假绿。
+
+**处理方式**：分四批提交。① 忽略与钩子：audio/`*-end.png` 规则改 `**`（与 vibe-video 工作区模板同形），白名单与 archify html 忽略改新路径，dream-rsi 两条忽略改由根 `.gitignore` 承载；pre-commit 空白 exclude 与 ruff `files:` 改 `(?:[^/]+/){1,2}`；自 `c30489f9c^` 逐字节复原 6 份日志（blob 逐一比对）与 13 份 html（`git diff --ignore-space-at-eol` 为空）；1120 个 TTS 元数据 `git rm --cached` 退出跟踪（文件留盘）；孪生组 `series-intro-seed` 扩至 26 路径、三面同步。② 4 个脚本改为向上找 `.git` 定位仓库根，临时 worktree 实跑 4/4 exit 0。③ 287 条链接按 git 跟踪目标重算（零未解析/零歧义）并同步四集链接适配说明；README 复现命令、`.mmd` 首行指针、issue.md 链接改新路径；influence README 与 knowledge-map 去写死集数。④ 本条与 CHANGELOG 勘误。本机 tts-store 另建 13 个旧→新 slug 软链（不改目录本体，未拉取 #1220 的主仓 checkout 仍可命中），ep1 新 slug 命中 57/57。
+
+**后续防范**：目录重组前后逐目录比对 `git ls-tree -r --name-only` 的旧/新文件清单，任何 D 无对应 R 即停；路径规则优先写与深度无关的形式（gitignore `**`、正则 `{1,2}` 两档、向上找哨兵或 `.git`）；结构性变更的门禁必须在全新 worktree 跑，防本地被忽略文件掩盖死链。vibe-video 侧盲区（规则 5 漏查裸链接且只查磁盘存在性、同名组目录 orphan 扫描不下钻、source-archive 测试 glob 单层、tts-store 以叶名为键）经 RSI 回流机制仓。
+
+**同类问题影响**：任何把「层数」写死的路径规则在下一次归组时都会再次静默失效；`series-intro.tsx` 一类逐字节副本若新增集而不登记，孪生门同样静默；仓库根定位写 `parents[N]` 的脚本（含 `.temp/` 搬入的）应一并改为哨兵查找。
+
+**注意事项**：1120 个 TTS 元数据退出跟踪后，其他已检出 #1220 的 worktree 拉取时会从磁盘删除这些文件——拉取前先备份 `chapters-*/video/public/audio/{manifest.json,.engine,*.sha}`，或拉取后重跑 tts.py 由 tts-store 恢复。`patch-archify-html.py` 全量重跑会让 concurrency 的 two-waiting-deaths 与 multiagent 的 five-layer-dependency 跟进 canonical 新内容，属录制输入变更、需重录 QA，空白类修复只从 git 复原。冻结保留不改：issue.md 历史条目中的旧路径、CHANGELOG 链接文字、17 条 `%% derived` 标签、lab2 日志内容（含写死的 12 分母）；vibe-video.toml 与 storyboard 中「七路径」为带日期的挂载记录。mermaid README 110–114 行的单横线文件名死链在 #1220 之前即存在，不属本条。
