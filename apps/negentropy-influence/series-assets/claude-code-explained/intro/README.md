@@ -40,8 +40,8 @@ NARRATION/SUBS/T 表三容器是口播与帧位 SSOT）——本 README 只写�
 
 - Main.tsx 挂载块落在 regioned 归一化保留区，旧系列五集同字节（归一化指纹
   `78664c3010fd`，`vibe-video.toml` 五条 `[[skeleton.drift]]` 同指纹登记；
-  撤销条件=skill 模板吸纳挂载点或片头退役时五条齐撤）；chapters-01-loop
-  同款挂载、指纹 `1c779384d763` 单独 drift 登记（与五集差异仅一处注释措辞）
+  撤销条件=skill 模板吸纳挂载点或片头退役时五条齐撤）；chapters-01…20
+  同款挂载、指纹 `1c779384d763` 逐集 drift 登记（与五集差异仅一处注释措辞）
 - `timing.json` `leadInSec = 23.5`（组件 `INTRO_FRAMES` 派生自它）：组件副本
   与 leadIn 修改必须**同 commit 落库**——中间态（拷了组件没改 leadIn）会把
   片头静默截断，无任何报错

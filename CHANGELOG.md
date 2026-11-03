@@ -13,7 +13,7 @@
 - 脚本：4 个分集 `patch-archify-html.py` 仓库根定位改为向上找 `.git`（原 `parents[5]` 落到 `apps/`，脚本必崩）。
 - 链接与指针：二十讲 60 个 md 中被剥光前导 `../` 的 287 条裸相对链接按 git 跟踪目标重算（零未解析/零歧义）；11 个分集 README 复现命令与 horizon `--project` 改两级路径；29 个 agent-skills `.mmd` 首行 source 指针、issue.md I-162 链接改新路径；influence README 与 knowledge-map 作品总览去写死集数。
 - 勘误：「二十讲系列目录重组」条目所记「规则 5 死链 312→0」为假绿——规则 5 只认 `./`、`../` 开头的链接，被剥 `../` 的 287 条裸链接整体漏检；本次修复后二十讲目录相对链接 287/287 可解析。
-- 机制遗留：规则 5 漏查裸链接且只查磁盘存在性、同名组目录 orphan 扫描不下钻、source-archive 测试 glob 单层、tts-store 以集目录叶名为键（改名即孤立；本机已建 13 个旧→新 slug 软链）——属 vibe-video 机制缺陷，经 RSI 回流。
+- 机制遗留：规则 5 漏查裸链接且只查磁盘存在性、同名组目录 orphan 扫描不下钻、source-archive 测试 glob 单层、tts-store 以集目录叶名为键（改名即孤立；本机已建 13 个软链（链接名=新 slug、目标=原 `*-video` 目录，目录本体不动））——属 vibe-video 机制缺陷，经 RSI 回流。
 
 ### 知识库平台两份 ADR 入库与 knowledge 写端点鉴权修复（I-245，2026-11-02）
 
