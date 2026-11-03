@@ -18,7 +18,8 @@ import sys
 from pathlib import Path
 
 P = Path(__file__).resolve().parents[1]
-REPO = Path(__file__).resolve().parents[5]
+# 仓库根：向上找 .git（文件或目录——worktree 是文件），不按层数推导（分集目录会随归组下沉）
+REPO = next(p for p in Path(__file__).resolve().parents if (p / ".git").exists())
 SRC_DIR = REPO / "docs/assets/architecture/agent-harness"
 VIEWS_DIR = P / "video/public/archify/views"
 OUT_DIR = P / "video/public/archify/html"
