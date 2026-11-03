@@ -1,0 +1,2 @@
+[X3] metadata 值经 str() 强转（规范 string→string 的解析端实现）
+-> 作者写 enabled: false；解析后得到字符串 'false'；客户端 bool('false') == True —— 被禁用的技能被判定为启用。强转让『类型即语义』的配置在跨端往返后翻转
