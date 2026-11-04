@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-11-04T03:32:53.052Z",
+  "startedAt": "2026-11-04T05:14:21.710Z",
   "specification": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-    "sha256": "f580010e95ed272b34efabdb7689862b6cc82565cfa19c625eda1066c0ee7e9c",
-    "bytes": 12707
+    "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+    "bytes": 12722
   },
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-    "sha256": "23f1c8f41247d164c85e7a491ca548629ce4ac5b31af7aa62135463d714868fa",
-    "bytes": 800922
+    "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+    "bytes": 800937
   },
   "stages": {
     "validate": {
@@ -31,8 +31,6 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "--quality",
         "showcase",
-        "--repo-root",
-        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan",
         "--json"
       ],
       "receipt": {
@@ -40,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "f580010e95ed272b34efabdb7689862b6cc82565cfa19c625eda1066c0ee7e9c",
-          "bytes": 12707
+          "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+          "bytes": 12722
         },
         "validation": {
           "checksPassed": 9,
@@ -56,7 +54,7 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 561,
+      "durationMs": 565,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -66,25 +64,23 @@
         "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "--quality",
         "showcase",
-        "--repo-root",
-        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "7e127078-9620-4dcd-8b4d-e3e7457f6e4a",
+        "receiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
         "input": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
         "output": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "specification": {
-          "sha256": "f580010e95ed272b34efabdb7689862b6cc82565cfa19c625eda1066c0ee7e9c",
-          "bytes": 12707
+          "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+          "bytes": 12722
         },
         "artifact": {
-          "sha256": "23f1c8f41247d164c85e7a491ca548629ce4ac5b31af7aa62135463d714868fa",
-          "bytes": 800922
+          "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+          "bytes": 800937
         },
         "validation": {
           "checksPassed": 9,
@@ -99,7 +95,7 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 161,
+      "durationMs": 106,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -111,8 +107,8 @@
         "ok": true,
         "file": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "artifact": {
-          "sha256": "23f1c8f41247d164c85e7a491ca548629ce4ac5b31af7aa62135463d714868fa",
-          "bytes": 800922
+          "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+          "bytes": 800937
         },
         "checks": [
           {
@@ -406,13 +402,13 @@
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "7e127078-9620-4dcd-8b4d-e3e7457f6e4a"
+        "deliveryReceiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1223,
+      "durationMs": 1146,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
@@ -430,11 +426,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "7e127078-9620-4dcd-8b4d-e3e7457f6e4a",
+        "deliveryReceiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
         "artifact": {
           "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-          "sha256": "23f1c8f41247d164c85e7a491ca548629ce4ac5b31af7aa62135463d714868fa",
-          "bytes": 800922
+          "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+          "bytes": 800937
         },
         "state": {
           "detail": "read",
@@ -1152,6 +1148,6 @@
     "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-11-04T03:32:55.407Z",
-  "durationMs": 2354
+  "finishedAt": "2026-11-04T05:14:23.815Z",
+  "durationMs": 2104
 }

@@ -55,7 +55,7 @@ text_hash = sha256( chunk_canonical_text )
 ```
 
 - 同一文档、同一文本、同一位置的 chunk 跨版本保持同一 id——下游水位（KG 增量、反馈、缓存）不随重同步失效。
-- **图片 chunk（M2，P2-8）**：`text_hash = sha256( image_hash ‖ alt ‖ 邻接语境 )`——同图异语境（不同 alt/邻接文本）得到不同 chunk 身份；caption 与跨模态嵌入等 VLM 派生物按方案不变量①以 (hash(图片哈希+alt+邻接语境+源侧 metadata), pipeline_ver) 缓存，防同图异语境陈旧命中。
+- **图片 chunk（M2，P2-8）**：`text_hash = sha256( image_hash ‖ alt ‖ 邻接语境 )`——同图异语境（不同 alt/邻接文本）得到不同 chunk 身份；caption 等语境敏感 VLM 派生物按方案不变量①以 (hash(图片哈希+alt+邻接语境+源侧 metadata), pipeline_ver) 缓存，防同图异语境陈旧命中；跨模态嵌入只取决于图片内容，按 (image_hash, model_version) 复用（方案 §2.4）。
 - **`ordinal` 纳入**：同文档内重复段落（如每章重复的免责声明）得到不同 id。
 - **embedding 复用**：`text_hash` 命中即复用已有向量（向量侧表键为 `(chunk_id, model_version)`），只对变更块重嵌。
 - **外键策略**：反馈、引用等下游表引用 `chunk_id` 时用 `ON DELETE SET NULL` + 保留 `text_hash` 冗余列，而不是 `CASCADE`——chunk 被替换时历史反馈留存可追溯。
@@ -82,7 +82,7 @@ COMMIT;
 | 幂等锚用 `source_uri` | 可变；存储迁移即双份摄取（Negentropy 实证） |
 | chunk_id 用随机 UUID | 重同步改 id，下游水位与外键连锁失效（Negentropy 实证） |
 | version_key 只含正文 | ACL/产品域变更无版本，ACL 出现多处真源；跨文档同内容撞键 |
-| version_key 不含媒体清单哈希 | 图片替换被「未变即短路」吞掉，图片 chunk/caption/向量永不重建——版本库 SSOT 对图片内容失效（M2 图文引入前的盲点，评审补入） |
+| version_key 不含媒体清单哈希 | 图片替换被「未变即短路」吞掉，图片 chunk/caption/向量永不重建——版本库 SSOT 对图片内容失效 |
 | version_key 含 LLM 抽取元数据 | 与 LLM 派生物缓存键循环依赖；LLM 非确定导致同内容不同键 |
 | 原地更新 + 审计日志代替版本表 | 回滚需逆向重放日志，且无法对历史版本重建索引 |
 

@@ -38,8 +38,9 @@ tags:
 | Source | 类型（含 upload）、凭据引用、同步模式、信任档、权威策略、默认 product_ids 与默认可见性（配置变更走四眼） | 连接器配置（凭据入密钥管理不落库） |
 | Document | source_id、external_id、product_ids、lifecycle、verifier、验证态 | 文档聚合根；product_ids 为当前版投影（由 Source 继承，覆写需审批，禁由 LLM 抽取） |
 | DocumentVersion | version_key、canonical 内容（清洗正文+媒体资产清单）、metadata、geo、acl | 不可变版本（事件溯源 SSOT） |
+| MediaAsset | 内容哈希、MIME、字节数、引用计数、保留/粉碎状态 | 内容寻址图片存储：去重与引用计数粉碎/暂缓的锚（M2，P2-8） |
 | Draft | document_id、base_version、diff、状态 | 编辑草稿（三路合并的 base 锚） |
-| Chunk | version_id、text_hash、text、terms、modality（text/image/mixed）、media_ref、metadata、geo、acl | 索引派生物；chunk_id 由 (document_id, text_hash, 序位) 确定性派生（图片 chunk 取 hash(图片哈希+alt+邻接语境)，ADR-0001 D3）；向量存于按 (chunk_id, model_version) 键控的侧表 |
+| Chunk | version_id、text_hash、text、terms、modality（text/image）、media_ref、metadata、geo、acl | 索引派生物；chunk_id 由 (document_id, text_hash, 序位) 确定性派生（图片 chunk 取 hash(图片哈希+alt+邻接语境)，ADR-0001 D3）；向量存于按 (chunk_id, model_version) 键控的侧表 |
 | IndexBuild | 目标索引版本、策略、水位、状态（pending/building/validating/active/retired/failed） | 构建任务；chunk 另有数据态 parsed→indexing→indexed（FastGPT 范式，调研报告 §4.3） |
 | Channel | product 绑定、corpus scope（⊆ 产品域）、允许身份集、限流与成本熔断 | 应用集成通道（多产品=多 brand，Zendesk §4-F4） |
 | KnowledgeTask | 来源（拒答/bad-case/冲突/过期验证）、关联文档、状态 | 闭环工单，产出 Draft |
@@ -66,7 +67,7 @@ tags:
 
 DocumentVersion 承载结构化 AST、清洗正文、元数据（语言/类型/生效期/地域/geo）与 ACL；索引损坏或策略变更均可从版本库全量重放。同步调度按引用价值动态降频：长期未被问答引用的源自动拉长内容拉取周期甚至暂停（Fin 90 天范式，§4-F3/调研报告 §4.1），控爬取成本；**删除与 ACL 通道不降频**，SLO 更严。
 
-**合规**：预处理做 PII 识别与脱敏，工单类源默认仅内部可见；版本与 QAInteraction 设保留期，合规擦除走加密粉碎（crypto-shredding）例外路径，并级联清除 chunk、向量侧表、LLM/VLM 缓存（含 caption）、图片资产与各路索引条目——内容寻址图片按引用计数暂缓粉碎（任一引用版本在保留期内不粉碎）；VLM caption 与正文同规则过 PII 脱敏（截图转写姓名/邮箱/工单号高危）；短签链接的撤销与擦除对图片资产同样生效。
+**合规**：预处理做 PII 识别与脱敏，工单类源默认仅内部可见；版本与 QAInteraction 设保留期，合规擦除走加密粉碎（crypto-shredding）例外路径，并级联清除 chunk、向量侧表、LLM/VLM 缓存（含 caption）、图片资产与各路索引条目——内容寻址图片在保留期到期驱动的例行清理中按引用计数暂缓粉碎（任一引用版本在保留期内不粉碎）；合规擦除例外：图片自身命中 PII 的，图级擦除向引用同一内容哈希的全部版本级联、同批粉碎并留审计，不以其他版本保留期为由暂缓；PII 仅在正文（图片自身干净且被共享）的，版本级擦除只移除该版本引用，图片字节仍按引用计数暂缓，待引用清零后例行粉碎；VLM caption 与正文同规则过 PII 脱敏（截图转写姓名/邮箱/工单号高危）；短签链接的撤销与擦除对图片资产同样生效。
 
 ### 2.3 人工编辑工作流
 
@@ -78,7 +79,7 @@ DocumentVersion 承载结构化 AST、清洗正文、元数据（语言/类型/�
 
 ### 2.4 预处理管线
 
-解析（HTML/PDF/Office→结构化 AST，保留标题层级与表格；**图片抽为内容寻址资产并入媒体清单**，携 alt/figcaption/邻接语境；VLM 生成 caption 作图片 chunk 文本视图——WeKnora 范式，[存量调研 035](../../research/knowledge-graph/035-knowledge-base-platform.md)）→ 清洗 → 分块（默认调参递归固定分块，实证中仅次于 LLM 分块，§7-F4）→ **上下文富化**：每 chunk 注入标题路径前缀（祖先标题按各自 ACL 裁剪，防机密标题随公开 chunk 外泄）；条件允许时前置 LLM 生成的 50–100 token 块级语境，top-20 检索失败率 5.7%→3.7%<sup>[[14]](#ref14)</sup>（§7-F2）；条件允许时升级 late chunking（整篇长上下文编码后按句池化，BeIR 全面增益<sup>[[13]](#ref13)</sup>）→ 元数据抽取（规则+LLM，人工订正回流 few-shot 样本；产品域与 ACL 除外，见不变量③）。caption 过 §2.2 PII 脱敏。增量以文档为粒度，未变文本/图片按 text_hash/image_hash 复用 embedding 与 caption。
+解析（HTML/PDF/Office→结构化 AST，保留标题层级与表格；**图片抽为内容寻址资产并入媒体清单**，携 alt/figcaption/邻接语境；VLM 生成 caption 作图片 chunk 文本视图——WeKnora 范式，[存量调研 035](../../research/knowledge-graph/035-knowledge-base-platform.md)）→ 清洗 → 分块（默认调参递归固定分块，实证中仅次于 LLM 分块，§7-F4）→ **上下文富化**：每 chunk 注入标题路径前缀（祖先标题按各自 ACL 裁剪，防机密标题随公开 chunk 外泄）；条件允许时前置 LLM 生成的 50–100 token 块级语境，top-20 检索失败率 5.7%→3.7%<sup>[[14]](#ref14)</sup>（§7-F2）；条件允许时升级 late chunking（整篇长上下文编码后按句池化，BeIR 全面增益<sup>[[13]](#ref13)</sup>）→ 元数据抽取（规则+LLM，人工订正回流 few-shot 样本；产品域与 ACL 除外，见不变量③）。caption 过 §2.2 PII 脱敏。增量以文档为粒度：未变文本按 text_hash 复用 embedding；未变图片按 image_hash 复用跨模态嵌入，caption 按不变量①缓存键（hash(图片哈希+alt+邻接语境+源侧 metadata)，pipeline_ver）复用。
 
 ## 3. 索引构建（P2）
 
@@ -205,7 +206,7 @@ IndexBuild 三策略：全量初建 / 增量（按版本 diff 重刷该文档 ch
 
 ### 9.2 源系统回写与 hook
 
-Connector SPI 预留反向通道：outbox 模式——Draft 发布/KnowledgeTask 结案产生回写意图→源适配器（工单评论、Notion 页更新）执行；幂等键、出站签名+目标白名单复用 §4.3 Webhook 范式。权威联动：上游权威源走「建议+rebase」、本地权威源直写；**删除永不自动回写源系统**。hook：发布/验证失效/过期事件可订阅出站 webhook。**触发**：KnowledgeTask 闭环需落回源系统时立项；工单系统自身工作流仍属非目标。
+Connector SPI 预留反向通道：outbox 模式——Draft 发布/KnowledgeTask 结案产生回写意图→源适配器（工单评论、Notion 页更新）执行；幂等键以 outbox 事件序号为准，出站签名+目标白名单复用 §4.3 Webhook 范式。权威联动：上游权威源走「建议+rebase」、本地权威源直写；**删除永不自动回写源系统**。hook：发布/验证失效/过期事件可订阅出站 webhook。**触发**：KnowledgeTask 闭环需落回源系统时立项；工单系统自身工作流仍属非目标。
 
 ### 9.3 云厂商托管知识源
 
@@ -253,8 +254,8 @@ Connector SPI 预留反向通道：outbox 模式——Draft 发布/KnowledgeTask
 
 <a id="ref20"></a>[20] A. Radford, J. W. Kim, C. Hallacy, et al., "Learning Transferable Visual Models From Natural Language Supervision," in *Proc. ICML 2021*, arXiv:2103.00020, 2021.
 
-<a id="ref21"></a>[21] M. Faysse, C. Sibille, T. Wu, et al., "ColPali: Efficient Document Retrieval with Vision Language Models," in *Proc. ICLR 2025*, arXiv:2407.01449, 2024.
+<a id="ref21"></a>[21] M. Faysse, H. Sibille, T. Wu, et al., "ColPali: Efficient Document Retrieval with Vision Language Models," in *Proc. ICLR 2025*, arXiv:2407.01449, 2024.
 
-<a id="ref22"></a>[22] S. Yu, C. Li, S. Bao, et al., "VisRAG: Vision-based Retrieval-augmented Generation on Multi-modality Documents," arXiv:2410.10594, 2024.
+<a id="ref22"></a>[22] S. Yu, C. Tang, B. Xu, et al., "VisRAG: Vision-based Retrieval-augmented Generation on Multi-modality Documents," arXiv:2410.10594, 2024.
 
 <a id="ref23"></a>[23] D. Edge, H. Trinh, N. Cheng, et al., "From Local to Global: A Graph RAG Approach to Query-Focused Summarization," arXiv:2404.16130, 2024.

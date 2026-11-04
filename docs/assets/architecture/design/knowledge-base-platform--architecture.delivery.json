@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "7e127078-9620-4dcd-8b4d-e3e7457f6e4a",
+  "receiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
   "status": "current",
   "command": "deliver",
   "type": "architecture",
   "input": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
   "output": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
   "specification": {
-    "sha256": "f580010e95ed272b34efabdb7689862b6cc82565cfa19c625eda1066c0ee7e9c",
-    "bytes": 12707
+    "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+    "bytes": 12722
   },
   "artifact": {
-    "sha256": "23f1c8f41247d164c85e7a491ca548629ce4ac5b31af7aa62135463d714868fa",
-    "bytes": 800922
+    "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+    "bytes": 800937
   }
 }

@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "7e127078-9620-4dcd-8b4d-e3e7457f6e4a",
+  "deliveryReceiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
   "artifact": {
     "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-    "sha256": "23f1c8f41247d164c85e7a491ca548629ce4ac5b31af7aa62135463d714868fa",
-    "bytes": 800922
+    "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+    "bytes": 800937
   },
   "state": {
     "detail": "read",
