@@ -18,16 +18,16 @@ tags:
 
 - **推荐技术栈**（与方案 §6 对齐，最大化参考件复用）：Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic；PostgreSQL 17+（pgvector；关键字路 pg_textsearch，见 [ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)，M2 落地、M1 以 ts_rank 兜底起步；PostGIS 于 M2 引入）；Redis（队列/限流，M2）；Next.js（管理台与官网 Widget）；uv + pnpm。检索层以仓储接口抽象，保持 ES/OpenSearch 可替换。
 - **团队假设**：后端 3、前端 1、算法/评测 1（可缩配 2+1+1）；人月按此折算。
-- **工期估算**：M1 ≈ 4–5 周（约 14 人周）；M2 ≈ 7–9 周（约 26 人周）；M3 ≈ 4–6 周（约 15 人周）。关键路径见 §9。
+- **工期估算**：M1 ≈ 4–5 周（约 14 人周）；M2 ≈ 7–9 周（约 28 人周，含图文混合索引）；M3 ≈ 4–6 周（约 15 人周，P2-9 可选档另计）。关键路径见 §9。
 - **总原则**：每个里程碑以**可量化的退出门**收口（§8）；安全不变量（方案 §5.2 五条）在 M1 即以最小形态成立，之后只收紧不放松；一切原生快路径随迁移交付、降级必须可观测。
 
 ## 1. 总路线图
 
-![知识库平台 M1–M3 路线图：六个工作流（平台工程/文档管理/索引构建/检索服务/权限管控/应用与闭环）横跨三个里程碑。M1：服务骨架与鉴权覆盖门、DocumentVersion 与确定性 chunk 与原子换版、ts_rank+HNSW+元数据过滤、谓词构造器与四模式 RRF、Channel 与匿名产品域谓词与 fail-closed、Answer API 与 golden set v0。M2：队列调度与死信、连接器 SPI 与 Source 与 overlay、真 BM25 与 PostGIS 与蓝绿、真重排与置信校准与逐腿回归、ACL 三类主体与撤销覆盖表与增强 token 与 RLS 与泄漏 CI、Widget 沙箱与 KnowledgeTask 与四态反馈与 RAGAS 门。M3：运维常态化、引用降频与合规擦除与多语言、嵌入双轨 MRL、高精档可选、ReBAC 外置评估、A/B 灰度与 resolution 口径。](../../assets/architecture/design/knowledge-base-platform--roadmap-dark.png)
+![知识库平台 M1–M3 路线图：六个工作流（平台工程/文档管理/索引构建/检索服务/权限管控/应用与闭环）横跨三个里程碑。M1：服务骨架与鉴权覆盖门、DocumentVersion 与确定性 chunk 与原子换版、ts_rank+HNSW+元数据过滤、谓词构造器与四模式 RRF、Channel 与匿名产品域谓词与 fail-closed、Answer API 与 golden set v0。M2：队列调度与死信、连接器 SPI 与 Source 与 overlay、真 BM25 与 PostGIS 与蓝绿与图文混合索引、真重排与置信校准与逐腿回归、ACL 三类主体与撤销覆盖表与增强 token 与 RLS 与泄漏 CI、Widget 沙箱与 KnowledgeTask 与四态反馈与 RAGAS 门。M3：运维常态化、引用降频与合规擦除与多语言、嵌入双轨 MRL 与图文演进可选、高精档可选、ReBAC 外置评估、A/B 灰度与 resolution 口径。](../../assets/architecture/design/knowledge-base-platform--roadmap-dark.png)
 
 > 图源（可 diff 文本）：[`knowledge-base-platform--roadmap.mmd`](../../assets/mermaid/design/knowledge-base-platform--roadmap.mmd) · 交互版（下载到本地打开）：[`knowledge-base-platform--roadmap.html`](../../assets/architecture/design/knowledge-base-platform--roadmap.html)
 
-三里程碑的定位：**M1 单产品可用**（一个产品域、匿名访客、关键字+向量两路、手动引入与人工编辑）；**M2 多产品与全索引**（连接器同步、真 BM25、geo、登录客户 ACL、Widget 上线）；**M3 规模化与闭环**（评测门常态化、灰度、合规与多语言、授权外置评估）。
+三里程碑的定位：**M1 单产品可用**（一个产品域、匿名访客、关键字+向量两路、手动引入与人工编辑）；**M2 多产品与全索引**（连接器同步、真 BM25、geo、图文混合索引、登录客户 ACL、Widget 上线）；**M3 规模化与闭环**（评测门常态化、灰度、合规与多语言、页面级视觉检索可选演进、授权外置评估）。
 
 ## 2. P0 平台工程骨架
 
@@ -44,25 +44,27 @@ tags:
 
 | # | 任务 | 交付物 | 参考件 / 依据 | 量 |
 |---|---|---|---|---|
-| P1-1 (M1) | 核心数据模型落地：Product/Source(upload)/Document/DocumentVersion(version_key 含 acl+product_ids)/Chunk(确定性 chunk_id)/Draft/KnowledgeTask/IndexBuild/Channel/QAInteraction/AuditLog | migration + ORM + 单测 | 方案 §1 三不变量；D1-L3（chunk_id 确定性派生）；D1-L4（软删复活+partial unique） | L |
+| P1-1 (M1) | 核心数据模型落地：Product/Source(upload)/Document/DocumentVersion(version_key 含媒体清单+acl+product_ids)/Chunk(确定性 chunk_id；modality/media_ref)/Draft/KnowledgeTask/IndexBuild/Channel/QAInteraction/AuditLog | migration + ORM + 单测 | 方案 §1 三不变量；D1-L3（chunk_id 确定性派生）；D1-L4（软删复活+partial unique） | L |
 | P1-2 (M1) | upload 引入管线：解析（复用/移植 NE extraction 的多 target 路由）→清洗（含 NUL 剥离咽喉点）→递归分块→标题路径前缀→embedding（指数退避）→**同事务原子换版**（DELETE+INSERT） | ingest API + 管线测试 | NE chunking/extraction/embedding 直移；D1-L2/L6 | L |
 | P1-3 (M1) | 人工编辑最小闭环：Draft→diff 评审→发布；可见性变更独立权限+四眼；乐观锁；append-only 审计 | 编辑 API + 审批流 + 审计表 | 方案 §2.3；Confluence 审批范式（调研 §2-F7） | L |
 | P1-4 (M2) | Connector SPI：discover（内容/ACL/删除三类探测）+ webhook（验签/通知-only/落队列回 202）+ 增量拉取（游标；DB 源 CDC）+ 全量重扫；Source 聚合（信任档/权威策略/白黑名单/默认可见性） | SPI 接口 + 3 个内置连接器（帮助中心 API/对象存储/DB 视图） | Glean/Azure 形态（调研 §2/§3）；D1-L5（超时预算传递+指纹断点续传） | XL |
 | P1-5 (M2) | overlay 与冲突：上游权威源本地改动存 overlay、自动 rebase、冲突转 KnowledgeTask；删除 tombstone 单通道（级联 chunk 下线+检索感知） | overlay 层 + tombstone 语义 + 孤儿清理工具 | 差距 D1-C6/C8（双删除入口与静默覆盖反例） | L |
 | P1-6 (M2) | 验证态治理：verifier/周期/编辑即失效/过期灰标转 KnowledgeTask；PII 识别脱敏（移植 NE Presidio 工厂）进预处理 | 验证态字段+过滤+巡检例程；PII 管线 | Guru 范式（调研 §2-F8/F9）；D1-L7（patrol 状态机复用）；I-099 教训 | M |
-| P1-7 (M3) | 引用价值降频调度（retrieval_count 驱动，ACL/删除通道除外）；保留期与合规擦除（加密粉碎+级联派生物清理）；多语言源 | 调度器 + 擦除通道 | Fin 范式（§4-F3）；方案 §2.2 | M |
+| P1-7 (M3) | 引用价值降频调度（retrieval_count 驱动，ACL/删除通道除外）；保留期与合规擦除（加密粉碎+级联派生物清理+图片资产引用计数暂缓清单）；多语言源 | 调度器 + 擦除通道 | Fin 范式（§4-F3）；方案 §2.2 | M |
 
 ## 4. P2 索引构建
 
 | # | 任务 | 交付物 | 参考件 / 依据 | 量 |
 |---|---|---|---|---|
 | P2-1 (M1) | 索引基线：tsvector（**明示非 BM25**）+ pgvector HNSW（M/efC/efS 参数化）+ 元数据结构化列与 GIN + (product_id) 复合索引 | migration + 索引回归测试（含 CJK 子串用例） | D2-L6/I-196（english 配置中文全灭）；差距 D2-C1/C2 | M |
-| P2-2 (M1) | chunk 数据态与写入幂等：parsed→indexing→indexed；未索引隔离；LLM 派生物缓存键 (hash(正文+源侧 metadata), pipeline_ver) | 状态机 + 缓存层 + 测试 | 方案不变量①；FastGPT 三态（调研 §4.3） | M |
+| P2-2 (M1) | chunk 数据态与写入幂等：parsed→indexing→indexed；未索引隔离；LLM/VLM 派生物缓存键 (hash(派生输入+源侧 metadata), pipeline_ver)——caption 的派生输入=图片哈希+alt+邻接语境 | 状态机 + 缓存层 + 测试 | 方案不变量①；FastGPT 三态（调研 §4.3） | M |
 | P2-3 (M1) | 增量与重建（起步档）：文档粒度原子换版；text_hash 命中复用 embedding；重建判据=模型标识变更；重建入口覆盖全部源类型 | rebuild 管线 + 对比测试 | D2-L3/L4、D2-L5（幂等锚不可变标识） | M |
 | P2-4 (M2) | 真 BM25 落地（选型已定，[ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)）：pg_textsearch 集成（k1/b 按索引；中文 zhparser 托管均不可装——分词方案需 PoC 验证，见 ADR-0002 §5 ④）+ 目标云兼容性验证；RLS 共享表 IDF 跨租户统计评估（必要时按产品域分区）；AWS/Azure 场景走兜底重算并外置 OpenSearch（BM25F `combined_fields`） | 集成 + 兼容矩阵 + IDF 隔离测试 | ADR-0002；方案 §3.1 | L |
 | P2-5 (M2) | 地理空间：PostGIS + geo_point/geo_region 列 + GiST + `<->` KNN + H3 分析列；参照点优先级链与降级 | migration + geo 检索腿 + 测试 | 方案 §3.1/§3.3；调研 §8 | L |
 | P2-6 (M2) | index_ver 蓝绿：双写、水位追平、回归门、别名原子切换；回滚先重放删除/ACL 事件；权限/内容分队列部分重索引 | 蓝绿编排器 + 回滚演练 | 方案 §3.2；Azure Resync 范式（§3-F5） | XL |
 | P2-7 (M3) | 嵌入双轨：中文 BGE-M3/Qwen3 自托管 + 西文 API；MRL 弹性维度与租户配额；换模型重建常态化 | 双轨接入 + 重建 runbook | 调研 §5-F7/F8/F9 | L |
+| P2-8 (M2) | 图文混合索引：图片资产内容寻址抽取（alt/figcaption/邻接语境关联）+ VLM caption（过 PII 脱敏；缓存键 (hash(图片哈希+alt+邻接语境+源侧 metadata), pipeline_ver)）+ 跨模态嵌入腿（CLIP 族独立模型空间，同谓词 pre-filter 下推，融合只用名次）+ 图片腿回归用例 | 资产表 + caption 管线 + 图片检索腿 + 测试 | 方案 §2.4/§3.1/§3.3；WeKnora captioning（[存量调研 035](../../research/knowledge-graph/035-knowledge-base-platform.md)） | L |
+| P2-9 (M3, 可选) | 页面级视觉检索演进：ColPali/VisRAG 类 late-interaction 页向量试点（解析后文本检索的实证上限之外的分档） | POC + 评测对比 | 方案 §3.3/§7/§8 | L |
 
 ## 5. P3 检索服务
 
@@ -71,7 +73,7 @@ tags:
 | P3-1 (M1) | **单一谓词构造器**：权限+产品域+元数据+geo 的结构化 DSL（参数化、枚举白名单）；四路召回一律经构造器下推 | 谓词模块 + 四路单测 | 差距 D3-C2（谓词散落两处反例）；D3-L5（图扩展/父块回提复用同构造器） | M |
 | P3-2 (M1) | 四模式检索（semantic/keyword/hybrid/RRF k=60）：DB 侧函数**随迁移交付**+存在性回归，降级打点告警 | 检索服务 + 迁移内 SQL 函数 | 差距 D2/D3（kb_* 未入迁移恒回退的反例）；D2-L2 | M |
 | P3-3 (M2) | cross-encoder 真重排：BGE 本地 + API 回退（Composite）；截断参数显式对齐 limit；**置信=按产品域校准的原始分**，阈值拒答+兜底链 | reranker + 校准脚本 + 拒答链 | D3-L3/L8（归一化分与隐式截断反例）；方案 §4.2 | L |
-| P3-4 (M2) | 逐腿回归门：golden set 按召回腿分别断言（关键词腿单独过，含 CJK）；RAGAS 四指标；索引重建/参数变更过门 | 评测 executor + CI 门 | D3-L7/I-196；方案 §4.4 | L |
+| P3-4 (M2) | 逐腿回归门：golden set 按召回腿分别断言（关键词腿单独过，含 CJK；图文上线后含图片腿）；RAGAS 四指标；索引重建/参数变更过门 | 评测 executor + CI 门 | D3-L7/I-196；方案 §4.4 | L |
 | P3-5 (M2) | 降级矩阵：embedding 故障→hybrid 退 keyword（显式标注）；纯语义显式 502；部分失败≠零命中（不触发知识缺口任务） | 降级测试矩阵 + SLI | D3-L6/L9、D5-L4 | M |
 | P3-6 (M3) | 高精档（可选）：ColBERT 晚交互作重排档（多向量侧表预算）；学习型稀疏（SPLADE 类）试点 | POC + 评测对比 | 调研 §5-F4/F6 | L |
 
@@ -104,12 +106,12 @@ tags:
 | 门 | 判据（全部满足才退出） |
 |---|---|
 | **M1** | 单产品域上线：upload→编辑→发布→检索（关键字+向量）→Answer API 全链路通；权限红线成立（匿名只见本域 public；鉴权覆盖门 0 违例；删权限谓词差分测试全过）；原子换版下并发读无一致性违例；golden set v0 检索腿逐腿有基线；审计表有写入且 fail-loud 验证 |
-| **M2** | ≥2 产品域 + 登录客户 ACL：连接器增量同步 staleness 达 SLO（推送 P95≤5min/拉取按档）；真 BM25 决策落地（ADR）；geo 检索腿过 CJK+geo 用例；蓝绿切换+回滚演练过（回滚不复活已撤权限）；泄漏回归矩阵（四路+旁路出口）CI 全绿；Widget 上线且 XSS/注入测试过；RAGAS 回归门拦截一次人为退化（演习） |
+| **M2** | ≥2 产品域 + 登录客户 ACL：连接器增量同步 staleness 达 SLO（推送 P95≤5min/拉取按档）；真 BM25 决策落地（ADR）；geo 检索腿过 CJK+geo 用例；图文检索腿过图片召回用例（caption 幻觉防线：grounding 回锚原始 chunk 有测试）；蓝绿切换+回滚演练过（回滚不复活已撤权限）；泄漏回归矩阵（四路+旁路出口）CI 全绿；Widget 上线且 XSS/注入测试过；RAGAS 回归门拦截一次人为退化（演习） |
 | **M3** | 评测门常态化（索引/策略变更过门率 100%）；A/B 灰度跑通一次完整 promote/rollback；合规擦除演练（版本+派生物+索引级联清零可审计）；ReBAC/分库演进 ADR 出结论；多语言场景验收 |
 
 ## 9. 依赖与关键路径
 
-关键路径：**P0-1/2 → P1-1（数据模型）→ P1-2（upload 管线）→ P2-1/2（索引基线）→ P3-1/2（谓词+四模式）→ P4-1（Channel/匿名）→ M1 门 → P1-4（Connector SPI）∥ P2-6（蓝绿）→ P4-3（ACL 全链路）→ P5-3（Widget）→ M2 门**。P4-3 依赖 P1-1 的 version_key 与 P4-1 的 Channel；P2-4（真 BM25）有法务评估前置，须 M2 初启动以免阻塞；P5-4 依赖 P5-1 的 golden set 与 P1-1 的 KnowledgeTask 表。P0-5（队列）是 P1-4 与 P2-6 的共同前置。
+关键路径：**P0-1/2 → P1-1（数据模型）→ P1-2（upload 管线）→ P2-1/2（索引基线）→ P3-1/2（谓词+四模式）→ P4-1（Channel/匿名）→ M1 门 → P1-4（Connector SPI）∥ P2-6（蓝绿）→ P4-3（ACL 全链路）→ P5-3（Widget）→ M2 门**。P4-3 依赖 P1-1 的 version_key 与 P4-1 的 Channel；P2-4（真 BM25）有法务评估前置，须 M2 初启动以免阻塞；P5-4 依赖 P5-1 的 golden set 与 P1-1 的 KnowledgeTask 表。P0-5（队列）是 P1-4 与 P2-6 的共同前置。P2-8（图文混合）依赖 P2-1/2 索引基线与解析层媒体抽取、P3-4 图片腿回归，M2 中段开工不阻塞关键路径。
 
 ## 10. 工程铁律（来自差距分析 §10.2，执行期逐条对照）
 
@@ -139,6 +141,7 @@ tags:
 | geo 场景数据量与查询形态不确定 | P2-5 先以单产品域网点/区域政策小集试点，再决定 H3 分析列深度 |
 | 蓝绿双写复杂度超预期 | M1 已用原子换版兜底；index_ver 蓝绿可降档为「重建+影子比对+切换」 |
 | 评测集冷启动 | golden set v0 由存量帮助中心 FAQ 抽取+人工标注 ≥50 题/域；线上回流持续扩充 |
+| 跨模态中文嵌入召回质量未证（P2-8） | golden set 图片用例实测定档；不达标则图片腿降级 caption-only 或升 P2-9 页面级视觉检索（方案 §8）；caption 幻觉由 grounding 回锚防线兜底 |
 | 单库 QPS 天花板 | SLI 容量演练（P0-6）+ 演进边界预案（方案 §6） |
 
 ## 12. Next Actions（两周内可开工）
@@ -147,3 +150,4 @@ tags:
 2. P1-1 数据模型按 [ADR-0001](./knowledge-base-platform-adr-0001-data-model.md) 开工（version_key 含 document_id+产品域+ACL、确定性 chunk_id、文档粒度原子换版）。
 3. 确认目标云：按 [ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)（pg_textsearch 主选、OpenSearch 扩容），M1 关键字路一律以 ts_rank 兜底起步（P2-1，明示非 BM25），目标云决定 M2 P2-4 真 BM25 落地形态（Google Cloud 直接集成 pg_textsearch；AWS/Azure 走兜底重算并外置 OpenSearch）。
 4. 与产品侧确认 M2 的 IdP 对接形态与首个多产品试点域。
+5. P2-8 图文混合索引预研（M2 排期前）：盘点产品文档图片占比与截图 PII 面，定 VLM caption 与跨模态嵌入选型 PoC。

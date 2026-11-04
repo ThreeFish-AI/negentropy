@@ -160,9 +160,9 @@
 | [sso--auth-flow](./design/sso--auth-flow.mmd) | design/sso.md | sequence | ✓ | done | fix: validate 三轮收敛（18 err → 1 err → 0/0）：R1 修 |
 | [browser-mcp--seed-migration](./design/browser-mcp--seed-migration.mmd) | design/browser-automation-mcp-integration.md | workflow | ✓ | done | fix: 源图 11 节点精简为 8（workflow v2 ≤8 预算）：三执行入口（R |
 | [skills--management-ui](./design/skills--management-ui.mmd) | design/skills.md | workflow | ✓ | done | fix: (1) SkillFormDialog → SkillFormDrawer：实际 |
-| [knowledge-base-platform--architecture](./design/knowledge-base-platform--architecture.mmd) | design/knowledge-base-platform.md §1 | architecture | ✓ | done | 新创作，无原文 mermaid 块：五层参考架构+权限/评测双横切平面；fix: 评审 R1 blocker——L3 改为「组合 pre-filter 下推四路召回」在前；源/图对账回写同构；candidate JSON 入 `docs/diagrams/knowledge-base-platform--architecture/` |
+| [knowledge-base-platform--architecture](./design/knowledge-base-platform--architecture.mmd) | design/knowledge-base-platform.md §1 | architecture | ✓ | done | 新创作，无原文 mermaid 块：五层参考架构+权限/评测双横切平面；fix: 评审 R1 blocker——L3 改为「组合 pre-filter 下推四路召回」在前；源/图对账回写同构；fix: 图文混合索引进范围——L0 增工单/SaaS 与云厂商知识源两源、向量 ANN 标注图文跨模态（M2，方案 §2.4/§3）；candidate JSON 入 `docs/diagrams/knowledge-base-platform--architecture/` |
 | [knowledge-base-platform--permission-chain](./design/knowledge-base-platform--permission-chain.mmd) | design/knowledge-base-platform.md §5.2 | workflow | ✓ | done | 新创作，无原文 mermaid 块：四泳道四阶段权限链路，内容轨与身份轨在 pre-filter 合流；outside-right 回边不可满足已删、desktop-readability 收窄节点过门（操作全审计由 architecture 图权限平面承载）；源/图对账回写同构；candidate JSON 入 `docs/diagrams/knowledge-base-platform--permission-chain/` |
-| [knowledge-base-platform--roadmap](./design/knowledge-base-platform--roadmap.mmd) | design/knowledge-base-platform-implementation.md §1 | workflow | ✓ | done | 新创作，无原文 mermaid 块：M1–M3 实施路线横版三泳道×六列（初版六泳道纵版 viewport-height 不过改横版一次过门）；candidate JSON 入 `docs/diagrams/knowledge-base-platform--roadmap/` |
+| [knowledge-base-platform--roadmap](./design/knowledge-base-platform--roadmap.mmd) | design/knowledge-base-platform-implementation.md §1 | workflow | ✓ | done | 新创作，无原文 mermaid 块：M1–M3 实施路线横版三泳道×六列（初版六泳道纵版 viewport-height 不过改横版一次过门）；fix: 图文混合索引进 M2（P2-8）、页面级视觉检索 M3 可选（P2-9）——I1/I2 卡片同步实施计划 §1；candidate JSON 入 `docs/diagrams/knowledge-base-platform--roadmap/` |
 
 ### operations/（docs/concepts/operations/）
 

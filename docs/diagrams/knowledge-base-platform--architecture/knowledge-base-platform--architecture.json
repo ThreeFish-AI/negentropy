@@ -18,7 +18,7 @@
         40
       ],
       "size": [
-        150,
+        144,
         56
       ]
     },
@@ -28,11 +28,11 @@
       "label": "文档文件",
       "sublabel": "PDF / Office",
       "pos": [
-        230,
+        198,
         40
       ],
       "size": [
-        150,
+        144,
         56
       ]
     },
@@ -40,13 +40,41 @@
       "id": "src-biz",
       "type": "external",
       "label": "业务数据",
-      "sublabel": "工单 / DB 视图",
+      "sublabel": "DB 视图 / CDC",
       "pos": [
-        420,
+        356,
         40
       ],
       "size": [
-        150,
+        144,
+        56
+      ]
+    },
+    {
+      "id": "src-ticket",
+      "type": "external",
+      "label": "工单 / SaaS 知识源",
+      "sublabel": "Notion / Zendesk 等",
+      "pos": [
+        514,
+        40
+      ],
+      "size": [
+        144,
+        56
+      ]
+    },
+    {
+      "id": "src-cloud",
+      "type": "external",
+      "label": "云厂商知识源",
+      "sublabel": "厂商文档中心",
+      "pos": [
+        672,
+        40
+      ],
+      "size": [
+        144,
         56
       ]
     },
@@ -152,7 +180,7 @@
     {
       "id": "vec",
       "type": "database",
-      "label": "向量 ANN",
+      "label": "向量 ANN·图文跨模态",
       "sublabel": "HNSW·模型版本绑定",
       "pos": [
         400,
@@ -354,7 +382,9 @@
       "wraps": [
         "src-help",
         "src-files",
-        "src-biz"
+        "src-biz",
+        "src-ticket",
+        "src-cloud"
       ]
     },
     {
@@ -435,6 +465,18 @@
       "label": "视图"
     },
     {
+      "id": "e3b",
+      "from": "src-ticket",
+      "to": "conn",
+      "label": "拉取"
+    },
+    {
+      "id": "e3c",
+      "from": "src-cloud",
+      "to": "conn",
+      "label": "拉取"
+    },
+    {
       "id": "e4",
       "from": "conn",
       "to": "sync",
@@ -451,19 +493,7 @@
       "from": "edit",
       "to": "store",
       "label": "草稿/发布",
-      "variant": "dashed",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "via": [
-        [
-          580,
-          268
-        ],
-        [
-          325,
-          268
-        ]
-      ]
+      "variant": "dashed"
     },
     {
       "id": "e7",
@@ -666,7 +696,7 @@
       "dot": "cyan",
       "title": "检索与索引",
       "items": [
-        "四路索引（BM25/元数据/向量/地理）混合召回，RRF 融合",
+        "四路索引（BM25/元数据/向量/地理）混合召回，RRF 融合；向量路含图文跨模态子空间",
         "索引蓝绿版本：构建→校验→切换→下线，全程可回滚"
       ]
     },

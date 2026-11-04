@@ -110,9 +110,9 @@
       "lane": "m2",
       "col": 2,
       "type": "database",
-      "label": "真 BM25·geo·蓝绿",
+      "label": "真 BM25·geo·蓝绿·图文",
       "sublabel": "index_ver 水位",
-      "width": 150
+      "width": 166
     },
     {
       "id": "r1",
@@ -164,8 +164,8 @@
       "lane": "m3",
       "col": 2,
       "type": "database",
-      "label": "嵌入双轨",
-      "sublabel": "MRL 弹性维度",
+      "label": "嵌入双轨·图文演进",
+      "sublabel": "MRL·视觉检索可选",
       "width": 142
     },
     {

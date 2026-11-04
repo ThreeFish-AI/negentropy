@@ -3,6 +3,7 @@
 %%type: workflow
 %%derived: 新创作，无原文 mermaid 块；知识库平台独立新建平台实施路线
 %%fix: 初版六泳道纵版 viewport-height 不过（837×912），改为横版三泳道（M1/M2/M3）×六列（P0–P5）一次过门
+%%fix: 图文混合索引进 M2（P2-8：图片资产/VLM caption/跨模态向量腿）、页面级视觉检索列 M3 可选（P2-9）——I1/I2 卡片文案同步实施计划 §1
 flowchart LR
   subgraph M1["M1 单产品可用"]
     G0["骨架·鉴权门<br/>strict+覆盖门"]
@@ -16,7 +17,7 @@ flowchart LR
   subgraph M2["M2 多产品·全索引"]
     G1["队列·调度·死信<br/>watchdog"]
     D1["连接器 SPI<br/>webhook/增量/重扫"]
-    I1["真 BM25·geo·蓝绿<br/>index_ver 水位"]
+    I1["真 BM25·geo·蓝绿·图文<br/>index_ver 水位"]
     R1["真重排·置信校准<br/>逐腿回归门"]
     A1["ACL 全链路<br/>撤销表·token·RLS"]
     W1["Widget 沙箱·闭环<br/>四态·RAGAS 门"]
@@ -24,7 +25,7 @@ flowchart LR
   subgraph M3["M3 规模化·闭环"]
     G2["运维常态化<br/>演练+runbook"]
     D2["降频·合规·多语言<br/>擦除级联"]
-    I2["嵌入双轨<br/>MRL 弹性维度"]
+    I2["嵌入双轨·图文演进<br/>MRL·视觉检索可选"]
     R2["高精档（可选）<br/>ColBERT/SPLADE"]
     A2["ReBAC 外置评估<br/>OpenFGA"]
     W2["A/B·口径<br/>粘性分桶+护栏"]
