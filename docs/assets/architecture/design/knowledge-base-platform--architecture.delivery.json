@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28",
+  "receiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
   "status": "current",
   "command": "deliver",
   "type": "architecture",
-  "input": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-  "output": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
   "specification": {
-    "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
-    "bytes": 12096
+    "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+    "bytes": 12722
   },
   "artifact": {
-    "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
-    "bytes": 795966
+    "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+    "bytes": 800937
   }
 }

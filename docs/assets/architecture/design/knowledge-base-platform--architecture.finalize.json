@@ -5,16 +5,16 @@
   "status": "pass",
   "type": "architecture",
   "quality": "showcase",
-  "startedAt": "2026-11-02T15:46:22.897Z",
+  "startedAt": "2026-11-04T05:14:21.710Z",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-    "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
-    "bytes": 12096
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+    "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+    "bytes": 12722
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-    "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
-    "bytes": 795966
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+    "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+    "bytes": 800937
   },
   "stages": {
     "validate": {
@@ -27,8 +27,8 @@
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "--quality",
         "showcase",
         "--json"
@@ -38,8 +38,8 @@
         "ok": true,
         "command": "validate",
         "specification": {
-          "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
-          "bytes": 12096
+          "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+          "bytes": 12722
         },
         "validation": {
           "checksPassed": 9,
@@ -54,33 +54,33 @@
     "deliver": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 558,
+      "durationMs": 565,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "deliver",
         "architecture",
-        "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-        "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "--quality",
         "showcase",
         "--json"
       ],
       "receipt": {
         "schemaVersion": 1,
-        "receiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28",
+        "receiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
         "ok": true,
         "command": "deliver",
         "type": "architecture",
-        "input": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-        "output": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+        "input": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+        "output": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "specification": {
-          "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
-          "bytes": 12096
+          "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+          "bytes": 12722
         },
         "artifact": {
-          "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
-          "bytes": 795966
+          "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+          "bytes": 800937
         },
         "validation": {
           "checksPassed": 9,
@@ -95,20 +95,20 @@
     "check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 118,
+      "durationMs": 106,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "--require-provenance"
       ],
       "receipt": {
         "ok": true,
-        "file": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+        "file": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "artifact": {
-          "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
-          "bytes": 795966
+          "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+          "bytes": 800937
         },
         "checks": [
           {
@@ -169,13 +169,13 @@
           },
           "metrics": {
             "properCrossings": 0,
-            "resolvedCrossovers": 2,
+            "resolvedCrossovers": 5,
             "ambiguousCorridors": 0,
             "arrowheadCollisions": 0,
             "containerBorderRuns": 0,
             "labelRouteClearanceIssues": 0,
             "labelCanvasOverflowIssues": 0,
-            "minLabelRouteClearance": 10,
+            "minLabelRouteClearance": 6.5,
             "desktopReadabilityIssues": 0,
             "viewportHeightIssues": 0,
             "minProjectedNodeTextPx": 6.358974358974359,
@@ -183,10 +183,10 @@
             "routesOverSuggestedBends": 3,
             "maxStretch": 1.39,
             "routesOverSuggestedStretch": 1,
-            "minSegmentPx": 16,
+            "minSegmentPx": 10,
             "minInteriorSegmentPx": 16,
-            "shortSegmentCount": 0,
-            "shortEndpointSegmentCount": 0,
+            "shortSegmentCount": 2,
+            "shortEndpointSegmentCount": 2,
             "shortInteriorSegmentCount": 0,
             "microSegmentCount": 0
           },
@@ -200,10 +200,56 @@
             "crossings": [
               {
                 "left": {
-                  "id": "e7",
-                  "from": "store",
-                  "to": "indexer",
-                  "label": "全量重放",
+                  "id": "e2",
+                  "from": "src-files",
+                  "to": "conn",
+                  "label": "上传",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "right": {
+                  "id": "e3b",
+                  "from": "src-ticket",
+                  "to": "conn",
+                  "label": "拉取",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "point": [
+                  270,
+                  120
+                ],
+                "sharedNode": "conn"
+              },
+              {
+                "left": {
+                  "id": "e3",
+                  "from": "src-biz",
+                  "to": "conn",
+                  "label": "视图",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "id": "e3b",
+                  "from": "src-ticket",
+                  "to": "conn",
+                  "label": "拉取",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "point": [
+                  428,
+                  120
+                ],
+                "sharedNode": "conn"
+              },
+              {
+                "left": {
+                  "id": "e5",
+                  "from": "sync",
+                  "to": "store",
+                  "label": "新版本",
                   "collectionIndex": 6,
                   "artifactIndex": 7
                 },
@@ -212,14 +258,35 @@
                   "from": "indexer",
                   "to": "bm25",
                   "label": "",
+                  "collectionIndex": 9,
+                  "artifactIndex": 10
+                },
+                "point": [
+                  325,
+                  296
+                ]
+              },
+              {
+                "left": {
+                  "id": "e6",
+                  "from": "edit",
+                  "to": "store",
+                  "label": "草稿/发布",
                   "collectionIndex": 7,
                   "artifactIndex": 8
                 },
+                "right": {
+                  "id": "e8",
+                  "from": "indexer",
+                  "to": "bm25",
+                  "label": "",
+                  "collectionIndex": 9,
+                  "artifactIndex": 10
+                },
                 "point": [
-                  523.2,
-                  350
-                ],
-                "sharedNode": "indexer"
+                  480,
+                  296
+                ]
               },
               {
                 "left": {
@@ -227,16 +294,16 @@
                   "from": "indexer",
                   "to": "meta",
                   "label": "",
-                  "collectionIndex": 8,
-                  "artifactIndex": 9
+                  "collectionIndex": 10,
+                  "artifactIndex": 11
                 },
                 "right": {
                   "id": "e10",
                   "from": "indexer",
                   "to": "vec",
                   "label": "",
-                  "collectionIndex": 9,
-                  "artifactIndex": 10
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
                 },
                 "point": [
                   643,
@@ -246,6 +313,14 @@
               }
             ],
             "crowdedSides": [
+              {
+                "node": "conn",
+                "label": "连接器框架",
+                "side": "right",
+                "relationships": 5,
+                "sidePx": 60,
+                "neededPx": 88
+              },
               {
                 "node": "indexer",
                 "label": "索引编排器",
@@ -258,15 +333,15 @@
             "detours": [
               {
                 "relationship": {
-                  "id": "e8",
-                  "from": "indexer",
-                  "to": "bm25",
-                  "label": "",
-                  "collectionIndex": 7,
-                  "artifactIndex": 8
+                  "id": "e3c",
+                  "from": "src-cloud",
+                  "to": "conn",
+                  "label": "拉取",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
                 },
                 "bends": 3,
-                "stretch": 1
+                "stretch": 1.11
               },
               {
                 "relationship": {
@@ -274,8 +349,8 @@
                   "from": "prefilter",
                   "to": "fusion",
                   "label": "带谓词召回",
-                  "collectionIndex": 16,
-                  "artifactIndex": 17
+                  "collectionIndex": 18,
+                  "artifactIndex": 19
                 },
                 "bends": 4,
                 "stretch": 1.39
@@ -286,8 +361,8 @@
                   "from": "aclsync",
                   "to": "recall",
                   "label": "谓词注入",
-                  "collectionIndex": 24,
-                  "artifactIndex": 25
+                  "collectionIndex": 26,
+                  "artifactIndex": 27
                 },
                 "bends": 3,
                 "stretch": 1
@@ -322,23 +397,23 @@
             },
             "minimumSourceTextPx": 8,
             "minimumProjectedTextPx": 6.358974358974359,
-            "semanticTextCount": 67
+            "semanticTextCount": 73
           },
           "issues": []
         },
         "provenance": "current",
-        "deliveryReceiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28"
+        "deliveryReceiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8"
       }
     },
     "browser-check": {
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1771,
+      "durationMs": 1146,
       "command": [
         "/Users/cm.huang/.nvm/versions/node/v24.22.1/bin/node",
         "/Users/cm.huang/.agents/skills/archify/bin/archify.mjs",
         "browser-check",
-        "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+        "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
         "--json",
         "--require-provenance"
       ],
@@ -351,11 +426,11 @@
         "status": "pass",
         "visualReview": "not-requested",
         "provenance": "current",
-        "deliveryReceiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28",
+        "deliveryReceiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
         "artifact": {
-          "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-          "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
-          "bytes": 795966
+          "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+          "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+          "bytes": 800937
         },
         "state": {
           "detail": "read",
@@ -1068,11 +1143,11 @@
   },
   "diagnostics": [],
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.browser-check.json"
   },
   "visualReview": "not-requested",
-  "finishedAt": "2026-11-02T15:46:25.727Z",
-  "durationMs": 2830
+  "finishedAt": "2026-11-04T05:14:23.815Z",
+  "durationMs": 2104
 }

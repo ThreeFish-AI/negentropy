@@ -6,14 +6,14 @@
   "type": "workflow",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--roadmap/knowledge-base-platform--roadmap.json",
-    "sha256": "46dd016e395d98b840970bf2dd796af4ee4ac9fd7cb4bde65df0453c5c4bf131",
-    "bytes": 6100
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--roadmap/knowledge-base-platform--roadmap.json",
+    "sha256": "150a9278c48e997eb177dece898a6ae573b2cc5770af7c08c5cc7394755fa40a",
+    "bytes": 6129
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.html",
-    "sha256": "b06babcf4b757cf6b8ccab4ebb84c3f43ca36b4bb079420c4747e9e78812f102",
-    "bytes": 770257
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--roadmap.html",
+    "sha256": "4e873c300b0c17d5a3bdaf23092fc6a3aec4d263c48150907ff524d1be46d3e6",
+    "bytes": 770373
   },
   "gates": {
     "validate": "pass",
@@ -28,12 +28,12 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--roadmap.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--roadmap.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--roadmap.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--roadmap.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2069,
+  "durationMs": 1810,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {

@@ -1,7 +1,7 @@
 {
  "as_of": "2026-11-02",
  "as_of_commit": "c30489f9c714b9cc4a0779c1fe9cd6d43c3d4d0e",
- "baseline_note": "涉「knowledge 写端点鉴权 / 035 §11.1 文案」的判定与漂移记录按 I-245（同批合入）修复前基线成立；HEAD 现状以 I-245 为准（写端点聚合注入 knowledge:write 守卫、035 §11.1 已改写对齐）",
+ "baseline_note": "涉「knowledge 写端点鉴权 / 035 §11.1 文案」的判定与漂移记录按 I-245（同批合入）修复前基线成立；HEAD 现状以 I-245 为准（写端点聚合注入 knowledge:write 守卫、035 §11.1 已改写对齐）。C5/C25 的建议/机制列已按 I-248 方案修订（version_key 纳媒体清单哈希、派生物缓存键泛化为派生输入）在 gap-analysis.md 更新，JSON 内引文为 2026-11-02 快照、以 md 现行文本为准",
  "method": "五域并行取证 + 逐域对抗复核",
  "domains": {
   "D1-docmgmt": {

@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "not-requested",
   "provenance": "current",
-  "deliveryReceiptId": "46fd4fb3-5c8b-428c-984f-3b1275fefc28",
+  "deliveryReceiptId": "96b7631f-bb21-42aa-9b51-8b0ceee2e5a8",
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-    "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
-    "bytes": 795966
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+    "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+    "bytes": 800937
   },
   "state": {
     "detail": "read",

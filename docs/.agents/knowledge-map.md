@@ -33,9 +33,9 @@
 - [Docker Compose 运维指引](../concepts/operations/docker-operations.md) — compose 栈 5 服务的部署、日常操作、开发工作流与故障排查：首次部署、首次发布、版本管理、健康检查、日志查看、卷备份、常见故障排除
 - [浏览器操作 MCP 集成方案](../concepts/design/browser-automation-mcp-integration.md) — Playwright MCP 全系统默认配备：单一注入点（builtin_tools.mcp_config）provision 至 Routine / Scheduler / 6 Agents，用于浏览器实机回归验证
 - [自进化 Agents Team 方案](../concepts/design/self-evolving-agents.md) — 四层自进化架构（固定框架 Meta-Layer / 动态 Agent 定义 / 外部能力工具 / 记忆与知识系统）：遥测→评测→提案→验证→门控发布全闭环，含 agent_versions 版本化、GEPA/ACE 进化算子、记忆/知识配置进化回路（基质/客体分轨 ADR-4）、Golden Set 双轨评测、金丝雀发布、护栏决策矩阵与四阶段演进路线（调研基础见 [130 号调研](../research/self-evolution/130-self-evolving-agents-team.md)）
-- [知识库平台技术方案](../concepts/design/knowledge-base-platform.md) — 文档管理 × 索引构建 × 应用集成 × 权限管控四支柱独立通用参考架构：五层+权限/评测双横切平面、Connector SPI 三同步模式与内容寻址版本库、BM25/元数据/向量/地理四路索引与蓝绿版本、多产品 Channel 客服机器人、全链路 pre-filter fail-closed 权限流（两张 archify 图；循证基座见 [036 竞品与理论调研](../research/knowledge-graph/036-knowledge-base-platform-competitors.md)）
+- [知识库平台技术方案](../concepts/design/knowledge-base-platform.md) — 文档管理 × 索引构建 × 应用集成 × 权限管控四支柱独立通用参考架构：五层+权限/评测双横切平面、Connector SPI 三同步模式与内容寻址版本库（version_key 含媒体清单）、BM25/元数据/向量/地理四路索引与蓝绿版本、图文混合索引（图片资产/VLM caption/CLIP 跨模态向量腿，M2）、多产品 Channel 客服机器人、全链路 pre-filter fail-closed 权限流，§9 三项后续扩展预留（知识图谱联邦/源系统回写 hook/云厂商知识源）（两张 archify 图；循证基座见 [036 竞品与理论调研](../research/knowledge-graph/036-knowledge-base-platform-competitors.md)）
 - [知识库平台 × Negentropy 差距分析与补充诊断](../concepts/design/knowledge-base-platform-gap-analysis.md) — 82 项机制判定（3 implemented/28 partial/19 divergent/32 missing）+ 44 条反向经验（24 high）+ 24 条 035 文档漂移附录；机器可审计证据 JSON 随文档入库
-- [知识库平台 M1–M3 工程实施计划](../concepts/design/knowledge-base-platform-implementation.md) — 独立新建平台：六工作流（P0 平台工程/P1 文档管理/P2 索引/P3 检索/P4 权限/P5 应用闭环）× 三里程碑量化退出门、关键路径、16 条工程铁律与可移植参考件清单（roadmap archify 图）
+- [知识库平台 M1–M3 工程实施计划](../concepts/design/knowledge-base-platform-implementation.md) — 独立新建平台：六工作流（P0 平台工程/P1 文档管理/P2 索引/P3 检索/P4 权限/P5 应用闭环）× 三里程碑量化退出门（M2 含 P2-8 图文混合索引、M3 含 P2-9 视觉检索可选档）、关键路径、16 条工程铁律与可移植参考件清单（roadmap archify 图）
 - [KBP ADR-0001 核心数据模型](../concepts/design/knowledge-base-platform-adr-0001-data-model.md) · [ADR-0002 真 BM25 选型](../concepts/design/knowledge-base-platform-adr-0002-bm25-engine.md) — 数据模型三决策（version_key/确定性 chunk_id/原子换版）；BM25 许可与托管可用性评估（61 项核验，pg_textsearch 主选、OpenSearch 扩容、AGPL 义务边界三情形）
 
 ## 系统能力概览

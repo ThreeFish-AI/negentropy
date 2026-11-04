@@ -6,14 +6,14 @@
   "type": "architecture",
   "quality": "showcase",
   "specification": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
-    "sha256": "2b3736583c73a895e0699aee57a83d5400b605511bda5b7da38aecbacb09166d",
-    "bytes": 12096
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/diagrams/knowledge-base-platform--architecture/knowledge-base-platform--architecture.json",
+    "sha256": "28bbb2e46e952f7ade520b1d8b827c0ac9433f8dfbb7066cd7d37796dfedb511",
+    "bytes": 12722
   },
   "artifact": {
-    "path": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
-    "sha256": "6c247a7f4e115bb41974466324b3b643eda65e7636a9189ff6887ec434192291",
-    "bytes": 795966
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.html",
+    "sha256": "059ce5e82425def8218160c456c1fd78ac619a53ffe01603c42bb13b54fab521",
+    "bytes": 800937
   },
   "gates": {
     "validate": "pass",
@@ -28,16 +28,16 @@
     "truncated": false
   },
   "evidence": {
-    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize.json",
-    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize-summary.json",
-    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/minnetonka-v3/docs/assets/architecture/design/knowledge-base-platform--architecture.browser-check.json"
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/yerevan/docs/assets/architecture/design/knowledge-base-platform--architecture.browser-check.json"
   },
   "visualReview": "not-requested",
-  "durationMs": 2830,
+  "durationMs": 2104,
   "visualReviewRecommendation": {
     "action": "inspect-route-readability",
     "signals": {
-      "resolvedCrossovers": 2,
+      "resolvedCrossovers": 5,
       "routesOverSuggestedBends": 3,
       "routesOverSuggestedStretch": 1
     },
@@ -46,10 +46,56 @@
       "crossings": [
         {
           "left": {
-            "id": "e7",
-            "from": "store",
-            "to": "indexer",
-            "label": "全量重放",
+            "id": "e2",
+            "from": "src-files",
+            "to": "conn",
+            "label": "上传",
+            "collectionIndex": 1,
+            "artifactIndex": 2
+          },
+          "right": {
+            "id": "e3b",
+            "from": "src-ticket",
+            "to": "conn",
+            "label": "拉取",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "point": [
+            270,
+            120
+          ],
+          "sharedNode": "conn"
+        },
+        {
+          "left": {
+            "id": "e3",
+            "from": "src-biz",
+            "to": "conn",
+            "label": "视图",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "e3b",
+            "from": "src-ticket",
+            "to": "conn",
+            "label": "拉取",
+            "collectionIndex": 3,
+            "artifactIndex": 4
+          },
+          "point": [
+            428,
+            120
+          ],
+          "sharedNode": "conn"
+        },
+        {
+          "left": {
+            "id": "e5",
+            "from": "sync",
+            "to": "store",
+            "label": "新版本",
             "collectionIndex": 6,
             "artifactIndex": 7
           },
@@ -58,14 +104,35 @@
             "from": "indexer",
             "to": "bm25",
             "label": "",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
+          "point": [
+            325,
+            296
+          ]
+        },
+        {
+          "left": {
+            "id": "e6",
+            "from": "edit",
+            "to": "store",
+            "label": "草稿/发布",
             "collectionIndex": 7,
             "artifactIndex": 8
           },
+          "right": {
+            "id": "e8",
+            "from": "indexer",
+            "to": "bm25",
+            "label": "",
+            "collectionIndex": 9,
+            "artifactIndex": 10
+          },
           "point": [
-            523.2,
-            350
-          ],
-          "sharedNode": "indexer"
+            480,
+            296
+          ]
         },
         {
           "left": {
@@ -73,16 +140,16 @@
             "from": "indexer",
             "to": "meta",
             "label": "",
-            "collectionIndex": 8,
-            "artifactIndex": 9
+            "collectionIndex": 10,
+            "artifactIndex": 11
           },
           "right": {
             "id": "e10",
             "from": "indexer",
             "to": "vec",
             "label": "",
-            "collectionIndex": 9,
-            "artifactIndex": 10
+            "collectionIndex": 11,
+            "artifactIndex": 12
           },
           "point": [
             643,
@@ -94,15 +161,15 @@
       "detours": [
         {
           "relationship": {
-            "id": "e8",
-            "from": "indexer",
-            "to": "bm25",
-            "label": "",
-            "collectionIndex": 7,
-            "artifactIndex": 8
+            "id": "e3c",
+            "from": "src-cloud",
+            "to": "conn",
+            "label": "拉取",
+            "collectionIndex": 4,
+            "artifactIndex": 5
           },
           "bends": 3,
-          "stretch": 1
+          "stretch": 1.11
         },
         {
           "relationship": {
@@ -110,8 +177,8 @@
             "from": "prefilter",
             "to": "fusion",
             "label": "带谓词召回",
-            "collectionIndex": 16,
-            "artifactIndex": 17
+            "collectionIndex": 18,
+            "artifactIndex": 19
           },
           "bends": 4,
           "stretch": 1.39
@@ -122,8 +189,8 @@
             "from": "aclsync",
             "to": "recall",
             "label": "谓词注入",
-            "collectionIndex": 24,
-            "artifactIndex": 25
+            "collectionIndex": 26,
+            "artifactIndex": 27
           },
           "bends": 3,
           "stretch": 1
@@ -132,12 +199,14 @@
       "truncated": false
     },
     "hints": [
+      "conn has 5 relationships facing its right side, which fits 3 ports: make that side at least 88px, or move some of those neighbours so they face another side of conn.",
       "indexer has 4 relationships facing its left side, which fits 3 ports: make that side at least 74px, or move some of those neighbours so they face another side of indexer.",
-      "store → indexer and indexer → bm25 cross next to indexer: move node store or bm25 so the two reach indexer from different sides (for example one level with it, one directly above or below it).",
+      "src-files → conn and src-ticket → conn cross next to conn: move node src-files or src-ticket so the two reach conn from different sides (for example one level with it, one directly above or below it).",
+      "src-biz → conn and src-ticket → conn cross next to conn: move node src-biz or src-ticket so the two reach conn from different sides (for example one level with it, one directly above or below it).",
+      "sync → store crosses indexer → bm25: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "edit → store crosses indexer → bm25: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
       "indexer → meta and indexer → vec cross next to indexer: move node meta or vec so the two reach indexer from different sides (for example one level with it, one directly above or below it).",
-      "indexer → bm25 needs 3 bends: move node indexer or bm25 so they share a row or column with matching centers, or sit diagonally with a clear corner.",
-      "prefilter → fusion needs 4 bends: move node prefilter or fusion so they share a row or column with matching centers, or sit diagonally with a clear corner.",
-      "aclsync → recall needs 3 bends: move node aclsync or recall so they share a row or column with matching centers, or sit diagonally with a clear corner."
+      "src-cloud → conn needs 3 bends: move node src-cloud or conn so they share a row or column with matching centers, or sit diagonally with a clear corner."
     ],
     "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
   }
