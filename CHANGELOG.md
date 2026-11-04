@@ -7,8 +7,8 @@
 ### 知识库平台图文混合索引与扩展能力预留（I-248，2026-11-04）
 
 - 范围调整（[技术方案](docs/concepts/design/knowledge-base-platform.md)）：「多模态知识语义索引」移出非目标——图文混合索引进 M2（图片资产内容寻址抽取、VLM caption 过 PII 脱敏、CLIP 族跨模态向量腿独立模型空间、RRF 名次融合、图片腿回归），M3 可选页面级视觉检索演进（ColPali/VisRAG）；新增 §9 后续扩展能力章：知识图谱联邦（仓内 037 联邦 KG 作参考件）、源系统回写/hook（outbox+出站签名白名单预留）、云厂商托管知识源（Connector SPI 一类 Source）。
-- 不变量联动：version_key 纳入媒体清单哈希（图片单独替换产新版本，不被「未变即短路」吞掉）；LLM/VLM 派生物缓存键泛化为 (hash(派生输入+源侧 metadata), pipeline_ver)——caption 键含 alt+邻接语境，防同图异语境陈旧命中；§2.2 合规级联清单增图片资产与 caption（截图 PII 转写高危面）；[ADR-0001](docs/concepts/design/knowledge-base-platform-adr-0001-data-model.md) D1/D3 同步修订并补验证项⑤。
-- 实施计划（[M1–M3](docs/concepts/design/knowledge-base-platform-implementation.md)）：新增 P2-8（M2 图文混合索引）与 P2-9（M3 可选视觉检索）任务行；P1-1/P2-2/P3-4 措辞同步、M2 退出门加图文腿判据、关键路径/风险表/Next Actions/工期联动。
+- 不变量联动：version_key 纳入媒体清单哈希（图片单独替换产新版本，不被「未变即短路」吞掉）；LLM/VLM 派生物缓存键泛化为 (hash(派生输入+源侧 metadata), pipeline_ver)——caption 键含 alt+邻接语境，防同图异语境陈旧命中；§2.2 合规级联清单增图片资产与 caption（截图 PII 转写高危面）；[ADR-0001](docs/concepts/design/knowledge-base-platform-adr-0001-data-model.md) D1/D3/否决表 同步修订并补验证项⑤。
+- 实施计划（[M1–M3](docs/concepts/design/knowledge-base-platform-implementation.md)）：新增 P2-8（M2 图文混合索引）与 P2-9（M3 可选视觉检索）任务行；P1-1/P1-7/P2-2/P3-4 措辞与交付物同步、M2 退出门加图文腿判据、关键路径/风险表/Next Actions/工期（§0 M2 26→28 人周）联动。
 - 两图重渲过 archify 四门（showcase）：architecture 图 L0 增「工单 / SaaS 知识源」「云厂商知识源」两源、向量 ANN 标注图文跨模态；roadmap 图 I1/I2 卡片同步图文项；candidate/HTML/双主题 PNG/回执同批更新。
 - 循证：新增 CLIP、ColPali、VisRAG、GraphRAG 四条 IEEE 引用（arXiv 页面逐字段实测）；035/034 存量调研以节级锚收口引用并注记证据等级（定位段扩写）。
 

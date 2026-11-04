@@ -63,7 +63,7 @@ tags:
 | P2-5 (M2) | 地理空间：PostGIS + geo_point/geo_region 列 + GiST + `<->` KNN + H3 分析列；参照点优先级链与降级 | migration + geo 检索腿 + 测试 | 方案 §3.1/§3.3；调研 §8 | L |
 | P2-6 (M2) | index_ver 蓝绿：双写、水位追平、回归门、别名原子切换；回滚先重放删除/ACL 事件；权限/内容分队列部分重索引 | 蓝绿编排器 + 回滚演练 | 方案 §3.2；Azure Resync 范式（§3-F5） | XL |
 | P2-7 (M3) | 嵌入双轨：中文 BGE-M3/Qwen3 自托管 + 西文 API；MRL 弹性维度与租户配额；换模型重建常态化 | 双轨接入 + 重建 runbook | 调研 §5-F7/F8/F9 | L |
-| P2-8 (M2) | 图文混合索引：图片资产内容寻址抽取（alt/figcaption/邻接语境关联）+ VLM caption（过 PII 脱敏；缓存键 (hash(图片哈希+alt+邻接语境+源侧 metadata), pipeline_ver)）+ 跨模态嵌入腿（CLIP 族独立模型空间，同谓词 pre-filter 下推，融合只用名次）+ 图片腿回归用例 | 资产表 + caption 管线 + 图片检索腿 + 测试 | 方案 §2.4/§3.1/§3.3；WeKnora captioning（[存量调研 035](../../research/knowledge-graph/035-knowledge-base-platform.md)） | L |
+| P2-8 (M2) | 图文混合索引：图片资产内容寻址抽取（alt/figcaption/邻接语境关联）+ VLM caption（过 PII 脱敏；缓存键 (hash(图片哈希+alt+邻接语境+源侧 metadata), pipeline_ver)）+ 跨模态嵌入腿（CLIP 族独立模型空间，同谓词 pre-filter 下推，融合只用名次）+ 图片腿回归用例 | 资产表 + caption 管线 + 图片检索腿 + 测试 | 方案 §2.4/§3.1/§3.3；WeKnora captioning（[存量调研 035](../../research/knowledge-graph/035-knowledge-base-platform.md) §2.1.1） | L |
 | P2-9 (M3, 可选) | 页面级视觉检索演进：ColPali/VisRAG 类 late-interaction 页向量试点（解析后文本检索的实证上限之外的分档） | POC + 评测对比 | 方案 §3.3/§7/§8 | L |
 
 ## 5. P3 检索服务
@@ -106,7 +106,7 @@ tags:
 | 门 | 判据（全部满足才退出） |
 |---|---|
 | **M1** | 单产品域上线：upload→编辑→发布→检索（关键字+向量）→Answer API 全链路通；权限红线成立（匿名只见本域 public；鉴权覆盖门 0 违例；删权限谓词差分测试全过）；原子换版下并发读无一致性违例；golden set v0 检索腿逐腿有基线；审计表有写入且 fail-loud 验证 |
-| **M2** | ≥2 产品域 + 登录客户 ACL：连接器增量同步 staleness 达 SLO（推送 P95≤5min/拉取按档）；真 BM25 决策落地（ADR）；geo 检索腿过 CJK+geo 用例；图文检索腿过图片召回用例（caption 幻觉防线：grounding 回锚原始 chunk 有测试）；蓝绿切换+回滚演练过（回滚不复活已撤权限）；泄漏回归矩阵（四路+旁路出口）CI 全绿；Widget 上线且 XSS/注入测试过；RAGAS 回归门拦截一次人为退化（演习） |
+| **M2** | ≥2 产品域 + 登录客户 ACL：连接器增量同步 staleness 达 SLO（推送 P95≤5min/拉取按档）；真 BM25 决策落地（ADR）；geo 检索腿过 CJK+geo 用例；图文检索腿过图片召回用例（caption 幻觉防线：grounding 回锚原始 chunk 有测试）；图片单独替换产新版本并触发该图 chunk/caption/跨模态向量重建（ADR-0001 验证⑤）；蓝绿切换+回滚演练过（回滚不复活已撤权限）；泄漏回归矩阵（四路+旁路出口）CI 全绿；Widget 上线且 XSS/注入测试过；RAGAS 回归门拦截一次人为退化（演习） |
 | **M3** | 评测门常态化（索引/策略变更过门率 100%）；A/B 灰度跑通一次完整 promote/rollback；合规擦除演练（版本+派生物+索引级联清零可审计）；ReBAC/分库演进 ADR 出结论；多语言场景验收 |
 
 ## 9. 依赖与关键路径
