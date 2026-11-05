@@ -1,0 +1,206 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Physical AI 闭环四要素：环经物理世界闭合",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/physical-ai/pai--closed-loop-elements.html"
+  },
+  "lanes": [
+    {
+      "id": "world",
+      "label": "物理世界"
+    },
+    {
+      "id": "agent",
+      "label": "物理智能体（前三要素）"
+    },
+    {
+      "id": "infra",
+      "label": "数据与仿真基础设施"
+    }
+  ],
+  "phases": [
+    {
+      "id": "sense",
+      "label": "感知与建模",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "act",
+      "label": "决策与执行",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    }
+  ],
+  "groups": [
+    {
+      "id": "agent_core",
+      "label": "智能体：感知估计 · 世界模型 · 决策控制",
+      "lane": "agent",
+      "fromCol": 1,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "flywheel",
+      "label": "部署期飞轮",
+      "lane": "infra",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "world",
+    "perceive",
+    "wmodel",
+    "decide",
+    "actuator"
+  ],
+  "nodes": [
+    {
+      "id": "world",
+      "lane": "world",
+      "col": 0,
+      "type": "external",
+      "label": "物理世界",
+      "sublabel": "连续演化 · 部分可观测",
+      "tag": "动作后果常不可逆",
+      "width": 148
+    },
+    {
+      "id": "perceive",
+      "lane": "agent",
+      "col": 1,
+      "type": "frontend",
+      "label": "感知与状态估计",
+      "sublabel": "视觉/力觉/触觉/本体觉融合",
+      "tag": "保留不确定性",
+      "width": 148
+    },
+    {
+      "id": "wmodel",
+      "lane": "agent",
+      "col": 2,
+      "type": "database",
+      "label": "世界模型",
+      "sublabel": "表征 + 预测「做了会怎样」",
+      "width": 148
+    },
+    {
+      "id": "decide",
+      "lane": "agent",
+      "col": 3,
+      "type": "backend",
+      "label": "决策 · 规划 · 控制",
+      "sublabel": "几何/时间/能量/安全约束",
+      "tag": "秒级重规划",
+      "width": 148
+    },
+    {
+      "id": "actuator",
+      "lane": "world",
+      "col": 4,
+      "type": "messagebus",
+      "label": "执行器与物理接口",
+      "sublabel": "接触调节贴近硬件",
+      "tag": "毫秒级校正",
+      "width": 148
+    },
+    {
+      "id": "flybase",
+      "lane": "infra",
+      "col": 2,
+      "type": "database",
+      "label": "数据与仿真底座",
+      "sublabel": "运行经验 → 训练数据",
+      "tag": "部署期飞轮",
+      "width": 148
+    }
+  ],
+  "edges": [
+    {
+      "id": "sense-obs",
+      "from": "world",
+      "to": "perceive",
+      "label": "传感观测（带噪·延迟）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "est-to-model",
+      "from": "perceive",
+      "to": "wmodel",
+      "label": "状态估计"
+    },
+    {
+      "id": "model-answer",
+      "from": "wmodel",
+      "to": "decide",
+      "label": "预测答询"
+    },
+    {
+      "id": "cmd",
+      "from": "decide",
+      "to": "actuator",
+      "label": "动作命令（发出≠完成）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "physical-return",
+      "from": "actuator",
+      "to": "world",
+      "label": "物理后果被读回",
+      "role": "return",
+      "width": 1.2
+    },
+    {
+      "id": "exp-to-base",
+      "from": "actuator",
+      "to": "flybase",
+      "label": "运行经验",
+      "variant": "dashed"
+    },
+    {
+      "id": "base-update",
+      "from": "flybase",
+      "to": "wmodel",
+      "label": "持续学习更新",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三尺度反馈",
+      "items": [
+        "毫秒级：运动控制实时校正接触",
+        "秒级：任务层随进展重规划",
+        "部署期：运行经验回流为训练数据"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "环经物理世界闭合",
+      "items": [
+        "命令发出去不等于事情做成",
+        "只有传感器读回的物理结果才算数",
+        "夹爪闭合 ≠ 抓到；消息送达 ≠ 执行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "判据（定义四推论）",
+      "items": [
+        "观测接到世界真实量（物理接地）",
+        "存在干预路径与反馈修正行为",
+        "能力主张要有推理/预测/适应证据"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+%%source: docs/research/physical-ai/251-physical-ai-monograph.md §3（信源：arXiv 2610.27045v1 Ch1 §1.3 四要素与三尺度反馈 / Ch2 控制论）
+%%slug: physical-ai/pai--closed-loop-elements
+%%type: workflow
+%%derived: archify workflow v2（四要素闭环：物理世界→感知估计→世界模型→决策控制→执行器，环经物理世界闭合；数据与仿真底座以部署期飞轮回流世界模型；三尺度反馈由节点 tag 与卡片承载）
+flowchart LR
+    W["物理世界<br/>状态连续演化·部分可观测"]
+    P["感知与状态估计<br/>保留不确定性"]
+    M["世界模型<br/>表征+预测「做了会怎样」"]
+    D["决策·规划·控制<br/>几何/时间/能量/安全约束"]
+    A["执行器与物理接口"]
+    F["数据与仿真底座"]
+    W -->|"传感观测（带噪·延迟）"| P
+    P -->|"状态估计"| M
+    M -->|"预测答询"| D
+    D -->|"动作命令（发出≠完成）"| A
+    A -->|"物理后果被读回"| W
+    A -.->|"运行经验"| F
+    F -.->|"持续学习更新"| M

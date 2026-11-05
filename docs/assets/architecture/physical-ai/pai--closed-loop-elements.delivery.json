@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "afe50adf-dcf2-4b3d-b685-ff212ef05c7b",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-pai--closed-loop-elements-20261105-114626/pai--closed-loop-elements.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--closed-loop-elements.html",
+  "specification": {
+    "sha256": "b4b490fe47826aa0e42586fb0e2f81b98d51adffe8a472a1b3a9d5791211e4f0",
+    "bytes": 4620
+  },
+  "artifact": {
+    "sha256": "636ff355ae9a62303a154365dc37ef0cbc2da9a4d7ad8c54c406a3ba2ff7b857",
+    "bytes": 758736
+  }
+}

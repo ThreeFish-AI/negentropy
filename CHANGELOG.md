@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### Physical AI monograph 精读入库（251，I-249，2026-11-05）
+
+- 新增 `docs/research/physical-ai/251-physical-ai-monograph.md`：arXiv 2610.27045v1（52 人定名之作，CC BY 4.0）12 章全文精读，Definition 1.1 与四向边界、闭环四要素三尺度反馈、世界模型「保留答案」准则、数据金字塔与基础模型谱系、评估安全与 Physical AGI；五规律三争议、39 行 Checker 源稿对账全绿（[readme 十二节](./docs/research/readme.md)、[knowledge-map](./docs/.agents/knowledge-map.md) 同步登记）
+- 新增配套原型 `assets/physical_ai_lab.py`（纯标准库确定性，selftest 11 断言全绿，D1–D5 破坏实验实测退化）与 `--count` 字数门（口径沿用 179/181/250，5656/6000）
+- 新增两张 archify 图全套（`pai--closed-loop-elements` workflow + `pai--methodology-stack` architecture：mermaid 文本源、candidate JSON、finalize showcase 四门回执、双主题 PNG）并登记 [mermaid README](./docs/assets/mermaid/README.md)；新分组 `physical-ai/`（position 12）
+
 ### 知识库平台图文混合索引与扩展能力预留（I-248，2026-11-04）
 
 - 范围调整（[技术方案](docs/concepts/design/knowledge-base-platform.md)）：「多模态知识语义索引」移出非目标——图文混合索引进 M2（图片资产内容寻址抽取、VLM caption 过 PII 脱敏、CLIP 族跨模态向量腿独立模型空间、RRF 名次融合、图片腿回归），M3 可选页面级视觉检索演进（ColPali/VisRAG）；新增 §9 后续扩展能力章：知识图谱联邦（仓内 037 联邦 KG 作参考件）、源系统回写/hook（outbox+出站签名白名单预留）、云厂商托管知识源（Connector SPI 一类 Source）。

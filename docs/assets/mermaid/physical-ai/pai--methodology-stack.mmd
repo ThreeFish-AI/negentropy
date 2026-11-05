@@ -1,0 +1,28 @@
+%%source: docs/research/physical-ai/251-physical-ai-monograph.md §5（信源：arXiv 2610.27045v1 Part II Ch3–Ch9 技术栈）
+%%slug: physical-ai/pai--methodology-stack
+%%type: architecture
+%%derived: archify architecture v1（Part II 七板块三层落位：数据与仿真（Ch3/4）供料基础模型层（Ch5 世界模型·Ch6 操作·Ch7 全身运动），智能体与硬件层（Ch8/9）承载执行并回到物理世界闭环）
+flowchart LR
+    W(("物理世界"))
+    subgraph D1["数据与仿真层"]
+      PE["多模态感知 Ch3"]
+      DA["物理数据与仿真 Ch4"]
+    end
+    subgraph D2["基础模型层"]
+      WM["世界模型 Ch5"]
+      MA["操作基础模型 Ch6"]
+      MO["全身运动控制 Ch7"]
+    end
+    subgraph D3["智能体与硬件层"]
+      AG["物理智能体 Ch8"]
+      HW["硬件与系统 Ch9"]
+    end
+    W -->|"传感观测"| PE
+    PE -->|"状态估计"| WM
+    DA -.->|"仿真与环境供料"| WM
+    DA -.->|"轨迹与演示供料"| MA
+    WM <-.->|"预测-动作耦合"| MA
+    MA -->|"任务技能"| AG
+    MO -->|"运动能力"| AG
+    HW -.->|"多速率承载"| AG
+    AG -->|"物理干预（闭环）"| W

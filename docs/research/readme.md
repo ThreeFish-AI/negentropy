@@ -145,3 +145,9 @@
 | 文档 | 主旨 |
 |:---|:---|
 | [线性注意力机制精读与通俗拆解（AI Infra 进阶）](./model-architecture/250-linear-attention-kda.md) | 腾讯技术工程 3 万字长文精读（2026-10-29）+ 10 个一手信源对账：KV Cache 三重代价 → 记忆矩阵 S 与门控演进链（Linear→+conv→DeltaNet→GDN→KDA，β=学习率/α=权重衰减的训练视角统一解释）→ chunk-wise 两级并行（仿射化 + WY 表示，顺序 vs 分块原型逐位一致 4.4e-16）→ 固定容量 hybrid 兜底与 vLLM v0.32.0 落地（block 640 对齐/[9,9,8,8] 分组/Marconi/ReplaySSM/EAGLE block drop）；五规律三争议五批判边界；配套 [linear_attention_lab.py](./model-architecture/assets/linear_attention_lab.py)（17 断言 + D1–D5 破坏实验）与两张 archify 图（演进阶梯/chunk-wise 两级并行） |
+
+## 十二、Physical AI · `physical-ai/`
+
+| 文档 | 主旨 |
+|:---|:---|
+| [Physical AI monograph 精读与通俗拆解（具身智能定名之作）](./physical-ai/251-physical-ai-monograph.md) | 上海 AI Lab 系 52 人定名之作（arXiv 2610.27045v1，2026-10-19，CC BY 4.0）12 章全文精读：Definition 1.1 四推论判据 + 四向边界（Digital AI/Embodied AI/CPS/数字孪生）→ 闭环四要素三尺度反馈（毫秒运动控制/秒级任务重规划/部署期数据飞轮，环经物理世界闭合、发出≠完成）→ 世界模型「保留答案」准则与观测条件化≠干预 → 数据金字塔（Goldberg 1 年 vs 10 万年、多样性>体量）与操作/运动基础模型谱系（RT-1→π0.5、浮基欠驱动、BFM 掩码目标接口）→ episode 评估单元、长链复利律（50×98%≈36%）与零事件上界；五规律三争议五批判边界；配套 [physical_ai_lab.py](./physical-ai/assets/physical_ai_lab.py)（11 断言 + D1–D5 破坏实验）与两张 archify 图（闭环四要素/技术栈落位） |
