@@ -5852,7 +5852,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 - **问题描述**：需对《Physical AI: Concepts, Techniques, and Challenges》（arXiv 2610.27045v1，4.6MB LaTeXML 快照、12 章、135 万字符）做全文精读交付，正文硬门 ≤6000 字，且该领域无既有分组。
 - **表因根因**：无（新篇交付，非缺陷修复）。
-- **处理方式**：13 reader 并行分块通读（Ch1 正文 reader 缝隙由 Mentor 亲读补齐）+ 覆盖表 16 单元门禁全绿；零类比直讲 + Learner 裸讲终检通过；四测题库 10 题 + 15 备题；原型 336 行 11 断言 + D1–D5 实测；39 行 Checker 源稿对账（14 行返工复判 + 2 轻措辞改毕）；2 张 archify 图 finalize showcase 四门全过；新分组 physical-ai/（position 12）全套登记。
+- **处理方式**：13 reader 并行分块通读（Ch1 正文 reader 缝隙由 Mentor 亲读补齐）+ 覆盖表 16 单元门禁全绿；零类比直讲 + Learner 裸讲终检通过；四测题库 10 题 + 15 备题；原型 336 行 11 断言 + D1–D5 实测；39 行 Checker 源稿对账（14 行返工复判 + 2 轻措辞改毕）；2 张 archify 图 finalize showcase 四门全过；新分组 physical-ai/（position 12）全套登记；追加原图增补轮（Figure 1.1/1.5/4.2/5.3，CC BY 4.0，K51–K54 增量对账）。
 - **后续防范**：超大型 monograph 的 reader 分块须显式对齐单元边界（本篇 Ch1 正文落在两 reader 缝隙）；LaTeXML 快照 References 截断应预检（本篇截断至字母 B，转引经 arXiv API 外核）。
 - **同类问题影响**：后续 ≥100 万字符信源的精读可直接复用「分块 reader + 覆盖表门禁 + Checker 逐行对账」链路。
 - **处理注意事项**：字数门以 lab `--count` 为准（CJK 字符+ASCII 词）；archify candidate 入库后 pre-commit 补 EOF 换行致 sha256 与 finalize 回执不同为本仓既知形态（250 先例），回执钉 .archify 冻结件。

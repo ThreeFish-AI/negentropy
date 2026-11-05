@@ -9,6 +9,7 @@
 - 新增 `docs/research/physical-ai/251-physical-ai-monograph.md`：arXiv 2610.27045v1（52 人定名之作，CC BY 4.0）12 章全文精读，Definition 1.1 与四向边界、闭环四要素三尺度反馈、世界模型「保留答案」准则、数据金字塔与基础模型谱系、评估安全与 Physical AGI；五规律三争议、39 行 Checker 源稿对账全绿（[readme 十二节](./docs/research/readme.md)、[knowledge-map](./docs/.agents/knowledge-map.md) 同步登记）
 - 新增配套原型 `assets/physical_ai_lab.py`（纯标准库确定性，selftest 11 断言全绿，D1–D5 破坏实验实测退化）与 `--count` 字数门（口径沿用 179/181/250，5656/6000）
 - 新增两张 archify 图全套（`pai--closed-loop-elements` workflow + `pai--methodology-stack` architecture：mermaid 文本源、candidate JSON、finalize showcase 四门回执、双主题 PNG）并登记 [mermaid README](./docs/assets/mermaid/README.md)；新分组 `physical-ai/`（position 12）
+- 信源原图沉淀：arXiv HTML 版 Figure 1.1/1.5/4.2/5.3（CC BY 4.0）经甄选入 [source-figures/physical-ai/](./docs/assets/source-figures/physical-ai/)，正文 §1/§2/§4/§5 嵌入并逐图署名（同构无增量与无图件者不入），字数门收于 5909/6000
 
 ### 知识库平台图文混合索引与扩展能力预留（I-248，2026-11-04）
 
