@@ -22,6 +22,17 @@ KTP 论文图 1–7 由 TeX 源码包矢量 PDF 渲染为 PNG，2026-10-26 自 `
 | --- | --- | --- | --- |
 | [ktp--fig1-overview.png](./multimodal-models/ktp--fig1-overview.png) ~ [fig7](./multimodal-models/ktp--fig7-sensenova-visual-cot-case.png) | KTP TeX 源码包 Fig.1–7 | 版权归原作者，仅作学习引用 | 矢量 PDF 渲染 PNG，单图 ≤ 1 MiB |
 
+### physical-ai · Physical AI monograph 精读（[251](../../research/physical-ai/251-physical-ai-monograph.md)）
+
+arXiv HTML 版（2610.27045v1）自带 PNG 原图，2026-11-05 curl 取自 `https://arxiv.org/html/2610.27045v1/<file>`；摘要页标注 **CC BY 4.0**（开放许可，署名可转载）。全部 RGB 无透明底、未做内容改动、单图 ≤ 1280 KiB。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [pai--fig1-1-scope-expansion.png](./physical-ai/pai--fig1-1-scope-expansion.png) | Figure 1.1（1-1.png，1791×534） | CC BY 4.0 | 原样入库（991 KiB） |
+| [pai--fig1-5-application-landscape.png](./physical-ai/pai--fig1-5-application-landscape.png) | Figure 1.5（1-4.png，1002×747） | CC BY 4.0 | 原样入库（158 KiB） |
+| [pai--fig4-2-data-pyramid.png](./physical-ai/pai--fig4-2-data-pyramid.png) | Figure 4.2（4-2.png，1251×632） | CC BY 4.0 | 原样入库（232 KiB） |
+| [pai--fig5-3-training-panorama.png](./physical-ai/pai--fig5-3-training-panorama.png) | Figure 5.3（5-3.png，1252×543） | CC BY 4.0 | 原样入库（148 KiB） |
+
 ### agent-harness · DSA 精读（[178](../../research/agent-harness/178-daily-stock-analysis.md)）
 
 仓内样例均取自钉点 [`4e622643`](https://github.com/ZhuLinsen/daily_stock_analysis/tree/4e6226430b76124e5f43b19201fc6338a62f5e1d)；论文图取自 arXiv:2608.26990v1 PDF。

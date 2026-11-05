@@ -12,7 +12,7 @@
 > `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
 > `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）、
-> `docs/research/multimodal-models/` 的 KTP 精读（240，下表 `multimodal-models/` 分节）、`docs/research/model-architecture/` 的线性注意力精读（250，下表 `model-architecture/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
+> `docs/research/multimodal-models/` 的 KTP 精读（240，下表 `multimodal-models/` 分节）、`docs/research/model-architecture/` 的线性注意力精读（250，下表 `model-architecture/` 分节）、`docs/research/physical-ai/` 的 Physical AI monograph 精读（251，下表 `physical-ai/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
 > `docs/reference/cognizes/`（已退役遗产），**不在此管线**，原地保留渲染。
 
 ## 约定
@@ -345,6 +345,13 @@
 | [ktp--protocol](./multimodal-models/ktp--protocol.mmd) | [240 §5](../../research/multimodal-models/240-visual-generation-knowledge-transfer.md) | workflow | ✓ | done | 训练与评测协议：数据构造 → 对齐集 / 测试集同一次训练 → 只在测试集算分（文字问答 + 重画）；虚线标「跨实体迁移？」；candidate JSON 入 `docs/diagrams/ktp--protocol/` |
 | [kda--evolution-ladder](./model-architecture/kda--evolution-ladder.mmd) | [250 §3](../../research/model-architecture/250-linear-attention-kda.md) | workflow | ✓ | done | 门控演进阶梯：Softmax→线性注意力→+短卷积→DeltaNet→GDN→KDA 五档（每档加一个门治一种病）+ RWKV 平行路线 + Hybrid 产业收敛分支；三卡：粒度天花板/训练视角/2026 产业配比；candidate JSON 入 `docs/diagrams/kda--evolution-ladder/` |
 | [kda--chunkwise-two-level](./model-architecture/kda--chunkwise-two-level.mmd) | [250 §4](../../research/model-architecture/250-linear-attention-kda.md) | dataflow | ✓ | done | chunk-wise 两级并行数据流：Token 切块 → 块间宏观（Transition/Δ 各块独立）与块内微观（WY 解下三角得 U/W）两路 → 汇合 E=U−WS₀ᵀ → 产出块末状态 S_C 与全部输出 O；两卡：两级分工/重写精确性；candidate JSON 入 `docs/diagrams/kda--chunkwise-two-level/` |
+
+### physical-ai/（docs/research/physical-ai/ 的 Physical AI monograph 精读（251））
+
+| slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| [pai--closed-loop-elements](./physical-ai/pai--closed-loop-elements.mmd) | [251 §3](../../research/physical-ai/251-physical-ai-monograph.md) | workflow | ✓ | done | 闭环四要素：物理世界→感知估计→世界模型→决策控制→执行器主链，物理后果读回经上方通道闭合环；数据与仿真底座以部署期飞轮（虚线）回流世界模型；三卡：三尺度反馈/环经物理世界闭合/判据四推论；candidate JSON 入 `docs/diagrams/pai--closed-loop-elements/` |
+| [pai--methodology-stack](./physical-ai/pai--methodology-stack.mmd) | [251 §5](../../research/physical-ai/251-physical-ai-monograph.md) | architecture | ✓ | done | Part II 技术栈三层落位：数据与仿真层（Ch3 感知/Ch4 数据仿真）供料基础模型层（Ch5 世界模型/Ch6 操作/Ch7 全身运动），智能体与硬件层（Ch8/Ch9）承载执行并回到物理世界闭环；三卡：供料链/四要素落位/闭环出口；candidate JSON 入 `docs/diagrams/pai--methodology-stack/` |
 
 ### 原地保留（无 archify 对应类型 / 不在本管线）
 

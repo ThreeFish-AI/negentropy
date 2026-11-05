@@ -254,6 +254,7 @@
 | I-246 | #1220 分集目录两级化后路径深度回归（单层 glob/正则/parents[N] 失配）：系列钩子死链、TTS 元数据漏入库、archify html 被剥空白、分集脚本脱离 lint、287 条链接失效 | ✅ 已完成 | 2026-11-03 | [详情](#I-246) |
 | I-247 | Jev 精读 200 换代重写（上游 Jev 1.14.0 + 规约换代：总类比/考评实录退场 + 字数门 6000）：四桶审计重写并同步入站指针 | ✅ 已完成 | 2026-11-03 | [详情](#I-247) |
 | I-248 | 知识库平台图文混合索引进范围 + 三项扩展能力预留（KG 联邦/源系统回写 hook/云厂商知识源）：version_key 纳媒体清单、caption 缓存键含语境、P2-8/9 新任务与两图重渲 | ✅ 已完成 | 2026-11-04 | [详情](#I-248) |
+| I-249 | Physical AI monograph 精读入库（251）：新分组、双图、原型与登记面 | ✅ 已完成 | 2026-11-05 | [详情](#I-249) |
 
 ---
 
@@ -5845,3 +5846,13 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：多模态不新增第五路索引——图片 chunk 复用四路（caption/alt 走 BM25 字段加权、CLIP 族跨模态嵌入独立模型空间走向量路、RRF 名次融合）；version_key 纳入媒体清单哈希、LLM/VLM 派生物缓存键泛化（caption 键=hash(图片哈希+alt+邻接语境+源侧 metadata)）、§2.2 级联清单增图片资产与 caption 并接 PII 脱敏；新增 §9 扩展能力章（KG 联邦锚仓内 037 参考件、回写 outbox+权威策略联动、云厂商知识源一类 Source）与 M2 起步/M3 演进里程碑；实施计划补 P2-8/P2-9；architecture/roadmap 两图重渲过 archify showcase 四门；新增 CLIP/ColPali/VisRAG/GraphRAG 四条实测 IEEE 引用。改动前经 10 代理对抗核验（21 条发现全存活），版本键/缓存键/合规面三处 blocker 级缺陷先行并入设计。
 - **后续防范**：为既有不变量扩展新模态时，先核对该不变量键形/级联清单是否覆盖新输入（version_key、缓存键、擦除级联三处是本次实测踩点）；候选缺陷断言须经证据复核再采纳（本轮 consistency 镜头半数论据系误读被复核剔除）。
 - **同类问题影响**：主方案 §0/§1/§2.2/§2.4/§3.1/§3.3/§4.2/§4.4/§7/§8/§9/参考文献与定位段、实施计划 P1-1/P1-7/P2-2/P2-8/P2-9/P3-4/§0/§1/§8/§9/§11/§12、ADR-0001 D1/D3/范围/否决表/验证、两张 archify 图 candidate+HTML+PNG+回执、mermaid README 与 knowledge-map 登记行同步。
+
+<a id="I-249"></a>
+## I-249：Physical AI monograph 精读入库（251）：新分组、双图、原型与登记面
+
+- **问题描述**：需对《Physical AI: Concepts, Techniques, and Challenges》（arXiv 2610.27045v1，4.6MB LaTeXML 快照、12 章、135 万字符）做全文精读交付，正文硬门 ≤6000 字，且该领域无既有分组。
+- **表因根因**：无（新篇交付，非缺陷修复）。
+- **处理方式**：13 reader 并行分块通读（Ch1 正文 reader 缝隙由 Mentor 亲读补齐）+ 覆盖表 16 单元门禁全绿；零类比直讲 + Learner 裸讲终检通过；四测题库 10 题 + 15 备题；原型 336 行 11 断言 + D1–D5 实测；39 行 Checker 源稿对账（14 行返工复判 + 2 轻措辞改毕）；2 张 archify 图 finalize showcase 四门全过；新分组 physical-ai/（position 12）全套登记；追加原图增补轮（Figure 1.1/1.5/4.2/5.3，CC BY 4.0，K51–K54 增量对账）。
+- **后续防范**：超大型 monograph 的 reader 分块须显式对齐单元边界（本篇 Ch1 正文落在两 reader 缝隙）；LaTeXML 快照 References 截断应预检（本篇截断至字母 B，转引经 arXiv API 外核）。
+- **同类问题影响**：后续 ≥100 万字符信源的精读可直接复用「分块 reader + 覆盖表门禁 + Checker 逐行对账」链路。
+- **处理注意事项**：字数门以 lab `--count` 为准（CJK 字符+ASCII 词）；archify candidate 入库后 pre-commit 补 EOF 换行致 sha256 与 finalize 回执不同为本仓既知形态（250 先例），回执钉 .archify 冻结件。

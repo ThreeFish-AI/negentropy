@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Physical AI 技术栈：Part II 七板块按四要素落位",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/physical-ai/pai--methodology-stack.html"
+  },
+  "components": [
+    {
+      "id": "world",
+      "type": "external",
+      "label": "物理世界",
+      "sublabel": "传感与干预的对象",
+      "pos": [
+        36,
+        268
+      ],
+      "size": [
+        116,
+        84
+      ]
+    },
+    {
+      "id": "perception",
+      "type": "frontend",
+      "label": "多模态感知 · Ch3",
+      "sublabel": "传感→融合→语义推理",
+      "tag": "感知估计要素",
+      "pos": [
+        226,
+        88
+      ],
+      "size": [
+        158,
+        64
+      ]
+    },
+    {
+      "id": "data",
+      "type": "database",
+      "label": "物理数据与仿真 · Ch4",
+      "sublabel": "数据金字塔 · sim-to-real",
+      "tag": "经验供料",
+      "pos": [
+        482,
+        88
+      ],
+      "size": [
+        172,
+        64
+      ]
+    },
+    {
+      "id": "wmodel",
+      "type": "database",
+      "label": "世界模型 · Ch5",
+      "sublabel": "表征 + 动作条件预测",
+      "tag": "保留答案",
+      "pos": [
+        226,
+        248
+      ],
+      "size": [
+        158,
+        64
+      ]
+    },
+    {
+      "id": "manip",
+      "type": "backend",
+      "label": "操作基础模型 · Ch6",
+      "sublabel": "VLA · 动作块",
+      "pos": [
+        482,
+        248
+      ],
+      "size": [
+        158,
+        64
+      ]
+    },
+    {
+      "id": "motor",
+      "type": "backend",
+      "label": "全身运动控制 · Ch7",
+      "sublabel": "浮基欠驱动 · 接触中心",
+      "pos": [
+        738,
+        248
+      ],
+      "size": [
+        164,
+        64
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "物理智能体 · Ch8",
+      "sublabel": "五功能角色 · 多智能体协调",
+      "tag": "闭环组织",
+      "pos": [
+        482,
+        408
+      ],
+      "size": [
+        158,
+        64
+      ]
+    },
+    {
+      "id": "hardware",
+      "type": "cloud",
+      "label": "硬件与系统 · Ch9",
+      "sublabel": "设备-边缘-云 · 租约与信息年龄",
+      "pos": [
+        738,
+        408
+      ],
+      "size": [
+        164,
+        64
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "数据与仿真层",
+      "wraps": [
+        "perception",
+        "data"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "基础模型层",
+      "wraps": [
+        "wmodel",
+        "manip",
+        "motor"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "智能体与硬件层",
+      "wraps": [
+        "agent",
+        "hardware"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "w-sense",
+      "from": "world",
+      "to": "perception",
+      "label": "传感观测",
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-est",
+      "from": "perception",
+      "to": "wmodel",
+      "label": "状态估计"
+    },
+    {
+      "id": "d-wm",
+      "from": "data",
+      "to": "wmodel",
+      "label": "仿真与环境供料",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "d-ma",
+      "from": "data",
+      "to": "manip",
+      "label": "轨迹与演示供料",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "wm-ma",
+      "from": "wmodel",
+      "to": "manip",
+      "label": "预测-动作耦合",
+      "variant": "dashed"
+    },
+    {
+      "id": "ma-ag",
+      "from": "manip",
+      "to": "agent",
+      "label": "任务技能"
+    },
+    {
+      "id": "mo-ag",
+      "from": "motor",
+      "to": "agent",
+      "label": "运动能力"
+    },
+    {
+      "id": "hw-ag",
+      "from": "hardware",
+      "to": "agent",
+      "label": "多速率承载",
+      "variant": "dashed"
+    },
+    {
+      "id": "ag-w",
+      "from": "agent",
+      "to": "world",
+      "label": "物理干预（闭环）",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "供料链",
+      "items": [
+        "Ch4 仿真与演示喂养基础模型，价值以校准为上限",
+        "Ch3 感知为世界模型供状态估计"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "四要素落位",
+      "items": [
+        "感知估计 = Ch3 传感 + Ch9 传感硬件",
+        "世界模型 = Ch5（表征+预测）",
+        "决策控制 = Ch6–Ch8，反馈承载 = Ch9"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "闭环出口",
+      "items": [
+        "智能体经硬件回到物理世界，后果读回修正模型",
+        "发出动作 ≠ 完成，验证只认物理结果"
+      ]
+    }
+  ]
+}

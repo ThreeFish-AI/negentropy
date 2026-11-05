@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "5fbfc5ec-96ab-4439-862d-d7c75275011e",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-pai--methodology-stack-20261105-114626/pai--methodology-stack.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--methodology-stack.html",
+  "specification": {
+    "sha256": "bd0b9c1c187c2340d281bc6dfed581cdfe362f0ed4ff97737072f3a71c963b5b",
+    "bytes": 4903
+  },
+  "artifact": {
+    "sha256": "3dee64c53c81138a6c2002bf059d3b2ec16a3cbabd456148107f31bbdd07d63d",
+    "bytes": 763667
+  }
+}

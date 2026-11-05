@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/workflow-pai--closed-loop-elements-20261105-114626/pai--closed-loop-elements.json",
+    "sha256": "b4b490fe47826aa0e42586fb0e2f81b98d51adffe8a472a1b3a9d5791211e4f0",
+    "bytes": 4620
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--closed-loop-elements.html",
+    "sha256": "636ff355ae9a62303a154365dc37ef0cbc2da9a4d7ad8c54c406a3ba2ff7b857",
+    "bytes": 758736
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--closed-loop-elements.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--closed-loop-elements.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--closed-loop-elements.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2305,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "physical-return",
+            "from": "actuator",
+            "to": "world",
+            "label": "物理后果被读回",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 3,
+          "stretch": 1.053
+        },
+        {
+          "relationship": {
+            "id": "sense-obs",
+            "from": "world",
+            "to": "perceive",
+            "label": "传感观测（带噪·延迟）",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 3,
+          "stretch": 1.205
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "actuator → world needs 3 bends: move node actuator or world so they share a row or column with matching centers, or sit diagonally with a clear corner.",
+      "world → perceive needs 3 bends: move node world or perceive so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

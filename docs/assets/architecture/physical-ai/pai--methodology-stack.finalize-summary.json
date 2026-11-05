@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/.archify/architecture-pai--methodology-stack-20261105-114626/pai--methodology-stack.json",
+    "sha256": "bd0b9c1c187c2340d281bc6dfed581cdfe362f0ed4ff97737072f3a71c963b5b",
+    "bytes": 4903
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--methodology-stack.html",
+    "sha256": "3dee64c53c81138a6c2002bf059d3b2ec16a3cbabd456148107f31bbdd07d63d",
+    "bytes": 763667
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--methodology-stack.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--methodology-stack.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/nagoya-v1/docs/assets/architecture/physical-ai/pai--methodology-stack.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2058,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 1,
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "ma-ag",
+            "from": "manip",
+            "to": "agent",
+            "label": "任务技能",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "right": {
+            "id": "mo-ag",
+            "from": "motor",
+            "to": "agent",
+            "label": "运动能力",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "point": [
+            561,
+            384
+          ],
+          "sharedNode": "agent"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "mo-ag",
+            "from": "motor",
+            "to": "agent",
+            "label": "运动能力",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "manip → agent and motor → agent cross next to agent: move node manip or motor so the two reach agent from different sides (for example one level with it, one directly above or below it).",
+      "motor → agent needs 3 bends: move node motor or agent so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
