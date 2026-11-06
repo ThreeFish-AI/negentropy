@@ -9,7 +9,7 @@
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
 > Horizon Context 精读、Context Layer 蓝图、OpenViking 精读与 Memadapter 精读（下表 `cognitive-context/` 分节）、
-> `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）与 Hermes Agent 精读（190，下表 `agent-harness/` 分节）、
+> `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）、Hermes Agent 精读（190）与 Agent-Reflex 精读（252，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
 > `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）、
 > `docs/research/multimodal-models/` 的 KTP 精读（240，下表 `multimodal-models/` 分节）、`docs/research/model-architecture/` 的线性注意力精读（250，下表 `model-architecture/` 分节）、`docs/research/physical-ai/` 的 Physical AI monograph 精读（251，下表 `physical-ai/` 分节）。未纳入：其余 `docs/research/`（第三方调研）与
@@ -37,10 +37,12 @@
 
 > 各分类行由对应重绘波次登记；`产物` 列 ✓ = html + dark/light PNG 已入库。
 
-### agent-harness/（Learn Claude Code 五层精读 · 并发重学（176） · AI Native 手册精读 · Hermes Agent 精读 · claude.dev 全站精读（177） · dsh-superagent 精读（182））
+### agent-harness/（Learn Claude Code 五层精读 · 并发重学（176） · AI Native 手册精读 · Hermes Agent 精读 · claude.dev 全站精读（177） · dsh-superagent 精读（182） · Agent-Reflex 精读（252））
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| [agent-reflex--pipeline](./agent-harness/agent-reflex--pipeline.mmd) | [252 Agent-Reflex §3–§5](../../research/agent-harness/252-agent-reflex.md) | workflow | ✓ | done | 三阶段训练管线：RSD 挖库→ReSFT 内化→ORPO 在线→部署零依赖；特权信息只在训练侧（技能卡虚线边承载）；candidate JSON 入 docs/diagrams/agent-reflex--pipeline/ |
+| [agent-reflex--three-samplings](./agent-harness/agent-reflex--three-samplings.mmd) | [252 Agent-Reflex §4](../../research/agent-harness/252-agent-reflex.md) | workflow | ✓ | done | ReSFT 三采样对照：SR/KR/UR 三泳道同源分流，恢复点·技能去向·存档内容逐列对照，UR 保留 u_κ 标注部署可见；candidate JSON 入 docs/diagrams/agent-reflex--three-samplings/ |
 | [lcc-tooling--panorama](./agent-harness/lcc-tooling--panorama.mmd) | [171 工具与执行 §6 末](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 主循环+分发+三闸门+钩子全貌（2026-10-07 guided-learn 换代首批）；2026-10-12 与 L0–L3 统一顺时针回环网格 |
 | [lcc-tooling--loop-simple](./agent-harness/lcc-tooling--loop-simple.mmd) | [171 工具与执行 §2](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L0：白话主循环一圈（§4/§5/§6 徽标占位）；网格骨架与终态同幅 |
 | [lcc-tooling--loop-full](./agent-harness/lcc-tooling--loop-full.mmd) | [171 工具与执行 §3](../../research/agent-harness/171-claude-code-tooling-execution.md) | architecture | ✓ | done | 渐进图 L1：循环本体完整化（两信号判据、Stop 续跑、回喂闭环） |

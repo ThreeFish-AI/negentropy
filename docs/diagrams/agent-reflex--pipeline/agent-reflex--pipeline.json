@@ -1,0 +1,193 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Agent-Reflex 三阶段训练管线：挖库→内化→在线放大",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/agent-harness/agent-reflex--pipeline.html"
+  },
+  "lanes": [
+    {
+      "id": "offline",
+      "label": "RSD · 离线挖库"
+    },
+    {
+      "id": "cold",
+      "label": "ReSFT · 冷启动内化"
+    },
+    {
+      "id": "online",
+      "label": "ORPO · 在线优化 → 部署"
+    }
+  ],
+  "phases": [
+    {
+      "id": "dig",
+      "label": "挖技能",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "train",
+      "label": "两段训练",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "ship",
+      "label": "上线",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "groups": [],
+  "mainPath": [
+    "inj",
+    "smp",
+    "lib",
+    "srsft",
+    "rollout",
+    "opd",
+    "deploy"
+  ],
+  "nodes": [
+    {
+      "id": "inj",
+      "lane": "offline",
+      "col": 0,
+      "type": "backend",
+      "label": "故障注入环境",
+      "sublabel": "557 环境 · 八族 p=0.2",
+      "width": 138
+    },
+    {
+      "id": "smp",
+      "lane": "offline",
+      "col": 1,
+      "type": "backend",
+      "label": "九模型同任务采样",
+      "sublabel": "4B–284B · 联标弃分歧",
+      "width": 142
+    },
+    {
+      "id": "lib",
+      "lane": "offline",
+      "col": 2,
+      "type": "database",
+      "label": "技能库",
+      "sublabel": "1,170 条 · 环境级索引",
+      "tag": "只挖一次",
+      "width": 126
+    },
+    {
+      "id": "srsft",
+      "lane": "cold",
+      "col": 3,
+      "type": "backend",
+      "label": "三采样 → 54K SFT",
+      "sublabel": "技能在场 · 验证器 · 剥特权",
+      "tag": "冷启动",
+      "width": 152
+    },
+    {
+      "id": "rollout",
+      "lane": "online",
+      "col": 3,
+      "type": "backend",
+      "label": "混合组 rollout",
+      "sublabel": "G=8 · ν=0.25 · 整组归一",
+      "width": 150
+    },
+    {
+      "id": "opd",
+      "lane": "online",
+      "col": 4,
+      "type": "backend",
+      "label": "RL + 同 token 重打分",
+      "sublabel": "教师只前向 · γ 加权",
+      "tag": "ORPO",
+      "width": 156
+    },
+    {
+      "id": "deploy",
+      "lane": "online",
+      "col": 5,
+      "type": "cloud",
+      "label": "部署",
+      "sublabel": "无库 · 无提示 · 无反思器",
+      "width": 150
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "inj",
+      "to": "smp",
+      "label": "采样",
+      "variant": "default"
+    },
+    {
+      "id": "e2",
+      "from": "smp",
+      "to": "lib",
+      "label": "抽取",
+      "variant": "default"
+    },
+    {
+      "id": "e3",
+      "from": "lib",
+      "to": "srsft",
+      "label": "技能在场",
+      "variant": "dashed"
+    },
+    {
+      "id": "e5",
+      "from": "srsft",
+      "to": "rollout",
+      "label": "冷启动",
+      "variant": "default"
+    },
+    {
+      "id": "e6",
+      "from": "rollout",
+      "to": "opd",
+      "label": "同 token",
+      "variant": "default"
+    },
+    {
+      "id": "e7",
+      "from": "opd",
+      "to": "deploy",
+      "label": "内化进权重",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e8",
+      "from": "lib",
+      "to": "opd",
+      "label": "技能卡直查（仅训练）",
+      "variant": "dashed",
+      "role": "branch"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "特权纪律",
+      "items": [
+        "技能卡与状态快照只在训练侧：SR/KR 存档剥除，UR 转写为用户话术",
+        "部署不带技能库：技能卡只做教师分支的前向重打分，推理零依赖"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "为什么挖得出来",
+      "items": [
+        "同任务跨模型配对：成败差异只能来自行为而非预算（相同采样协议）",
+        "配对只在同任务内、每环境至少 5 个任务，技能是环境级而非任务级"
+      ]
+    }
+  ]
+}

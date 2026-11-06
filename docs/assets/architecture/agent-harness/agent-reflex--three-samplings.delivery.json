@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4f9a06e8-34d0-4879-a2e0-e9e0550c0e85",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/diagrams/agent-reflex--three-samplings/agent-reflex--three-samplings.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/assets/architecture/agent-harness/agent-reflex--three-samplings.html",
+  "specification": {
+    "sha256": "817d21a0496dc6c840049c49750d3dc8a62474233882f67fb3255d10c65e863c",
+    "bytes": 4638
+  },
+  "artifact": {
+    "sha256": "63cc99ac67b69fdeaf729de96c1ed6fb02896298efc14ca628ed4b147db5a985",
+    "bytes": 765335
+  }
+}
