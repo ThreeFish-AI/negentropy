@@ -22,6 +22,18 @@ KTP 论文图 1–7 由 TeX 源码包矢量 PDF 渲染为 PNG，2026-10-26 自 `
 | --- | --- | --- | --- |
 | [ktp--fig1-overview.png](./multimodal-models/ktp--fig1-overview.png) ~ [fig7](./multimodal-models/ktp--fig7-sensenova-visual-cot-case.png) | KTP TeX 源码包 Fig.1–7 | 版权归原作者，仅作学习引用 | 矢量 PDF 渲染 PNG，单图 ≤ 1 MiB |
 
+
+### multimodal-models · Omnimodal Embeddings 综述精读（[253](../../research/multimodal-models/253-omnimodal-embeddings-survey.md)）
+
+arXiv:2611.00172v1 HTML 版四张外链 SVG（研究全景、收敛四义、四种共享方式、四时代阶梯）经无头 Chrome 按 viewBox 等比渲染为 PNG（fig3 以 3× 采样保证可读，其余 1.5×），仅格式转换不改内容；逐图署名见 [253 正文](../../research/multimodal-models/253-omnimodal-embeddings-survey.md)。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [oe--fig1-research-map.png](./multimodal-models/oe--fig1-research-map.png) | arXiv 2611.00172v1 Fig.1 | 版权归原作者，arXiv 非独占分发许可 | SVG→PNG 1.5×，435 KiB |
+| [oe--fig3-convergence-four-meanings.png](./multimodal-models/oe--fig3-convergence-four-meanings.png) | arXiv 2611.00172v1 Fig.3 | 同上 | SVG→PNG 3×，92 KiB |
+| [oe--fig5-sharing-work.png](./multimodal-models/oe--fig5-sharing-work.png) | arXiv 2611.00172v1 Fig.5 | 同上 | SVG→PNG 1.5×，264 KiB |
+| [oe--fig6-omnimodal-paths.png](./multimodal-models/oe--fig6-omnimodal-paths.png) | arXiv 2611.00172v1 Fig.6 | 同上 | SVG→PNG 1.5×，786 KiB |
+
 ### physical-ai · Physical AI monograph 精读（[251](../../research/physical-ai/251-physical-ai-monograph.md)）
 
 arXiv HTML 版（2610.27045v1）自带 PNG 原图，2026-11-05 curl 取自 `https://arxiv.org/html/2610.27045v1/<file>`；摘要页标注 **CC BY 4.0**（开放许可，署名可转载）。全部 RGB 无透明底、未做内容改动、单图 ≤ 1280 KiB。

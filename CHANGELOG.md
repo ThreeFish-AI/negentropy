@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Omnimodal Embeddings 综述精读入库（253，I-251，2026-11-07）
+
+- 新增 `docs/research/multimodal-models/253-omnimodal-embeddings-survey.md`：arXiv 2611.00172v1（Ant Group × 上交/ANU/同济/NUS 立场综述）全文首读，碎片化三孤岛诊断（1,352 篇普查跨模态 <5%）与四轴收敛、五件套解剖、3C 能力阶梯 × 三条统一路径（变换→对齐→联合融合，Δcomp 为真融合判据）、modality gap 三成因、五规律三争议；45 行 Checker 源稿对账全绿（[readme 十节](./docs/research/readme.md)、[knowledge-map](./docs/.agents/knowledge-map.md) 同步登记）
+- 新增配套原型 `assets/omnimodal_embeddings_lab.py`（纯标准库确定性，selftest 26 断言全绿，E1–E5 破坏实验实测退化：错配正对检索 1.0→0.0 无报警、交互项清零退化为相加检索）与 `--count` 字数门（口径沿用 179/181/250/251，5981/6000）
+- 新增两张 archify 图全套（`oe--anatomy-five-parts` architecture + `oe--3c-three-paths` workflow：mermaid 文本源、candidate JSON、finalize showcase 四门回执、双主题 PNG）并登记 [mermaid README](./docs/assets/mermaid/README.md)
+- 信源原图沉淀：arXiv HTML 版 Figure 1/3/5/6（外链 SVG 经无头 Chrome 渲 PNG，arXiv 非独占分发许可逐图署名）入 [source-figures/multimodal-models/](./docs/assets/source-figures/multimodal-models/)，正文 §2/§4 嵌入
+
 ### Physical AI monograph 精读入库（251，I-249，2026-11-05）
 
 - 新增 `docs/research/physical-ai/251-physical-ai-monograph.md`：arXiv 2610.27045v1（52 人定名之作，CC BY 4.0）12 章全文精读，Definition 1.1 与四向边界、闭环四要素三尺度反馈、世界模型「保留答案」准则、数据金字塔与基础模型谱系、评估安全与 Physical AGI；五规律三争议、39 行 Checker 源稿对账全绿（[readme 十二节](./docs/research/readme.md)、[knowledge-map](./docs/.agents/knowledge-map.md) 同步登记）

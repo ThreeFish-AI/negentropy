@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "嵌入模型五件套解剖",
+    "subtitle": "任何模态的嵌入模型都拆成同五个结构件＋两个建模决策位",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/multimodal-models/oe--anatomy-five-parts.html"
+  },
+  "components": [
+    { "id": "raw", "type": "external", "label": "任意模态输入", "sublabel": "文本·图像·音频·图·表·时序", "pos": [40, 250], "size": [140, 64] },
+    { "id": "unit", "type": "backend", "label": "数据单元", "sublabel": "切多大：子词/像素块/节点/单元格", "pos": [250, 250], "size": [150, 64] },
+    { "id": "tok", "type": "security", "label": "Tokenizer 模态接口", "sublabel": "格点对称 vs 无序集合", "tag": "模态差异住这层", "pos": [470, 250], "size": [160, 72] },
+    { "id": "enc", "type": "backend", "label": "编码器骨干", "sublabel": "Transformer/SSM", "tag": "弱先验＋插件结构", "pos": [700, 250], "size": [150, 72] },
+    { "id": "agg", "type": "backend", "label": "聚合/读出", "sublabel": "CLS/平均/统计量池化", "pos": [920, 250], "size": [140, 64] },
+    { "id": "repr", "type": "database", "label": "表征对象（交付物）", "sublabel": "全局向量/局部序列/离散码/分布", "tag": "交付物定生死", "pos": [1130, 250], "size": [170, 72] },
+    { "id": "obj", "type": "messagebus", "label": "训练目标", "sublabel": "对比/重建/生成-混合", "tag": "预训练→微调两段式", "pos": [700, 70], "size": [150, 64] },
+    { "id": "evl", "type": "cloud", "label": "评测范式", "sublabel": "冻结编码器探针", "pos": [1130, 450], "size": [170, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "模态接入层（结构件）", "wraps": ["unit", "tok"] },
+    { "kind": "region", "label": "共享处理核心（跨模态复用）", "wraps": ["enc", "agg"] }
+  ],
+  "connections": [
+    { "id": "raw-unit", "from": "raw", "to": "unit", "label": "原始信号" },
+    { "id": "unit-tok", "from": "unit", "to": "tok", "label": "切成单元" },
+    { "id": "tok-enc", "from": "tok", "to": "enc", "label": "token 流" },
+    { "id": "enc-agg", "from": "enc", "to": "agg", "label": "隐状态序列" },
+    { "id": "agg-repr", "from": "agg", "to": "repr", "label": "读出" },
+    { "id": "obj-enc", "from": "obj", "to": "enc", "label": "损失塑造几何", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "evl-repr", "from": "evl", "to": "repr", "label": "冻结后探查", "variant": "dashed", "fromSide": "top", "toSide": "bottom" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "结构五件套",
+      "items": [
+        "数据单元→tokenizer→编码器→聚合→表征对象是五条正交轴，可单独替换",
+        "同一骨架在每个模态重复出现，变的只是每格的实现"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "建模决策位",
+      "items": [
+        "训练目标与评测是决策位而非结构件：换目标不换骨干、换评测不换模型",
+        "预训练（海量弱信号）在前，微调（任务信号）在后，是全模态共同配方"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "两个关键断言",
+      "items": [
+        "模态差异住在 tokenizer 里，共性住在骨干里（骨干对输入是不做预设的集合算子）",
+        "表征对象而非编码器决定嵌入能干什么：更强的编码器≠更好的嵌入"
+      ]
+    }
+  ]
+}

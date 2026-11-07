@@ -255,6 +255,7 @@
 | I-247 | Jev 精读 200 换代重写（上游 Jev 1.14.0 + 规约换代：总类比/考评实录退场 + 字数门 6000）：四桶审计重写并同步入站指针 | ✅ 已完成 | 2026-11-03 | [详情](#I-247) |
 | I-248 | 知识库平台图文混合索引进范围 + 三项扩展能力预留（KG 联邦/源系统回写 hook/云厂商知识源）：version_key 纳媒体清单、caption 缓存键含语境、P2-8/9 新任务与两图重渲 | ✅ 已完成 | 2026-11-04 | [详情](#I-248) |
 | I-249 | Physical AI monograph 精读入库（251）：新分组、双图、原型与登记面 | ✅ 已完成 | 2026-11-05 | [详情](#I-249) |
+| I-251 | Omnimodal Embeddings 综述精读入库（253）：双 archify 图、四原图、原型与登记面 | ✅ 已完成 | 2026-11-07 | [详情](#I-251) |
 
 ---
 
@@ -5856,3 +5857,18 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：超大型 monograph 的 reader 分块须显式对齐单元边界（本篇 Ch1 正文落在两 reader 缝隙）；LaTeXML 快照 References 截断应预检（本篇截断至字母 B，转引经 arXiv API 外核）。
 - **同类问题影响**：后续 ≥100 万字符信源的精读可直接复用「分块 reader + 覆盖表门禁 + Checker 逐行对账」链路。
 - **处理注意事项**：字数门以 lab `--count` 为准（CJK 字符+ASCII 词）；archify candidate 入库后 pre-commit 补 EOF 换行致 sha256 与 finalize 回执不同为本仓既知形态（250 先例），回执钉 .archify 冻结件。
+
+<a id="I-251"></a>
+## I-251：Omnimodal Embeddings 综述精读入库（253）
+
+**问题描述**：多模态嵌入领域的统一化进程缺少一篇跨模态视角的精读底稿；本仓多模态模型组仅有 KTP 一篇（240），领域全景（碎片化诊断、收敛机制、统一路线图）无入库材料。
+
+**表因根因**：该领域 2026 年 10 月底才出现首篇跨全模态的立场综述（arXiv:2611.00172v1），此前只有各模态孤岛综述，无从下手。
+
+**处理方式**：按 guided-learn 完整流水线精读入库：`docs/research/multimodal-models/253-omnimodal-embeddings-survey.md`（3C×三桥框架、五规律三争议、五件套解剖）；配套 `assets/omnimodal_embeddings_lab.py`（纯标准库 26 断言 + E1–E5 破坏实验）；两张 archify 图（oe--anatomy-five-parts architecture、oe--3c-three-paths workflow，finalize showcase 四门全绿 + 视觉复审零建议）；四张信源原图 SVG 经无头 Chrome 渲 PNG 入 source-figures；登记面七处同步（category/readme/knowledge-map/CHANGELOG/mermaid README/source-figures README/本文件）。
+
+**后续防范**：跨模态宣称的评估口径（3C 分立举证、Δcomp 判据）可复用于后续多模态模型的选型与验收；「正对构造=不变性声明」可作为审计任何对比学习系统的固定入口。
+
+**同类问题影响**：后续再精读嵌入/多模态类论文时，编号顺延（下一篇 254）、Issue 编号顺延（I-252 起），lab 命名沿用 `<topic>_lab.py` + `--count` 字数门口径。
+
+**处理注意事项**：252/I-250 已被并行分支的 Agent-Reflex 精读占用（开 PR #1231），合并顺序不影响编号大小关系；archify 图修改须回 `.mmd` 文本源重走管线，勿手改 HTML。

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6fa26c2b-b359-4dec-b992-c0f65cbd0f41",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/diagrams/oe--3c-three-paths/oe--3c-three-paths.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/assets/architecture/multimodal-models/oe--3c-three-paths.html",
+  "specification": {
+    "sha256": "4818c3aa14c4809e492f85fb300693d874cf5e5dd85ff862f6f8a21cb578ceb5",
+    "bytes": 6300
+  },
+  "artifact": {
+    "sha256": "99f80c8e474001d166849cf7bb4b59523c41622f80a758d30b6d91c7993633ed",
+    "bytes": 765509
+  }
+}

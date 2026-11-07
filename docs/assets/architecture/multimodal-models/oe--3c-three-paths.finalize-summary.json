@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/diagrams/oe--3c-three-paths/oe--3c-three-paths.json",
+    "sha256": "4818c3aa14c4809e492f85fb300693d874cf5e5dd85ff862f6f8a21cb578ceb5",
+    "bytes": 6300
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/assets/architecture/multimodal-models/oe--3c-three-paths.html",
+    "sha256": "99f80c8e474001d166849cf7bb4b59523c41622f80a758d30b6d91c7993633ed",
+    "bytes": 765509
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/assets/architecture/multimodal-models/oe--3c-three-paths.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/assets/architecture/multimodal-models/oe--3c-three-paths.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/assets/architecture/multimodal-models/oe--3c-three-paths.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2259
+}
