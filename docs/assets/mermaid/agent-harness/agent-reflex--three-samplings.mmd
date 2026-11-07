@@ -1,0 +1,25 @@
+%%source: docs/research/agent-harness/252-agent-reflex.md §4（信源：arXiv 2610.17953v1 §3.2 式 2–5 / Appendix D.3）
+%%slug: agent-harness/agent-reflex--three-samplings
+%%type: workflow
+%%derived: archify workflow v2（ReSFT 三采样对照：同一份错误轨迹与技能 κ 喂三条采样路——SR 恢复到出错前状态局部修复、KR 重置初始态全局重来、UR 由用户模拟器把 κ 转写为自然语言纠正；三者都过验证器、存档时 SR/KR 剥 κ 而 UR 保留 u_κ（部署可见）；合并成 54K 做 SFT）
+flowchart LR
+    SRC["错误轨迹 τ⁻ + 诊断<br/>首错轮 t* · 快照 s_t* · 技能 κ"]
+    S1["SR：恢复到 s_t*"]
+    S2["SR：π0(h⊕κ) 续写"]
+    S3["SR：验证器"]
+    S4["SR 存档：截到首错的历史<br/>κ 剥除"]
+    K1["KR：重置 s_0"]
+    K2["KR：π0(q⊕κ) 重启"]
+    K3["KR：验证器"]
+    K4["KR 存档：原始任务<br/>κ 剥除"]
+    U1["UR：恢复 s_t* · U(κ)→u_κ"]
+    U2["UR：π0(h⊕u_κ) 续写"]
+    U3["UR：验证器"]
+    U4["UR 存档：历史+用户纠正<br/>u_κ 保留（部署可见）"]
+    OUT[("54K ReSFT 数据<br/>+ Qwen3-8B 正确轨迹 → SFT")]
+    SRC --> S1
+    SRC --> K1
+    SRC --> U1
+    S1 --> S2 --> S3 --> S4 --> OUT
+    K1 --> K2 --> K3 --> K4 --> OUT
+    U1 --> U2 --> U3 --> U4 --> OUT

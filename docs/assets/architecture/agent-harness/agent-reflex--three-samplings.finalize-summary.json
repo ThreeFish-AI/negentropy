@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "workflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/diagrams/agent-reflex--three-samplings/agent-reflex--three-samplings.json",
+    "sha256": "817d21a0496dc6c840049c49750d3dc8a62474233882f67fb3255d10c65e863c",
+    "bytes": 4638
+  },
+  "artifact": {
+    "path": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/assets/architecture/agent-harness/agent-reflex--three-samplings.html",
+    "sha256": "63cc99ac67b69fdeaf729de96c1ed6fb02896298efc14ca628ed4b147db5a985",
+    "bytes": 765335
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/assets/architecture/agent-harness/agent-reflex--three-samplings.finalize.json",
+    "summaryReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/assets/architecture/agent-harness/agent-reflex--three-samplings.finalize-summary.json",
+    "browserCheckReceipt": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/assets/architecture/agent-harness/agent-reflex--three-samplings.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2132,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "e0k",
+            "from": "src",
+            "to": "k1",
+            "label": "",
+            "collectionIndex": 0,
+            "artifactIndex": 1
+          },
+          "bends": 3,
+          "stretch": 1.178
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "src → k1 needs 3 bends: move node src or k1 so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

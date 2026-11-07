@@ -15,6 +15,12 @@
 - 新增配套原型 `assets/omnimodal_embeddings_lab.py`（纯标准库确定性，selftest 26 断言全绿，E1–E5 破坏实验实测退化：错配正对检索 1.0→0.0 无报警、交互项清零退化为相加检索）与 `--count` 字数门（口径沿用 179/181/250/251，5981/6000）
 - 新增两张 archify 图全套（`oe--anatomy-five-parts` architecture + `oe--3c-three-paths` workflow：mermaid 文本源、candidate JSON、finalize showcase 四门回执、双主题 PNG）并登记 [mermaid README](./docs/assets/mermaid/README.md)
 - 信源原图沉淀：arXiv HTML 版 Figure 1/3/5/6（外链 SVG 经无头 Chrome 渲 PNG，arXiv 非独占分发许可逐图署名）入 [source-figures/multimodal-models/](./docs/assets/source-figures/multimodal-models/)，正文 §2/§4 嵌入
+### Agent-Reflex 精读入库（252，I-250，2026-11-06）
+
+- 新增 `docs/research/agent-harness/252-agent-reflex.md`：arXiv 2610.17953v1（RUC-NLPIR 系 12 人）首读——RSD 真实故障注入与跨模型同任务成败配对挖环境级技能、ReSFT 三采样与特权剥离、ORPO 混合组整组归一 RL + 同 token 双上下文重打分蒸馏；五基准 40.2→58.6、噪声基准 12.3→29.1；五规律两争议五批判边界；与 179 互链；字数门 6000（实测 5959）。
+- 新增配套原型 `assets/agent_reflex_lab.py`（纯标准库确定性，selftest 15 断言全绿，六消融对齐论文 Table 3、D5 特权依赖对照与 K2 注入率实验，含 `count` 字数门子命令）。
+- 新增两张 archify 图全套（`agent-reflex--pipeline` 三阶段管线 + `agent-reflex--three-samplings` 三采样对照，workflow 型，finalize showcase 四门回执入库）。
+- 信源原图沉淀：e-print 矢量 PDF 渲染 Figure 1/3/4/5 入 [source-figures/agent-harness/](docs/assets/source-figures/agent-harness/)（arXiv non-exclusive-distrib 1.0，经用户 2026-11-06 明示授权入库，仅作学习引用；source-figures 与 doc-media-assets 两处规约同步开「用户明示例外」通道）。
 
 ### Physical AI monograph 精读入库（251，I-249，2026-11-05）
 

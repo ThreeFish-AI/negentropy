@@ -1,0 +1,75 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "ReSFT 三采样对照：同一条失败轨迹的三种教学法",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/agent-harness/agent-reflex--three-samplings.html"
+  },
+  "lanes": [
+    { "id": "io", "label": "共享输入 / 输出" },
+    { "id": "sr", "label": "SR · 局部修复" },
+    { "id": "kr", "label": "KR · 全局恢复" },
+    { "id": "ur", "label": "UR · 用户中心" }
+  ],
+  "phases": [
+    { "id": "restore", "label": "恢复到哪", "fromCol": 1, "toCol": 1 },
+    { "id": "sample", "label": "带特权采样", "fromCol": 2, "toCol": 2, "variant": "emphasis" },
+    { "id": "gate", "label": "验证器", "fromCol": 3, "toCol": 3 },
+    { "id": "store", "label": "存档输入", "fromCol": 4, "toCol": 4, "variant": "dashed" }
+  ],
+  "groups": [],
+  "mainPath": ["src", "s1", "s2", "s3", "s4", "out"],
+  "nodes": [
+    { "id": "src", "lane": "io", "col": 0, "type": "external", "label": "错误轨迹 τ⁻ + 诊断", "sublabel": "首错轮 t* · 快照 s_t* · 技能 κ", "width": 176 },
+    { "id": "out", "lane": "io", "col": 5, "type": "database", "label": "54K ReSFT 数据", "sublabel": "+ 正确轨迹 → SFT", "width": 156 },
+    { "id": "s1", "lane": "sr", "col": 1, "type": "backend", "label": "恢复到 s_t*", "sublabel": "出错前一步", "width": 140 },
+    { "id": "s2", "lane": "sr", "col": 2, "type": "backend", "label": "π0(h⊕κ) 续写", "sublabel": "技能插进上下文", "width": 150 },
+    { "id": "s3", "lane": "sr", "col": 3, "type": "security", "label": "验证器", "sublabel": "只收真完成", "width": 126 },
+    { "id": "s4", "lane": "sr", "col": 4, "type": "database", "label": "存档：截到首错的历史", "sublabel": "κ 剥除", "width": 168 },
+    { "id": "k1", "lane": "kr", "col": 1, "type": "backend", "label": "重置 s_0", "sublabel": "整局重来", "width": 126 },
+    { "id": "k2", "lane": "kr", "col": 2, "type": "backend", "label": "π0(q⊕κ) 重启", "sublabel": "技能插进任务", "width": 148 },
+    { "id": "k3", "lane": "kr", "col": 3, "type": "security", "label": "验证器", "sublabel": "只收真完成", "width": 126 },
+    { "id": "k4", "lane": "kr", "col": 4, "type": "database", "label": "存档：原始任务", "sublabel": "κ 剥除", "width": 140 },
+    { "id": "u1", "lane": "ur", "col": 1, "type": "backend", "label": "恢复 s_t* · U(κ)→u_κ", "sublabel": "模拟器转写技能", "width": 176 },
+    { "id": "u2", "lane": "ur", "col": 2, "type": "backend", "label": "π0(h⊕u_κ) 续写", "sublabel": "用户话术在场", "width": 156 },
+    { "id": "u3", "lane": "ur", "col": 3, "type": "security", "label": "验证器", "sublabel": "只收真完成", "width": 126 },
+    { "id": "u4", "lane": "ur", "col": 4, "type": "database", "label": "存档：历史+用户纠正", "sublabel": "u_κ 保留（部署可见）", "width": 176 }
+  ],
+  "edges": [
+    { "id": "e0s", "from": "src", "to": "s1", "variant": "default" },
+    { "id": "e0k", "from": "src", "to": "k1", "variant": "default" },
+    { "id": "e0u", "from": "src", "to": "u1", "variant": "default" },
+    { "id": "e1s", "from": "s1", "to": "s2", "variant": "default" },
+    { "id": "e2s", "from": "s2", "to": "s3", "variant": "default" },
+    { "id": "e3s", "from": "s3", "to": "s4", "label": "通过", "variant": "default" },
+    { "id": "e4s", "from": "s4", "to": "out", "variant": "default" },
+    { "id": "e1k", "from": "k1", "to": "k2", "variant": "default" },
+    { "id": "e2k", "from": "k2", "to": "k3", "variant": "default" },
+    { "id": "e3k", "from": "k3", "to": "k4", "label": "通过", "variant": "default" },
+    { "id": "e4k", "from": "k4", "to": "out", "variant": "default" },
+    { "id": "e1u", "from": "u1", "to": "u2", "variant": "default" },
+    { "id": "e2u", "from": "u2", "to": "u3", "variant": "default" },
+    { "id": "e3u", "from": "u3", "to": "u4", "label": "通过", "variant": "default" },
+    { "id": "e4u", "from": "u4", "to": "out", "variant": "default" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "特权剥离的两类",
+      "items": [
+        "状态快照 s_t* 只用于恢复环境、永不成 token",
+        "SR/KR 存档剥除 κ；UR 的 κ 从不进上下文，由模拟器转写为 u_κ 后保留"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "听人话的分寸",
+      "items": [
+        "UR 模拟器（GPT-4.1）刻意混入歧义与故意错误的建议",
+        "服从不是正确答案：证据敏感的重规划才是训练目标"
+      ]
+    }
+  ]
+}

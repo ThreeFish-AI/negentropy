@@ -255,6 +255,7 @@
 | I-247 | Jev 精读 200 换代重写（上游 Jev 1.14.0 + 规约换代：总类比/考评实录退场 + 字数门 6000）：四桶审计重写并同步入站指针 | ✅ 已完成 | 2026-11-03 | [详情](#I-247) |
 | I-248 | 知识库平台图文混合索引进范围 + 三项扩展能力预留（KG 联邦/源系统回写 hook/云厂商知识源）：version_key 纳媒体清单、caption 缓存键含语境、P2-8/9 新任务与两图重渲 | ✅ 已完成 | 2026-11-04 | [详情](#I-248) |
 | I-249 | Physical AI monograph 精读入库（251）：新分组、双图、原型与登记面 | ✅ 已完成 | 2026-11-05 | [详情](#I-249) |
+| I-250 | Agent-Reflex 精读入库（252）：双图、原型、四原图与登记面 | ✅ 已完成 | 2026-11-06 | [详情](#I-250) |
 | I-251 | Omnimodal Embeddings 综述精读入库（253）：双 archify 图、四原图、原型与登记面 | ✅ 已完成 | 2026-11-07 | [详情](#I-251) |
 | I-252 | 知识库平台吸收 Omnimodal Embeddings 综述增强：golden set 举证纪律、modality gap 结构性上限与非目标边界 | ✅ 已完成 | 2026-11-07 | [详情](#I-252) |
 
@@ -5858,6 +5859,16 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：超大型 monograph 的 reader 分块须显式对齐单元边界（本篇 Ch1 正文落在两 reader 缝隙）；LaTeXML 快照 References 截断应预检（本篇截断至字母 B，转引经 arXiv API 外核）。
 - **同类问题影响**：后续 ≥100 万字符信源的精读可直接复用「分块 reader + 覆盖表门禁 + Checker 逐行对账」链路。
 - **处理注意事项**：字数门以 lab `--count` 为准（CJK 字符+ASCII 词）；archify candidate 入库后 pre-commit 补 EOF 换行致 sha256 与 finalize 回执不同为本仓既知形态（250 先例），回执钉 .archify 冻结件。
+
+<a id="I-250"></a>
+## I-250：Agent-Reflex 精读入库（252）：双图、原型、四原图与登记面
+
+- **问题描述**：`/guided-learn https://arxiv.org/html/2610.17953v1` 触发的完整六阶段精读：Agent-Reflex（RUC-NLPIR 等 12 人，RSD→ReSFT→ORPO 三阶段训练框架）入库 `docs/research/agent-harness/252-agent-reflex.md`，要求保留信源有价值原图、正文总字数 ≤6000、遵循 AGENTS.md。
+- **表因根因**：无（新篇交付，非缺陷修复）。
+- **处理方式**：curl 快照全文（HTML v1，20 单元覆盖表门禁全绿；元数据双核——首取工具的「vLLM serving 层」概述与一作「Xinyu Yang」均为幻影，快照实证一作 Guanting Dong）；三阶段原型 `assets/agent_reflex_lab.py`（条件策略表贯穿 M4/M5，15 断言+六消融对齐论文 Table 3 序+D5 特权依赖对照+K2 注入率实验）；29 行 Checker 对账（返工 4 行经原 Checker 复判全过）+7 行补阙增量回执（1 行确定度升级已改「容易困在」）；盲评两轮（首轮三章判官均偏草稿——压字轮损伤 praised 措辞，返修恢复后 mech5 双判官转判成稿、laws8 平局、open 回退草稿版仅余协议件差异）；外行四测四项全过（D1/K1/K2/X1/X2/T1；D2/D3/T2/X3 闭卷先验可答留档不计入）；双 archify 图（pipeline 3 轮修复：route-preset 冲突→desktop-readability 5 列化→viewport-height 3 行化；three-samplings 首投全绿）；4 张原图自 e-print 矢量 PDF 经 pdftoppm 200dpi 渲染（fig1/3/4/5；fig2 与自制管线图同构不嵌、正文提及+链接）。
+- **后续防范**：① 快照前完成回执终态化与 COUNTS 落盘（本篇 draft/sources.md 曾过早快照、Phase 4 尾重拷一次并记因）；② 转录官方门禁脚本须逐字符核对（两次多打/漏打一个 `_` 造成 rc() 变量错位与 ex 落列，假绿两轮）；③ 压字轮会系统性损伤判官称赞的措辞——压缩优先砍清单枚举与读法列，机制句的限定词与对仗结构留到最后再动。
+- **同类问题影响**：后续精读的闭卷对照、盲评双轮协议、e-print 优先取图链路可直接复用；non-exclusive-distrib 1.0 类许可的入库路径已由本篇立例（用户明示授权 + source-figures README 注记 + 图注署名「版权归原作者，仅作学习引用」）。
+- **处理注意事项**：字数门以 lab `count` 为准（CJK 字符+ASCII 词，终值 5959/6000）；许可 SSOT=abs 摘要页（HTML 全文页脚「perpetual non-exclusive」为页面样板行，与摘要页 nonexclusive-distrib/1.0 不一致时以摘要页为准，已记信源探针注）；用户对原图入库的明示决策记录于本条与 source-figures README 252 节。
 
 <a id="I-251"></a>
 ## I-251：Omnimodal Embeddings 综述精读入库（253）

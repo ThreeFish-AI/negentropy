@@ -9,7 +9,7 @@
 - **目录**：`<research 分组>/<主题>--src-<NN>-<slug>.png`，`NN` 与正文「信源原图 N」编号一致；论文原图沿用正文「原文图 N」的编号命名（如 `ktp--fig<N>-<slug>.png`）；正文以纯 Markdown `![]()` 相对路径嵌入。
 - **只做格式转换，不改内容**：位图原样复制；SVG 以无头浏览器 2× 栅格化为 PNG（规避读者缺 CJK 字体与 wiki 主题反向）；透明底图烘成不透明底（浅字图烘暗底、深字图烘白底）；裁切须在题注注明。
 - **单文件 ≤ 1280 KiB**（pre-commit `check-added-large-files` 硬门）。
-- **署名与许可**：每张图的题注写明出处与许可；无开放许可者标「版权归原作者，仅作学习引用」。许可禁止再分发的材料（如 arXiv non-exclusive-distrib 1.0）不入库，正文改为链接。
+- **署名与许可**：每张图的题注写明出处与许可；无开放许可者标「版权归原作者，仅作学习引用」。许可禁止再分发的材料（如 arXiv non-exclusive-distrib 1.0）默认不入库、正文改为链接；经用户明示决策入库的例外可入库，署名同上并在本 README 该篇清单注明用户授权与日期。
 - **时效**：取自活体网页（无版本号的博客、SPA 官网、云产品页）的图记抓取日期；描绘已删除机制的图只作矛盾佐证，题注必须写明。
 
 ## 清单
@@ -33,6 +33,17 @@ arXiv:2611.00172v1 HTML 版四张外链 SVG（研究全景、收敛四义、四�
 | [oe--fig3-convergence-four-meanings.png](./multimodal-models/oe--fig3-convergence-four-meanings.png) | arXiv 2611.00172v1 Fig.3 | 同上 | SVG→PNG 3×，92 KiB |
 | [oe--fig5-sharing-work.png](./multimodal-models/oe--fig5-sharing-work.png) | arXiv 2611.00172v1 Fig.5 | 同上 | SVG→PNG 1.5×，264 KiB |
 | [oe--fig6-omnimodal-paths.png](./multimodal-models/oe--fig6-omnimodal-paths.png) | arXiv 2611.00172v1 Fig.6 | 同上 | SVG→PNG 1.5×，786 KiB |
+
+### agent-harness · Agent-Reflex 精读（[252](../../research/agent-harness/252-agent-reflex.md)）
+
+抓取基准为 [arXiv:2610.17953v1](https://arxiv.org/abs/2610.17953) e-print 源码包（2026-11-06 下载解包，只取图件不构建）；四图由矢量 PDF 经 pdftoppm 200dpi 渲染（RGB 无透明底，无内容改动，单图 ≤ 1280 KiB）。论文许可为 arXiv non-exclusive-distrib 1.0（摘要页标注，许可 SSOT；HTML 全文页脚「perpetual non-exclusive」为页面样板行，以摘要页为准）——属本 README「默认不入库」类，**经用户 2026-11-06 明示决策入库**（例外通道见上方约定），署名「版权归原作者，仅作学习引用」；Figure 2 与笔记自制三阶段管线图同构、未入库（正文提及并链接 [原文图 2](https://arxiv.org/html/2610.17953v1/figure2_final.png)）。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [agent-reflex--fig1-motivation.png](./agent-harness/agent-reflex--fig1-motivation.png) | Figure 1（fig1_motivation_compact.pdf，3242×1440） | 版权归原作者，仅作学习引用（non-exclusive-distrib 1.0，用户授权 2026-11-06） | 矢量 PDF 渲染 PNG（557 KiB） |
+| [agent-reflex--fig3-orpo.png](./agent-harness/agent-reflex--fig3-orpo.png) | Figure 3（Figure3_new.pdf，3623×1481） | 同上 | 矢量 PDF 渲染 PNG（676 KiB） |
+| [agent-reflex--fig4-algorithm-comparison.png](./agent-harness/agent-reflex--fig4-algorithm-comparison.png) | Figure 4（Agent-Reflex_algorithm_comparison_vector.pdf，1976×668） | 同上 | 矢量 PDF 渲染 PNG（208 KiB） |
+| [agent-reflex--fig5-noise-radar.png](./agent-harness/agent-reflex--fig5-noise-radar.png) | Figure 5（Agent-Reflex_noise_radar_vector.pdf，2070×1004） | 同上 | 矢量 PDF 渲染 PNG（251 KiB） |
 
 ### physical-ai · Physical AI monograph 精读（[251](../../research/physical-ai/251-physical-ai-monograph.md)）
 
