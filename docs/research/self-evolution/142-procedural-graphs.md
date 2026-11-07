@@ -2,6 +2,9 @@
 sidebar_position: 6
 title: "Procedural Graph 论文精读笔记"
 description: "arXiv:2609.09153 精读：程序性知识外置为带 condition/guidance/pitfalls 属性的显式有向图，在线邻域定位软指导 + 离线 refiner 过 held-out 验证门自进化，含随笔记入库的最小原型与破坏性实验"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-22
 ---
 
 # Procedural Graph 论文精读笔记

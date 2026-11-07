@@ -2,6 +2,9 @@
 sidebar_position: 4
 title: "Agent Sandbox 信任架构深度研究"
 description: "gVisor + 信任架构专项深研，从微虚拟机到托管式执行环境的安全维度延伸"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # **代理沙箱技术深度研究报告：从开源微虚拟机到托管式代码执行环境的全面解析**
 

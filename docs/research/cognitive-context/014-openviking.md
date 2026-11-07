@@ -2,6 +2,9 @@
 sidebar_position: 7
 title: "OpenViking 精读笔记"
 description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，2026-10-21，v0.5.1.1，AGPL-3.0）：viking:// 树统一资源/记忆/技能、目录级 L0/L1/L2 sidecar 与新鲜度冒泡、检索换代为全局召回 2×limit + 单遍精排 + 阈值后置（上游 #5450 删除目录递归）、会话两阶段提交与 schema 身份判据记忆提炼、Gateway 模型代理（v0.5 新增）与 User/Peer 归属一等化、多租户/ACL/信封加密/快照治理面；含新旧两代对照、营销页滞后矛盾清单、10 张信源原图（官方网关/基准/论文图，官网、托管版与博客的插图和实拍）与 clean-room 原型八场景五破坏实验"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-11-02
 ---
 
 # OpenViking 精读笔记

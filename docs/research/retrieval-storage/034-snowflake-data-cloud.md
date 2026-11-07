@@ -4,10 +4,7 @@ title: "Snowflake 数据云平台深度调研"
 id: snowflake-data-cloud
 last_update:
   author: Aurelius Huang
-  created_at: 2026-08-04
-  updated_at: 2026-08-04
-  version: 1.0
-  status: Reviewed
+  as-of: 2026-08-04
 tags:
   - Snowflake
   - Data Warehouse

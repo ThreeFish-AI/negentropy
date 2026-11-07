@@ -2,6 +2,9 @@
 sidebar_position: 8
 title: "Memadapter: Counterfactual Adaptation Against Memory-induced Sycophancy 精读与通俗拆解（MemAdapter 记忆谄媚反事实适配）"
 description: "arXiv:2610.05162v1 精读（2026-10-04，CC BY 4.0，吉林大学+厦门大学）：带长期记忆的 agent 会顺着用户旧观点答话，且只用准确相关的记忆也救不了——受控实验 96.0%→77.3%、翻错全部跟随记忆；MemAdapter 不动记忆库与检索，在检索后加三道纯提示工序：反事实归纳任务无关使用边界（式1–3）→ 对照当前任务译成使用指令（式4）→ 证据锚定生成＋内部支撑轨迹核验（式5）；三基准×五记忆系统×三骨干验证，PersistBench 谄媚失败率 FR@3 最多降 31pp（附录更深口径 −35.5，DeepSeek 单骨干）、五系统平均分极差从 34.68 收敛到 4.97（主表与附录表 7 在有益使用指标上互相矛盾）；配 4 张论文原图、1 张 archify 三阶段图与纯标准库九场景原型（变体阶梯 3→7→8→9、四次破坏实验）。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-28
 ---
 
 # Memadapter: Counterfactual Adaptation Against Memory-induced Sycophancy 精读与通俗拆解

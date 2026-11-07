@@ -4,10 +4,7 @@ title: "向量数据库的选型决策路径"
 id: vector-databases-selection
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-25
-  updated_at: 2025-12-31
-  version: 1.2
-  status: Reviewed
+  as-of: 2025-12-31
 tags:
   - Vector Database
   - ANN Algorithm

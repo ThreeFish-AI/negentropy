@@ -4,10 +4,7 @@ title: "Cognee 深度调研报告"
 id: cognee
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-22
-  updated_at: 2025-12-23
-  version: 1.0
-  status: Pending Review
+  as-of: 2025-12-23
 tags:
   - Cognee
   - 技术选型

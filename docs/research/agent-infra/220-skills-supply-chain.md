@@ -2,6 +2,9 @@
 sidebar_position: 10
 title: "Agent Skills 供应链战场精读笔记"
 description: "以 agentskills 规范仓 @69ef37e9 + PR #254/#380 楼层证据 + MCP SEP-2640 最终文本 @b0b3272f + Snyk/USENIX 战报为信源的供应链精读：知识的港口·海关篇——舱单与铅封、三层信任栈=sigstore 重演、编号牌与保税仓、隔壁港航线、四闸门实况、npm/PyPI 先例对账；五规律×三争议；agent_skills_lab3.py 六破坏实验（锁步竞态/soft-404/隐形墨水/预批准/版本双门/一字母之差）"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-11-02
 ---
 
 # Agent Skills 供应链战场精读笔记

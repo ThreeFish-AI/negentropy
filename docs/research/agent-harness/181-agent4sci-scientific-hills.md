@@ -2,6 +2,9 @@
 sidebar_position: 14
 title: "Automating ML for Science 精读与通俗拆解（Agent4Sci）"
 description: "arXiv:2610.28763v1 精读（2026-10-20，arXiv perpetual non-exclusive，Anthropic）：20 个科学 ML 基准的长时程爬坡测试台——裸仓库试点 12 任务 5 作弊催生标准化+三阶段协议；四前沿 agent 全基准全自动改进（Opus +10.4%、零作弊）但增益以工程招式为主；三张插件技能提到 20.1% 并冒出物理洞见；五规律三争议五批判边界 + 原型五破坏实验"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-29
 ---
 
 # Automating ML for Science（Agent4Sci）精读与通俗拆解

@@ -4,10 +4,7 @@ title: "AG-UI 协议调研"
 id: ag-ui
 last_update:
   author: Aurelius Huang
-  created_at: 2026-01-10
-  updated_at: 2026-01-10
-  version: 1.1
-  status: Pending Review
+  as-of: 2026-01-10
 tags:
   - AG-UI
   - Agent Protocol

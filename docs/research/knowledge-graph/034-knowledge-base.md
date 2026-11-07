@@ -4,10 +4,7 @@ title: "Knowledge Base: RAG Pipeline & Hybrid Search 调研"
 id: knowledge-base
 last_update:
   author: Aurelius Huang
-  created_at: 2026-01-12
-  updated_at: 2026-01-12
-  version: 1.0
-  status: Pending Reviewed
+  as-of: 2026-01-12
 tags:
   - Knowledge Base
   - RAG

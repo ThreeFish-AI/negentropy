@@ -2,6 +2,9 @@
 sidebar_position: 4
 title: "精读：Learn Claude Code 记忆管理（Context Compact + Memory）"
 description: "双轨钉点（站点轨 67a9126c / main 轨 ce8f9f18）的全貌解剖：四步压缩管线的顺序经济学、tool_use/tool_result 配对不变式、seen/unseen 可恢复占位、记忆四件套（存储/门控提取/选择性召回/原子整理）；五条底层规律、三个核心争议、批判性边界五条，配套纯标准库原型 lcc_memory_lab.py 与五次破坏性实验实测退化"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 # 精读：Learn Claude Code 记忆管理（Context Compact + Memory）

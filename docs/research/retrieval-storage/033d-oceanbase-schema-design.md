@@ -1,6 +1,9 @@
 ---
 sidebar_position: 8
 title: "OceanBase 执行阶段一：基座部署与 Unified Schema 设计"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # 执行阶段一：基座部署与 Unified Schema 设计 (Foundation)
 

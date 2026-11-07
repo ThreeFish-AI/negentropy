@@ -1,6 +1,9 @@
 ---
 sidebar_position: 1
 title: "凯利公式与股市投资的数学基石：定理、实证与可执行操作"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-09-08
 ---
 
 # 凯利公式与股市投资的数学基石：定理、实证与可执行操作

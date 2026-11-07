@@ -2,6 +2,9 @@
 sidebar_position: 1
 title: "线性注意力机制精读与通俗拆解（AI Infra 进阶）"
 description: "腾讯技术工程 3 万字长文（2026-10-29）精读 + 10 个一手信源对账：门控演进链（DeltaNet→GDN→KDA）、chunk-wise 两级并行、hybrid 兜底与 vLLM 落地，配原型与破坏实验"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-30
 ---
 
 # 线性注意力机制精读与通俗拆解（AI Infra 进阶）

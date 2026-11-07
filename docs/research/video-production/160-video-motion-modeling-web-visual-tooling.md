@@ -2,6 +2,9 @@
 sidebar_position: 1
 title: "视频动效建模与 Web 可视化搭建工具全景调研"
 description: "以现役 Remotion 科普视频管线为基线，全网与 GitHub 全景调研动效建模框架、动画运行时、可视化设计器与 Lottie 资产管线，产出 A/B/C 三轨推荐与 POC 验收清单"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-19
 ---
 
 # 视频动效建模与 Web 可视化搭建工具全景调研

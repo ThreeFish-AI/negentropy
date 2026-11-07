@@ -4,10 +4,7 @@ title: "Agent Runtime & Frameworks 调研"
 id: agent-runtime-frameworks
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-19
-  updated_at: 2026-05-23
-  version: 1.4
-  status: Reviewed
+  as-of: 2026-05-23
 tags:
   - Agent Framework
   - Agent Runtime

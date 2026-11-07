@@ -2,6 +2,9 @@
 sidebar_position: 8
 title: "精读：阿里巴巴《AI Native 研发范式实践手册》"
 description: "三案例 → 五挑战 → 四层基础设施的全貌解剖；五条底层规律（决策/验证/权限/状态/上下文）、两个核心争议、批判性边界五条（含示例度量 SQL 多对多扇出的实测复现）、费曼考评实录，配套最小原型六次破坏性实验"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-13
 ---
 
 # 精读：《AI Native 研发范式实践手册》

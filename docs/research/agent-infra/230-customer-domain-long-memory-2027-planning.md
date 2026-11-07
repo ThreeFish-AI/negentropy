@@ -2,6 +2,9 @@
 sidebar_position: 12
 title: "客户域 Agent Long Memory · 2027 产品规划"
 description: "Context Layer 客户域（tenant / user 两级主体）长期记忆的 2027 年度产品规划：5 条能力线 × 18 个功能点（写入沉淀 / 治理合规 / 读取注入 / 可见可改与运营 / 评估与扩展），含用户场景、验收标准、Gate-0 + 四个季度里程碑、成功指标与待决策项。口径为特性清单 + 里程碑 + 验收标准，不含人力与成本估算。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-13
 ---
 
 # 客户域 Agent Long Memory · 2027 产品规划

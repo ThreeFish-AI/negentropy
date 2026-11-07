@@ -4,10 +4,7 @@ title: "OceanBase 三位一体数据库调研"
 id: oceanbase
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-23
-  updated_at: 2026-05-23
-  version: 1.1
-  status: Veracity Attested
+  as-of: 2026-05-23
 tags:
   - OceanBase V4.4.x
 ---

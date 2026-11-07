@@ -4,10 +4,7 @@ title: "向量数据库深度调研"
 id: vector-databases
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-23
-  updated_at: 2026-01-01
-  version: 1.2
-  status: Reviewed
+  as-of: 2026-01-01
 tags:
   - Vector Databases
   - PGVector

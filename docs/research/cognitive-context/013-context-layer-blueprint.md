@@ -2,6 +2,9 @@
 sidebar_position: 6
 title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
 description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（问题登记簿十簇 × 资产/权威/装配/检索/沉淀五轴 × 生命周期六段两环 G1–G7）× 机制=多轴组合 × 四范本矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes·Jev）× 供给面威胁模型 × negentropy 16+4 映射总装 × 修复序×轴依赖序路线"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 > **定位**：Agents 系统 Context Layer（把散落数据与口径打包供给 Agent 的上下文层）的设计蓝图 SSOT（单一事实源，唯一权威定义处）

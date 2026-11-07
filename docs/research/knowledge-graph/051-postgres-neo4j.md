@@ -1,6 +1,9 @@
 ---
 sidebar_position: 6
 title: "PostgreSQL 支撑 Knowledge Graph：Neo4j 替代路径与多模型数据库全景"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # **深入解析 PostgreSQL 支撑 Knowledge Graph 系统的扩展方案与架构演进：Neo4j 的替代路径与多模型数据库全景**
 
