@@ -2,6 +2,9 @@
 sidebar_position: 1
 title: "Physical AI monograph 精读与通俗拆解（具身智能定名之作）"
 description: "上海 AI Lab 系 52 人《Physical AI: Concepts, Techniques, and Challenges》（arXiv 2610.27045v1，2026-10-19）全文 12 章精读：Definition 1.1 与四向边界、闭环四要素与三尺度反馈、世界模型「保留答案」准则、数据金字塔与操作/运动基础模型、评估安全治理与 Physical AGI，配闭环三机制原型与五组破坏实验"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-11-05
 ---
 
 # Physical AI monograph 精读与通俗拆解（具身智能定名之作）

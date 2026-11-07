@@ -1,6 +1,9 @@
 ---
 sidebar_position: 1
 title: "Routine：长周期自主任务的 Agent 迭代模式调研"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # Routine：长周期自主任务的 Agent 迭代模式调研
 

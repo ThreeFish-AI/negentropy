@@ -2,6 +2,9 @@
 sidebar_position: 6
 title: "精读：Learn Claude Code 多 Agent 平台（任务 / 团队 / 协议 / 自治 / 隔离 / MCP / 综合回合）"
 description: "双轨钉点（站点轨 67a9126c + main 轨 ce8f9f18）的全貌解剖：文件任务板、消费式收件箱、带编号的请求-响应协议、空闲自认领、任务绑定 worktree、外部工具发现-命名-组装，最后全部挂回同一个循环；五条底层规律（状态入文件 / 协议先于智能 / 原子认领 / 读即消费单点入口 / 命名空间发现）、三个核心争议、批判性边界五条，配套约 500 行确定性原型与五组破坏性实验实测退化"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 # Learn Claude Code 多 Agent 平台 精读与通俗拆解

@@ -2,6 +2,9 @@
 sidebar_position: 6
 title: "Jev（TypeSafe System One Model）精读与通俗拆解"
 description: "TypeSafe Jev 决策模型精读（2026-11-03 快照，Jev 1.14.0）：闭合输出 × 共享读隔离问 × 校准概率与 confidence × 快慢分工；官方口径与第三方实测对账；原型 jev_lab.py、S1–S11 自检、B1–B5 破坏实验、laya 复刻实测"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-11-03
 ---
 
 # Jev（TypeSafe System One Model）精读与通俗拆解

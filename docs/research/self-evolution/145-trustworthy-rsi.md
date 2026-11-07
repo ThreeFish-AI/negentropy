@@ -2,6 +2,9 @@
 sidebar_position: 9
 title: "Trustworthy RSI 精读与通俗拆解（可信递归自我改进）"
 description: "arXiv:2610.35193v1 精读（2026-10-26，人大高瓴 Jiayue Pu 等 12 人综述，301 引文）：把『递归自我改进』从口号变成可审计对象——归纳偏置 B / 偏置更新函数 U / 递归算子 RI 的操作化定义、S1–S4 改进环、四主题 × 三层主张的风险-保障矩阵、成对延续评估协议；五规律三争议五批判边界；纯标准库原型（S1–S4+RI 全链 + 五次破坏实验）；5 张论文原图"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-31
 ---
 
 > [1] J. Pu *et al.*（J. Pu, A. Gao, J. Bai, Q. Wang, T. Wen, J. Zhao, K. Qu, J. Zhang, C. Shen, Z. Sun, J. Xu, and X. Zhang，中国人民大学高瓴人工智能学院等 12 人）, "Trustworthy Recursive Self-Improvement in the Era of Large Models: Foundation, Risks, Evaluation and Open Challenges," arXiv:2610.35193v1, Oct. 26, 2026. [Online]. Available: https://arxiv.org/html/2610.35193v1 （访问 2026-10-30；唯一版本 v1；arXiv perpetual non-exclusive license）

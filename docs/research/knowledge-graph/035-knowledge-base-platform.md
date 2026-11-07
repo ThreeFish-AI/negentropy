@@ -1,6 +1,9 @@
 ---
 sidebar_position: 3
 title: "腾讯 WeKnora 深度调研与 RAG 框架对比"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # **腾讯 WeKnora 深度调研与同类 RAG 框架全维度对比分析报告**
 

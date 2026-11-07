@@ -4,10 +4,7 @@ title: "智能认知增强"
 id: cognitive-enhancement
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-22
-  updated_at: 2026-05-22
-  version: 1.1
-  status: Active
+  as-of: 2026-05-22
 tags:
   - 智能认知增强
   - 学术调研

@@ -1,6 +1,9 @@
 ---
 sidebar_position: 5
 title: "可观测性对比：Jaeger vs Langfuse 深度分析"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # **架构分歧与融合：生成式 AI 可观测性时代的 Jaeger 与 Langfuse 深度对比分析报告**
 

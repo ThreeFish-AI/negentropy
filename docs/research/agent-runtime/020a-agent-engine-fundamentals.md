@@ -2,6 +2,9 @@
 sidebar_position: 2
 title: "Agent Engine Fundamentals"
 id: agent-engine-fundamentals
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-09-10
 tags:
   - Teaching
   - Agent Engine

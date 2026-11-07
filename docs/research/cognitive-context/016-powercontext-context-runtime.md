@@ -2,6 +2,9 @@
 sidebar_position: 9
 title: "PowerContext 精读与通俗拆解（OceanBase 开源上下文运行层：让工作跨会话、跨 Agent、跨人继续）"
 description: "oceanbase/powercontext v1.4.1（master 5032075ad，Apache-2.0，1481 星）精读：把决定、约束、证据、进展从单次对话搬进服务端带版本 Artifact——Scope/Source/七类家族 + 不可变 Revision 寻址；生成/评审/执行三权分立，模型提案必经 expected_version 乐观锁评审门；PreparedContext 字节预算有界召回 + 充分性闸门（强匹配 0.70 参与差距判定、两轮有界扩展），Handoff 四步交接与 hint 全有或全无契约；LoCoMo 90.78%（全量重放 52.9%，检索 token −93.7%）、SWE-bench Pro +4.38pp；配 9 张信源原图、1 张 archify 三权分立图与纯标准库五机制原型（五组破坏实验实测退化）。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-11-02
 ---
 
 # PowerContext 精读与通俗拆解

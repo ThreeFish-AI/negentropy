@@ -2,6 +2,9 @@
 sidebar_position: 4
 title: "Snowflake Horizon Context 精读笔记"
 description: "Snowflake Horizon Context 精读与通俗拆解（冻结版；设计 SSOT 见 013 蓝图）：治理引擎内嵌、查询期强制执行的七承重机制 M1–M7——语义视图口径单点×查询期重算 / 行列级访问策略 / 语义级治理执行 / 应答层验证锚定 / 端到端列级血缘 / Agent Identity / 分类与标签驱动策略传播——另附富化、检索、生态三专章（§3.1–§3.3）、演进全景、关键实证数字、适用边界与随文最小原型。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 

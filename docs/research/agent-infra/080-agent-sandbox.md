@@ -5,10 +5,7 @@ description: "五大技术路线综述（Microsandbox / Wasmtime / Firecracker /
 id: agent-sandbox
 last_update:
   author: Aurelius Huang
-  created_at: 2026-01-19
-  updated_at: 2026-01-19
-  version: 1.0
-  status: Pending Review
+  as-of: 2026-01-19
 tags:
   - Agent Sandbox
   - Wasmtime

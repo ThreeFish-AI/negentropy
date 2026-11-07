@@ -2,6 +2,9 @@
 sidebar_position: 10
 title: "机制映射汇总：研究文献 ↔ negentropy"
 description: "九篇研究文献与 negentropy 本仓实现的机制映射汇总，按五个域组织：认知与上下文（Horizon、OpenViking）、Agent 基础设施 Skills（Agent Skills 规范与供应链）、Agent 基础设施 Jev、自进化（Procedural Graph、Dream-RSI）、Agent Harness（AI Native 手册、Hermes）。每域给出核验基线、映射总表（✅ 已对齐 / 🔶 值得落地 / ⏸ 暂缓）、逐条说明与落地建议；文首有跨域结论与统一落地 backlog。锚点均为各域核验基线时点的 grep 实测，只分析不改码。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-11-03
 ---
 
 # 机制映射汇总：研究文献 ↔ negentropy
