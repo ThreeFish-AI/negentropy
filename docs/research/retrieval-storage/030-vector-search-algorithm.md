@@ -4,10 +4,7 @@ title: "向量索引算法通俗全解"
 id: vector-search-algorithm
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-24
-  updated_at: 2026-05-23
-  version: 1.4
-  status: Reviewed
+  as-of: 2026-05-23
 tags:
   - Vector Database
   - ANN (Approximate Nearest Neighbor) Algorithms

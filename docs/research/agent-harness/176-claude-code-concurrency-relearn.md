@@ -2,6 +2,9 @@
 sidebar_position: 11
 title: "Learn Claude Code 并发与调度重学精读（s13 后台任务 × s14 定时调度）"
 description: "以最新版 guided-learn 对 Learn Claude Code「并发」层两节（s13 Background Tasks / s14 Cron Scheduler）的独立重学精读：占位回执与通知注入的配对语义、cron 四层解耦（判时/缓冲/交付/执行）、教学版与生产版距离（官方文档逐项印证 + 抖动口径硬分歧 + 超时自动转后台三路径），配确定性原型与五次破坏性实验实测。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 # Learn Claude Code 并发与调度精读与通俗拆解（s13 后台任务 × s14 定时调度）

@@ -4,6 +4,7 @@ title: "知识库平台竞品与理论调研（四支柱）"
 id: kb-platform-competitors
 last_update:
   author: Aurelius Huang
+  as-of: 2026-11-03
 tags:
   - Knowledge Base
   - RAG

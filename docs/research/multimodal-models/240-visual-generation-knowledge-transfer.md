@@ -2,6 +2,9 @@
 sidebar_position: 1
 title: "Can Visual Generation Expand What Unified Multimodal Models Know? 精读与通俗拆解（KTP 知识迁移探针）"
 description: "arXiv:2610.21459v1 精读：用只藏在训练图里的虚构事实做探针，测统一多模态模型学画图学到的知识能否在纯文字问答里说出来——直接迁移画得出远多于说得出（平均落差 +22.57/+39.43/+41.14 个百分点），在一半实体上加对齐样本多数情况下能让另一半更会说，同一回答里先画、再看、再答的交错样本平均效果最好、且在 GLM-Omni 上消融出其很大一部分来自图像损失，推理时先画再读能把球衣号码从 0% 拉起；补读 8 篇（架构三篇、模态失语、知识存储与提取、多模态预训练知识流、跨模态记忆、理解生成协同）对齐口径，配表格复算与玩具模型原型、五次破坏性实验。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-26
 ---
 
 # Can Visual Generation Expand What Unified Multimodal Models Know? 精读与通俗拆解

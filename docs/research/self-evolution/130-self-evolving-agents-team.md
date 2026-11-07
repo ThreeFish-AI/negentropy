@@ -1,6 +1,9 @@
 ---
 sidebar_position: 3
 title: "自进化 Agents Team：自主迭代与自我强化系统调研"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # 自进化 Agents Team：自主迭代与自我强化系统调研
 

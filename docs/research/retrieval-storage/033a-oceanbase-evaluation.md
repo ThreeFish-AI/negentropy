@@ -1,6 +1,9 @@
 ---
 sidebar_position: 5
 title: "OceanBase Agent 场景评估摘要"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # OceanBase Agent Scenario Evaluation
 

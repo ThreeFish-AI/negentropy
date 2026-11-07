@@ -2,6 +2,9 @@
 sidebar_position: 2
 title: "Knowledge Base Fundamentals"
 id: knowledge-base-fundamentals
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-09-10
 tags:
   - Teaching
   - Knowledge Base

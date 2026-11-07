@@ -2,6 +2,9 @@
 sidebar_position: 14
 title: "Harness 到 Harness²：把 harness 的收益放进权重，还是让 harness 自己进化——精读与通俗拆解"
 description: "arXiv:2609.24974v1（Harness-Zero，蒸馏进权重）× arXiv:2610.14224v1（Harness²，部署期递归自改）双源精读：四机制拆解、4 张原图、原型破坏实验。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-28
 ---
 
 # Harness 到 Harness²：把 harness 的收益放进权重，还是让 harness 自己进化

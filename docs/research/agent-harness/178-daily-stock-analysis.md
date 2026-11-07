@@ -2,6 +2,9 @@
 sidebar_position: 13
 title: "Daily Stock Analysis（DSA）精读与通俗拆解"
 description: "以 67k star 开源仓 ZhuLinsen/daily_stock_analysis @4e622643（2026-10-25，站点同源构建）+ 产品站 12 原生页 + 系统论文 arXiv:2608.26990 为信源的首读：五阶段证据到报告流水线、八态证据状态与六块质量评分、多源回退链三层防护（熔断/冷却）、模型路由与能力准入（可替换≠等价）、15 策略技能与信号资格分选、分歧显式化与只降不升的风险裁决、决策信号 1d-10d 后验与 Beta 收缩权重自校准；配五机制纯标准库原型与五次破坏性实验实测。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-28
 ---
 
 # Daily Stock Analysis（DSA）精读与通俗拆解

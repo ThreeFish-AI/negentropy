@@ -1,6 +1,9 @@
 ---
 sidebar_position: 6
 title: "Agentic AI Memory 基座选型对比报告"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # Agentic AI Memory 基座选型对比报告
 

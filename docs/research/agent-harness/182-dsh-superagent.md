@@ -2,6 +2,9 @@
 sidebar_position: 15
 title: 精读：dsh-superagent（DeepSeek 的 Super-agent 原型）
 description: DeepSeek 2026-10-31 开源的 dsh-superagent-prototype（DSH Superagent 研究原型，main@6337fc8）精读与通俗拆解——一条消息如何过两道闸、签一张不可变票据、订阅一个线程、跑在一个永不阻塞的执行器上。
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-11-02
 ---
 
 > [1] deepseek-ai, "dsh-superagent: Towards a More Autonomous Agent System," GitHub repository, commit 6337fc8, Oct. 31, 2026. [Online]. Available: https://github.com/deepseek-ai/dsh-superagent-prototype （访问 2026-11-01；MIT 许可，研究原型、非官方产品）

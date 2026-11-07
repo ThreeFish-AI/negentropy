@@ -2,6 +2,9 @@
 sidebar_position: 3
 title: "精读：Learn Claude Code 规划与协调（TodoWrite / Subagent / Skill / System Prompt / Error Recovery）"
 description: "双轨钉点（站点轨 67a9126c / main 轨 ce8f9f18）的全貌解剖：以「LLM 每轮看到什么」为统一视角串起五个装置：计划外显与 nag reminder、子代理消息隔离只回结论、技能两级加载的 token 经济学、系统提示按真实状态组装与缓存、错误三路径分类恢复；五条底层规律、三个核心争议、批判性边界五条，配套纯标准库原型 lcc_planning_lab.py 与五次破坏性实验实测退化，附录 main 轨 s17_goal_loop 目标闸门对照"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 # 精读：Learn Claude Code 规划与协调
 

@@ -2,6 +2,9 @@
 sidebar_position: 1
 title: "Learn Claude Code 五层 Harness 精读总览"
 description: "课程双轨一手材料（仓库 main 17 章 @ ce8f9f18 / 站点 20 章修订 @ 67a9126c，均 MIT）加 Anthropic 官方文档为信源的跨层综观：执行 → 规划 → 记忆 → 时机 → 协作五层的依赖链与层间缺口、四级证据分级、三轨撞号拓扑与 main 轨视频未取材两章的落位、跨章批判边界，以及五篇《精读与通俗拆解》（guided-learn 产物，2026-10-07 全新首读）的导航与本仓机制对位"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 # Learn Claude Code 五层 Harness 精读总览

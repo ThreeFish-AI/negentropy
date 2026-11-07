@@ -1,6 +1,9 @@
 ---
 sidebar_position: 7
 title: "OceanBase Phase 2：Memory Management 实施指引"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 # Phase 2: Memory Management 实施指引 (Google Memory Bank 仿生)
 

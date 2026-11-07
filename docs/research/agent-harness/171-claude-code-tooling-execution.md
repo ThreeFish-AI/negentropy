@@ -2,6 +2,9 @@
 sidebar_position: 2
 title: "精读：Learn Claude Code「工具与执行」（Agent Loop / Tool Use / Permission / Hooks）"
 description: "把会思考的 LLM 变成会动手的 Agent：一个回喂工具结果的 while 循环（30 行 vs CC query.ts 1729 行），加上工具查表分发、三道权限闸门、钩子注册表三层装置；两轨钉点对照（站点轨 stop_reason 判据 vs main 轨内容块判据）、官方文档三方核证（33 个 hook 事件、六种权限模式、hook allow 压不过 deny/ask）、五条底层规律、三个核心争议、五路破坏性实验实测退化，配套可运行原型 lcc_tooling_lab.py"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 # 精读：Learn Claude Code「工具与执行」

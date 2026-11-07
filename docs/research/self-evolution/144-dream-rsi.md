@@ -2,6 +2,9 @@
 sidebar_position: 8
 title: "Dream-RSI 论文精读笔记"
 description: "arXiv:2609.14858 精读：把累积发现历史当重放模拟器、离线做梦评估改进探索策略、argmax 含当前策略防回退，只改策略层不动底座；含随笔记入库的最小原型与五次破坏性实验"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-22
 ---
 
 # Dream-RSI 论文精读笔记

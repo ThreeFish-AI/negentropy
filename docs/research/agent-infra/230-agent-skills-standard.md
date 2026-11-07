@@ -2,6 +2,9 @@
 sidebar_position: 8
 title: "Agent Skills 开放标准精读与通俗拆解"
 description: "以 agentskills.io 全站 9 页 + 规范仓钉点 69ef37e9（2026-08-09 冻结，站点实况与 HEAD 一致）+ skills-ref 参考实现源码级通读 + Claude Code/Codex/Gemini CLI/VS Code 四家客户端官方口径实测为信源的完全重读：一个刻意做小的知识打包标准（文件夹+SKILL.md 六字段）如何用「目录常驻一行、激活才付正文、资源按需再付」的三级记账换来电生态；五条底层规律（成本按使用付费/一根字符串的路由/身份借文件系统/被解释的文本/互操作压倒完备）× 三个争议（严格 vs 宽容双轨/关门哲学与 51 条 PR/互操作约定与私有目录）；规范↔参考实现↔客户端三方十三处分歧逐条锚定；配套两个主要纯标准库原型（另有一代原型 agent_skills_lab.py 补 B3/B4 两项实验）：agent_skills_lab4.py（469 行，12 assert 全绿，X1–X5：身份漂移技能静默蒸发/严格门当装载门装载面 -1/6/目录注入 0→1/资源预载常驻 +13%/去掉压缩保护后策略静默丢失）与 agent_skills_lab2.py（354 行，补充 X1/X3/X4/X5：作用域优先级/metadata 强转翻转/朴素解析器下的伪字段注入/遮蔽告警剥离）"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-23
 ---
 
 # Agent Skills 开放标准精读与通俗拆解

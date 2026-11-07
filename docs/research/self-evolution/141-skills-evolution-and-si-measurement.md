@@ -1,6 +1,9 @@
 ---
 sidebar_position: 5
 title: "Skill 进化闭环 × 自我改进评测：综述工程落地"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-07-05
 ---
 
 # Skill 进化闭环 × 自我改进评测：综述 §3/§7/§8 的工程落地

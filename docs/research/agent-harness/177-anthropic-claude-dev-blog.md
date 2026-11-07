@@ -2,6 +2,9 @@
 sidebar_position: 12
 title: "claude.dev 全站精读与通俗拆解（Anthropic 开发者博客 · 16 文 + Mods + 5 视频）"
 description: "以 2026-10-23 全站快照（sitemap 20 URL + RSS 16 篇逐条一致 + 5 条视频官方英文字幕）为信源的 claude.dev 全站首读：轮数×重发×缓存前缀的任务账单模型、effort 档位买得到与买不到的东西、脚手架随模型能力生灭（80% 系统提示删减与 todo 消亡）、七层评审防线与确定性计数棘轮、无人值守自动化的书签/确认记账/硬预算三件套、执行环境三级跳（云会话/Managed Agents/Claude Tag）、mods hook 链与 dynamic workflows 两个可编程面；补读 7 组官方文档（Claude Tag/Managed Agents/mods/effort/prompt caching/发布页/workflows）对齐机制口径，配五机制确定性原型与四次破坏性实验实测。"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-24
 ---
 
 # claude.dev 全站精读与通俗拆解

@@ -1,6 +1,9 @@
 ---
 sidebar_position: 2
 title: "浏览器操作 MCP 调研：选型论证与横向盘点"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-09-04
 ---
 # 浏览器操作 MCP 调研：选型论证与横向盘点
 

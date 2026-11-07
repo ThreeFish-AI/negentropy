@@ -4,10 +4,7 @@ title: "Context Engineering 通俗全解"
 id: context-engineering
 last_update:
   author: Aurelius Huang
-  created_at: 2025-12-19
-  updated_at: 2026-05-22
-  version: 1.5
-  status: Reviewed
+  as-of: 2026-05-22
 tags:
   - Context Engineering
   - 学术论文

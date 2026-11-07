@@ -1,6 +1,9 @@
 ---
 sidebar_position: 4
 title: "经验时代的自驱迭代进化智能体：综述研读与系统改进落地"
+last_update:
+  author: Aurelius Huang
+  as-of: 2026-10-19
 ---
 
 # 经验时代的自驱迭代进化智能体：综述研读与系统改进落地
