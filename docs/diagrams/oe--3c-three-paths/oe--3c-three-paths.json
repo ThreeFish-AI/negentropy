@@ -1,0 +1,283 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "三桥通往统一：3C 能力阶梯",
+    "subtitle": "交互越早越细，能力越偏向组合性；三种能力须分立举证",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/multimodal-models/oe--3c-three-paths.html"
+  },
+  "lanes": [
+    {
+      "id": "inputs",
+      "label": "多模态输入"
+    },
+    {
+      "id": "bridges",
+      "label": "三条桥（交互深度递进）"
+    },
+    {
+      "id": "caps",
+      "label": "3C 能力阶梯"
+    },
+    {
+      "id": "evid",
+      "label": "证据判据"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "label": "C1 覆盖",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "p2",
+      "label": "C2 可比",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "p3",
+      "label": "C3 组合",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "groups": [
+    {
+      "id": "g_backbone",
+      "label": "参数复用基线",
+      "lane": "bridges",
+      "fromCol": 0,
+      "toCol": 0,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "src",
+    "transform",
+    "align",
+    "fuse",
+    "delta"
+  ],
+  "nodes": [
+    {
+      "id": "src",
+      "lane": "inputs",
+      "col": 0,
+      "type": "external",
+      "label": "六模态语料",
+      "sublabel": "文本·图像·音频·图·表·时序",
+      "width": 172
+    },
+    {
+      "id": "backbone",
+      "lane": "bridges",
+      "col": 0,
+      "type": "backend",
+      "label": "共享骨干",
+      "sublabel": "同一骨干换 tokenizer",
+      "tag": "只共参数·不共空间",
+      "width": 172
+    },
+    {
+      "id": "transform",
+      "lane": "bridges",
+      "col": 1,
+      "type": "backend",
+      "label": "变换",
+      "sublabel": "渲染/序列化/离散 token",
+      "tag": "借现成编码器",
+      "width": 172
+    },
+    {
+      "id": "align",
+      "lane": "bridges",
+      "col": 3,
+      "type": "backend",
+      "label": "对齐",
+      "sublabel": "双塔＋对比·CLIP 家族",
+      "width": 172
+    },
+    {
+      "id": "fuse",
+      "lane": "bridges",
+      "col": 4,
+      "type": "backend",
+      "label": "联合融合",
+      "sublabel": "先交互后池化·从根上绕开双锥",
+      "tag": "对齐的严格泛化",
+      "width": 172
+    },
+    {
+      "id": "c1",
+      "lane": "caps",
+      "col": 1,
+      "type": "database",
+      "label": "覆盖 C1",
+      "sublabel": "能吃进什么·逐域实测",
+      "width": 172
+    },
+    {
+      "id": "c2",
+      "lane": "caps",
+      "col": 3,
+      "type": "database",
+      "label": "可比 C2",
+      "sublabel": "双向互检·留出对·校准",
+      "width": 172
+    },
+    {
+      "id": "c3",
+      "lane": "caps",
+      "col": 4,
+      "type": "database",
+      "label": "组合 C3",
+      "sublabel": "输出真依赖全部输入",
+      "width": 172
+    },
+    {
+      "id": "gap",
+      "lane": "evid",
+      "col": 3,
+      "type": "security",
+      "label": "modality gap 天花板",
+      "sublabel": "锥效应·初始化·低温",
+      "width": 172
+    },
+    {
+      "id": "delta",
+      "lane": "evid",
+      "col": 5,
+      "type": "security",
+      "label": "Δcomp 判据",
+      "sublabel": "胜过单输入/分数合并/向量相加",
+      "width": 196
+    }
+  ],
+  "edges": [
+    {
+      "id": "src-transform",
+      "from": "src",
+      "to": "transform",
+      "variant": "default"
+    },
+    {
+      "id": "src-backbone",
+      "from": "src",
+      "to": "backbone",
+      "label": "参数复用",
+      "variant": "dashed",
+      "role": "branch",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "transform-align",
+      "from": "transform",
+      "to": "align",
+      "label": "不丢结构地缝坐标",
+      "variant": "default"
+    },
+    {
+      "id": "align-fuse",
+      "from": "align",
+      "to": "fuse",
+      "label": "交互=旋钮",
+      "variant": "emphasis"
+    },
+    {
+      "id": "fuse-delta",
+      "from": "fuse",
+      "to": "delta",
+      "label": "组合增益>0",
+      "variant": "emphasis"
+    },
+    {
+      "id": "backbone-c1",
+      "from": "backbone",
+      "to": "c1",
+      "label": "仅 C1",
+      "variant": "dashed",
+      "role": "branch",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "transform-c1",
+      "from": "transform",
+      "to": "c1",
+      "label": "解锁覆盖",
+      "variant": "default"
+    },
+    {
+      "id": "align-c2",
+      "from": "align",
+      "to": "c2",
+      "label": "解锁可比",
+      "variant": "default"
+    },
+    {
+      "id": "fuse-c3",
+      "from": "fuse",
+      "to": "c3",
+      "label": "解锁组合",
+      "variant": "default"
+    },
+    {
+      "id": "c1-c2",
+      "from": "c1",
+      "to": "c2",
+      "label": "逐级更难",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "c2-c3",
+      "from": "c2",
+      "to": "c3",
+      "label": "逐级更难",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "c2-gap",
+      "from": "c2",
+      "to": "gap",
+      "label": "实测天花板",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三桥递进",
+      "items": [
+        "变换→对齐→融合：输入在模型内交互得越早、分辨率越细，能力越偏向组合性",
+        "把融合的交互强度调到零，就退回双塔对齐——对齐是融合的特例"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "3C 分立举证",
+      "items": [
+        "覆盖/可比/组合须分别举证：徽章计数、共享骨干、共用损失都不是任何一级的证据",
+        "C3 判据 Δcomp：融合向量须同时胜过最强单输入、分数加权合并、向量加权相加"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "已证现状（截至综述统计）",
+      "items": [
+        "被检的广输入系统大多停在 C1/C2，组合性证据几乎全空或仅部分达标",
+        "唯一强组合性证据只覆盖两个模态；统一基准建成前，终局论是假说"
+      ]
+    }
+  ]
+}

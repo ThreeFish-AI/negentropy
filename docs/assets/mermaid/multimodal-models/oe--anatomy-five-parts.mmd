@@ -1,0 +1,16 @@
+%%source: docs/research/multimodal-models/253-omnimodal-embeddings-survey.md §2（信源：arXiv 2611.00172v1 §2.1 五件套解剖 / Table 1-2 / 图 2）
+%%slug: multimodal-models/oe--anatomy-five-parts
+%%type: architecture
+%%derived: archify architecture v1（结构五件套主链：输入→数据单元→tokenizer（模态接口）→编码器（弱先验骨干+插件结构）→聚合→表征对象；训练目标与评测为决策位侧挂；「模态接入层/共享处理核心」两边界）
+flowchart LR
+    RAW["任意模态输入<br/>文本·图像·音频·图·表·时序"]
+    UNI["数据单元<br/>子词/像素块/节点/单元格"]
+    TOK["Tokenizer 模态接口<br/>格点对称 vs 无序集合"]
+    ENC["编码器骨干<br/>Transformer/SSM·弱先验+插件结构"]
+    AGG["聚合/读出<br/>CLS/平均/统计量池化"]
+    REP["表征对象（交付物）<br/>全局向量/局部序列/离散码/分布"]
+    OBJ["训练目标<br/>对比/重建/生成-混合·预训练→微调"]
+    EVL["评测范式<br/>冻结编码器探针"]
+    RAW --> UNI --> TOK --> ENC --> AGG --> REP
+    OBJ -.塑造几何.-> ENC
+    EVL -.冻结探针.-> REP

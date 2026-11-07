@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+### 知识库平台吸收 Omnimodal Embeddings 综述增强（I-252，2026-11-07）
+
+- [技术方案](docs/concepts/design/knowledge-base-platform.md)吸收精读 253（arXiv 2611.00172）评估结论（25 代理映射+对抗核验，21 条映射 7 存活/12 降级/2 驳回）：§4.4 新增 golden set 举证纪律——调参子集与留出子集固定拆分（防门禁基线被调参过拟合）、图片腿双向互检且单向命中不作通过证据、期望标注圈定易混淆负例、回归门加报 RRF 融合相对最好单腿的 Δ；图片召回用例按域分组断言；「golden set 标注口径变更」纳入必须过回归门条款。
+- 认知升级：§8 风险行「跨模态中文嵌入质量未证」补与语言无关的结构性上限（双塔 modality gap 为几何事实、常用低温配方下训练更久不可消除，图片腿阈值独立定标）；§7 M3 视觉检索档补「实证+判据」双锚与触发条件；§0 非目标补全模态融合嵌入不做预留（触发条件式，防 scope creep 与供应商营销宣称）；§9 尾补版面/结构模态选路判据。
+- 循证：新增 IEEE 引用两条——[24] Liang et al. Mind the Gap（NeurIPS 2022，modality gap 一手）、[25] Zhang et al. From Fragmentation to Fusion（arXiv 2611.00172）。
+
+### Omnimodal Embeddings 综述精读入库（253，I-251，2026-11-07）
+
+- 新增 `docs/research/multimodal-models/253-omnimodal-embeddings-survey.md`：arXiv 2611.00172v1（Ant Group × 上交/ANU/同济/NUS 立场综述）全文首读，碎片化三孤岛诊断（1,352 篇普查跨模态 <5%）与四轴收敛、五件套解剖、3C 能力阶梯 × 三条统一路径（变换→对齐→联合融合，Δcomp 为真融合判据）、modality gap 三成因、五规律三争议；45 行 Checker 源稿对账全绿（[readme 十节](./docs/research/readme.md)、[knowledge-map](./docs/.agents/knowledge-map.md) 同步登记）
+- 新增配套原型 `assets/omnimodal_embeddings_lab.py`（纯标准库确定性，selftest 26 断言全绿，E1–E5 破坏实验实测退化：错配正对检索 1.0→0.0 无报警、交互项清零退化为相加检索）与 `--count` 字数门（口径沿用 179/181/250/251，5981/6000）
+- 新增两张 archify 图全套（`oe--anatomy-five-parts` architecture + `oe--3c-three-paths` workflow：mermaid 文本源、candidate JSON、finalize showcase 四门回执、双主题 PNG）并登记 [mermaid README](./docs/assets/mermaid/README.md)
+- 信源原图沉淀：arXiv HTML 版 Figure 1/3/5/6（外链 SVG 经无头 Chrome 渲 PNG，arXiv 非独占分发许可逐图署名）入 [source-figures/multimodal-models/](./docs/assets/source-figures/multimodal-models/)，正文 §2/§4 嵌入
+
 ### Agent-Reflex 精读入库（252，I-250，2026-11-06）
 
 - 新增 `docs/research/agent-harness/252-agent-reflex.md`：arXiv 2610.17953v1（RUC-NLPIR 系 12 人）首读——RSD 真实故障注入与跨模型同任务成败配对挖环境级技能、ReSFT 三采样与特权剥离、ORPO 混合组整组归一 RL + 同 token 双上下文重打分蒸馏；五基准 40.2→58.6、噪声基准 12.3→29.1；五规律两争议五批判边界；与 179 互链；字数门 6000（实测 5959）。

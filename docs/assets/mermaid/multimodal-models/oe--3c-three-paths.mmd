@@ -1,0 +1,24 @@
+%%source: docs/research/multimodal-models/253-omnimodal-embeddings-survey.md §4（信源：arXiv 2611.00172v1 §6-8 三桥 / Table 9-10 / 图 5-6 / 式 5 Δcomp）
+%%slug: multimodal-models/oe--3c-three-paths
+%%type: workflow
+%%derived: archify workflow v2（三桥按交互深度递进：共享骨干（仅参数复用）与变换→C1 覆盖、对齐→C2 可比（modality gap 天花板）、联合融合→C3 组合（Δcomp 判据）；3C 逐级更难、分立举证）
+flowchart LR
+    SRC["六模态语料"]
+    BB["共享骨干<br/>参数复用·不共空间"]
+    TR["变换<br/>渲染/序列化/离散 token"]
+    AL["对齐<br/>双塔+对比·CLIP 家族"]
+    FU["联合融合<br/>先交互后池化"]
+    C1["覆盖 C1<br/>能吃进什么·逐域实测"]
+    C2["可比 C2<br/>双向互检·留出对"]
+    C3["组合 C3<br/>真依赖全部输入"]
+    GAP["modality gap<br/>锥效应·初始化·低温"]
+    DELTA["Δcomp 判据<br/>胜过单输入/分数合并/向量相加"]
+    SRC --> TR --> AL --> FU --> DELTA
+    SRC -.参数复用.-> BB
+    BB -.仅 C1.-> C1
+    TR --> C1
+    AL --> C2
+    FU --> C3
+    AL -.天花板.-> GAP
+    GAP -.融合从根上绕开.-> FU
+    C1 -.逐级更难.-> C2 -.逐级更难.-> C3

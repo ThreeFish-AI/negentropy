@@ -142,6 +142,7 @@ last_update:
 | 文档 | 主旨 |
 |:---|:---|
 | [Can Visual Generation Expand What Unified Multimodal Models Know? 精读与通俗拆解](./multimodal-models/240-visual-generation-knowledge-transfer.md) | arXiv:2610.21459v1（Tsinghua × Z.AI）首读：KTP 用只藏在训练图里的虚构事实做探针，测统一多模态模型学画图学到的知识能否在纯文字问答里说出来——直接迁移画得出远多于说得出（BAGEL / GLM-Omni / SenseNova-U1 平均落差 +22.57 / +39.43 / +41.14 个百分点），一半实体加问答样本能让另一半在多数模型上平均更会说，同一回答里先画、再看、再答的交错样本平均最好且很大一部分来自图像损失（GLM-Omni 消融 26.86% → 13.71%），推理时先画再读把号码从 0% 拉到 4% / 36% / 20%；补读八篇对齐口径，五条规律、两个争议与「材料没有证明的事」五条（样本粒度、表 2 分母、全合成数据、两把尺子松紧、跨模型混杂）；配表格复算与玩具模型原型（E1–E5 破坏实验）、两张 archify 图与 7 张论文原图 |
+| [From Fragmentation to Fusion: Omnimodal Embeddings 综述精读](./multimodal-models/253-omnimodal-embeddings-survey.md) | arXiv:2611.00172v1（Ant Group × 上交/ANU/同济/NUS，2026-10-30）首读：各模态嵌入研究表面碎片化（1,352 篇普查跨模态 <5%）、底下四轴收敛（同一对比目标/Transformer 骨干/预训练-微调配方/粒度上移）；五件套解剖（数据单元→tokenizer→编码器→聚合→表征对象，模态差异住 tokenizer、表征对象定生死）+ 3C 能力阶梯（覆盖→可比→组合，逐级更难分立举证）× 三条统一路径（变换换覆盖、对齐换可比、融合瞄准组合且是对齐的严格泛化，Δcomp 为真融合判据）；modality gap 三成因（锥效应/初始化/低温局部最优）；MAEB 53 编码器无一家占优、Table 13 十系统 9P+1D（唯一强证据仅两模态），「融合终局」在统一基准建成前是假说；五规律三争议、45 行 Checker 对账全绿、确定性原型（26 断言 + E1–E5 破坏实验：错配正对检索 1.0→0.0 且无报警、交互项清零退化为相加检索）、两张 archify 图与 4 张论文原图，字数门 6000 |
 
 ---
 

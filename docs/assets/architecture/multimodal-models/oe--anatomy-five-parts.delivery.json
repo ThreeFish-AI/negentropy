@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "910d0fb5-af9d-4ea6-b2ae-ea92408c1b38",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/diagrams/oe--anatomy-five-parts/oe--anatomy-five-parts.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/reykjavik/docs/assets/architecture/multimodal-models/oe--anatomy-five-parts.html",
+  "specification": {
+    "sha256": "8d4655309d0640bd3453ad1c863f8367e941caae0892f4b41fbf773191b849f2",
+    "bytes": 3604
+  },
+  "artifact": {
+    "sha256": "e328ba2cc53c73e9d392b26f767f15f5e3020f178b192cf360011efeee07ddf4",
+    "bytes": 761094
+  }
+}

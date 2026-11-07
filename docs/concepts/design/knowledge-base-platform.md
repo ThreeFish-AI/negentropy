@@ -18,7 +18,7 @@ tags:
 
 **四大支柱**：P1 文档管理、P2 索引构建（BM25/元数据/向量/地理四路，图文混合）、P3 应用集成（多产品客服机器人）、P4 权限管控（全链路）。
 
-**非目标**：客服工单系统自身工作流（工单作文档源在范围内，回写/hook 见 §9.2）；平台绑定具体云厂商（云厂商托管知识源接入见 §9.3）。文档内图文一起索引/检索/召回在范围内（§2.4/§3）；知识图谱联邦为后续扩展（§9.1）。
+**非目标**：客服工单系统自身工作流（工单作文档源在范围内，回写/hook 见 §9.2）；平台绑定具体云厂商（云厂商托管知识源接入见 §9.3）；全模态融合嵌入（单模型内跨模态交互合成单向量）不做预留——融合对齐的弱占优仍是猜想级且实测有反例、双塔对齐为现役主力，平台跨模态需求止于文搜图可比<sup>[[25]](#ref25)</sup>，客服场景出现组合查询（如截图+文字联合查询）时再按触发条件立项实测。文档内图文一起索引/检索/召回在范围内（§2.4/§3）；知识图谱联邦为后续扩展（§9.1）。
 
 **术语**：产品域 = 产品对外的知识边界（第一道 scope）；pre-filter = 打分前下推引擎的硬过滤；fail-closed = 判定不可用即拒绝；图片 chunk = 承载文档内图片的索引单元——文本视图（caption/alt 走 BM25 腿，§3.1；语境不直接入索引，经 caption 派生输入与 chunk 身份键生效，§1/ADR-0001 D3）＋向量视图（CLIP 族图像塔对图片像素本身的跨模态嵌入，独立模型空间，查询文本经文本塔同空间召回，§3.1/§3.3）。
 
@@ -124,7 +124,8 @@ IndexBuild 三策略：全量初建 / 增量（按版本 diff 重刷该文档 ch
 
 ### 4.4 评测与反馈闭环
 
-- **离线回归门**：每 Channel 维护 golden set（查询→期望引用文档/答案要点），检索指标 docRecall/docPrecision/nDCG@k（Agent Search 口径 §7-F11），**逐召回腿分别断言命中（含 CJK 子串与图片召回用例），防单腿失效被融合结果掩盖**+ 端到端 RAGAS 库四指标（faithfulness/answer relevancy/context precision·recall，§7-F10；原论文<sup>[[15]](#ref15)</sup>定义 faithfulness/answer relevance/context relevance 三项）；索引重建与策略变更必须过回归门；
+- **离线回归门**：每 Channel 维护 golden set（查询→期望引用文档/答案要点），检索指标 docRecall/docPrecision/nDCG@k（Agent Search 口径 §7-F11），**逐召回腿分别断言命中（含 CJK 子串与图片召回用例；图片用例按域分组——产品照/界面截图/流程图/图表——分别断言，不以全集均值掩盖单图域失效），防单腿失效被融合结果掩盖**+ 端到端 RAGAS 库四指标（faithfulness/answer relevancy/context precision·recall，§7-F10；原论文<sup>[[15]](#ref15)</sup>定义 faithfulness/answer relevance/context relevance 三项）；索引重建、策略变更与 golden set 标注口径变更必须过回归门；
+- **golden set 举证纪律**：固定拆分互不相交的调参子集与留出子集——定参（RRF k、geo 融合次序等）只用调参子集，回归门只认留出子集，防门禁基线被调参过拟合；图片召回用例双向互检（生产向文→图＋反向图→文），CLIP 族选型与换版复核沿用同判据，单向命中不作通过证据（留出配对与双向互检为可比性举证纪律<sup>[[25]](#ref25)</sup>）；期望标注显式圈定易混淆负例（同产品线邻型号、同名不同义文档）——标注即相关性声明，声明错了门禁不报警；回归门加报 RRF 融合相对最好单腿的 Δ（Δcomp 消融口径<sup>[[25]](#ref25)</sup>），融合档劣于最好单腿即判失败，新增召回腿/档以目标用例子集超过去腿最优组合与最强单腿、整体指标不劣化为采纳判据——防融合未干活被逐腿绿灯掩盖；
 - **线上回流**：四态结果+升级原因；点踩与转人工入 bad-case 池，归因（检索 miss/排序/生成/知识缺失）四路回流：评测集、调参、生成策略、知识补录；
 - **口径纪律**：resolution 只按 bot 介入会话计且带时间窗与判定规则，可复算审计——Fin 官方 76% vs 独立实测 38–53% 的教训（§4-F2）；
 - **可观测性**：SLI 含首字与检索 P95、可用率、拒答率、ACL 滞后、零命中率，trace 带 channel 与 index_ver；评测按身份分层，答案策略按 Channel 流量 A/B 灰度。
@@ -178,7 +179,7 @@ IndexBuild 三策略：全量初建 / 增量（按版本 diff 重刷该文档 ch
 
 - **M1 单产品 MVP**：upload 引入+人工编辑+关键字（ts_rank 兜底起步，真 BM25 见 [ADR-0002](./knowledge-base-platform-adr-0002-bm25-engine.md)）/向量两路+匿名产品域隔离+golden set 基线；
 - **M2 多产品与全索引**：连接器增量同步+元数据/geo 索引+真 BM25 落地（ADR-0002）+**图文混合索引（图片资产抽取、VLM caption、跨模态向量腿、图片腿回归）**+登录客户 ACL+验证态治理+审计面板+Widget 上线；
-- **M3 规模化**：回归门全量化+蓝绿常态化+独立授权服务与存储分拆+多语言双轨+页面级视觉检索可选档（ColPali/VisRAG<sup>[[21]](#ref21)</sup><sup>[[22]](#ref22)</sup>）。
+- **M3 规模化**：回归门全量化+蓝绿常态化+独立授权服务与存储分拆+多语言双轨+页面级视觉检索可选档（ColPali/VisRAG<sup>[[21]](#ref21)</sup><sup>[[22]](#ref22)</sup>；升档判据双锚——语义住在版面里的模态（文档/网页/图表）以页面截图表示是更忠实的变换<sup>[[25]](#ref25)</sup>，触发条件为版面密集内容在文本路 bad-case 归因中呈结构性丢版面信息）。
 
 ## 8. 风险与批判边界
 
@@ -190,7 +191,7 @@ IndexBuild 三策略：全量初建 / 增量（按版本 diff 重刷该文档 ch
 | geo×文本×向量融合参数无先验 | 按 golden set 实测定参，不拍脑袋 |
 | 生成端幻觉 | 逐断言引用+无锚按幻觉处理+拒答阈值+评测门 |
 | VLM caption 幻觉/PII 转写 | caption 仅供检索、grounding 回锚原图；同规则 PII 脱敏；图片腿独立回归 |
-| 跨模态中文嵌入质量未证 | golden set 实测定夺；文本检索有实证上限（VisRAG<sup>[[22]](#ref22)</sup>），必要时升页面级视觉检索 |
+| 跨模态中文嵌入质量未证，且存在与语言无关的结构性上限（双塔 modality gap 为几何事实，常用低温配方下训练更久不可消除，文本查询×图像候选的近邻排序系统性有偏<sup>[[24]](#ref24)</sup>） | golden set 实测定夺，图片腿阈值独立定标、不以文本腿为参照；文本路检索有实证与判据双重上限（VisRAG<sup>[[22]](#ref22)</sup>＋文字抽取装不下版面语义<sup>[[25]](#ref25)</sup>），必要时升页面级视觉检索 |
 | 图片存储/带宽/擦除成本 | 内容寻址去重+引用计数粉碎（§2.2）；短签链接限时效 |
 | 厂商口径漂移（自评 resolution） | 口径自带可复算审计（判定规则+时间窗+会话级） |
 
@@ -211,6 +212,8 @@ Connector SPI 预留反向通道：outbox 模式——Draft 发布/KnowledgeTask
 ### 9.3 云厂商托管知识源
 
 云厂商托管知识源（厂商文档中心等）作为一类 Source 经统一 Connector SPI 接入——三同步模式同构、凭据入密钥管理、信任档与摄取边界同既有纪律。与 ADR-0002「目标云」消歧：前者是**接入对象**、后者是**部署目标**，平台仍不绑定厂商。**触发**：产品文档大量托管于厂商知识源时接入。
+
+版面/结构模态选路判据（后续模态入范围时适用）：表格、图表等结构或版面模态，一维序列化装不下其原生结构者不并入纯文本腿——语义住在版面的走页面视觉路线（接 M3 可选档），行列几何等原生结构需原生编码器，依据变换判据<sup>[[25]](#ref25)</sup>。
 
 ## 参考文献
 
@@ -259,3 +262,7 @@ Connector SPI 预留反向通道：outbox 模式——Draft 发布/KnowledgeTask
 <a id="ref22"></a>[22] S. Yu, C. Tang, B. Xu, et al., "VisRAG: Vision-based Retrieval-augmented Generation on Multi-modality Documents," arXiv:2410.10594, 2024.
 
 <a id="ref23"></a>[23] D. Edge, H. Trinh, N. Cheng, et al., "From Local to Global: A Graph RAG Approach to Query-Focused Summarization," arXiv:2404.16130, 2024.
+
+<a id="ref24"></a>[24] V. W. Liang, Y. Zhang, Y. Kwon, S. Yeung, and J. Y. Zou, "Mind the Gap: Understanding the Modality Gap in Multi-Modal Contrastive Representation Learning," in *Proc. NeurIPS 2022*, 2022.
+
+<a id="ref25"></a>[25] Z. Zhang, Y. Guo, Y. Zhang, et al., "From Fragmentation to Fusion: A Survey and Roadmap for Omnimodal Embeddings," arXiv:2611.00172, 2026.
