@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "2cdc67cb-7425-4eb1-817a-e76fa9949df0",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/diagrams/agent-reflex--pipeline/agent-reflex--pipeline.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/bandung-v3/docs/assets/architecture/agent-harness/agent-reflex--pipeline.html",
+  "specification": {
+    "sha256": "920589ae9ad1962122801fb1d251983882bdf4c6c58f7987347f1858656d8deb",
+    "bytes": 4113
+  },
+  "artifact": {
+    "sha256": "b376217a33bc82bce74f7b26271747ece2e32b518aec5bacf3e759c60943c7b9",
+    "bytes": 756069
+  }
+}

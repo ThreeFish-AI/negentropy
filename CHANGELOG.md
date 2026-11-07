@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Agent-Reflex 精读入库（252，I-250，2026-11-06）
+
+- 新增 `docs/research/agent-harness/252-agent-reflex.md`：arXiv 2610.17953v1（RUC-NLPIR 系 12 人）首读——RSD 真实故障注入与跨模型同任务成败配对挖环境级技能、ReSFT 三采样与特权剥离、ORPO 混合组整组归一 RL + 同 token 双上下文重打分蒸馏；五基准 40.2→58.6、噪声基准 12.3→29.1；五规律两争议五批判边界；与 179 互链；字数门 6000（实测 5959）。
+- 新增配套原型 `assets/agent_reflex_lab.py`（纯标准库确定性，selftest 15 断言全绿，六消融对齐论文 Table 3、D5 特权依赖对照与 K2 注入率实验，含 `count` 字数门子命令）。
+- 新增两张 archify 图全套（`agent-reflex--pipeline` 三阶段管线 + `agent-reflex--three-samplings` 三采样对照，workflow 型，finalize showcase 四门回执入库）。
+- 信源原图沉淀：e-print 矢量 PDF 渲染 Figure 1/3/4/5 入 [source-figures/agent-harness/](docs/assets/source-figures/agent-harness/)（arXiv non-exclusive-distrib 1.0，经用户 2026-11-06 明示授权入库，仅作学习引用；source-figures 与 doc-media-assets 两处规约同步开「用户明示例外」通道）。
+
 ### Physical AI monograph 精读入库（251，I-249，2026-11-05）
 
 - 新增 `docs/research/physical-ai/251-physical-ai-monograph.md`：arXiv 2610.27045v1（52 人定名之作，CC BY 4.0）12 章全文精读，Definition 1.1 与四向边界、闭环四要素三尺度反馈、世界模型「保留答案」准则、数据金字塔与基础模型谱系、评估安全与 Physical AGI；五规律三争议、39 行 Checker 源稿对账全绿（[readme 十二节](./docs/research/readme.md)、[knowledge-map](./docs/.agents/knowledge-map.md) 同步登记）

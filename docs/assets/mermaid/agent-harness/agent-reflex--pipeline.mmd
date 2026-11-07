@@ -1,0 +1,21 @@
+%%source: docs/research/agent-harness/252-agent-reflex.md §3–§5（信源：arXiv 2610.17953v1 §3 Methodology / Table 4–5 / Appendix D.2–D.4）
+%%slug: agent-harness/agent-reflex--pipeline
+%%type: workflow
+%%derived: archify workflow v2（三阶段训练管线：RSD 离线挖库（真实故障注入→九模型同任务成败配对→环境级技能库）→ ReSFT 冷启动内化（三采样+验证器把关+存档剥特权）→ ORPO 在线优化（混合组整组归一 RL + 同 token 技能卡重打分）→ 部署零依赖；特权信息只在训练侧出现）
+flowchart LR
+    INJ["故障注入环境<br/>557 MCP 主题×60 任务 · 八族 p=0.2"]
+    SMP["九模型同任务采样·成败配对<br/>4B–284B 五家族 · 分析器×验证器联标"]
+    LIB[("技能库<br/>1,170 条 · 按环境索引")]
+    SR["SR/KR/UR 三采样<br/>技能在场采样 · 验证器只收成功续写"]
+    SFT["54K SFT<br/>存档剥技能与快照"]
+    RL["混合组 rollout<br/>G=8 · ν=0.25 · 整组归一"]
+    OPD["RL + 同 token 重打分<br/>技能卡教师只前向 · γ 置信加权"]
+    DEP["部署<br/>无技能库 · 无提示 · 无反思器"]
+    INJ -->|"采样"| SMP
+    SMP -->|"联标配对→抽取"| LIB
+    LIB -.->|"技能在场"| SR
+    SR -->|"验证器把关"| SFT
+    SFT -->|"冷启动策略"| RL
+    RL -->|"同批 token"| OPD
+    OPD -->|"内化进权重"| DEP
+    LIB -.->|"技能卡 env_id 直查（仅训练侧）"| OPD
