@@ -8,7 +8,7 @@
 >
 > **范围**：按**文档**而非目录界定。已纳入：现役系统文档（`docs/concepts/`、`docs/reference/{perceives,wiki}/`、根与 i18n README、
 > `apps/` README、`docs/.agents/` 巡检文档），以及已走完本管线的研究文献——`docs/research/cognitive-context/` 的
-> Horizon Context 精读、Context Layer 蓝图、OpenViking 精读与 Memadapter 精读（下表 `cognitive-context/` 分节）、
+> Horizon Context 精读、Context Layer 蓝图、OpenViking 精读与 Memadapter 精读、Anthropic Agent 记忆精读（254）（下表 `cognitive-context/` 分节）、
 > `docs/research/agent-harness/` 的五层 Harness 精读、并发独立重学（176）、AI Native 手册精读（180）、Hermes Agent 精读（190）与 Agent-Reflex 精读（252，下表 `agent-harness/` 分节）、
 > `docs/research/self-evolution/` 的 Dream-RSI 精读（下表 `self-evolution/` 分节）、
 > `docs/research/agent-infra/` 的 Agent Skills 规范精读（230）与 Jev（System One 决策模型）精读（下表 `agent-infra/` 分节）、
@@ -292,6 +292,7 @@
 | [context-layer--failure-map](./cognitive-context/context-layer--failure-map.mmd) | cognitive-context/013-context-layer-blueprint.md §1 失效模式登记簿 | architecture | ✓ | done | 十簇蛇形主链×三条问题带；sublabel=代表失效+行数、tag=主要防护；三卡：十簇×五轴对位/绕开测试/回路在线三条件 |
 | [context-layer--five-sources](./cognitive-context/context-layer--five-sources.mmd) | 已退役（013 无正文引用——五源为资产轴子集投影；v4 重制后 pipeline.toml 无引用，资产仅存档） | architecture | ✓ | retired | 退役：投影关系见 013 §4 五源投影注记 |
 | [powercontext--review-gates](./cognitive-context/powercontext--review-gates.mmd) | cognitive-context/016-powercontext-context-runtime.md §5 评审门（信源：oceanbase/powercontext core-concepts / review-candidates） | workflow | ✓ | done | 三权分立主链（生成模型→评审收件箱→评审决策→不可变 Revision→显式导出到宿主）+ 直接写入与有界召回两条旁支；三卡：三权分立/乐观锁防偷换/召回边界 |
+| [amc--five-dreams](./cognitive-context/amc--five-dreams.mmd) | cognitive-context/254-anthropic-agent-memory-components.md §2 全貌（信源：Anthropic《The components of agent memory》2026-11-06） | workflow | ✓ | done | 五泳道：四层存储（常驻注入/表征/笔记/转录）自上而下、时间线居中；Dreaming 五种动作（纠错/建表征/按目标聚焦/补缺/晋升）落在目标层泳道，主线会话→笔记→Dreaming→晋升→下一次会话；finalize showcase 四门回执入库 |
 | [context-layer-blueprint--industry-landscape](./cognitive-context/context-layer-blueprint--industry-landscape.mmd) | cognitive-context/013-context-layer-blueprint.md §11.1 描述还是执行（2026-10-10 微改重锚） | architecture | ✓ | done | 微改：四路线谱系+Palantir 异类收敛「治理往 SQL 生成之前挪」；+Forrester 双阵营与传输vs含义判词、Gartner 60% projection 带口径注 |
 | [context-layer-blueprint--first-class-object](./cognitive-context/context-layer-blueprint--first-class-object.mmd) | cognitive-context/013-context-layer-blueprint.md §2 问题定义与分析单元（式2/式3/式4 与四类失效四个根因） | dataflow | ✓ | done | 新增：ℰ→E_rel→Char→C→(C,𝒯)→f_context 装配事务主链；四类失效挂事务内部、八算子作加工位；验收以事务为最小单元入卡 |
 | [context-layer-blueprint--architecture](./cognitive-context/context-layer-blueprint--architecture.mmd) | cognitive-context/013-context-layer-blueprint.md §3 总纲：三面蓝图（§3.1 三面承重/§3.3 机制＝多轴组合/§3.4 六段两环） | architecture | ✓ | done | v3 重设计：三轴顺序链→三面独立承重（验收面十簇×结构面五轴+M1–M7 跨轴组合挂件×时间面六段两环回边；v2 见 git 史） |

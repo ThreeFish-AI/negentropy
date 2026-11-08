@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "08a6de42-edf9-4fdc-bd1d-56b1feba171c",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/conductor/workspaces/negentropy/tokyo-v3/docs/diagrams/amc--five-dreams/amc--five-dreams.json",
+  "output": "/Users/cm.huang/conductor/workspaces/negentropy/tokyo-v3/docs/assets/architecture/cognitive-context/amc--five-dreams.html",
+  "specification": {
+    "sha256": "e2e38e7805f7b8670ac85379d37ec3d8acb130a5354b0e8073cbf2247a4912d7",
+    "bytes": 4868
+  },
+  "artifact": {
+    "sha256": "0d5a8471df07ee50b205b5c7231e3d9ee626ff070bea550cd96733965ea68132",
+    "bytes": 762426
+  }
+}
