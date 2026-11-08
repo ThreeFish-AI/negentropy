@@ -145,3 +145,18 @@ Memadapter 论文图 1–3 取自 [arXiv:2610.05162v1](https://arxiv.org/html/26
 | [powercontext--src-07-blog-seekdb-multi-path.png](./cognitive-context/powercontext--src-07-blog-seekdb-multi-path.png) | 同博客图 3「seekdb：多路径检索证据」（figure-3.png） | Apache-2.0 | 等比降采样 1400px（1074 KiB） |
 | [powercontext--src-08-blog-four-context-lifecycles.png](./cognitive-context/powercontext--src-08-blog-four-context-lifecycles.png) | 同博客图 4「四类上下文，分别管理生命周期」（figure-4.png） | Apache-2.0 | 等比降采样 1400px（1096 KiB） |
 | [powercontext--src-09-blog-cross-session-handoff.png](./cognitive-context/powercontext--src-09-blog-cross-session-handoff.png) | 同博客图 6「跨会话交接，恢复时重新核对」（figure-6.png） | Apache-2.0 | 等比降采样 1400px（1084 KiB） |
+
+### cognitive-context · Anthropic Agent 记忆精读（[254](../../research/cognitive-context/254-anthropic-agent-memory-components.md)）
+
+抓取基准为 [Anthropic Engineering 博客《The components of agent memory》](https://www.anthropic.com/research/components-of-agent-memory)（Lance Martin，2026-11-06 发布，抓取日期 2026-11-08；图 Monika Tuchowska），图件为页面引用的 `www-cdn.anthropic.com/images/4zrzovbb/website/` 位图。页面只载「© 2026 Anthropic PBC」，无开放许可、也无禁止转载字样，署名「© 2026 Anthropic PBC，仅作学习引用」；**经用户 2026-11-08 明示指令（保留信源优质图）入库**，属本 README 的例外通道。位图原样入库，仅原文图 4 含半透明像素、烘贴边底色为不透明 RGB；单图 ≤ 1280 KiB。原文图 2、6、9、13（图 1 的箭头变体）与题图未入库，由笔记自绘图合并替代；原文图 7、12、15 正文只以文字带过。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [amc--fig1-memory-hierarchy.png](./cognitive-context/amc--fig1-memory-hierarchy.png) | 原文图 1（3840×1754，记忆层级总图） | © 2026 Anthropic PBC，仅作学习引用（用户授权 2026-11-08） | 原样（146 KiB） |
+| [amc--fig3-clbench-memory-gain.png](./cognitive-context/amc--fig3-clbench-memory-gain.png) | 原文图 3（3840×2160，CL-Bench 数据库任务六模型有无记忆） | 同上 | 原样（454 KiB） |
+| [amc--fig4-pokemon-memory-dirs.png](./cognitive-context/amc--fig4-pokemon-memory-dirs.png) | 原文图 4（3840×2545，两个记忆目录同比例对比） | 同上 | 半透明像素烘贴边底色为 RGB（214 KiB） |
+| [amc--fig5-steering.png](./cognitive-context/amc--fig5-steering.png) | 原文图 5（3840×2310，steering 两面） | 同上 | 原样（203 KiB） |
+| [amc--fig8-cerulean-progress.png](./cognitive-context/amc--fig8-cerulean-progress.png) | 原文图 8（3840×2636，抵达 Cerulean 进度） | 同上 | 原样（350 KiB） |
+| [amc--fig10-wiki-scaling.png](./cognitive-context/amc--fig10-wiki-scaling.png) | 原文图 10（3136×1432，wiki 随会话增长） | 同上 | 原样（1112 KiB） |
+| [amc--fig11-wiki-benefit-by-task.png](./cognitive-context/amc--fig11-wiki-benefit-by-task.png) | 原文图 11（3840×3694，wiki 收益大与小的任务） | 同上 | 原样（1178 KiB） |
+| [amc--fig14-shared-page-collision.png](./cognitive-context/amc--fig14-shared-page-collision.png) | 原文图 14（3840×1822，共享页覆盖与一合同一页） | 同上 | 原样（219 KiB） |

@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Anthropic Agent 记忆精读入库（254，I-253，2026-11-08）
+
+- 新增 `docs/research/cognitive-context/254-anthropic-agent-memory-components.md`：Anthropic Engineering《The components of agent memory》（Lance Martin，2026-11-06）首读——记忆四层（转录/笔记/表征/常驻注入）× 会话后 dreaming 五动作；写规则即预测、少而准、steering 对强模型只告知存在、转录当真相纠错、wiki 利跨文档不利单文档且可膨胀 1.77×、并发写丢事实与常驻层预算；补读 CL-Bench 论文（arXiv 2606.05661）、Dreams 与 Claude Code memory 官方文档、knowledge-wiki 与 dreaming cookbook、sleep-time compute；137 行独立 Checker 源稿对账；字数门 4000 内（3862，去链接口径 3808）。
+- 新增配套原型 `assets/agent_memory_lab.py`（纯标准库确定性，selftest 全绿，D1–D4 破坏实验实测退化：全存 条目 6→129、对账不看转录 空转 3 次未到达、共享页 存活 12/12→6/12、索引不降级 关键条目不可见，含 `--count` 字数门）。
+- 新增 archify 图 `amc--five-dreams`（记忆四层 × dreaming 五动作，finalize showcase 四门回执入库）并登记 [mermaid README](./docs/assets/mermaid/README.md)。
+- 信源原图沉淀：Anthropic 博客原文图 1/3/4/5/8/10/11/14 入 [source-figures/cognitive-context/](./docs/assets/source-figures/cognitive-context/)（用户 2026-11-08 明示授权，署名 © 2026 Anthropic PBC，仅作学习引用）；[readme](./docs/research/readme.md)、[knowledge-map](./docs/.agents/knowledge-map.md) 同步登记。
+
 ### 知识库平台吸收 Omnimodal Embeddings 综述增强（I-252，2026-11-07）
 
 - [技术方案](docs/concepts/design/knowledge-base-platform.md)吸收精读 253（arXiv 2611.00172）评估结论（25 代理映射+对抗核验，21 条映射 7 存活/12 降级/2 驳回）：§4.4 新增 golden set 举证纪律——调参子集与留出子集固定拆分（防门禁基线被调参过拟合）、图片腿双向互检且单向命中不作通过证据、期望标注圈定易混淆负例、回归门加报 RRF 融合相对最好单腿的 Δ；图片召回用例按域分组断言；「golden set 标注口径变更」纳入必须过回归门条款。
