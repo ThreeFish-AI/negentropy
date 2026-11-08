@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### claude-code-harness 系列片头空白压缩与配音提速 1.25×（I-253，2026-11-08）
+
+- 片头：20 集 `video/src/timing.json` 的 `leadInSec` 23.5→18.7，口播收声到正文起声由约 5s 压到约 1s（ch01 实测 1.03s）；片头组件字节不变，26 路径孪生门与旧系列五集不受影响。
+- 配音：新增 `apps/negentropy-influence/scripts/tempo_audio.py`（以 tts-store raw take 为源的 atempo 后处理，幂等，`--check` 为渲染前门，16 项单测），速率 SSOT 为各集 `timing.json narrationTempo=1.25`，回写 manifest 使两侧 timeline 自动一致。
+- 预算窗：20 集 `pipeline.toml` `chars_per_min` 254→318、`target_minutes` [4.4, 5.6]→[3.5, 4.7]；各集 README 流水线在 `tts` 后固化 tempo 步骤。
+- 状态：ch01 全链路验证（QA 三门 FAIL 0、实测 4.0 分落窗）；其余 19 集待逐集重渲后交付。
+
 ### 知识库平台吸收 Omnimodal Embeddings 综述增强（I-252，2026-11-07）
 
 - [技术方案](docs/concepts/design/knowledge-base-platform.md)吸收精读 253（arXiv 2611.00172）评估结论（25 代理映射+对抗核验，21 条映射 7 存活/12 降级/2 驳回）：§4.4 新增 golden set 举证纪律——调参子集与留出子集固定拆分（防门禁基线被调参过拟合）、图片腿双向互检且单向命中不作通过证据、期望标注圈定易混淆负例、回归门加报 RRF 融合相对最好单腿的 Δ；图片召回用例按域分组断言；「golden set 标注口径变更」纳入必须过回归门条款。

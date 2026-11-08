@@ -258,6 +258,7 @@
 | I-250 | Agent-Reflex 精读入库（252）：双图、原型、四原图与登记面 | ✅ 已完成 | 2026-11-06 | [详情](#I-250) |
 | I-251 | Omnimodal Embeddings 综述精读入库（253）：双 archify 图、四原图、原型与登记面 | ✅ 已完成 | 2026-11-07 | [详情](#I-251) |
 | I-252 | 知识库平台吸收 Omnimodal Embeddings 综述增强：golden set 举证纪律、modality gap 结构性上限与非目标边界 | ✅ 已完成 | 2026-11-07 | [详情](#I-252) |
+| I-253 | claude-code-harness 系列：片头空白压到约 1s、配音 atempo 提速 1.25×（ch01 已验证，其余 19 集待重渲） | 🔄 进行中 | — | [详情](#I-253) |
 
 ---
 
@@ -5893,3 +5894,14 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：25 代理 Workflow（4 透镜映射 + 逐条对抗核验，不变量清单含版本库 SSOT/fail-closed/名次融合/空间隔离/最小干预等）处理 21 条映射——7 条存活、12 条降级（背书或措辞修正）、2 条驳回（「视觉细节查询两腿同时退化」与「名次是跨模态方向唯一安全比较量」均为笔记未言或与笔记相反的引申）。落笔：§4.4 新增 golden set 举证纪律（调参/留出子集固定拆分、图片腿双向互检且单向命中不作通过证据、期望标注圈定易混淆负例、标注口径变更入回归门、回归门加报融合相对最好单腿的 Δ 与新增腿采纳判据）、图片用例按域分组断言；§8 风险行补与语言无关的结构性上限（modality gap，常用低温配方下训练更久不可消除，图片腿阈值独立定标）；§7 M3 补「实证+判据」双锚与触发条件；§0 非目标补全模态融合嵌入不做预留（触发条件式）；§9 尾补版面/结构模态选路判据；新增 [24] Liang et al. NeurIPS 2022 与 [25] Zhang et al. arXiv:2611.00172 两条 IEEE 引用。
 - **后续防范**：把「论文观点→方案增强」类映射照此走对抗核验（引用夹带、适用域扩张、与笔记 §9 未证明清单越界是三类高发误引）；「训练不可消除」类断言必须保留笔记的限定语（E5 实测换温度差距几乎收平，删限定即与所引证据相抵）。
 - **同类问题影响**：后续其他精读产物反哺设计文档时可复用「透镜映射 + 对抗核验 + accept/modify/reject 三态裁决」链路；方案 §4.4 评测判据的变更会传导实施计划 M2 退出门的图片腿判据措辞（本单未动实施计划，留待下一轮联动）。
+
+<a id="I-253"></a>
+
+## I-253：claude-code-harness 系列：片头空白压到约 1s、配音 atempo 提速 1.25×
+
+- **问题描述**：`claude-code-harness`（20 集）每集第 18s 到第 23s 之间有约 5s 空白（系列片头口播 18s 收声，正文第一句 23.5s 才起）；正文配音语速偏慢，用户要求提到当前 1.25×。
+- **表因 / 根因**：①`timing.json leadInSec=23.5` 是按片头动画 hold 到 691 帧定的，口播收声后还要定格约 5s。②story 档句间停顿固定（0.32s/句 + 0.9s/幕），语速由 TTS 合成决定，片头与正文同为 df=1.0，实测逐字语速接近（273 vs 266 字/分）。
+- **处理方式**：①20 集 `timing.json leadInSec` 23.5→18.7（实测收声 17.98s、正文起声 19.02s，间隔 1.03s；片头组件只依赖 `INTRO_FRAMES` 派生的交棒渐出，不改 `series-intro.tsx`，26 路径孪生门与旧系列五集不受影响）。②提速走 atempo 后处理而非 `duration_factor` 重合成（后者 20 集重录约 10h+、df=0.8 超出文档推荐区间且需逐集听审句尾英文缺陷）：新增 `apps/negentropy-influence/scripts/tempo_audio.py`，以 tts-store raw take 为恒定源、Remotion 自带 ffmpeg `atempo=1.25`、幂等、raw 缺失拒绝覆盖、回写 manifest `durationSec`（TS 与 Python 两侧 timeline 自动一致），速率 SSOT 为各集 `timing.json narrationTempo`，`--check` 为渲染前门。③预算窗按提速后重标定：`chars_per_min` 254→318、`target_minutes` [4.4, 5.6]→[3.5, 4.7]（20 集离线投影总长 3.86–4.34 分全落窗）；各集 README/planning/storyboard 同步现行态。
+- **验证（ch01）**：`tts --plan` 零待合成后纯缓存恢复；tempo 语音 242.7s→197.4s（含每句固定 ≈57ms 编码填充，内容本身严格 1.25×）；`--check` 绿且二次运行全跳过；`check --check-scenes` 估算 4.2/实测 4.0 分落窗；QA 全幕内容带/beat 头/尾幕渐黑 FAIL 0 WARN 0；tsc 通过；脚本 16 项单测通过；`check_twin_files` 26 份一致。
+- **后续防范**：`tts` 复跑或新 worktree 恢复会带回 1.0× raw，须在 `tts` 后重跑 `tempo_audio.py`（各集 README 流水线已固化，`--check` 兜底）；`tts.py` 缺 store 条目时会把已加速文件按 raw digest 回填进 store，故先 `tts --plan` 确认零待合成；`tts` 非 `--plan` 运行硬要求服务 `/health`，纯缓存恢复可用只应答 `/health` 的桩（`/synthesize` 一律 503，仅为过健康门，用后即停）。
+- **同类问题影响**：场景由句窗驱动，正文整体压缩约 20%，其余 19 集须逐集重渲并过 QA 三门；含 archify 嵌入的集还要看 `check_archify` 的 playbackRate 区间 0.7–1.35。`tts.tempo` 一等配置键（vibe-video / vibe-tts 跨仓）尚未沉淀，建议走 RSI。
