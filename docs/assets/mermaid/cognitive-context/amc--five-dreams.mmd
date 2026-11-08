@@ -1,0 +1,44 @@
+%%source: docs/research/cognitive-context/254-anthropic-agent-memory-components.md §2（信源：Anthropic《The components of agent memory》2026-11-06 [1]）
+%%slug: cognitive-context/amc--five-dreams
+%%type: workflow
+%%derived: archify workflow v2（五泳道：四层存储自上而下为常驻注入/表征/笔记/转录，时间线居中；Dreaming 五种动作落在目标层泳道，产出落在哪条泳道即进哪一层；wiki 三动作建→聚焦重建→补缺沿表征层成链；主线会话→笔记→Dreaming→晋升→下一次会话，转录与笔记同为 Dreaming 的输入）
+flowchart LR
+    S["会话<br/>在线工作·写笔记"]
+    N["笔记<br/>会话中写的显著观察"]
+    T["转录<br/>自动记录·可搜索"]
+    D["Dreaming<br/>离线读转录+已有笔记<br/>两次会话之间"]
+    A1["纠错<br/>转录→改写笔记<br/>Pokémon 第 1,935 步抵达 Cerulean"]
+    A2["建表征<br/>转录+笔记→wiki·128 会话<br/>单用 13%→48%·加搜索 54%→61%·只搜索 53%"]
+    A4["按目标聚焦<br/>反思→改指令→重建<br/>共享页 41/57→一合同一页 57/57"]
+    A5["补缺<br/>跨会话扫描第二遍<br/>9 条死链改指向已有页·新增 3 页含索引"]
+    A3["晋升<br/>Claude Code：笔记/表征→顶层<br/>只载 MEMORY.md 前 200 行或 25 KB"]
+    S2["下一次会话<br/>启动即带着顶层记忆"]
+    subgraph L_inj["常驻注入层：每会话必载入，必须小"]
+        A3
+    end
+    subgraph L_rep["表征层：如 wiki 互链页"]
+        A2
+        A4
+        A5
+    end
+    subgraph L_note["笔记层：会话中写的显著观察"]
+        N
+        A1
+    end
+    subgraph L_time["时间线：会话 → Dreaming → 会话"]
+        S
+        D
+        S2
+    end
+    subgraph L_tr["转录层：自动记录的事件日志"]
+        T
+    end
+    S -->|写笔记| N
+    S -->|自动记录| T
+    N --> D
+    T --> D
+    D --> A1
+    D --> A2
+    D --> A3
+    A2 -.-> A4 -.-> A5
+    A3 -->|启动即载入| S2

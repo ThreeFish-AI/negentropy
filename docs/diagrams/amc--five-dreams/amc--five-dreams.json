@@ -1,0 +1,70 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Agent 记忆全貌：会话写，Dreaming 整理，顶层注入",
+    "subtitle": "泳道是四层存储（自下而上）；Dreaming 五种动作落在哪条泳道，产出就进哪一层",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/cognitive-context/amc--five-dreams.html"
+  },
+  "lanes": [
+    { "id": "inj", "label": "常驻注入层：每会话必载入，必须小" },
+    { "id": "rep", "label": "表征层：如 wiki 互链页" },
+    { "id": "note", "label": "笔记层：会话中写的显著观察" },
+    { "id": "time", "label": "时间线：会话 → Dreaming → 会话" },
+    { "id": "tr", "label": "转录层：自动记录的事件日志" }
+  ],
+  "phases": [
+    { "id": "p_online", "label": "在线：会话写入", "fromCol": 0, "toCol": 0 },
+    { "id": "p_offline", "label": "离线：Dreaming 整理 → 顶层注入下一次会话", "fromCol": 1, "toCol": 5, "variant": "emphasis" }
+  ],
+  "mainPath": ["s", "n", "d", "a3", "s2"],
+  "nodes": [
+    { "id": "s", "lane": "time", "col": 0, "type": "external", "label": "会话", "sublabel": "在线工作·写笔记", "width": 124 },
+    { "id": "n", "lane": "note", "col": 0, "type": "database", "label": "笔记", "sublabel": "会话中写的显著观察", "width": 124 },
+    { "id": "t", "lane": "tr", "col": 0, "type": "database", "label": "转录", "sublabel": "自动记录·可搜索", "width": 124 },
+    { "id": "d", "lane": "time", "col": 1, "type": "cloud", "label": "Dreaming", "sublabel": "离线读转录+已有笔记", "tag": "两次会话之间", "width": 136 },
+    { "id": "a2", "lane": "rep", "col": 3, "type": "backend", "label": "建表征", "sublabel": "转录+笔记→wiki·128 会话", "tag": "单用 13%→48%·加搜索 54%→61%·只搜索 53%", "width": 180 },
+    { "id": "a4", "lane": "rep", "col": 4, "type": "backend", "label": "按目标聚焦", "sublabel": "反思→改指令→重建", "tag": "共享页 41/57→一合同一页 57/57", "width": 180 },
+    { "id": "a5", "lane": "rep", "col": 5, "type": "backend", "label": "补缺", "sublabel": "跨会话扫描第二遍", "tag": "9 条死链改指向已有页·新增 3 页含索引", "width": 190 },
+    { "id": "a1", "lane": "note", "col": 4, "type": "backend", "label": "纠错", "sublabel": "转录→改写笔记", "tag": "Pokémon 第 1,935 步抵达 Cerulean", "width": 180 },
+    { "id": "a3", "lane": "inj", "col": 4, "type": "backend", "label": "晋升", "sublabel": "Claude Code：笔记/表征→顶层", "tag": "只载 MEMORY.md 前 200 行或 25 KB", "width": 180 },
+    { "id": "s2", "lane": "time", "col": 5, "type": "external", "label": "下一次会话", "sublabel": "启动即带着顶层记忆", "width": 124 }
+  ],
+  "edges": [
+    { "id": "s-n", "from": "s", "to": "n", "label": "写笔记", "variant": "emphasis", "fromSide": "top", "toSide": "bottom" },
+    { "id": "s-t", "from": "s", "to": "t", "label": "自动记录", "variant": "default", "fromSide": "bottom", "toSide": "top" },
+    { "id": "n-d", "from": "n", "to": "d", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "t-d", "from": "t", "to": "d", "variant": "default", "fromSide": "right", "toSide": "bottom" },
+    { "id": "d-a1", "from": "d", "to": "a1", "variant": "default", "fromSide": "right", "toSide": "left" },
+    { "id": "d-a2", "from": "d", "to": "a2", "variant": "default", "fromSide": "right", "toSide": "left" },
+    { "id": "d-a3", "from": "d", "to": "a3", "variant": "emphasis", "fromSide": "top", "toSide": "left" },
+    { "id": "a2-a4", "from": "a2", "to": "a4", "variant": "dashed", "role": "branch" },
+    { "id": "a4-a5", "from": "a4", "to": "a5", "variant": "dashed", "role": "branch" },
+    { "id": "a3-s2", "from": "a3", "to": "s2", "label": "启动即载入", "variant": "emphasis", "fromSide": "right", "toSide": "right", "route": "outside-right" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "顶层每次必载，所以要小",
+      "items": [
+        "常驻注入层每会话必载入，免去搜索，却占 token、错内容也会进每个会话；所以顶层要小，细节下移、只留指针（Claude Code 的 MEMORY.md 只载前 200 行或 25 KB）。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "纠错要有笔记之外的真相源",
+      "items": [
+        "笔记是对未来的预测，会错也会漂移，却会被后续会话信任；转录是现成的原始记录，Dreaming 拿它对账，错记的位置才改得回来。"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "wiki 在跨文档问题上收益更大",
+      "items": [
+        "单文档查找无明显增益；wiki 还可能膨胀到语料的 1.77 倍，实际什么也没抽象。"
+      ]
+    }
+  ]
+}
