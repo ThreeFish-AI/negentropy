@@ -258,7 +258,7 @@
 | I-250 | Agent-Reflex 精读入库（252）：双图、原型、四原图与登记面 | ✅ 已完成 | 2026-11-06 | [详情](#I-250) |
 | I-251 | Omnimodal Embeddings 综述精读入库（253）：双 archify 图、四原图、原型与登记面 | ✅ 已完成 | 2026-11-07 | [详情](#I-251) |
 | I-252 | 知识库平台吸收 Omnimodal Embeddings 综述增强：golden set 举证纪律、modality gap 结构性上限与非目标边界 | ✅ 已完成 | 2026-11-07 | [详情](#I-252) |
-| I-253 | claude-code-harness 系列：片头空白压到约 1s、配音 atempo 提速 1.25×（ch01 已验证，其余 19 集待重渲） | 🔄 进行中 | — | [详情](#I-253) |
+| I-253 | claude-code-harness 系列：片头空白压到约 1s、配音 atempo 提速 1.25×（20 集全量重渲交付） | ✅ 已完成 | 2026-11-08 | [详情](#I-253) |
 
 ---
 
@@ -5904,4 +5904,5 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：①20 集 `timing.json leadInSec` 23.5→18.7（实测收声 17.98s、正文起声 19.02s，间隔 1.03s；片头组件只依赖 `INTRO_FRAMES` 派生的交棒渐出，不改 `series-intro.tsx`，26 路径孪生门与旧系列五集不受影响）。②提速走 atempo 后处理而非 `duration_factor` 重合成（后者 20 集重录约 10h+、df=0.8 超出文档推荐区间且需逐集听审句尾英文缺陷）：新增 `apps/negentropy-influence/scripts/tempo_audio.py`，以 tts-store raw take 为恒定源、Remotion 自带 ffmpeg `atempo=1.25`、幂等、raw 缺失拒绝覆盖、回写 manifest `durationSec`（TS 与 Python 两侧 timeline 自动一致），速率 SSOT 为各集 `timing.json narrationTempo`，`--check` 为渲染前门。③预算窗按提速后重标定：`chars_per_min` 254→318、`target_minutes` [4.4, 5.6]→[3.5, 4.7]（20 集离线投影总长 3.86–4.34 分全落窗）；各集 README/planning/storyboard 同步现行态。
 - **验证（ch01）**：`tts --plan` 零待合成后纯缓存恢复；tempo 语音 242.7s→197.4s（含每句固定 ≈57ms 编码填充，内容本身严格 1.25×）；`--check` 绿且二次运行全跳过；`check --check-scenes` 估算 4.2/实测 4.0 分落窗；QA 全幕内容带/beat 头/尾幕渐黑 FAIL 0 WARN 0；tsc 通过；脚本 16 项单测通过；`check_twin_files` 26 份一致。
 - **后续防范**：`tts` 复跑或新 worktree 恢复会带回 1.0× raw，须在 `tts` 后重跑 `tempo_audio.py`（各集 README 流水线已固化，`--check` 兜底）；`tts.py` 缺 store 条目时会把已加速文件按 raw digest 回填进 store，故先 `tts --plan` 确认零待合成；`tts` 非 `--plan` 运行硬要求服务 `/health`，纯缓存恢复可用只应答 `/health` 的桩（`/synthesize` 一律 503，仅为过健康门，用后即停）。
-- **同类问题影响**：场景由句窗驱动，正文整体压缩约 20%，其余 19 集须逐集重渲并过 QA 三门；含 archify 嵌入的集还要看 `check_archify` 的 playbackRate 区间 0.7–1.35。`tts.tempo` 一等配置键（vibe-video / vibe-tts 跨仓）尚未沉淀，建议走 RSI。
+- **收口（2026-11-08 全量）**：ch02–ch20 以批处理驱动脚本串行执行 tempo→check/tsc→草渲→QA 三门→间隔量化→接触表→终渲，19 集全部一次过零 FAIL：成片时长 3:51.30–4:19.46（投影 3.86–4.34 分内）、间隔 1.014–1.061s、QA 全 FAIL 0；20 张接触表（每幕中点+末句收声帧）经三个只读子代理按固定判据评审 18 张 + 主代理亲验 2 张与存疑帧连帧复核（ch12 P1 end 为设计内镜头推近），无截断/叠压/空帧。交付：`deliver --root ~/Documents/video` 归档 ch01 v4、其余 19 集 v2（旧版原样保留）。
+- **同类问题影响**：19 集均无 archify 资产（零建图），playbackRate 区间风险本轮不适用；后续新集沿用「tts 后必跑 tempo_audio.py + --check」流水线。`tts.tempo` 一等配置键（vibe-video / vibe-tts 跨仓）尚未沉淀，建议走 RSI。
