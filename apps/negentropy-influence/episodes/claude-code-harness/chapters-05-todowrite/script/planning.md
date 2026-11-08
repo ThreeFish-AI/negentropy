@@ -108,7 +108,7 @@ flowchart LR
 
 **系列递进边界（照抄口径，本集不进入）**：Subagent / Skill Loading / System Prompt / Error Recovery（同系列 ep6 / ep7 / ep10 / ep11）只在下期钩子点一笔问题引子（上下文越跑越脏）；ep2 的查表分发机制本集只在工程账回扣一句（一条定义 + 一行注册）、不重讲；Task System V2 五项增量、V1/V2 双任务系统、`isTodoV2Enabled`、`activeForm` 字段属 s12（本系列 ep12）与 s05 附录深读【三】域，本集不展开（素材取舍见下条）；记忆、多 Agent、并发调度不沾。
 
-**片头沿用《一个循环》（制作期）**：系列片头资产 ep1 制作期已挂载孪生登记，本集沿用同款（~23.5s，预算已计入）；本集挂载件与孪生门登记随制作期处理，本轮只占预算。
+**片头沿用《一个循环》（制作期）**：系列片头资产 ep1 制作期已挂载孪生登记，本集沿用同款（~18.7s，预算已计入）；本集挂载件与孪生门登记随制作期处理，本轮只占预算。
 
 **口播红线不可越**：观众层信源标识只许出现在首尾既定署源位——片头署源角标（p0-01 beat 视觉层）+ 片尾署源句（尾幕两句），豁免白名单登记在工作区 `vibe-video.toml [check_series.source_credit]`（RSI I-080），其余位置零课程/站点/章号痕迹；【三】级断言归属由片尾署源位承接，正文归属句只用「拆解过 Claude Code 源码的同学们应该知道」句式（ep1 审批口径）；活数据（章节数/star）不进口播；禁顺序词（上一集/上集/上期/下一集/下集/第 N 集/前一集/本系列——署源句用「这套视频」），收尾预告只许「下期」；Harness 不翻译（口播英文例外清单 = Claude Code + bash（作为工具名随 ep1 已口播例外）+ 署源专名 Learn Claude Code），其余英文方法名与命令（TodoWrite / todo_write / pending / in_progress / completed / rounds_since_todo / reminder / snake_case / nag_threshold / verification / CLAUDE_CODE_ENABLE_TASKS 等）进角标不口播——本集主角工具口播恒称「待办（清单）工具」；禁旧版隐喻系词汇及同族意象（车间/作坊/传送带/工序卡/叫号器/插线口/师傅）。
 

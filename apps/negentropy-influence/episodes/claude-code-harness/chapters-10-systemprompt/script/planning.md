@@ -101,7 +101,7 @@ flowchart LR
 
 **系列递进边界（照抄口径，本集不进入）**：TodoWrite / Subagent / Skill Loading（同系列其他集）只在全貌坐标里点名不重讲；Error Recovery 只在 P5 下期钩子点一笔问题引子（不预告恢复机制）；「每轮看到什么」三路口径只在 P0 开场承接一句（A#2 ※ 台面改工程直陈），不展开其余两路的机制。
 
-**片头沿用《一个循环》（制作期）**：系列片头资产已挂载孪生登记，本集沿用同款（~23.5s，预算已计入）；本集挂载件与孪生门登记随制作期处理，本轮只占预算。
+**片头沿用《一个循环》（制作期）**：系列片头资产已挂载孪生登记，本集沿用同款（~18.7s，预算已计入）；本集挂载件与孪生门登记随制作期处理，本轮只占预算。
 
 **口播红线不可越**：观众层信源标识只许出现在首尾既定署源位——片头署源角标（p0-01 beat 视觉层）+ 片尾署源句（尾幕），豁免白名单登记在工作区 `vibe-video.toml [check_series.source_credit]`（RSI I-080；本集条目 p0-01/p5-07 待系列层统一登记），其余位置零课程/站点/章号痕迹（不出现课程/站点名/「第 N 章」——按章拆集只是编导结构）；【三】级断言归属由片尾署源位承接，正文归属句只用「拆解过 Claude Code 源码的同学们应该知道」句式（ep1 审批口径）；活数据（章节数/star）不进口播；禁顺序词（上一集/上集/上期/下一集/下集/第 N 集/前一集/本系列——署源句用「这套视频」），收尾预告只许「下期」；口播英文例外清单 = Claude Code + bash（随系列已立例外）+ 署源专名 Learn Claude Code，其余英文方法名与命令（System Prompt / PROMPT_SECTIONS / identity / tools / workspace / memory / assemble_system_prompt / get_system_prompt / context / json.dumps / hash / MEMORY.md / SYSTEM_PROMPT_DYNAMIC_BOUNDARY / prompt cache / CLAUDE_CODE_SIMPLE 等）进角标不口播——主题词 System Prompt 口播恒用「系统提示」；「Token」如需提及带白话句；禁旧版隐喻系词汇及同族意象（车间/作坊/传送带/工序卡/叫号器/插线口/师傅/台面——附录 A#2 不进口播）。
 

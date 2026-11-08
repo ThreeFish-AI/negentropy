@@ -7,7 +7,7 @@
 ### claude-code-harness 系列片头空白压缩与配音提速 1.25×（I-255，2026-11-08）
 
 - 片头：20 集 `video/src/timing.json` 的 `leadInSec` 23.5→18.7，口播收声到正文起声由约 5s 压到约 1s（ch01 实测 1.03s）；片头组件字节不变，26 路径孪生门与旧系列五集不受影响。
-- 配音：新增 `apps/negentropy-influence/scripts/tempo_audio.py`（以 tts-store raw take 为源的 atempo 后处理，幂等，`--check` 为渲染前门，16 项单测），速率 SSOT 为各集 `timing.json narrationTempo=1.25`，回写 manifest 使两侧 timeline 自动一致。
+- 配音：新增 `apps/negentropy-influence/scripts/tempo_audio.py`（以 tts-store raw take 为源的 atempo 后处理，幂等，`--check` 为渲染前门，17 项单测），速率 SSOT 为各集 `timing.json narrationTempo=1.25`，回写 manifest 使两侧 timeline 自动一致。
 - 预算窗：20 集 `pipeline.toml` `chars_per_min` 254→318、`target_minutes` [4.4, 5.6]→[3.5, 4.7]；各集 README 流水线在 `tts` 后固化 tempo 步骤。
 - 全量交付：ch02–ch20 批处理重渲一次过零 FAIL（成片 3:51–4:19 落投影窗、间隔 1.01–1.06s、QA 三门全 FAIL 0），20 张接触表评审无截断；`deliver` 归档 ch01 v4、其余 v2，旧版原样保留。
 

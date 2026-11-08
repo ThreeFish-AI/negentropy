@@ -101,7 +101,7 @@ flowchart LR
 
 **系列递进边界（照抄口径，本集不进入）**：收件箱与队友机制（ep15 已建）开场以口信意象承接一句、P4 读即消费处再承接一笔，均不重讲收件箱机制本身；任务板（ep12）、自治认领（ep17）、worktree 隔离（ep18）、MCP（ep19）、综合回合（ep20）不沾，下期钩子只点「没人派活」的问题引子；环体〔M-001〕只作恒定锚与「轮末查信」挂点点亮，不回头展开循环四步。
 
-**片头沿用《一个循环》（制作期）**：系列片头资产 ep1 制作期已挂载孪生登记，本集沿用同款（~23.5s，预算已计入）；本集挂载件与孪生门登记随制作期处理，本轮只占预算。
+**片头沿用《一个循环》（制作期）**：系列片头资产 ep1 制作期已挂载孪生登记，本集沿用同款（~18.7s，预算已计入）；本集挂载件与孪生门登记随制作期处理，本轮只占预算。
 
 **口播红线不可越**：观众层信源标识只许出现在首尾既定署源位——片头署源角标（p0-01 beat 视觉层）+ 片尾署源句（尾幕两句），豁免白名单登记在工作区 `vibe-video.toml [check_series.source_credit]`（RSI I-080），其余位置零课程 / 站点 / 章号痕迹（不出现课程 / 站点名 /「第 N 章」——按章拆集只是编导结构）；【三】级断言归属由片尾署源位承接，正文归属句只用「拆解过 Claude Code 源码的同学们应该知道」句式（ep1 审批口径）；活数据（章节数 / star）不进口播，「15 种」以外的未复核计数不进口播（B.3 口径）；并行加速比与 token 消耗倍数无实测数字不进口播；禁顺序词（上一集 / 上集 / 上期 / 下一集 / 下集 / 第 N 集 / 前一集 / 本系列——署源句用「这套视频」），收尾预告只许「下期」；口播英文例外清单 = Claude Code + bash（随系列已立例外，本集无 bash 口播面）+ 署源专名 Learn Claude Code，其余英文方法名与命令（Team Protocols / request_id / ProtocolState / pending / approved / rejected / shutdown_request / shutdown_response / plan_approval / dispatch_message / match_response / unknown_id / type_mismatch / duplicate / consume_lead_inbox / shutdown_approved / shutdown_rejected / teammate_terminated / _run_teammate_tool / Zod schema 等）进角标不口播；禁旧版隐喻系词汇及同族意象（车间 / 作坊 / 传送带 / 工序卡 / 叫号器 / 插线口 / 师傅）；楼域词系（任务墙 / 递话口 / 值班钟 / 门牌房 / 认证插座 / 环形走廊）中除回执簿外一律不进口播（递话口仅以机制白话「收件箱」承接、不用喻体词）。
 

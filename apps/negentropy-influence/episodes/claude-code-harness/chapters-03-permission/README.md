@@ -1,6 +1,6 @@
 # 《Permission：三道闸门，动手之前的裁决》科普视频工程
 
-> 交付状态：**文案轮完成、待用户审批**（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 3 集（s03_permission 单章）；Stage ①–⑤ 已完成（信源重钉 main `7226f555` + C 型冻结现行 171 同代次 + 策划 + 逐字稿 53 句 1363 字 + 三路双重校验 + 成文优化四轮评审与改动句复核），机器门 build / check_script --pre-tts / ledger audit·verify 全绿（check_series 由主代理系列层登记后统一执跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-01 制作轮收官）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 3 集（s03_permission 单章）；Stage ①–⑤ 已完成（信源重钉 main `7226f555` + C 型冻结现行 171 同代次 + 策划 + 逐字稿 53 句 1363 字 + 三路双重校验 + 成文优化四轮评审与改动句复核），机器门 build / check_script --pre-tts / ledger audit·verify 全绿（check_series 由主代理系列层登记后统一执跑）；制作轮 ⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付 明细未回填本 README（存量陈旧，2026-11-08 评审轮补记状态），成片 v1/v2 均在 `~/Documents/video/claude-code-chapters/`。标题已随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
