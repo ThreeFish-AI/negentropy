@@ -1,6 +1,6 @@
 # 分镜表：Tool Use：多加一个工具，只加一行（v1）
 
-> 句 id 与 `script/narration.md`（v2，50 句——制作轮微改进 5 句：词级/标注级零结构变动）逐一对齐；时长以 TTS manifest 实测为准（估算正文 1325 字 ≈5.2 分 + 系列片头 23.5s ≈5.6 分，贴 [4.4, 5.6] 窗上限；est 口径偏保守、ep1 实测快于 est ≈0.8 分（est ≈5.6 → 实测 4.8），预期实测落窗中段）。镜界沿 narration 幕内空行（beat）切，四处 beat 内加切（P0 首拍 / P2 首拍 / P4 首拍 / P5 首拍，理由见节奏注记）；句区间全覆盖无交叠。
+> 句 id 与 `script/narration.md`（v2，50 句——制作轮微改进 5 句：词级/标注级零结构变动）逐一对齐；时长以 TTS manifest 实测为准（配音 1.25× 后窗 [3.5, 4.7]，以下 5.x 分估算均为提速前 1.0×、leadIn 23.5s 口径；估算正文 1325 字 ≈5.2 分 + 系列片头 23.5s ≈5.6 分，贴 [4.4, 5.6] 窗上限；est 口径偏保守、ep1 实测快于 est ≈0.8 分（est ≈5.6 → 实测 4.8），预期实测落窗中段）。镜界沿 narration 幕内空行（beat）切，四处 beat 内加切（P0 首拍 / P2 首拍 / P4 首拍 / P5 首拍，理由见节奏注记）；句区间全覆盖无交叠。
 > **本集视觉契约**（与 planning.md §三一致）：深色底 `#0E1116`；循环环体（恒定视觉锚〔M-001〕）陶土橙 `#D97757`，描边色与线宽承 ep1 锁定值全片不变，本集环上高亮「执行」段——它正是被查表替换的那一行；查表分发/工具卡/对照表 琥珀 `#EFB13C`（本集主题色）；执行面/结果回喂流 青碧 `#64C4C0`；错绑反例/越界 珊瑚红 `#EF6461`（与警示红 `#FF5C5C` 同族不同帧并用，同帧对比以描边/填充区分）；确认绿 `#7ED321` = 机制在位/拦截成功；金句卡衬线体；公式/方法名只进角标。
 > **首尾署源位**（豁免白名单登记于工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）：0-A 右下角常驻署源角标（内容见 0-A 行；首部署源位，随画面淡入，小字低饱和）；5-D 片尾署源卡（信源名 + 仓库地址，尾部署源位）。其余画面零信源标识。
 > **字幕规范**（承 ep1）：zh 字幕底部恒单行、一句一条并与配音同步；超宽句（p0-03 / p1-04 / p3-04 / p4-08 等）在语义边界拆连续字幕窗口淡入淡出切换，禁止 CSS 自动换行或压字距硬塞；贴底装置（基线标尺 / 双计数位 / 批分区条等）一律位于字幕安全带上方——本条为全片通则，各镜 Visual Lock 不再逐条重复。
@@ -97,4 +97,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承 ep1 种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：TableRegistry（对照表，含行生长/压暗/复现状态机）、ToolCard、GateCard、DispatchChain（查表四节点链）、NumberTag（编号签/回执签）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=23.5、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=2、标题卡 = 本集题《Tool Use：多加一个工具，只加一行》、进度点 = 五组粒度（孪生件固定五槽，亮第一组「工具与执行」——ACTIVE_INDEX=2 为集号，组位查表 groupOf(2)=1，本组=系列前四集）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=2、标题卡 = 本集题《Tool Use：多加一个工具，只加一行》、进度点 = 五组粒度（孪生件固定五槽，亮第一组「工具与执行」——ACTIVE_INDEX=2 为集号，组位查表 groupOf(2)=1，本组=系列前四集）。

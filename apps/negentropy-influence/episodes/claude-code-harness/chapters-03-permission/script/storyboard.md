@@ -1,6 +1,6 @@
 # 分镜表：Permission：三道闸门，动手之前的裁决（v1）
 
-> 句 id 与 `script/narration.md`（v2，53 句——p4-08 拆 b/c 两句为 ⑤ 插句）逐一对齐；时长以 TTS manifest 实测为准（估算正文 1363 字 ≈5.4 分 + 系列片头 23.5s 同口径 ≈5.8 分、贴 [4.4, 5.6] 窗顶；est 口径偏保守，ep1 实测快于 est ≈0.8 分，预期实测落窗中上段，TTS 实测门兜底）。镜界沿 narration 幕内空行（beat）切，两处 beat 内加切（P2 第二拍 / P5 首拍，理由见节奏注记）；句区间全覆盖无交叠无遗漏。
+> 句 id 与 `script/narration.md`（v2，53 句——p4-08 拆 b/c 两句为 ⑤ 插句）逐一对齐；时长以 TTS manifest 实测为准（配音 1.25× 后窗 [3.5, 4.7]，以下 5.x 分估算均为提速前 1.0×、leadIn 23.5s 口径；估算正文 1363 字 ≈5.4 分 + 系列片头 23.5s 同口径 ≈5.8 分、贴 [4.4, 5.6] 窗顶；est 口径偏保守，ep1 实测快于 est ≈0.8 分，预期实测落窗中上段，TTS 实测门兜底）。镜界沿 narration 幕内空行（beat）切，两处 beat 内加切（P2 第二拍 / P5 首拍，理由见节奏注记）；句区间全覆盖无交叠无遗漏。
 > **本集视觉契约**（与 planning.md §三一致）：深色底 `#0E1116`；循环环体（恒定视觉锚〔M-001〕）陶土橙 `#D97757`，描边色与线宽承 ep1/ep2 锁定值全片不变，本集环上高亮「执行」段——裁决闸卡正是插在它之前；裁决链/三道闸门 裁决紫 `#7C6FF0`（本集主题色）；信任边界/规则匹配 边界蓝 `#4E9EFF`（本集主题色 2）；执行面/结果回喂流 青碧 `#64C4C0`（含「权限被拒」拒绝回执帧的回喂通路）；反例/退化路径/硬拒绝命中 警示红 `#FF5C5C`；机制在位/拦截成功/默认放行直通路 确认绿 `#7ED321`；否决/拒绝方向动作（一票否决章、摇头签、硬拒绝命中）警示红 `#FF5C5C`（不变式陈述的装置结构色=裁决紫，否决动作瞬间用警示红——G1 核验 V6 方案 A 定色）；金句卡衬线体；公式/方法名只进角标。
 > **首尾署源位**（豁免白名单登记于工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）：0-A 右下角常驻署源角标（内容见 0-A 行；首部署源位，随画面淡入，小字低饱和）；5-D 片尾署源卡（信源名 + 仓库地址，尾部署源位）。其余画面零信源标识。
 > **字幕规范**（承 ep1/ep2）：zh 字幕底部恒单行、一句一条并与配音同步；超宽句（p1-04 七连词 / p4-06 / p3-08 / p4-10 等）在语义边界拆连续字幕窗口淡入淡出切换，禁止 CSS 自动换行或压字距硬塞；贴底装置（基线标尺 executed 7→8 / 双计数位 deny_listed_executed · outside_writes / 七行黑名单表等）一律位于字幕安全带上方——本条为全片通则，各镜 Visual Lock 不再逐条重复。
@@ -98,4 +98,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承 ep1/ep2 种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：GateCard（闸卡，含命中/放行/灰化/拆除状态机）、GateChain（三卡串联 + 移驻/长大状态）、CallCard（调用卡，含打标/弹回/通关/落地状态）、DenyListTable（七行黑名单）、RuleLane（规则双通道+边界框）、AskTerminal（问人终端暂停帧）、SwitchPanel（实验开关+权限改写线）、VoteBoard（点头/摇头签+否决章）、VerdictPanel（四格答案卡+八来源层叠）、TribunalChain（四级判案子链）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=23.5、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=3 为集号、标题卡 = 本集题《Permission：三道闸门，动手之前的裁决》、进度点 = 五组粒度（孪生件固定五槽，组位查表 groupOf(3)=1 亮第一组「工具与执行」，本组=系列前四集）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=3 为集号、标题卡 = 本集题《Permission：三道闸门，动手之前的裁决》、进度点 = 五组粒度（孪生件固定五槽，组位查表 groupOf(3)=1 亮第一组「工具与执行」，本组=系列前四集）。

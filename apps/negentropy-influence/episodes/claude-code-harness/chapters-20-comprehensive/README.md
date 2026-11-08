@@ -1,6 +1,6 @@
 # 《综合回合：机制很多，循环一个》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-02 系列终章收官：⑥ 22 镜零建图 G1 零 RISKY → ⑦ me-bright/story 克隆声 56 句 5.0 分 → ⑧ 走廊双态/十八剪影/挂点归位装置族+片头孪生（组五、五大组进度全亮、next=null）→ ⑨ 修 merge 色 5.33:1+三路 0R0W → ⑩ 终渲 302.5s=5 分 2.5 秒落窗，`~/Documents/video/claude-code-chapters/综合回合：机制很多，循环一个 v1.mp4`——系列 20/20 齐备）
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-02 系列终章收官：⑥ 22 镜零建图 G1 零 RISKY → ⑦ me-bright/story 克隆声 56 句 5.0 分 → ⑧ 走廊双态/十八剪影/挂点归位装置族+片头孪生（组五、五大组进度全亮、next=null）→ ⑨ 修 merge 色 5.33:1+三路 0R0W → ⑩ 终渲 302.5s=5 分 2.5 秒落窗，`~/Documents/video/claude-code-chapters/综合回合：机制很多，循环一个 v1.mp4`——系列 20/20 齐备）
 
 ## 目录结构
 
@@ -37,6 +37,9 @@ uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 # ③ 配音（参数全部取自 pipeline.toml）
 uv run --no-project $T/scripts/pipeline.py --project $P tts --plan
 uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
+# 配音提速 1.25×（速率 SSOT=video/src/timing.json narrationTempo；源取 tts-store raw，幂等；tts 复跑/恢复后须重跑）
+uv run --no-project $W/scripts/tempo_audio.py --project $P
+uv run --no-project $W/scripts/tempo_audio.py --project $P --check   # 渲染前门
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit
@@ -54,6 +57,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 
 - 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
 - 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
+- 配音速率只在同一文件的 `narrationTempo`（仅 `scripts/tempo_audio.py` 读取，timing.ts/timeline.py 忽略）；`tts` 复跑或恢复会带回 1.0× raw，须重跑该脚本，`--check` 为渲染前门。
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）；终章无下期，收尾只回扣系列开篇的循环主线。
 - 观众层信源标识只许首尾既定署源位（片头角标 p0-01 + 片尾署源句 p5-08/p5-09；豁免登记工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080——ep20 白名单行随系列层登记 series.json 时同步补 `narration_ids = ["p0-01", "p5-08"]`）。
 - 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；

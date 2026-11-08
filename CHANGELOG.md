@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### claude-code-harness 系列片头空白压缩与配音提速 1.25×（I-255，2026-11-08）
+
+- 片头：20 集 `video/src/timing.json` 的 `leadInSec` 23.5→18.7，口播收声到正文起声由约 5s 压到约 1s（ch01 实测 1.03s）；片头组件字节不变，26 路径孪生门与旧系列五集不受影响。
+- 配音：新增 `apps/negentropy-influence/scripts/tempo_audio.py`（以 tts-store raw take 为源的 atempo 后处理，幂等，`--check` 为渲染前门，17 项单测），速率 SSOT 为各集 `timing.json narrationTempo=1.25`，回写 manifest 使两侧 timeline 自动一致。
+- 预算窗：20 集 `pipeline.toml` `chars_per_min` 254→318、`target_minutes` [4.4, 5.6]→[3.5, 4.7]；各集 README 流水线在 `tts` 后固化 tempo 步骤。
+- 全量交付：ch02–ch20 批处理重渲一次过零 FAIL（成片 3:51–4:19 落投影窗、间隔 1.01–1.06s、QA 三门全 FAIL 0），20 张接触表评审无截断；`deliver` 归档 ch01 v4、其余 v2，旧版原样保留。
+
 ### 013 沉淀轴吸收 Anthropic Agent 记忆精读（I-254，2026-11-08）
 
 - [Context Layer 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md)吸收精读 254（Anthropic《The components of agent memory》，PR #1236）四处：§8.2 新增巩固**消费端**动作类型学（纠错/建表征/晋升/按目标聚焦/补缺）与三条写入纪律（对账源=会话转录等原始事件日志；并发写按对象分页、单写者、逐字引用；产出先评审后切换（「先评审」为本文引申），与水位提交点/注册门同属「确认先于生效」家族而非同口径）；§8.3 补 salience 行为判据（屏幕能重读的不存，各一局对照 4 枚徽章对 1 枚）；§4.3 第 3 问补「降级而非截断」形态（细节下移留指针，Claude Code 超限提示重写索引且超出部分不载）；§8.5 补指令面人工进化实例（反思→改指令→重建→重评分 72%→100%）与 steering 引导原则（对强模型只告知存在、不规定用法）。全部限定词随行（厂商自述、各一局、单例、每柱 1–3 次运行、research preview），经对抗核验两轮（首轮 9 处、评审轮 3 处表述收紧，另补 as-of 戳同步与参考节 IEEE 登记）。

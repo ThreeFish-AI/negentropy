@@ -1,6 +1,6 @@
 # 《Tool Use：多加一个工具，只加一行》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 2 集（s02_tool_use 单章）；文案 2026-10-31 用户审批通过（基线 v1 + 制作轮微改进 5 句 → v2，50 句 1326 字）；⑥ 22 镜六场景分镜 v1（零建图原生路线，G1 对抗核验 1 RISKY + 4 WARN 全修）→ ⑦ me-bright/story 本人克隆声 TTS 50 句（MPS 水位 0 根治后续跑收官）→ ⑧ 六场景 3225 行 + 系列片头孪生挂载（Main 指纹与 ep1 同族 1c779384d763，drift 已登记）+ theme 概念色（琥珀 #EFB13C 对照表母题）；tsc/check --check-scenes/check_series 全绿。→ ⑨ QA 修复轮 13 项（3-A 插曲退场锚与全景 opacity 双根因、p5-04 未拦截活态等；帧级核验 5 直证+3 补帧确证）→ ⑩ 终渲 162s / 8742 帧 @30fps = 4 分 51.4 秒落窗，`~/Documents/video/claude-code-chapters/Tool Use：多加一个工具，只加一行 v1.mp4`。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-01）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 2 集（s02_tool_use 单章）；文案 2026-10-31 用户审批通过（基线 v1 + 制作轮微改进 5 句 → v2，50 句 1326 字）；⑥ 22 镜六场景分镜 v1（零建图原生路线，G1 对抗核验 1 RISKY + 4 WARN 全修）→ ⑦ me-bright/story 本人克隆声 TTS 50 句（MPS 水位 0 根治后续跑收官）→ ⑧ 六场景 3225 行 + 系列片头孪生挂载（Main 指纹与 ep1 同族 1c779384d763，drift 已登记）+ theme 概念色（琥珀 #EFB13C 对照表母题）；tsc/check --check-scenes/check_series 全绿。→ ⑨ QA 修复轮 13 项（3-A 插曲退场锚与全景 opacity 双根因、p5-04 未拦截活态等；帧级核验 5 直证+3 补帧确证）→ ⑩ 终渲 162s / 8742 帧 @30fps = 4 分 51.4 秒落窗，`~/Documents/video/claude-code-chapters/Tool Use：多加一个工具，只加一行 v1.mp4`。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -39,6 +39,9 @@ uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 # ③ 配音（参数全部取自 pipeline.toml）
 uv run --no-project $T/scripts/pipeline.py --project $P tts --plan
 uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
+# 配音提速 1.25×（速率 SSOT=video/src/timing.json narrationTempo；源取 tts-store raw，幂等；tts 复跑/恢复后须重跑）
+uv run --no-project $W/scripts/tempo_audio.py --project $P
+uv run --no-project $W/scripts/tempo_audio.py --project $P --check   # 渲染前门
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit
@@ -56,6 +59,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 
 - 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
 - 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
+- 配音速率只在同一文件的 `narrationTempo`（仅 `scripts/tempo_audio.py` 读取，timing.ts/timeline.py 忽略）；`tts` 复跑或恢复会带回 1.0× raw，须重跑该脚本，`--check` 为渲染前门。
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）。
 - 观众层信源标识只许首尾既定署源位（豁免登记工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）。
 - 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；

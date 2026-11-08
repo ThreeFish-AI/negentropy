@@ -42,10 +42,14 @@ NARRATION/SUBS/T 表三容器是口播与帧位 SSOT）——本 README 只写�
   `78664c3010fd`，`vibe-video.toml` 五条 `[[skeleton.drift]]` 同指纹登记；
   撤销条件=skill 模板吸纳挂载点或片头退役时五条齐撤）；chapters-01…20
   同款挂载、指纹 `1c779384d763` 逐集 drift 登记（与五集差异仅一处注释措辞）
-- `timing.json` `leadInSec = 23.5`（组件 `INTRO_FRAMES` 派生自它）：组件副本
+- `timing.json` `leadInSec`（旧系列五集 23.5、`claude-code-chapters` 20 集 18.7，分档见下条；组件 `INTRO_FRAMES` 派生自它）：组件副本
   与 leadIn 修改必须**同 commit 落库**——中间态（拷了组件没改 leadIn）会把
   片头静默截断，无任何报错
-- 时长预算窗含片头口径：旧系列五集 `pipeline.toml` `target_minutes = [13.0, 15.5]`
+- leadIn 取值：旧系列五集 23.5s；`claude-code-chapters` 20 集为 18.7s（口播实测约 18.0s 收声，p0-01 自带约 0.3s 前导静音，
+  收声到正文起声 ≈1s）。组件只依赖 `INTRO_FRAMES` 派生的交棒渐出，T 表全部落在约 480 帧内，故缩短 leadIn 不改组件字节；
+  取值下限 = 0.4s 起播偏移（12 帧）+ 音轨文件时长（种件头注 18.08s/542 帧）≈ 18.5s，低于它口播被截断
+- 时长预算窗含片头口径：旧系列五集 `pipeline.toml` `target_minutes = [13.0, 15.5]`；
+  `claude-code-chapters` 各集 `[3.5, 4.7]`（leadIn 18.7s + 配音 1.25×，见各集 README）
 
 ## 评审面宿主 = E1
 

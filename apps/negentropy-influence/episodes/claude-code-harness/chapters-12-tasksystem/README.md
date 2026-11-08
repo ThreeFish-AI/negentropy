@@ -1,6 +1,6 @@
 # 《Task System：从执行清单到可认领的契约》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 54 句 5.2 分 + QA 0 RISKY 修复 6 项 + 终渲 234.2s / 5.2 分落窗，`~/Documents/video/claude-code-chapters/Task System：从执行清单到可认领的契约 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 12 集（s12_task_system 单章）；Stage ①–⑤ 已完成（双轨钉选复核钉站点轨 67a9126c + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1403 字 + 三路双重校验 + 成文优化 v1→v2），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 系列统一门由主代理跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-01 制作轮收官：TTS 54 句 5.2 分 + QA 0 RISKY 修复 6 项 + 终渲 234.2s / 5.2 分落窗，`~/Documents/video/claude-code-chapters/Task System：从执行清单到可认领的契约 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 12 集（s12_task_system 单章）；Stage ①–⑤ 已完成（双轨钉选复核钉站点轨 67a9126c + C 型冻结现行 175 + 策划 + 逐字稿 54 句 1403 字 + 三路双重校验 + 成文优化 v1→v2），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 系列统一门由主代理跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 
@@ -37,6 +37,9 @@ uv run --no-project $T/scripts/pipeline.py --project $P check --check-scenes
 # ③ 配音（参数全部取自 pipeline.toml）
 uv run --no-project $T/scripts/pipeline.py --project $P tts --plan
 uv run --no-project $T/scripts/pipeline.py --project $P tts          # 长跑，建议 nohup
+# 配音提速 1.25×（速率 SSOT=video/src/timing.json narrationTempo；源取 tts-store raw，幂等；tts 复跑/恢复后须重跑）
+uv run --no-project $W/scripts/tempo_audio.py --project $P
+uv run --no-project $W/scripts/tempo_audio.py --project $P --check   # 渲染前门
 
 # ④ 渲染与体检（工具一律 ./node_modules/.bin/ 直调，防污染根 workspace）
 cd $P/video && pnpm install && ./node_modules/.bin/tsc --noEmit
@@ -54,6 +57,7 @@ uv run --no-project $T/scripts/pipeline.py --project $P deliver
 
 - 逐字稿只改 `script/narration.md`；`narration.json` / `manifest.json` 是派生物。
 - 时序常数只在 `video/src/timing.json`（timing.ts 与 Python 侧 timeline.py 共读）。
+- 配音速率只在同一文件的 `narrationTempo`（仅 `scripts/tempo_audio.py` 读取，timing.ts/timeline.py 忽略）；`tts` 复跑或恢复会带回 1.0× raw，须重跑该脚本，`--check` 为渲染前门。
 - **口播永不出现他集标题与集数序号**——顺序只在视觉层与 series.json（`check_series.py` 执法）。
 - 观众层信源标识只许首尾既定署源位（豁免登记工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）。
 - 骨架冻结档位见 [vibe-video skill 的 skeleton.toml](https://github.com/ThreeFish-AI/vibe-video/blob/main/assets/video-skeleton/skeleton.toml)；

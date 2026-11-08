@@ -1,6 +1,6 @@
 # 分镜表：Hooks：扩展不进循环（v1）
 
-> 句 id 与 `script/narration.md`（v3，55 句——p4-08b 为 ⑤ 插句）逐一对齐；时长以 TTS manifest 实测为准（估算正文 1305 字 ≈5.1 分 + 系列片头 23.5s 同口径 ≈5.5 分、贴 [4.4, 5.6] 窗上限；est 口径偏保守，ep1 实测快于 est ≈0.8 分，预期实测落窗中段，TTS 实测门兜底）。镜界沿 narration 幕内空行（beat）切，三处 beat 内加切（P0 末拍 / P4 末拍 / P5 首拍，理由见节奏注记）；句区间全覆盖无交叠无遗漏。
+> 句 id 与 `script/narration.md`（v3，55 句——p4-08b 为 ⑤ 插句）逐一对齐；时长以 TTS manifest 实测为准（配音 1.25× 后窗 [3.5, 4.7]，以下 5.x 分估算均为提速前 1.0×、leadIn 23.5s 口径；估算正文 1305 字 ≈5.1 分 + 系列片头 23.5s 同口径 ≈5.5 分、贴 [4.4, 5.6] 窗上限；est 口径偏保守，ep1 实测快于 est ≈0.8 分，预期实测落窗中段，TTS 实测门兜底）。镜界沿 narration 幕内空行（beat）切，三处 beat 内加切（P0 末拍 / P4 末拍 / P5 首拍，理由见节奏注记）；句区间全覆盖无交叠无遗漏。
 > **本集视觉契约**（与 planning.md §三一致）：深色底 `#0E1116`；循环环体（恒定视觉锚〔M-001〕）陶土橙 `#D97757`，描边色与线宽承 ep1–ep3 锁定值全片不变，本集环上钉出四个固定事件挂点——紫点挂在橙环上，即「扩展不进循环」的空间宣言；事件挂点 / HOOKS 注册表 挂点紫 `#8B7CF6`（本集主题色，theme.core 本集新增语义）；回调 / 触发信号流 回调蓝 `#58A6FF`（本集副色）；消融反例 / 越界 / 拔钩退化 警示红 `#FF5C5C`；在位 / 放行 / 检查点全过 确认绿 `#7ED321`；金句卡衬线体；公式/方法名只进角标。
 > **首尾署源位**（豁免白名单登记于工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）：0-A 右下角常驻署源角标（内容见 0-A 行；首部署源位，随画面淡入，小字低饱和）；5-D 片尾署源卡（信源名 + 仓库地址，尾部署源位，署源句 = p5-07）。其余画面零信源标识。
 > **字幕规范**（承 ep1–ep3）：zh 字幕底部恒单行、一句一条并与配音同步；超宽句（p1-02 / p1-11 / p2-04 / p3-03 / p4-03 / p4-04 等）在语义边界拆连续字幕窗口淡入淡出切换，禁止 CSS 自动换行或压字距硬塞；贴底装置（计数角标「4 事件 · 5 回调」/ 消融读数条 / 清单增长条等）一律位于字幕安全带上方——本条为全片通则，各镜 Visual Lock 不再逐条重复。
@@ -97,4 +97,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承 ep1–ep3 种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：HookRegistry（注册表双列表，含行生长/点亮/摘除/长大状态机）、HookPoint（挂点紫点/紫钩，含脉冲/勾住/灰化状态）、CallbackCard（回调卡，含挂上/摘走/翻面状态）、MigrationTrack（降格迁移轨）、LogTrace（原型日志双轨走查，承 ep1/ep2 Animated State Trace 形态）、AblationTrack（左红右绿双轨+基线读数条）、GrowthBar（清单增长条+归属/日期角标）、VoteBoard（表决装置，承 ep3 3-B 同构签名复用）、FlagBadge（防转圈两态标志）、InsuranceBadge（保险徽记）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=23.5、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=4 为集号、标题卡 = 本集题《Hooks：扩展不进循环》（series.json 现行题，标题随审批终选同步）、进度点 = 五组粒度（孪生件固定五槽，组位查表 groupOf(4)=1 亮第一组「工具与执行」，本组=系列前四集——本集为组内第 4/4 收官位）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=4 为集号、标题卡 = 本集题《Hooks：扩展不进循环》（series.json 现行题，标题随审批终选同步）、进度点 = 五组粒度（孪生件固定五槽，组位查表 groupOf(4)=1 亮第一组「工具与执行」，本组=系列前四集——本集为组内第 4/4 收官位）。
