@@ -1,6 +1,6 @@
 # 《Autonomous Agents：自己看板，自己认领》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-02 制作轮收官：⑥ 24 镜零建图 G1 修节拍器契约 1R+3W → ⑦ me-bright/story 克隆声 56 句 5.2 分（TTS 中断自愈续跑）→ ⑧ 值班钟/锁窗口/phasedRing 装置族+片头孪生（组五 groupOf(17)=5）→ ⑨ 修 2 项（0-C 钟位上移）+三路 0R0W → ⑩ 终渲 312.9s=5 分 12.9 秒落窗，`~/Documents/video/claude-code-chapters/Autonomous Agents：自己看板，自己认领 v1.mp4`）
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-02 制作轮收官：⑥ 24 镜零建图 G1 修节拍器契约 1R+3W → ⑦ me-bright/story 克隆声 56 句 5.2 分（TTS 中断自愈续跑）→ ⑧ 值班钟/锁窗口/phasedRing 装置族+片头孪生（组五 groupOf(17)=5）→ ⑨ 修 2 项（0-C 钟位上移）+三路 0R0W → ⑩ 终渲 312.9s=5 分 12.9 秒落窗，`~/Documents/video/claude-code-chapters/Autonomous Agents：自己看板，自己认领 v1.mp4`）
 
 ## 目录结构
 

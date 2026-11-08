@@ -1,6 +1,6 @@
 # 《TodoWrite：把计划摆回模型眼前》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：微改进 v3 四句 + TTS 55 句 4.9 分 + QA 修复轮 14 项全验（叠印根因三处一次清）+ 终渲 155.5s / manifest 4.9 分+片头≈5.3 分落窗，`~/Documents/video/claude-code-chapters/TodoWrite：把计划摆回模型眼前 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 5 集（s05_todo_write 单章）；Stage ①–⑤ 已完成（信源钉复核维持站点轨 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 55 句 1358 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-01 制作轮收官：微改进 v3 四句 + TTS 55 句 4.9 分 + QA 修复轮 14 项全验（叠印根因三处一次清）+ 终渲 155.5s / manifest 4.9 分+片头≈5.3 分落窗，`~/Documents/video/claude-code-chapters/TodoWrite：把计划摆回模型眼前 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 5 集（s05_todo_write 单章）；Stage ①–⑤ 已完成（信源钉复核维持站点轨 + C 型冻结现行 172 同代次 + 策划 + 逐字稿 55 句 1358 字 + 三路双重校验 + 成文优化两轮），机器门 build / pre-tts 全绿；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 

@@ -1,6 +1,6 @@
 # 《Context Compact：先整理，再总结》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：TTS 55 句 4.8 分 + QA 修复轮 8 项+W1 回炉全验 + 终渲 180.7s / 4.8 分落窗，`~/Documents/video/claude-code-chapters/Context Compact：先整理，再总结 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 8 集（s08_context_compact 单章）；Stage ①–⑤ 已完成（信源翻钉 + C 型冻结现行 173 + 策划 + 逐字稿 55 句 1325 字 + 三路双重校验 + 成文优化一轮），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 由编排层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-01 制作轮收官：TTS 55 句 4.8 分 + QA 修复轮 8 项+W1 回炉全验 + 终渲 180.7s / 4.8 分落窗，`~/Documents/video/claude-code-chapters/Context Compact：先整理，再总结 v1.mp4`）（2026-10-31）——系列《Claude Code 的 20 个核心机制》（claude-code-chapters，20 章 1:1 拆集）第 8 集（s08_context_compact 单章）；Stage ①–⑤ 已完成（信源翻钉 + C 型冻结现行 173 + 策划 + 逐字稿 55 句 1325 字 + 三路双重校验 + 成文优化一轮），机器门 build / pre-tts / 台账 audit+verify 全绿（check_series 由编排层统一跑）；**审批通过后进入制作**（⑥分镜/建图 → ⑦TTS → ⑧场景 → ⑨QA → ⑩交付）。标题随审批落定（候选见 planning.md §0）。发布顺序见 [../../../series.json](../../../series.json)（工作区根）。
 
 ## 目录结构
 

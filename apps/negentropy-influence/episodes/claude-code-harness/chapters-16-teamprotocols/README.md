@@ -1,6 +1,6 @@
 # 《Team Protocols：对上号，才改状态》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：⑥ 22 镜零建图 G1 修 1R+2W → ⑦ me-bright/story 克隆声 55 句 5.2 分 → ⑧ 登记表/142 徽章/回执簿/消融双轨/挂点弧装置族+片头孪生（组五 groupOf(16)=5）→ ⑨ 三路 0 RISKY 0 WARN（误报全数实证驳回）→ ⑩ 终渲 312.0s=5 分 12 秒落窗，`~/Documents/video/claude-code-chapters/Team Protocols：对上号，才改状态 v1.mp4`）
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-01 制作轮收官：⑥ 22 镜零建图 G1 修 1R+2W → ⑦ me-bright/story 克隆声 55 句 5.2 分 → ⑧ 登记表/142 徽章/回执簿/消融双轨/挂点弧装置族+片头孪生（组五 groupOf(16)=5）→ ⑨ 三路 0 RISKY 0 WARN（误报全数实证驳回）→ ⑩ 终渲 312.0s=5 分 12 秒落窗，`~/Documents/video/claude-code-chapters/Team Protocols：对上号，才改状态 v1.mp4`）
 
 ## 目录结构
 

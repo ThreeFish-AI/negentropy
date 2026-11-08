@@ -1,6 +1,6 @@
 # 《Cron Scheduler：按时间表生产工作》科普视频工程
 
-> 交付状态：**已交付 v1**（2026-11-01 制作轮收官：⑥ 20 镜零建图 G1 RISKY 0/修 4 WARN → ⑦ me-bright/story 克隆声 49 句 4.6 分 → ⑧ 判时表盘/四层链/防火线/五十格限额装置族+片头孪生（组四 groupOf(14)=4）→ ⑨ QA 0 RISKY 修复 3 项+4 项帧级驳回（0-A 闹钟基态经像素取证证契约兑现）+机器门全绿 → ⑩ 终渲 297.2s=4 分 57 秒落窗，`~/Documents/video/claude-code-chapters/Cron Scheduler：按时间表生产工作 v1.mp4`）
+> 交付状态：**已交付 v2**（v2 2026-11-08 配音提速 1.25× + 片头空白压缩重渲；v1 2026-11-01 制作轮收官：⑥ 20 镜零建图 G1 RISKY 0/修 4 WARN → ⑦ me-bright/story 克隆声 49 句 4.6 分 → ⑧ 判时表盘/四层链/防火线/五十格限额装置族+片头孪生（组四 groupOf(14)=4）→ ⑨ QA 0 RISKY 修复 3 项+4 项帧级驳回（0-A 闹钟基态经像素取证证契约兑现）+机器门全绿 → ⑩ 终渲 297.2s=4 分 57 秒落窗，`~/Documents/video/claude-code-chapters/Cron Scheduler：按时间表生产工作 v1.mp4`）
 
 ## 目录结构
 
