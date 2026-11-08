@@ -9,13 +9,15 @@
 slug = "chapters-16-teamprotocols"
 
 [narration]
-# 单章集制：成片 ~5 分钟（含系列片头 leadIn 23.5s 口径，承 ep1/ep2 同款含片头窗先例）；
-# 正文预算 ≈1305 字（幕预算上限分配见 planning.md §四；story 档 254 字/分含停顿等效口径）。
+# 单章集制：成片 ~4 分钟（含系列片头 leadIn 18.7s 口径，承 ep1/ep2 同款含片头窗先例）；
+# 正文预算 ≈1305 字（幕预算上限分配见 planning.md §四；story 档 254 字/分、提速 1.25× 后 318 字/分含停顿等效口径）。
 # 硬约束是 target_minutes 落窗（本集剧本 v2 1402 字 ≈5.5 分在窗内；幕预算 1305、④⑤ 修缮含两处
 # 字母后缀插句 p2-06b/p5-03b（协议状态机命名铺设、回执簿口播回扣，改动表见 .temp/prose-changelog.md）
 # 溢出 97 字），超窗须删句——删句即回退镜头修复件，须回 ③ 并同步 ④⑤ 记录。
-target_minutes = [4.4, 5.6]
-chars_per_min = 254
+# 配音经 scripts/tempo_audio.py 提速 1.25×（速率 SSOT=video/src/timing.json narrationTempo）：窗与 chars_per_min 已按提速后标定；
+# 本节字数×分钟推导均为提速前（1.0×、leadIn 23.5s、254 字/分）的预算存档口径。
+target_minutes = [3.5, 4.7]
+chars_per_min = 318
 
 [tts]
 # 两档策略（I-034）：全程（含终渲与交付）edge 草声（免费、秒级、需联网、免样本）——未点名重配即以 edge 成片交付；

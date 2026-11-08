@@ -1,6 +1,6 @@
 # 分镜表：Error Recovery：报错先分类，循环不亡（v1）
 
-> 句 id 与 `script/narration.md`（v3，56 句——制作轮微改进已并入词锚）逐一对齐；时长以 TTS manifest 实测为准（估算正文 1331 字 ≈5.2 分＋系列片头 23.5s ≈5.6 分，贴 [4.4, 5.6] 窗上限；est 口径偏保守、系列前例实测快于 est 0.4–0.8 分，预期实测落窗）。（est 含片头 ≈5.63 分微越窗上限 ≈2s；落窗条件 = TTS 实测 ≥263 字/分；若落窗减句预案 = 优先删 p2-07 悬置句或 p4-02b 追问句其一，幂等重配并重排受影响镜句区间。）镜界沿 narration 幕内空行（beat）切，三处 beat 内加切（P2 首拍 / P3 归因拍 / P4 首拍，理由见节奏注记）；句区间全覆盖无交叠。
+> 句 id 与 `script/narration.md`（v3，56 句——制作轮微改进已并入词锚）逐一对齐；时长以 TTS manifest 实测为准（配音 1.25× 后窗 [3.5, 4.7]，以下 5.x 分估算均为提速前 1.0×、leadIn 23.5s 口径；估算正文 1331 字 ≈5.2 分＋系列片头 23.5s ≈5.6 分，贴 [4.4, 5.6] 窗上限；est 口径偏保守、系列前例实测快于 est 0.4–0.8 分，预期实测落窗）。（est 含片头 ≈5.63 分微越窗上限 ≈2s；落窗条件 = TTS 实测 ≥263 字/分；若落窗减句预案 = 优先删 p2-07 悬置句或 p4-02b 追问句其一，幂等重配并重排受影响镜句区间。）镜界沿 narration 幕内空行（beat）切，三处 beat 内加切（P2 首拍 / P3 归因拍 / P4 首拍，理由见节奏注记）；句区间全覆盖无交叠。
 > **本集视觉契约**（与 planning.md §三一致）：深色底 `#0E1116`；循环环体（恒定视觉锚〔M-001〕）陶土橙 `#D97757`，描边色与线宽承 ep1 锁定值全片不变，本集环上高亮「调用模型」段——正是被保护壳包住的那一步，报错时环体压黑、恢复后回陶土橙；分类恢复／三路径分发 恢复蓝 `#6C8CFF`（本集主题色）；等待曲线／时间维 退避紫 `#B48EF5`（本集主题色）；出错／消融反例 警示红 `#FF5C5C`；恢复成功／对照组 确认绿 `#7ED321`；金句卡衬线体；公式/方法名/错误码只进角标。
 > **首尾署源位**（豁免白名单登记于工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080；本集条目 p0-01 / p5-06 随系列层交付统一补登记）：0-A 右下角常驻署源角标（内容见 0-A 行；首部署源位，随画面淡入，小字低饱和）；5-C 片尾署源卡（信源名＋仓库地址，尾部署源位，随署源句 p5-06 同拍淡入）。其余画面零信源标识。
 > **字幕规范**（承 ep2）：zh 字幕底部恒单行、一句一条并与配音同步；超宽句（p3-01 / p4-01 归属句 / p5-04 / p5-06 署源句等）在语义边界拆连续字幕窗口淡入淡出切换，禁止 CSS 自动换行或压字距硬塞；贴底装置（额度增长条 / 计时条 / 计数位等）一律位于字幕安全带上方——本条为全片通则，各镜 Visual Lock 不再逐条重复。
@@ -100,4 +100,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承 ep1 种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：RoutingTable（分类表，含行点火/抽走/残影/全表缩微状态机）、BackoffCurve（退避紫阶梯，含封顶虚线/细齿/实测节点）、TokenBudgetCard（额度卡 8000→64000 翻牌＋增长条）、MessageStack（消息块列收叠）、BalanceScale（参数天平）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=23.5、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生＋音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位＝五大组（片头音频点名五部分仍成立）、数据面 series-layers.json activeIndex=11 为集号、组件导出常量 ACTIVE_INDEX=groupOf(11)=2 为组号（两层契约定名：集号经 groupOf 查表归组，ACTIVE_INDEX 取组号——承 ep5/ep6 写法）、标题卡＝本集题《Error Recovery：报错先分类，循环不亡》、进度点亮组位＝第 2 组「规划与协调」（查表结论）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生＋音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位＝五大组（片头音频点名五部分仍成立）、数据面 series-layers.json activeIndex=11 为集号、组件导出常量 ACTIVE_INDEX=groupOf(11)=2 为组号（两层契约定名：集号经 groupOf 查表归组，ACTIVE_INDEX 取组号——承 ep5/ep6 写法）、标题卡＝本集题《Error Recovery：报错先分类，循环不亡》、进度点亮组位＝第 2 组「规划与协调」（查表结论）。

@@ -9,11 +9,13 @@
 slug = "chapters-20-comprehensive"
 
 [narration]
-# 单章集制·系列终章：成片 ~5 分钟（含系列片头 leadIn 23.5s 口径，承 ep1/ep2 同款含片头窗先例）；
-# 正文预算 ≈1305 字（幕预算上限分配见 planning.md §四；story 档 254 字/分含停顿等效口径）。
+# 单章集制·系列终章：成片 ~4 分钟（含系列片头 leadIn 18.7s 口径，承 ep1/ep2 同款含片头窗先例）；
+# 正文预算 ≈1305 字（幕预算上限分配见 planning.md §四；story 档 254 字/分、提速 1.25× 后 318 字/分含停顿等效口径）。
 # 硬约束是 target_minutes 落窗（本集剧本 v2 修正轮 3 后 1334 字 ≈5.3 分 + 片头 ≈5.64 分贴窗顶、超幕预算 29 字承 ep2 1325 字落窗先例 +9 字），超窗须删句。
-target_minutes = [4.4, 5.6]
-chars_per_min = 254
+# 配音经 scripts/tempo_audio.py 提速 1.25×（速率 SSOT=video/src/timing.json narrationTempo）：窗与 chars_per_min 已按提速后标定；
+# 本节字数×分钟推导均为提速前（1.0×、leadIn 23.5s、254 字/分）的预算存档口径。
+target_minutes = [3.5, 4.7]
+chars_per_min = 318
 
 [tts]
 # 两档策略（I-034）：全程（含终渲与交付）edge 草声（免费、秒级、需联网、免样本）——未点名重配即以 edge 成片交付；

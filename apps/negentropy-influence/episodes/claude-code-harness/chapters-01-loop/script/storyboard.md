@@ -1,6 +1,6 @@
 # 分镜表：Agent Loop：一个循环，让 Agent 开始了心跳（v3）
 
-> 句 id 与 `script/narration.md`（v3 走查句改写版，57 句）逐一对齐；时长以 TTS manifest 实测为准（估算正文 ≈5.2 分 + 系列片头 23.5s ≈ 5.6 分；实测 4.8 分，落窗 [4.4, 5.6]）。镜界沿 narration 幕内空行（beat）切。
+> 句 id 与 `script/narration.md`（v3 走查句改写版，57 句）逐一对齐；时长以 TTS manifest 实测为准（配音 1.25× 后窗 [3.5, 4.7]，以下 5.x 分估算均为提速前 1.0×、leadIn 23.5s 口径；估算正文 ≈5.2 分 + 系列片头 23.5s ≈ 5.6 分；实测 4.8 分，落窗 [4.4, 5.6]）。镜界沿 narration 幕内空行（beat）切。
 > **本集视觉契约**（与 planning.md §三一致）：深色底 `#0E1116`；循环环体（恒定视觉锚〔M-001〕）陶土橙 `#D97757`，描边色与线宽自 0-C 建锚起全片锁定；执行面/工具结果流 青碧 `#64C4C0`；判据反例/退化 珊瑚红 `#EF6461`（与警示红 `#FF5C5C` 同族不同帧并用，同帧对比以描边/填充区分）；确认绿 `#7ED321` = 机制在位/拦截成功；金句卡衬线体；公式/方法名只进角标。
 > **首尾署源位**（审批 2026-10-29，豁免白名单见工作区 `vibe-video.toml [check_series.source_credit]`，RSI I-080）：0-A 右下角常驻署源角标（内容见该行）；5-C 片尾署源卡（信源名 + 仓库地址）。其余画面零信源标识。
 > **字幕规范**：zh 字幕底部恒单行、默认一句一条并与配音同步；一句按设计宽度可能折行时，在语义边界拆分连续字幕窗口淡入淡出切换，禁止 CSS 自动换行或压字距硬塞。
@@ -81,4 +81,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件（LoopRing / Panel 等）⑧ 轮自 claude-code-explained 复制种子（骨架 seeded 档：复制后自由、无孪生门；Remotion 原语复制不共享）。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=23.5、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配新系列——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=1、标题卡 = 本集题、进度点 = 五组粒度（孪生件固定五槽，亮当前集所属组）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配新系列——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=1、标题卡 = 本集题、进度点 = 五组粒度（孪生件固定五槽，亮当前集所属组）。
