@@ -1,26 +1,26 @@
 [
  {
   "scene": "P0",
-  "title": "会写不会做"
+  "title": "大模型的行动瓶颈"
  },
  {
   "scene": "P1",
-  "title": "三十行循环"
+  "title": "Agent Loop 核心机制"
  },
  {
   "scene": "P2",
-  "title": "一次往返"
+  "title": "任务执行与回喂走查"
  },
  {
   "scene": "P3",
-  "title": "判据之争"
+  "title": "流式工况与判据抉择"
  },
  {
   "scene": "P4",
-  "title": "保险丝"
+  "title": "Claude Code 源码对照"
  },
  {
   "scene": "P5",
-  "title": "核心与外圈"
+  "title": "架构规律与工具演进"
  }
 ]
