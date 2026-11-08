@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### 013 沉淀轴吸收 Anthropic Agent 记忆精读（I-254，2026-11-08）
+
+- [Context Layer 蓝图](docs/research/cognitive-context/013-context-layer-blueprint.md)吸收精读 254（Anthropic《The components of agent memory》，PR #1236）四处：§8.2 新增巩固**消费端**动作类型学（纠错/建表征/晋升/按目标聚焦/补缺）与三条写入纪律（对账源=会话转录等原始事件日志；并发写按对象分页、单写者、逐字引用；产出先评审后切换（「先评审」为本文引申），与水位提交点/注册门同属「确认先于生效」家族而非同口径）；§8.3 补 salience 行为判据（屏幕能重读的不存，各一局对照 4 枚徽章对 1 枚）；§4.3 第 3 问补「降级而非截断」形态（细节下移留指针，Claude Code 超限提示重写索引且超出部分不载）；§8.5 补指令面人工进化实例（反思→改指令→重建→重评分 72%→100%）与 steering 引导原则（对强模型只告知存在、不规定用法）。全部限定词随行（厂商自述、各一局、单例、每柱 1–3 次运行、research preview），经对抗核验两轮（首轮 9 处、评审轮 3 处表述收紧，另补 as-of 戳同步与参考节 IEEE 登记）。
+
 ### Anthropic Agent 记忆精读入库（254，I-253，2026-11-08）
 
 - 新增 `docs/research/cognitive-context/254-anthropic-agent-memory-components.md`：Anthropic Engineering《The components of agent memory》（Lance Martin，2026-11-06）首读——记忆四层（转录/笔记/表征/常驻注入）× 会话后 dreaming 五动作；写规则即预测、少而准、steering 对强模型只告知存在、转录当真相纠错、wiki 利跨文档不利单文档且可膨胀 1.77×、并发写丢事实与常驻层预算；补读 CL-Bench 论文（arXiv 2606.05661）、Dreams 与 Claude Code memory 官方文档、knowledge-wiki 与 dreaming cookbook、sleep-time compute；137 行独立 Checker 源稿对账；字数门 4000 内（3862，去链接口径 3808）。
