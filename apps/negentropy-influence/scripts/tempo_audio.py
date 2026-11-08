@@ -15,9 +15,11 @@
 * 速率 SSOT = `<集>/video/src/timing.json` 的 `narrationTempo`（仅本脚本读取；timing.ts 与
   skill 的 timeline.py 按名取键，多余键无副作用）。缺省或 1.0 = 不加速。
 * 源恒为 tts-store 里的 raw take（`<store>/<slug>/<id>.<digest12>.mp3`），不读 public/audio
-  当前内容：改速率可重算、重复运行幂等、raw 缺失则拒绝覆盖（保证随时可恢复 1.0×）。
+  当前内容：改速率可重算、重复运行幂等、raw 缺失则拒绝覆盖。
 * `<id>.sha` 不动，`tts` 复跑仍判本地命中并保留加速结果；但新 worktree / `--force` 会把
-  1.0× 的 raw 恢复回来，须在 `tts` 后重跑本脚本（`--check` 可作渲染前门）。
+  1.0× 的 raw 恢复回来，须在 `tts` 后重跑本脚本（`--check` 可作渲染前门）。恢复 1.0× 的
+  前提是 store raw 未被污染：`tts` 对 store 缺档句会把本地（已加速）mp3 按 raw digest 回填
+  入库顶替 raw，故 store 缺档时禁跑非 `--plan` 的 `tts`（`--plan` 命中句不查 store，探测不到）。
 * 回写 manifest.json 的 durationSec（mutagen 实测），TS 与 Python 两侧 timeline、captions、
   qa 自动一致；其余字段与排版同 tts.py（indent=1）。
 * ffmpeg 取 Remotion 自带二进制（`video/node_modules/.bin/remotion ffmpeg`，含 atempo/libmp3lame）。
@@ -35,6 +37,7 @@ import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
+from mutagen import MutagenError
 from mutagen.mp3 import MP3
 
 DEFAULT_STORE = "~/Library/Application Support/vibe-video/tts-store"
@@ -86,11 +89,17 @@ def find_ffmpeg(project: Path, override: str | None) -> list[str]:
 
 
 def mp3_duration(path: Path) -> float:
-    return float(MP3(str(path)).info.length)
+    try:
+        return float(MP3(str(path)).info.length)
+    except (MutagenError, OSError) as e:  # 缺文件/损坏头：归一为可操作失败
+        raise TempoError(f"读不到 mp3 时长（{path.name}）：{e}") from e
 
 
 def pick_kbps(path: Path) -> int:
-    bps = MP3(str(path)).info.bitrate
+    try:
+        bps = MP3(str(path)).info.bitrate
+    except (MutagenError, OSError) as e:
+        raise TempoError(f"读不到 mp3 码率（{path.name}）：{e}") from e
     kbps = bps / 1000
     return next((k for k in STD_KBPS if k >= kbps - 0.5), STD_KBPS[-1])
 
@@ -255,6 +264,9 @@ def check_tempo(
             problems.append(
                 f"{sid}: 标记 {got!r} ≠ {want!r}（未加速或速率已变，重跑本脚本）"
             )
+            continue
+        if not mp3.is_file():
+            problems.append(f"{sid}: 缺 {mp3.name}（重跑本脚本可从 raw 重建）")
             continue
         actual = duration_fn(mp3)
         if abs(it.get("durationSec", -1) - actual) > DUR_TOL:

@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import wave
+from array import array
 from pathlib import Path
 
 import pytest
@@ -95,6 +97,18 @@ def test_safe_audio_path_blocks_traversal(tmp_path):
     _, audio, _ = make_project(tmp_path)
     with pytest.raises(ta.TempoError):
         ta._safe_audio_path(audio, "../x.mp3")
+
+
+def test_mp3_duration_wraps_mutagen_error(tmp_path):
+    """缺文件/损坏内容须归一为 TempoError（main 只兜 TempoError），不裸 traceback。"""
+    junk = tmp_path / "junk.mp3"
+    junk.write_text("not an mp3")
+    with pytest.raises(ta.TempoError, match="junk"):
+        ta.mp3_duration(junk)
+    with pytest.raises(ta.TempoError):
+        ta.mp3_duration(tmp_path / "missing.mp3")
+    with pytest.raises(ta.TempoError):
+        ta.pick_kbps(junk)
 
 
 # ── apply_tempo ────────────────────────────────────────────────────────────
@@ -198,4 +212,21 @@ def test_real_ffmpeg_stretch_speeds_up_without_pitch_shift(tmp_path):
     )  # fmt: skip
     dst = tmp_path / "out.mp3"
     ta.stretch(src, dst, 1.25, ffmpeg)
-    assert ta.mp3_duration(dst) == pytest.approx(ta.mp3_duration(src) / 1.25, abs=0.15)
+    # 与生产门同口径：check_tempo 对同一比较用 RAW_TOL 执法，测试不得松于门
+    assert ta.mp3_duration(dst) == pytest.approx(
+        ta.mp3_duration(src) / 1.25, abs=ta.RAW_TOL
+    )
+    wav_path = (
+        tmp_path / "out.wav"
+    )  # 保音高核验：过零率估主频，asetrate 型变调会到 ≈549Hz
+    subprocess.run(
+        [*ffmpeg, "-v", "error", "-y", "-i", str(dst),
+         "-f", "wav", "-ac", "1", "-ar", "22050", str(wav_path)],
+        check=True,
+    )  # fmt: skip  # Remotion 自带 ffmpeg 裁掉了 s16le muxer，用 wav
+    with wave.open(str(wav_path)) as w:
+        samples = array("h", w.readframes(w.getnframes()))
+        rate = w.getframerate()
+    crossings = sum(1 for a, b in zip(samples, samples[1:]) if (a < 0) != (b < 0))
+    freq = crossings / 2 / (len(samples) / rate)
+    assert freq == pytest.approx(440, abs=20)
