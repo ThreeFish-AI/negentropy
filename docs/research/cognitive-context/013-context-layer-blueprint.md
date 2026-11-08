@@ -4,7 +4,7 @@ title: "Context Layer 技术蓝图：Agent 系统的上下文供给与治理"
 description: "Agents 系统 Context Layer 设计 SSOT：三面蓝图（问题登记簿十簇 × 资产/权威/装配/检索/沉淀五轴 × 生命周期六段两环 G1–G7）× 机制=多轴组合 × 四范本矩阵（Horizon M1–M7 / OpenViking / Claude Code / Hermes·Jev）× 供给面威胁模型 × negentropy 16+4 映射总装 × 修复序×轴依赖序路线"
 last_update:
   author: Aurelius Huang
-  as-of: 2026-10-23
+  as-of: 2026-11-08
 ---
 
 > **定位**：Agents 系统 Context Layer（把散落数据与口径打包供给 Agent 的上下文层）的设计蓝图 SSOT（单一事实源，唯一权威定义处）
@@ -777,7 +777,7 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 > [!WARNING] **「修复设计已给出」不是「回路已在线」**
 > I-195 的修复设计（回路缺件登记、三件套落位）已给出；待办（消费者、水位、UI 消费方）全部未动工。读 §8.2 不得把「设计已给出」读成「回路已闭合」；任何新回路上线前，按回路在线三条件逐件核到生产调用方那一层——「函数存在 ≠ 链路存在」是 I-194/195 共同的教训。
 
-**消费端做什么：五动作类型学与三条写入纪律（厂商实证参照，[254](./254-anthropic-agent-memory-components.md)）。** 三件套解决「谁在什么时候跑」，消费端「跑的时候做什么」由 [254](./254-anthropic-agent-memory-components.md)（Anthropic 工程博客《The components of agent memory》精读）补上动作类型学：纠错（对照原始转录改写笔记，官方博客案例为错记位置纠错后抵达目标城 Cerulean City，厂商自述单例）；建表征（跨会话把笔记整理成互链 wiki，宜配搜索：单用 48% 低于只搜索 53%、合用 61%）；晋升（把少数条目提到每会话必载层，并保持该层小）；按目标聚焦（反思失败、改指令、重建）；补缺（第二遍修死链）。整理本身要算力：官方示例自述，逾五十份约 12 MB 转录按标价、默认设置约 8 美元（厂商自述，非本仓语料），Δ/T 封顶因此必要。三条写入纪律随类型学落地：①纠错的对账源是会话转录这类原始事件日志，不是笔记自身的再归纳——笔记会错且会被后续会话照单信任；②并发写按对象分页：多写者共写一张共享页互相覆盖（57 条事实存活 41 条），改每对象一页、单写者、逐字引用后全部存活（三项改动为一次重建中同改同评，笔记未载分别检验的结果；厂商自述，同为 57 条事实口径）；③产出先评审后切换：Dreams 产品接口不改输入库、产出独立新库（异步、research preview），与水位提交点、§4.4 注册门同一口径。
+**消费端做什么：五动作类型学与三条写入纪律（厂商实证参照，[254](./254-anthropic-agent-memory-components.md)）。** 三件套解决「谁在什么时候跑」，消费端「跑的时候做什么」由 [254](./254-anthropic-agent-memory-components.md)（Anthropic 工程博客《The components of agent memory》精读）补上动作类型学：纠错（对照原始转录改写笔记，官方博客案例为错记位置纠错后抵达目标城 Cerulean City，厂商自述单例）；建表征（跨会话把笔记整理成互链 wiki，宜配搜索：单用 48% 低于只搜索 53%、合用 61%）；晋升（把少数条目提到每会话必载层，并保持该层小）；按目标聚焦（反思失败、改指令、重建）；补缺（第二遍修死链）。整理本身要算力：官方示例自述，逾五十份约 12 MB 转录按标价、默认设置约 8 美元（厂商自述，非本仓语料），Δ/T 封顶因此必要。三条写入纪律随类型学落地：①纠错的对账源是会话转录这类原始事件日志，不是笔记自身的再归纳——笔记会错且会被后续会话照单信任；②并发写按对象分页：多写者共写一张共享页互相覆盖（57 条事实存活 41 条），改每对象一页、单写者、逐字引用后全部存活（三项改动为一次重建中同改同评，笔记未载分别检验的结果；厂商自述，同为 57 条事实口径）；③产出先评审后切换（「先评审」为本文引申，254 原文未载评审步骤）：Dreams 产品接口不改输入库、产出独立新库（异步、research preview）；与水位提交点（防重复提炼的记账）、§4.4 注册门（注册期准入校验）机制不同，仅同属「确认先于生效」家族。
 
 ### 8.3 沉淀什么、判「同一条」靠什么：迁移门控与身份判据
 
@@ -785,7 +785,7 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 
 沉淀什么之外，工程上还要判「两条沉淀算不算同一条知识」。OpenViking 的做法（[014](./014-openviking.md) §6.3）：**相似只提名候选，同一性由 schema 身份字段裁决**。URI 由身份字段确定性生成，「是否同一条记忆」简化为「文件名是否相同」。去掉身份判据的实测：B3 把会话 ID 混进卡片名，同一用户三次来访落三张矛盾卡（美式/拿铁/拿铁并存，014 配套原型实测）。没有身份判据，一个月后记忆库自相矛盾。落到本仓：按 memory_type 定合并算子，events/trajectories 只增不改（宁可重复不可错并），experiences 走 replace+supersedes；阈值去重（cos（余弦相似度）≥0.85/0.90）为主流程，LLM 裁决只值得用于模糊带 0.80–0.90。
 
-行为侧的沉淀判据可再压一层：写入门控的可操作口径（本文口径）是「屏幕能重读的不存，只存会消失的结论与验证过的规则」——Pokémon 单局对照里，只存屏幕读不到内容的模型得 4 枚徽章，逢事必记的 413 个文件只得 1 枚（各一局，厂商自述；[254](./254-anthropic-agent-memory-components.md)）——与 CE2 的时权门控互补：时权管何时迁，salience（显著性）管值不值得迁。
+行为侧的沉淀判据可再压一层：写入门控的可操作口径（本文口径）是「屏幕能重读的不存，只存会消失的结论与验证过的规则」——Pokémon 单局对照里，只存屏幕读不到内容的模型得 4 枚徽章，逢事必记的 413 个文件只得 1 枚（各一局，厂商自述；[254](./254-anthropic-agent-memory-components.md)）——与 CE2 的迁移门控互补：salience（显著性）管前置的写入判据（值不值得存），CE2 的时间权重与重要性管迁移判据（何时迁、迁谁）。
 
 ### 8.4 冲突浮出、不按热度自动裁决：裁决纪律与 eval 自纠环
 
@@ -818,7 +818,7 @@ subagent 探查隔离是候选集供给的一种形态：探查类污染（大�
 
 可进化参数（预算比、接地片段数、信任权重、Router 阈值）的每一步晋升都要经过审批（low+auto 档可跳过 pending_approval 直入灰度，其余人工审批，models/evolution.py:168 注释口径）。闭环是「采集→归一→激活→行为→进化」：行为面的在线信号（zero_hit_rate、helpful_ratio）回流为下一轮提案的依据。这正是 §9 进化环在本仓的实例。
 
-指令面的人工进化实例：巩固指令经「反思失败 → 改指令 → 重建 → 重评分」从共享表改为每对象一页（72%→100%，同为 57 条事实口径；[254](./254-anthropic-agent-memory-components.md)）；配套引导原则是对强模型只告知记忆存在、不规定用法（所测即「只记失败」这类写什么的规定；规则使强模型记忆增益缩水 −0.234、−0.150，每柱 1–3 次运行，厂商自述），弱模型缺的是「先读、再验证」的流程提示。memory_pipeline 面的提案单位可照此取「指令 diff + 重建重评」（本位为本文对位，非原文口径）。
+指令面的人工进化实例：巩固指令经「反思失败 → 改指令 → 重建 → 重评分」从共享表改为每对象一页、单写者、逐字引用三项（72%→100%，三项一次重建中同改同评、笔记未载分别检验，同为 57 条事实口径，即 §8.2 ② 的同一实验；[254](./254-anthropic-agent-memory-components.md)）；配套引导原则是对强模型只告知记忆存在、不规定用法（所测即「只记失败」这类写什么的规定；规则使强模型记忆增益缩水 −0.234、−0.150，每柱 1–3 次运行，厂商自述），弱模型缺的是「先读、再验证」的流程提示。memory_pipeline 面的提案单位可照此取「指令 diff + 重建重评」（本位为本文对位，非原文口径）。
 
 ![6 个 TargetHandler 进化面在线汇入 8 态状态机，第 7 面 context_strategy 仅为提案、代码零命中](../../assets/architecture/cognitive-context/context-layer--evolution-levers-dark.png)
 
@@ -1270,7 +1270,7 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 
 ## 参考
 
-正文为链接式引用（未用 [n] 编号），本节按 IEEE 条目式列外部信源，全部访问于 2026-10：
+正文为链接式引用（未用 [n] 编号），本节按 IEEE 条目式列外部信源，全部访问于 2026-10（另注者除外）：
 
 - J. Cui and J. Li, "Your Data Agents Need Context," a16z, Mar. 10, 2026. https://a16z.com/your-data-agents-need-context/
 - Q. Hua et al., "Context Engineering 2.0: The Context of Context Engineering," arXiv:2510.26493, 2025. https://arxiv.org/abs/2510.26493
@@ -1281,6 +1281,7 @@ known-answer 评测四原则（与上表 eval 行配套）：①评测题＝业�
 - Redis, "The State of Context Engineering," 2026（n=1,000，方法论未公开）. https://redis.io/resources/state-of-context-engineering-2026/
 - Chroma, "Context Rot: The Challenge of Long Contexts," Chroma Research, Jul. 2025（技术报告，无 arXiv 编号，一手页为准：18 个 2025 旗舰模型实测）. https://www.trychroma.com/research/context-rot
 - Anthropic, "Effective Context Engineering for AI Agents," Anthropic Engineering Blog, Sep. 2025（info scarcity / info excess、attention budget、compaction 与 sub-agent 架构口径）. https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+- L. Martin, "The components of agent memory," Anthropic Engineering, Nov. 6, 2026（记忆四层与 dreaming 动作类型学、Pokémon 徽章对照、57 条事实存活实验；2026-11-08 访问）. https://www.anthropic.com/research/components-of-agent-memory
 - Anthropic, "Prompt Caching," Documentation（缓存命中省 90–95%、层级失效表、时间戳置顶反例）. https://platform.claude.com/docs/en/build-with-claude/prompt-caching
 - Manus, "Context Engineering for AI Agents: Lessons from Building Manus," 2025（cache hit rate 为 single most important metric、input:output≈100:1）. https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
 - Cognition, "Don't Build Multi-Agents," 2025（两原则：share full agent traces / actions carry implicit decisions）. https://cognition.com/blog/dont-build-multi-agents
