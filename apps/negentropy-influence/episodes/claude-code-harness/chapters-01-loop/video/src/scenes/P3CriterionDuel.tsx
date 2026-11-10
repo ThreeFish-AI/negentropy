@@ -17,7 +17,7 @@ import {AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig} from 'remotion'
 import {theme} from '../design/theme';
 import {FPS, beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {Footnote, Panel, SceneTag} from '../components/motifs';
+import {Footnote, LoopRing, Panel, SceneTag, type RingNode} from '../components/motifs';
 import {Pill} from '../components/cards';
 import {
   DUR,
@@ -29,8 +29,17 @@ import {
   useEnter,
   useImpulse,
   useProgress,
+  useShake,
   useSpring,
 } from '../motion';
+
+/** 幕级 M-001 缩悬环：P2 同款同形（160/140px、五站、关标签），挂 Sequence 外跨镜
+ *  不断相——P3 口播「每圈转完凭什么判断」直指环体，62s 缺席即全片中段锚断裂；
+ *  3-E 左轨「提前中断」词窗冻结停转（P2 atStop 同式）。顶中偏左位避开六镜全部
+ *  既有装置（SceneTag x≤400、各镜首元素 y≥316、3-E 双轨 header x120-460/1000-1340） */
+const SCENE_RING = {size: 140, x: 560, y: 62} as const;
+const SCENE_RING_LAP = 75;
+const PENT_NODES: RingNode[] = [0, 1, 2, 3, 4].map((i) => ({label: `s${i + 1}`, angle: -90 + i * 72}));
 
 // ── 3-A 判据卡对举 ───────────────────────────────────────────────────────
 
@@ -84,13 +93,18 @@ const LoopArrow: React.FC<{p: number; pulse: number}> = ({p, pulse}) => (
   </svg>
 );
 
-/** 两版判据卡（同构等大 660×400）：field=p3-03 演示、content=p3-04 演示（次序=口播） */
-const CriterionCard: React.FC<{variant: 'field' | 'content'; atDemo: number}> = ({variant, atDemo}) => {
+/** 两版判据卡（同构等大 660×400）：field=p3-03 演示、content=p3-04 演示（次序=口播）。
+ *  词窗纪律（M-005）：field 徽章翻色锚「结束原因标记」词（≈0.6·p3-03）、
+ *  content 调用块点亮锚「工具调用块」词（≈0.75·p3-04）——不再抢跑整句 */
+const CriterionCard: React.FC<{variant: 'field' | 'content'; atDemo: number; litAt: number}> = ({
+  variant,
+  atDemo,
+  litAt,
+}) => {
   const isField = variant === 'field';
   const accent = isField ? theme.warn : theme.ok;
   // 演示链（Visual Lock：任一卡不得先动——atDemo 分别锚 p3-03 / p3-04）：
   // field：徽章翻色 → 拨开关；content：放大镜滑行 → 调用块点亮 → 拨开关
-  const litAt = atDemo + (isField ? 0 : DUR.f5);
   const lit = useProgress(litAt, DUR.f4);
   const flip = useImpulse({at: litAt, dur: DUR.f5, peak: 0.45});
   const scan = useSpring('settle', {at: atDemo, dur: DUR.f5});
@@ -238,17 +252,25 @@ const CriterionCard: React.FC<{variant: 'field' | 'content'; atDemo: number}> = 
   );
 };
 
-const DuelCards: React.FC<{at03: number; at04: number}> = ({at03, at04}) => {
+const DuelCards: React.FC<{at03: number; litLAt: number; at04: number; litRAt: number; qAt: number}> = ({
+  at03,
+  litLAt,
+  at04,
+  litRAt,
+  qAt,
+}) => {
   const left = useEnter('rise', {at: 2, dur: DUR.f5, springPreset: 'settle', restBottom: 720});
   const right = useEnter('rise', {at: 2 + DUR.f2, dur: DUR.f5, springPreset: 'settle', restBottom: 720});
-  const q = useEnter('pop', {at: DUR.f4, dur: DUR.f4});
+  // 「？」随问句核心词弹出（「凭什么继续还是该停」≈0.55·p3-01），不再提前 4s 定格
+  const q = useEnter('pop', {at: qAt, dur: DUR.f4});
+  const qPulse = useImpulse({at: qAt, dur: DUR.f5, peak: 0.08});
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', left: 150, top: 320, ...left}}>
-        <CriterionCard variant="field" atDemo={at03} />
+        <CriterionCard variant="field" atDemo={at03} litAt={litLAt} />
       </div>
       <div style={{position: 'absolute', left: 1110, top: 320, ...right}}>
-        <CriterionCard variant="content" atDemo={at04} />
+        <CriterionCard variant="content" atDemo={at04} litAt={litRAt} />
       </div>
       <div
         style={{
@@ -260,7 +282,8 @@ const DuelCards: React.FC<{at03: number; at04: number}> = ({at03, at04}) => {
           fontFamily: theme.serif,
           fontSize: 128,
           color: theme.dim,
-          ...q,
+          transform: `${q.transform} scale(${1 + qPulse})`,
+          opacity: q.opacity,
         }}
       >
         {'？'}
@@ -269,21 +292,36 @@ const DuelCards: React.FC<{at03: number; at04: number}> = ({at03, at04}) => {
   );
 };
 
-// ── 3-B 流式显形：字符流逐字到达，字段徽章慢半拍仍灰 ─────────────────────
+// ── 3-B 两态演示：一次性整块亮（p3-05）→ 流式逐字重打（p3-06）+ 字段迟到翻转 ──
 
-const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
+const StreamLag: React.FC<{
+  bulkAt: number;
+  streamAt: number;
+  flipAt: number;
+  span: number;
+}> = ({bulkAt, streamAt, flipAt, span}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const enter = useEnter('rise', {at: 0, dur: DUR.f5, springPreset: 'settle', restBottom: 770});
-  const tag = useEnter('pop', {at: at06, dur: DUR.f4});
+  const tag = useEnter('pop', {at: streamAt, dur: DUR.f4});
 
   const CELLS = 30;
   const SEG0 = 18; // 调用块段 [SEG0, SEG1)
   const SEG1 = 25;
-  // 打字节奏自适应 beat 窗（约 62% 处打完——段落落在 p3-06「流式」附近）
-  const cps = CELLS / Math.max(1, (span / FPS) * 0.62);
-  const arrived = revealCharCount(frame - DUR.f4, fps, cps);
+  // 两态：p3-05「一次性返回全部内容」整块亮（两版判据几乎没区别的铺垫态）；
+  // p3-06「流式」词落位整块隐去、逐字重打——形态对比即本镜教学点（§5.2 画面替代语言）
+  const bulk = useProgress(bulkAt, DUR.f4);
+  const reset = useProgress(streamAt, DUR.f3);
+  // 打字节奏自适应：streamAt 起约占余窗的 62% 打完
+  const typeWin = Math.max(DUR.f5, (span - streamAt) * 0.62);
+  const cps = CELLS / Math.max(1, typeWin / FPS);
+  const arrived = revealCharCount(frame - streamAt - DUR.f3, fps, cps);
   const segOn = clamp01((arrived - SEG0) / 2);
+
+  // 字段徽章迟到翻转：打完后 f6 帧「旧值」翻「新值」（迟≠永不到，gl-notes §3.4）
+  // + warn「迟到」微签一拍即驻——「晚一拍才更新」的可视化
+  const flipP = useProgress(flipAt, DUR.f4);
+  const lateTag = useEnter('pop', {at: flipAt + DUR.f3, dur: DUR.f4});
 
   return (
     <AbsoluteFill>
@@ -305,8 +343,9 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
           }}
         >
           {Array.from({length: CELLS}, (_, i) => {
-            const on = i < arrived;
             const seg = i >= SEG0 && i < SEG1;
+            const on = i < arrived;
+            const o = Math.max(bulk * (1 - reset), on ? (seg ? 0.88 : 0.55) : 0);
             return (
               <div
                 key={i}
@@ -318,13 +357,13 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
                   height: 40,
                   borderRadius: 6,
                   background: seg ? theme.tool : theme.panelBorder,
-                  opacity: on ? (seg ? 0.88 : 0.55) : 0,
+                  opacity: o,
                 }}
               />
             );
           })}
-          {/* 打字光标（帧驱动呼吸，打完即隐） */}
-          {arrived < CELLS ? (
+          {/* 打字光标（帧驱动呼吸，流式态打完即隐；一次性态无光标） */}
+          {reset > 0.5 && arrived < CELLS ? (
             <div
               style={{
                 position: 'absolute',
@@ -337,7 +376,7 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
               }}
             />
           ) : null}
-          {/* 调用块段检出框（内容已到） */}
+          {/* 调用块段检出框（流式重打中内容先到） */}
           <div
             style={{
               position: 'absolute',
@@ -347,7 +386,7 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
               height: 56,
               borderRadius: 10,
               border: `2px solid ${theme.tool}`,
-              opacity: 0.9 * segOn,
+              opacity: 0.9 * segOn * reset,
             }}
           />
         </div>
@@ -361,13 +400,13 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
             fontFamily: theme.mono,
             fontSize: 20,
             color: theme.tool,
-            opacity: segOn,
+            opacity: segOn * reset,
           }}
         >
           {'tool_use'}
         </div>
 
-        {/* 字段徽章：滞后停在旧值（灰）——与字符流同帧可对比 */}
+        {/* 字段徽章：流式期滞后停旧值（灰）→ 打完后迟到翻新值——与字符流同帧可对比 */}
         <div
           style={{
             position: 'absolute',
@@ -383,6 +422,7 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
           <div style={{position: 'absolute', left: 28, top: 24, fontFamily: theme.mono, fontSize: 26, color: theme.dim}}>
             {'stop_reason'}
           </div>
+          {/* 旧值层（翻新时退场） */}
           <div
             style={{
               position: 'absolute',
@@ -398,9 +438,31 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
               fontFamily: theme.sans,
               fontSize: 24,
               color: theme.dim,
+              opacity: 1 - flipP,
             }}
           >
             {'旧值'}
+          </div>
+          {/* 新值层（迟到翻转：warn 边框 + 「迟到」微签） */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 28,
+              top: 68,
+              width: 132,
+              height: 44,
+              borderRadius: 8,
+              border: `2px solid ${theme.warn}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: theme.sans,
+              fontSize: 24,
+              color: theme.warn,
+              opacity: flipP,
+            }}
+          >
+            {'新值'}
           </div>
           <div
             style={{
@@ -410,9 +472,14 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
               width: 16,
               height: 16,
               borderRadius: 999,
-              background: theme.panelBorder,
+              background: flipP > 0.5 ? theme.warn : theme.panelBorder,
             }}
           />
+          <div style={{position: 'absolute', left: 322, top: 76, ...lateTag}}>
+            <Pill color={theme.warn} style={{padding: '4px 12px', fontSize: 20}}>
+              {'迟到'}
+            </Pill>
+          </div>
         </div>
         {/* 连接线：流末端 → 字段徽章（灰的还在原地） */}
         <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
@@ -428,10 +495,10 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
           />
         </svg>
 
-        {/* p3-06「流式」角标贴上 */}
+        {/* p3-06「流式」角标贴上（词窗锚定；错开「回答流」标签防压字） */}
         <Pill
           color={theme.tool}
-          style={{...tag, position: 'absolute', left: 246, top: 350, transform: `${tag.transform} rotate(-6deg)`}}
+          style={{...tag, position: 'absolute', left: 350, top: 338, transform: `${tag.transform} rotate(-6deg)`}}
         >
           {'流式'}
         </Pill>
@@ -442,17 +509,22 @@ const StreamLag: React.FC<{at06: number; span: number}> = ({at06, span}) => {
 
 // ── 3-C 时间轴错位：内容指针到点（绿）vs 字段指针滞后一档（灰） ───────────
 
-const LagTimeline: React.FC<{at08: number}> = ({at08}) => {
+const LagTimeline: React.FC<{moveDur: number; arriveAt: number; chainAt: number}> = ({
+  moveDur,
+  arriveAt,
+  chainAt,
+}) => {
   const axis = useDraw(0, DUR.f5);
   const ticks = useProgress(DUR.f3, DUR.f4);
-  // 双指针同刻出发、同束同窗：内容走到第 8 档，字段停在第 7 档（滞后一档）
-  const move = useSpring('settle', {at: DUR.f5, dur: DUR.f6});
-  const arrive = useProgress(DUR.f5 + DUR.f6 - DUR.f3, DUR.f3);
-  const lockPulse = useImpulse({at: DUR.f5 + DUR.f6, dur: DUR.f5, peak: 0.6});
-  // p3-08「迟到的信号」：锁链自字段指针垂下（只连字段指针——错绑因果是红线）
-  const chain = useSpring('settle', {at: at08, dur: DUR.f5});
-  const chainO = useProgress(at08, DUR.f3);
-  const lateLabel = useEnter('rise', {at: at08 + DUR.f2, dur: DUR.f4, dist: 14});
+  // 双指针同刻出发、同束同窗（行程铺满 p3-07 打字句）：内容走到第 8 档，
+  // 字段停在第 7 档（滞后一档）；到点绿/锁链脉冲落 p3-08 词位——不再句首耗尽事件
+  const move = useSpring('settle', {at: DUR.f5, dur: moveDur});
+  const arrive = useProgress(arriveAt, DUR.f3);
+  const lockPulse = useImpulse({at: arriveAt, dur: DUR.f5, peak: 0.6});
+  // p3-08 尾「就已就位」词窗：锁链自字段指针垂下（只连字段指针——错绑因果是红线）
+  const chain = useSpring('settle', {at: chainAt, dur: DUR.f5});
+  const chainO = useProgress(chainAt, DUR.f3);
+  const lateLabel = useEnter('rise', {at: chainAt + DUR.f2, dur: DUR.f4, dist: 14});
 
   const X0 = 240;
   const STEP = 144;
@@ -535,24 +607,33 @@ const LagTimeline: React.FC<{at08: number}> = ({at08}) => {
   );
 };
 
-// ── 3-D 火警调度台插曲（≤2s 即收）+ 边界标记 ─────────────────────────────
+// ── 3-D 火警调度台插曲（短促即收）+ 出警车 + 边界标记 ────────────────────
 
-const FireDispatch: React.FC<{at10: number; dur09: number}> = ({at10, dur09}) => {
+const FireDispatch: React.FC<{
+  chip1At: number;
+  dispatchAt: number;
+  at10: number;
+  mark1At: number;
+  mark2At: number;
+  strikeAt: number;
+  outEnd: number;
+}> = ({chip1At, dispatchAt, at10, mark1At, mark2At, strikeAt, outEnd}) => {
   const consoleIn = useEnter('pop', {at: DUR.f3, dur: DUR.f4});
-  const chip1 = useEnter('rise', {at: DUR.f4 + DUR.f2, dur: DUR.f3, dist: 18});
-  const chip2 = useEnter('rise', {at: DUR.f4 + DUR.f3, dur: DUR.f3, dist: 18});
-  const dispatchAt = DUR.f6; // 「着火 · 地址」两词到位即派车（不等收尾）
+  const chip1 = useEnter('rise', {at: chip1At, dur: DUR.f3, dist: 18});
+  const chip2 = useEnter('rise', {at: chip1At + DUR.f3, dur: DUR.f3, dist: 18});
+  // 「车就该立刻派出去」词落位：派车单滑出 + 已派章 + 出警车开出（分镜承诺元素）
   const slip = useEnter('slideR', {at: dispatchAt, dur: DUR.f5, dist: 240, springPreset: 'settle'});
   const stamp = useEnter('pop', {at: dispatchAt + DUR.f3, dur: DUR.f4});
-  // 插曲 ≤2s 即收：听筒台自入场起 2 秒内退场（时长上限经 FPS 换算，非绝对锚）
-  const outEnd = Math.min(2 * FPS, Math.max(dispatchAt + DUR.f5, dur09 - DUR.f5));
+  const truckP = useProgress(dispatchAt + DUR.f4, 40, 'accelerate');
+  const truckO = useProgress(dispatchAt, DUR.f3);
+  const siren = useImpulse({at: dispatchAt, dur: 12});
   const consoleOut = useProgress(outEnd - DUR.f4, DUR.f4);
-  // 派车单留守并滑至画面中央（插曲收、单据在——因果链不断）
+  // 派车单留守并滑移（插曲收、单据在——因果链不断）
   const slipGlide = useSpring('settle', {at: outEnd + DUR.f2, dur: DUR.f5});
-  // p3-10 边界标记：「补派 ✓ / 第二回 ✗」打上、「第二回」划掉
-  const mark1 = useEnter('pop', {at: at10 + DUR.f4, dur: DUR.f4});
-  const mark2 = useEnter('pop', {at: at10 + DUR.f4 + DUR.f3, dur: DUR.f4});
-  const strike = useProgress(at10 + DUR.f6, DUR.f4);
+  // p3-10 边界标记：「补派 ✓」先落词、「第二回 ✗」随后、「第二回」划掉不提前剧透收束
+  const mark1 = useEnter('pop', {at: mark1At, dur: DUR.f4});
+  const mark2 = useEnter('pop', {at: mark2At, dur: DUR.f4});
+  const strike = useProgress(strikeAt, DUR.f4);
 
   return (
     <AbsoluteFill>
@@ -619,7 +700,35 @@ const FireDispatch: React.FC<{at10: number; dur09: number}> = ({at10, dur09}) =>
         </div>
       </div>
 
-      {/* 派车单：滑出调度台 → 留守滑至中央 */}
+      {/* 出警车：两词到位即开出（分镜「出警车开出」承诺；派出的物象是车不是纸） */}
+      {truckP < 1 ? (
+        <svg
+          width={200}
+          height={90}
+          viewBox="0 0 200 90"
+          style={{
+            position: 'absolute',
+            left: 700 + truckP * 760,
+            top: 540,
+            opacity: (1 - truckP * 0.35) * (0.65 + 0.35 * truckO),
+            overflow: 'visible',
+          }}
+        >
+          <g stroke={theme.core} strokeWidth={4} fill="none" strokeLinejoin="round">
+            <rect x={8} y={18} width={112} height={44} rx={8} />
+            <path d="M120 30 L158 30 L178 52 L178 62 L120 62 Z" />
+          </g>
+          <rect x={122} y={34} width={28} height={18} rx={3} fill={theme.core} opacity={0.7} />
+          <circle cx={40} cy={68} r={12} fill={theme.bg} stroke={theme.core} strokeWidth={4} />
+          <circle cx={148} cy={68} r={12} fill={theme.bg} stroke={theme.core} strokeWidth={4} />
+          <circle cx={40} cy={68} r={4} fill={theme.core} />
+          <circle cx={148} cy={68} r={4} fill={theme.core} />
+          {/* 警灯闪（帧驱动，无随机） */}
+          <circle cx={30} cy={12} r={6} fill={theme.warn} opacity={siren} />
+        </svg>
+      ) : null}
+
+      {/* 派车单：滑出调度台 → 留守滑移（因果链不断） */}
       <div
         style={{
           position: 'absolute',
@@ -664,7 +773,7 @@ const FireDispatch: React.FC<{at10: number; dur09: number}> = ({at10, dur09}) =>
         </div>
       </div>
 
-      {/* 边界小标记（p3-10）：补派 ✓ / 第二回 ✗（划掉） */}
+      {/* 边界小标记（p3-10）：补派 ✓ / 第二回 ✗（划掉落词，不提前剧透） */}
       <div
         style={{
           ...mark1,
@@ -722,15 +831,21 @@ const FireDispatch: React.FC<{at10: number; dur09: number}> = ({at10, dur09}) =>
 
 // ── 3-E 消融对比（左红右绿恒定）──────────────────────────────────────────
 
-/** 单轨回答流：字符格 + 两枚调用块；degraded 轨在 p3-13 坠落淡出（轨迹可见） */
-const TrackStream: React.FC<{degraded: boolean; at13: number; cellsAt: number}> = ({degraded, at13, cellsAt}) => {
+/** 单轨回答流：字符格 + 两枚调用块；degraded 轨在 p3-13「提前中断」词窗坠落
+ *  （轨迹可见）；「静默丢弃」标签独立锚「静默丢弃」词（≈0.85·p3-13） */
+const TrackStream: React.FC<{degraded: boolean; at13: number; atLabel: number; cellsAt: number}> = ({
+  degraded,
+  at13,
+  atLabel,
+  cellsAt,
+}) => {
   const cells = useProgress(cellsAt, DUR.f5);
   const fall = useProgress(at13, DUR.f6, 'accelerate'); // 空间：坠落加速离场
   const fade = useProgress(at13 + DUR.f4, DUR.f5); // effects：迟一拍淡出
   const guide = useProgress(at13 + DUR.f2, DUR.f3);
   const g1 = useProgress(at13 + DUR.f3, DUR.f2);
   const g2 = useProgress(at13 + DUR.f3 + DUR.f2, DUR.f2);
-  const label = useProgress(at13 + DUR.f6, DUR.f4);
+  const label = useProgress(atLabel, DUR.f4);
   const kept = useProgress(at13 + DUR.f3, DUR.f3);
   const blocks = [412, 458];
 
@@ -1052,30 +1167,47 @@ const CountBar: React.FC<{
   );
 };
 
-const AblationCompare: React.FC<{at12: number; dur12: number; at13: number; at14: number}> = ({
-  at12,
-  dur12,
-  at13,
-  at14,
-}) => {
+const AblationCompare: React.FC<{
+  at12: number;
+  dur12: number;
+  at11: number;
+  at13: number;
+  atLabel: number;
+  at14: number;
+}> = ({at12, dur12, at11, at13, atLabel, at14}) => {
   const leftIn = useEnter('rise', {at: DUR.f2, dur: DUR.f5, springPreset: 'settle', restBottom: 800});
-  const rightIn = useEnter('rise', {at: DUR.f2 + DUR.f3, dur: DUR.f5, springPreset: 'settle', restBottom: 800});
+  // 组级入场错峰拉开（A-04 边缘缓解）：右轨晚一档
+  const rightIn = useEnter('rise', {at: DUR.f2 + DUR.f4, dur: DUR.f5, springPreset: 'settle', restBottom: 800});
   const swap = useEnter('pop', {at: DUR.f4, dur: DUR.f4});
+  // p3-11「误判为已经结束」：因果链第一环——左轨头盖「判停」warn 章（读旧值→判停）；
+  // p3-13 坠落时左轨整轨 useShake 一拍（错误路径 shake 合法包装，代价落回轨上）
+  const haltStamp = useEnter('pop', {at: at11, dur: DUR.f4});
+  const railShake = useShake({at: at13, amp: 3.5, freq: 1.6, decay: true, dur: DUR.f6});
   // p3-12 计数事件：带格先点亮 → 读数滚动 → 重音脉冲（先后串行，不叠主动画）
   const fillWin = Math.max(DUR.f5, Math.round(dur12 / 2));
   const fill = useProgress(at12, fillWin);
   const counterIn = useEnter('fade', {at: at12, dur: DUR.f4});
   const countAt = at12 + fillWin;
   const pulse = useImpulse({at: countAt + DUR.f6 + DUR.f2, dur: DUR.f5, peak: 0.22});
-  // p3-14 教训金句：对账面压暗、短卡闪现定格
+  // p3-14 教训金句：对账面压暗、短卡闪现定格（文案=分镜 SSOT）
   const dim = useDim({at: at14, to: 0.22, dur: DUR.f5});
   const quote = useEnter('pop', {at: at14, dur: DUR.f4});
 
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, opacity: dim}}>
-        {/* 左轨：判据换回收尾字段（红） */}
-        <div style={{position: 'absolute', left: 120, top: 100, width: 800, height: 720, ...leftIn}}>
+        {/* 左轨：判据换回收尾字段（红）；坠落拍整轨 shake（错误路径合法包装） */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 120,
+            top: 100,
+            width: 800,
+            height: 720,
+            ...leftIn,
+            transform: `${leftIn.transform} translateX(${railShake}px)`,
+          }}
+        >
           <Panel accent={theme.warn} style={{display: 'inline-flex', alignItems: 'center', gap: 14, padding: '12px 22px'}}>
             <span style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim}}>{'判据'}</span>
             <span style={{fontFamily: theme.sans, fontSize: 30, fontWeight: 700, color: theme.warn}}>{'收尾字段'}</span>
@@ -1099,9 +1231,25 @@ const AblationCompare: React.FC<{at12: number; dur12: number; at13: number; at14
                 />
               </svg>
             </span>
+            {/* 「判停」章：误判瞬间的画面化（因果链第一环——读旧值→判停） */}
+            <span
+              style={{
+                ...haltStamp,
+                padding: '4px 14px',
+                borderRadius: 8,
+                border: `2.5px solid ${theme.warn}`,
+                fontFamily: theme.sans,
+                fontSize: 26,
+                fontWeight: 700,
+                color: theme.warn,
+                transform: `${haltStamp.transform} rotate(-8deg)`,
+              }}
+            >
+              {'判停'}
+            </span>
           </Panel>
           <div style={{position: 'absolute', left: 60, top: 130}}>
-            <TrackStream degraded at13={at13} cellsAt={DUR.f2 + DUR.f5 + DUR.f6} />
+            <TrackStream degraded at13={at13} atLabel={atLabel} cellsAt={DUR.f2 + DUR.f5 + DUR.f6} />
           </div>
           <div style={{position: 'absolute', left: 60, top: 356}}>
             <TaskBand fill={fill} litCount={8} accent={theme.warn} markAt={countAt + DUR.f2} showMark />
@@ -1118,7 +1266,7 @@ const AblationCompare: React.FC<{at12: number; dur12: number; at13: number; at14
             <span style={{fontFamily: theme.sans, fontSize: 30, fontWeight: 700, color: theme.ok}}>{'内容块'}</span>
           </Panel>
           <div style={{position: 'absolute', left: 60, top: 130}}>
-            <TrackStream degraded={false} at13={at13} cellsAt={DUR.f2 + DUR.f5} />
+            <TrackStream degraded={false} at13={at13} atLabel={atLabel} cellsAt={DUR.f2 + DUR.f5} />
           </div>
           <div style={{position: 'absolute', left: 60, top: 356}}>
             <TaskBand fill={fill} litCount={10} accent={theme.ok} markAt={countAt + DUR.f2} showMark={false} />
@@ -1128,20 +1276,21 @@ const AblationCompare: React.FC<{at12: number; dur12: number; at13: number; at14
           </div>
         </div>
 
-        {/* 双计数条 10→8 / 7→5（基线锚定，p3-12 重音） */}
-        <div style={{position: 'absolute', left: 620, top: 845, ...counterIn}}>
+        {/* 双计数条 10→8 / 7→5（基线锚定，p3-12 重音）——两条都是左轨（退化侧）度量，
+            归拢左轨名下，红数字不再停在右轨（绿）门口（X-001 空间归属） */}
+        <div style={{position: 'absolute', left: 220, top: 845, ...counterIn}}>
           <CountBar label={'轮次'} from={10} to={8} base={10} at={countAt} pulse={pulse} />
         </div>
-        <div style={{position: 'absolute', left: 1000, top: 845, ...counterIn}}>
+        <div style={{position: 'absolute', left: 600, top: 845, ...counterIn}}>
           <CountBar label={'落地'} from={7} to={5} base={7} at={countAt + DUR.f3} pulse={pulse} />
         </div>
       </div>
 
-      {/* p3-14 教训金句短卡（关键词化，闪现定格） */}
+      {/* p3-14 教训金句短卡（关键词化，闪现定格；文案回分镜 SSOT「认内容事实 · 不认派生字段」） */}
       <div style={{position: 'absolute', left: 520, top: 430, width: 880, ...quote}}>
         <Panel accent={theme.warn} style={{padding: '34px 44px', textAlign: 'center'}}>
           <div style={{fontFamily: theme.serif, fontSize: 54, fontWeight: 700, color: theme.warn}}>
-            {'字段晚到＝丢调用'}
+            {'认内容事实 · 不认派生字段'}
           </div>
         </Panel>
       </div>
@@ -1155,6 +1304,8 @@ export const P3CriterionDuel: React.FC<{scene: SceneRange}> = ({scene}) => {
   const w = (fromId: string, toId?: string) => beatWindow(scene.sentences, scene.from, fromId, toId);
   const at = (id: string) => w(id).from;
   const dur = (id: string) => w(id).durationInFrames;
+  // 词窗锚 = 句首 + 句长分数（无词级时间戳，比例即词窗；TTS 变更自动重定时）
+  const wa = (id: string, f: number) => at(id) + Math.round(dur(id) * f);
 
   const bA = w('p3-01', 'p3-04');
   const bB = w('p3-05', 'p3-06');
@@ -1162,31 +1313,84 @@ export const P3CriterionDuel: React.FC<{scene: SceneRange}> = ({scene}) => {
   const bD = w('p3-09', 'p3-10');
   const bE = w('p3-11', 'p3-14');
 
+  // —— 3-B 两态词窗：p3-05 整块亮（「一次性返回」0.35）→ p3-06「流式」词（≈0.55）重打；
+  //    打完（streamAt 起余窗 62%）再 f6 迟到翻转
+  const bulkAt = wa('p3-05', 0.35);
+  const streamAt = wa('p3-06', 0.55);
+  const typeEnd = streamAt + Math.round((bB.durationInFrames - streamAt) * 0.62);
+  const badgeFlipAt = typeEnd + DUR.f6;
+  // —— 3-D 词窗链：「灾情和地址」0.4 → 「立刻派出去」0.72；标记落 p3-10 词位
+  const chip1At = wa('p3-09', 0.4);
+  const dispatchAt = wa('p3-09', 0.72);
+  const mark1At = wa('p3-10', 0.55);
+  const mark2At = wa('p3-10', 0.7);
+  const strikeAt = wa('p3-10', 0.92);
+  // 调度台退场：派车事件后一拍（单据滑出+章+车），且先于 p3-10 标记
+  const outEnd = Math.min(at('p3-10') - bD.from - DUR.f5, dispatchAt + 50);
+
+  // 幕级缩悬环：M-001 恒定锚跨镜在场；3-E 左轨「提前中断」词窗冻结（环停=误判退出）
+  const frame = useCurrentFrame();
+  const ringO = useProgress(2, DUR.f5);
+  const ringFreeze = wa('p3-13', 0.32) - 0; // act 局部帧（Sequence 外挂载，帧同幕）
+  const ringDot =
+    ((Math.min(frame / SCENE_RING_LAP, ringFreeze / SCENE_RING_LAP) % 1) + 1) % 1;
+
   return (
     <AbsoluteFill>
+      {/* M-001 缩悬环（Sequence 外，跨五镜不断相；3-E 冻结=提前中断的空间对偶） */}
+      <div style={{position: 'absolute', left: SCENE_RING.x, top: SCENE_RING.y, opacity: 0.9 * ringO}}>
+        <LoopRing
+          size={SCENE_RING.size}
+          dotProgress={ringDot}
+          nodes={PENT_NODES}
+          showLabels={false}
+          showExit={false}
+        />
+      </div>
+
       <Sequence {...bA} name="3-A">
         <SceneTag chapter={'判据之争'} tagline={'凭什么继续 · 凭什么停'} accent={theme.core} />
-        <DuelCards at03={at('p3-03') - bA.from} at04={at('p3-04') - bA.from} />
+        <DuelCards
+          at03={at('p3-03') - bA.from}
+          litLAt={wa('p3-03', 0.6) - bA.from}
+          at04={at('p3-04') - bA.from}
+          litRAt={wa('p3-04', 0.75) - bA.from}
+          qAt={wa('p3-01', 0.55) - bA.from}
+        />
         <Footnote delay={12}>{'stop_reason vs tool_use'}</Footnote>
       </Sequence>
 
       <Sequence {...bB} name="3-B">
-        <StreamLag at06={at('p3-06') - bB.from} span={bB.durationInFrames} />
+        <StreamLag bulkAt={bulkAt - bB.from} streamAt={streamAt - bB.from} flipAt={badgeFlipAt - bB.from} span={bB.durationInFrames} />
       </Sequence>
 
       <Sequence {...bC} name="3-C">
-        <LagTimeline at08={at('p3-08') - bC.from} />
+        <LagTimeline
+          moveDur={Math.round(dur('p3-07') * 0.85)}
+          arriveAt={wa('p3-08', 0.45) - bC.from}
+          chainAt={wa('p3-08', 0.85) - bC.from}
+        />
       </Sequence>
 
       <Sequence {...bD} name="3-D">
-        <FireDispatch at10={at('p3-10') - bD.from} dur09={dur('p3-09')} />
+        <FireDispatch
+          chip1At={chip1At - bD.from}
+          dispatchAt={dispatchAt - bD.from}
+          at10={at('p3-10') - bD.from}
+          mark1At={mark1At - bD.from}
+          mark2At={mark2At - bD.from}
+          strikeAt={strikeAt - bD.from}
+          outEnd={outEnd}
+        />
       </Sequence>
 
       <Sequence {...bE} name="3-E">
         <AblationCompare
           at12={at('p3-12') - bE.from}
           dur12={dur('p3-12')}
-          at13={at('p3-13') - bE.from}
+          at11={wa('p3-11', 0.55) - bE.from}
+          at13={wa('p3-13', 0.32) - bE.from}
+          atLabel={wa('p3-13', 0.85) - bE.from}
           at14={at('p3-14') - bE.from}
         />
         <Footnote delay={12}>{'消融对照 · 只换判据 · 其余全不动'}</Footnote>

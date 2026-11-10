@@ -1,13 +1,14 @@
 /** P2 一次往返（p2-01..p2-09，4 镜）——分镜 2-A…2-D：购物清单走查（Animated Worked Example）。
  *
- *  叙事链：走查舞台全景（指令气泡入首格）→ 第一轮「写文件」（参数签 → 执行脉冲 →
- *  清单长出「牛奶」→ 结果回喂第二格）→ 第二轮「读文件」同构重复（节奏加快、方向反转）
+ *  叙事链：走查舞台全景（指令气泡入首格）→ 第一轮「写文件」（调用块 → 参数签 → 执行
+ *  脉冲 → 清单长出「牛奶」→ 结果回喂）→ 第二轮「读文件」同构重复（节奏加快、方向反转）
  *  → 第三轮纯文本回答（调用位显式空缺）→ 出口门开启（确认绿）→ 环体停转 →
- *  「3 调用 / 2 执行」计数定格 + 三决策点回放闪。
+ *  「3 调用 / 2 执行」双色计数定格 + 三次 assistant 决策回放闪。
  *
  *  空间契约（四镜同构，不为求变化改布局）：
  *  - 左：购物清单卡（list.txt）；中：回答条工作区（调用块 + 参数签）；
- *    右：消息列表五格（01..05 线性排开，当前格高亮唯一）。
+ *    右：消息列表六格（gl-notes §3.3 真实消息序列：user 指令 → a 写请求 → t 写入✓
+ *      → a 读请求 → t 读出 → a 纯文本；三次 assistant 决策消息全程入档可见）。
  *  - 环体缩小悬于右上角保持同形〔M-001〕（LoopRing 小尺寸 + showLabels=false，
  *    act 级单实例驱动 → 巡游跨镜不断相，2-D 出口后冻结即「停转」）。
  *  - 舞台（清单卡/消息格/环体/门/计数）挂在 act 级 Stage 上、由句锚推进——
@@ -23,7 +24,10 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, LoopRing, Panel, SceneTag, type RingNode} from '../components/motifs';
-import {DUR, useCount, useDraw, useEnter, useImpulse, useProgress, useSpring, useStagger} from '../motion';
+import {DUR, useCount, useDraw, useEnter, useImpulse, useProgress, usePushIn, useSpring, useStagger} from '../motion';
+
+/** 可选锚哨兵（P1 同款惯例）：progress 钳制后恒终态 / impulse 恒 0 */
+const OFFSCREEN_NR = -999;
 
 // ── 几何（四镜共用；顶部 y<56 归 frozen ChapterProgress，底部 150 归字幕带）──
 
@@ -36,7 +40,8 @@ const PENT_NODES: RingNode[] = [0, 1, 2, 3, 4].map((i) => ({label: `s${i + 1}`, 
 
 /** 左：购物清单卡 */
 const LIST = {x: 150, y: 330, w: 430} as const;
-/** 右：消息列表五格 */
+/** 右：消息列表六格（gl-notes §3.3 真实序列：user→a·写→t·写✓→a·读→t·读出→a·文本；
+ *  六格底 802 < 字幕安全带 920） */
 const MSG = {x: 1310, y: 300, w: 480, h: 72, gap: 14} as const;
 const slotTop = (i: number) => MSG.y + i * (MSG.h + MSG.gap);
 const slotCenter = (i: number) => ({x: MSG.x + MSG.w / 2, y: slotTop(i) + MSG.h / 2});
@@ -84,12 +89,17 @@ const RoleTag: React.FC<{k: RoleKey}> = ({k}) => (
   </span>
 );
 
-/** 五格的既定内容（回填后单行；slot5 恒空——循环已出口，不跳格不双亮） */
+/** 六格的既定内容（回填后单行；三次 assistant 决策消息入档——「每次决策都踩在
+ *  喂回的结果上」的可见载体，P1「回答原样入档」机制在走查里不断链） */
 const SLOT_CONTENT: {role: RoleKey; node: React.ReactNode}[] = [
   {role: 'user', node: <>{'+ '}
     <Milk />
     {' · 朗读'}</>},
+  {role: 'assistant', node: <>{'写请求 · '}
+    <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'write_file'}</span></>},
   {role: 'tool', node: <>{'写入 ✓'}</>},
+  {role: 'assistant', node: <>{'读请求 · '}
+    <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>{'read_file'}</span></>},
   {role: 'tool', node: <>{'读出 · '}
     <Milk /></>},
   {role: 'assistant', node: <>{'纯文本 · '}
@@ -101,28 +111,31 @@ const SLOT_CONTENT: {role: RoleKey; node: React.ReactNode}[] = [
 type StageProps = {
   /** 清单卡角标「+ 牛奶 · 朗读」（p2-02「念给我听」词落位） */
   atTag: number;
-  /** 清单长出「牛奶」行（p2-04「清单多了一行牛奶」词落位） */
+  /** 清单长出「牛奶」行（p2-03b「清单多了一行牛奶」词落位） */
   atRow: number;
   /** 读脉冲扫过清单行（= 2-C 执行锚，ToolRound 同源传入） */
   atScan: number;
-  /** 四格回填时点（act 局部帧） */
-  fillAt: [number, number, number, number];
-  /** 各格成为「当前格」的时点（镜界切换，高亮唯一） */
-  activeFrom: [number, number, number, number];
-  /** 出口门开启（p2-07「循环退出」词落位，确认绿） */
+  /** 六格回填时点（act 局部帧） */
+  fillAt: [number, number, number, number, number, number];
+  /** 各格成为「当前格」的时点（高亮唯一） */
+  activeFrom: [number, number, number, number, number, number];
+  /** 出口门开启（p2-07「出口开启」词落位，确认绿） */
   atGate: number;
   /** 环体停转（dot 冻结） */
   atStop: number;
   /** 计数角标（p2-09 重音） */
   atCounter: number;
-  /** 三决策点回放闪（消息格上各闪一次） */
+  /** 三次 assistant 决策回放闪（格 1/3/5 上各闪一次） */
   flashAt: [number, number, number];
+  /** p2-04「看到写入结果」：结果格（slot 2）辉光回照一拍 */
+  glanceAt?: number;
 };
 
-const Stage: React.FC<StageProps> = ({atTag, atRow, atScan, fillAt, activeFrom, atGate, atStop, atCounter, flashAt}) => {
+const Stage: React.FC<StageProps> = ({atTag, atRow, atScan, fillAt, activeFrom, atGate, atStop, atCounter, flashAt, glanceAt}) => {
   const frame = useCurrentFrame();
   const card = useEnter('slideL', {at: 0, dur: DUR.f5, dist: 36});
-  const slots = useStagger(5, {at: 4, stride: 3, dur: DUR.f3});
+  // 六格装配波次铺到 ~60f（压缩装配结束到气泡启动间的弱变化窗）
+  const slots = useStagger(6, {at: 8, stride: 9, dur: DUR.f4});
   const ringO = useProgress(0, DUR.f5);
   const tag = useEnter('pop', {at: atTag, dur: DUR.f4});
   const rowIn = useSpring('settle', {at: atRow, dur: DUR.f5});
@@ -136,6 +149,14 @@ const Stage: React.FC<StageProps> = ({atTag, atRow, atScan, fillAt, activeFrom, 
       extrapolateRight: 'clamp',
     }),
   );
+  // 「看到写入结果」：结果格辉光回照（eye-trace 静态引导——焦点回指回喂格）
+  const glance =
+    glanceAt !== undefined
+      ? interpolate(frame, [glanceAt, glanceAt + 3, glanceAt + 16], [0, 1, 0], {
+          extrapolateLeft: 'clamp',
+          extrapolateRight: 'clamp',
+        })
+      : 0;
 
   // 当前格：activeFrom 中最后一个已过时点（高亮唯一、不跳格）
   let activeIdx = -1;
@@ -174,8 +195,8 @@ const Stage: React.FC<StageProps> = ({atTag, atRow, atScan, fillAt, activeFrom, 
         {'messages'}
       </div>
 
-      {/* 五格（等宽单行；slot5 恒暗态） */}
-      {[0, 1, 2, 3, 4].map((i) => {
+      {/* 六格（等宽单行；三次 assistant 决策 + 两次 tool 结果 + 首 user 指令） */}
+      {[0, 1, 2, 3, 4, 5].map((i) => {
         const c = SLOT_CONTENT[i];
         const filled = c !== undefined && frame >= fillAt[i];
         const fillO =
@@ -187,7 +208,8 @@ const Stage: React.FC<StageProps> = ({atTag, atRow, atScan, fillAt, activeFrom, 
             : 0;
         const active = i === activeIdx;
         const color = c ? ROLE[c.role].color : theme.panelBorder;
-        const g = c && i >= 1 && i <= 3 ? flash[i - 1] : 0;
+        const g =
+          (c && (i === 1 || i === 3 || i === 5) ? flash[(i - 1) / 2] : 0) + (i === 2 ? glance : 0);
         return (
           <div
             key={i}
@@ -359,14 +381,16 @@ const ExitGate: React.FC<{at: number}> = ({at}) => {
   );
 };
 
-/** 底部计数角标：「3 调用 / 2 执行」递增定格（p2-09 重音） */
+/** 底部计数角标：「3 调用 / 2 执行」递增定格（p2-09 重音）——双色重申分工铭牌：
+ *  3 次调用=模型决策（core 陶土橙）/ 2 次执行=程序执行（tool 青碧），
+ *  差的那次正是出口（3≠2 的因果静音可读） */
 const CounterBadge: React.FC<{at: number}> = ({at}) => {
   const enter = useEnter('rise', {at, dur: DUR.f4, restBottom: 858, dist: 24});
   const calls = useCount({to: 3, at: at + 2, dur: DUR.f6});
   const execs = useCount({to: 2, at: at + 2, dur: DUR.f6});
   // 定格重音：计数落定后整枚角标弹一拍（sin 包络，不过冲）
   const stamp = useImpulse({at: at + DUR.f4 + DUR.f6, dur: DUR.f6, peak: 0.08});
-  const num: React.CSSProperties = {fontFamily: theme.mono, fontSize: 32, fontWeight: 700, color: theme.text};
+  const num: React.CSSProperties = {fontFamily: theme.mono, fontSize: 32, fontWeight: 700};
   const lab: React.CSSProperties = {fontFamily: theme.sans, fontSize: 24, color: theme.dim};
   return (
     <div style={{position: 'absolute', left: 0, right: 0, bottom: 170, display: 'flex', justifyContent: 'center', ...enter}}>
@@ -380,10 +404,10 @@ const CounterBadge: React.FC<{at: number}> = ({at}) => {
           transform: `scale(${1 + stamp})`,
         }}
       >
-        <span style={num}>{Math.round(calls)}</span>
+        <span style={{...num, color: theme.core}}>{Math.round(calls)}</span>
         <span style={lab}>{'调用'}</span>
         <span style={{...lab, opacity: 0.6}}>{'/'}</span>
-        <span style={num}>{Math.round(execs)}</span>
+        <span style={{...num, color: theme.tool}}>{Math.round(execs)}</span>
         <span style={lab}>{'执行'}</span>
       </Panel>
     </div>
@@ -421,7 +445,7 @@ const ShotA: React.FC<{atBubble: number; atFill: number}> = ({atBubble, atFill})
           </span>
         </Panel>
       </div>
-      <Footnote delay={10}>{'list.txt · messages[0..4]'}</Footnote>
+      <Footnote delay={10}>{'list.txt · messages[0..5]'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -444,16 +468,47 @@ type RoundProps = {
   pillNode: React.ReactNode;
   /** 2-C 加快档：入场/飞行缩一档 */
   fast?: boolean;
+  /** CU 档运镜：2-B 挂 pushIn（下钻进工作区；2-C 不加，避免连续同向推） */
+  push?: boolean;
+  /** p2-04 空窗填补：结果格辉光回照（「看到写入结果」） */
+  glanceAt?: number;
+  /** 下轮预告签（「发起读文件请求」词落位 dim 弹出，2-C 同位全亮承接） */
+  nextAt?: number;
+  nextZh?: string;
+  nextEn?: string;
   foot: string;
 };
 
-const ToolRound: React.FC<RoundProps> = ({round, callZh, callEn, params, mode, atStrip, atCall, atParam, atExec, atFeed, slotIdx, pillNode, fast, foot}) => {
+const ToolRound: React.FC<RoundProps> = ({
+  round,
+  callZh,
+  callEn,
+  params,
+  mode,
+  atStrip,
+  atCall,
+  atParam,
+  atExec,
+  atFeed,
+  slotIdx,
+  pillNode,
+  fast,
+  push,
+  glanceAt,
+  nextAt,
+  nextZh,
+  nextEn,
+  foot,
+}) => {
   const frame = useCurrentFrame();
   const strip = useEnter('rise', {at: atStrip, dur: DUR.f4, restBottom: 560});
+  const pushIn = usePushIn(atStrip, {scale: 0.06, dur: DUR.f6});
   const call = useEnter('pop', {at: atCall, dur: DUR.f4});
   const tags = useStagger(params.length, {at: atParam, stride: DUR.f2, dur: DUR.f3});
   const pulse = useProgress(atExec, DUR.f5, 'decelerate');
   const hit = useImpulse({at: atExec + DUR.f5, dur: DUR.f6});
+  const glance = useImpulse({at: glanceAt ?? OFFSCREEN_NR, dur: DUR.f6});
+  const next = useEnter('pop', {at: nextAt ?? OFFSCREEN_NR, dur: DUR.f4});
   const pill = useEnter('pop', {at: atFeed, dur: DUR.f3});
   const fly = useSpring('settle', {at: atFeed + DUR.f3, dur: fast ? DUR.f4 : DUR.f5});
   const arrive = atFeed + DUR.f3 + (fast ? DUR.f4 : DUR.f5);
@@ -469,7 +524,7 @@ const ToolRound: React.FC<RoundProps> = ({round, callZh, callEn, params, mode, a
   const py = PILL_FROM.y + (tgt.y - PILL_FROM.y) * fly;
 
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={push ? {transform: pushIn} : undefined}>
       {/* 回答条（角色 assistant；调用块 tool 青为条内唯一执行面元素） */}
       <div style={{position: 'absolute', left: STRIP.x, top: STRIP.y, width: STRIP.w, ...strip}}>
         <Panel style={{padding: '16px 22px'}}>
@@ -494,6 +549,26 @@ const ToolRound: React.FC<RoundProps> = ({round, callZh, callEn, params, mode, a
               <span style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 700, color: theme.tool}}>{callZh}</span>
               <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.tool, opacity: 0.85}}>{callEn}</span>
             </div>
+            {/* 下轮预告签：「接着发起读文件请求」词落位 dim 弹出，2-C 同位全亮承接 */}
+            {nextAt !== undefined && nextZh ? (
+              <div
+                style={{
+                  position: 'relative',
+                  border: `2px dashed ${theme.panelBorder}`,
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 8,
+                  whiteSpace: 'nowrap',
+                  opacity: 0.5 * next.opacity,
+                  transform: `scale(${0.94 + 0.06 * next.opacity})`,
+                }}
+              >
+                <span style={{fontFamily: theme.sans, fontSize: 22, fontWeight: 600, color: theme.dim}}>{nextZh}</span>
+                <span style={{fontFamily: theme.mono, fontSize: 17, color: theme.dim, opacity: 0.85}}>{nextEn}</span>
+              </div>
+            ) : null}
           </div>
           <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 12}}>
             {params.map((pm, i) => (
@@ -562,15 +637,16 @@ const ToolRound: React.FC<RoundProps> = ({round, callZh, callEn, params, mode, a
 
 // ── 2-D：第三轮纯文本 + 空缺一拍 + 回答入档 ─────────────────────────────
 
-const ShotD: React.FC<{atStrip: number; atPill: number; atVacancy: number; slotIdx: number}> = ({
+const ShotD: React.FC<{atStrip: number; atText: number; atPill: number; atVacancy: number; slotIdx: number}> = ({
   atStrip,
+  atText,
   atPill,
   atVacancy,
   slotIdx,
 }) => {
   const frame = useCurrentFrame();
   const strip = useEnter('rise', {at: atStrip, dur: DUR.f4, restBottom: 560});
-  const textO = useProgress(atStrip + DUR.f3, DUR.f4);
+  const textO = useProgress(atText, DUR.f4);
   // 空缺位一拍：虚线空框自条入即在场（对照前两轮），「没有工具调用」词落位时脉一拍
   const vacPulse = useImpulse({at: atVacancy, dur: DUR.f6, peak: 0.08});
   const pill = useEnter('pop', {at: atPill, dur: DUR.f3});
@@ -627,7 +703,7 @@ const ShotD: React.FC<{atStrip: number; atPill: number; atVacancy: number; slotI
         </Panel>
       </div>
 
-      {/* 回答条入档（assistant 角色，回喂第四格） */}
+      {/* 回答条入档（assistant 角色，回喂第六格） */}
       <div
         style={{position: 'absolute', left: px, top: py, transform: 'translate(-50%, -50%)', opacity: pill.opacity * gone}}
       >
@@ -652,36 +728,47 @@ export const P2Walkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
   /** 词窗锚（act 局部帧）：at(id) + 句长分数——旁白实测时长变化时窗口自动重定时 */
   const word = (id: string, f: number) => at(id) + Math.round(dur(id) * f);
 
+  // beat 边界（v4 句号重排后重划：第三轮口播 p2-06 归 2-D——分镜表句区间列同步）
   const bA = w('p2-01', 'p2-02');
   const bB = w('p2-03', 'p2-04');
-  const bC = w('p2-05', 'p2-06');
-  const bD = w('p2-07', 'p2-09');
+  const bC = w('p2-05', 'p2-05');
+  const bD = w('p2-06', 'p2-09');
 
   // —— 词落位锚（act 局部；镜内组件再减 beat.from 换算镜内帧）——
-  const bubbleAt = word('p2-02', 0.42); // 「加一行牛奶」：指令气泡落入首格
+  const bubbleAt = word('p2-02', 0.5); // 「加一行牛奶」：指令气泡落入首格（settle ≈0.6 落词前 0.1-0.2s）
   const tagAt = word('p2-02', 0.8); // 「念给我听」：清单卡角标贴上
-  const slot1Fill = bubbleAt + DUR.f5;
+  const slot0Fill = bubbleAt + DUR.f5;
 
-  const exec1 = word('p2-04', 0.14); // 「程序执行写入」：执行脉冲
-  const rowAt = word('p2-04', 0.48); // 「清单多了一行牛奶」：清单长行
-  const feed1 = word('p2-04', 0.8); // 「结果喂回去」：结果条回喂第二格
+  const atCall1 = word('p2-03', 0.38); // 「写文件」：调用块弹出
+  const atParam1 = word('p2-03', 0.66); // 「备好路径和牛奶内容」：参数签弹出
+  const slot1Fill = word('p2-03', 0.45); // assistant 写请求入档（「发起写文件请求」）
+  const exec1 = word('p2-03b', 0.12); // 「程序在磁盘执行写入」：执行脉冲
+  const rowAt = word('p2-03b', 0.5); // 「清单多了一行牛奶」：清单长行
+  const feed1 = word('p2-03b', 0.78); // 「结果喂回去」：结果条回喂
   const slot2Fill = feed1 + DUR.f3 + DUR.f5;
+  const glance1At = word('p2-04', 0.18); // 「看到写入结果」：结果格辉光回照
+  const next1At = word('p2-04', 0.72); // 「发起读文件请求」：下轮预告签
+  const slot3Fill = word('p2-04', 0.82); // assistant 读请求入档
 
-  const exec2 = word('p2-06', 0.18); // 「再执行」：读脉冲（扫清单）
-  const feed2 = word('p2-06', 0.6); // 「再喂回去」：结果回喂第三格
-  const slot3Fill = feed2 + DUR.f3 + DUR.f4;
+  const atCall2 = word('p2-05', 0.04); // 2-C 镜首即接棒（请求已在 p2-04 说出口）
+  const atParam2 = word('p2-05', 0.14);
+  const exec2 = word('p2-05', 0.22); // 「程序执行读取」：读脉冲（扫清单）
+  const feed2 = word('p2-05', 0.82); // 「再次喂回去」：结果回喂
+  const slot4Fill = feed2 + DUR.f3 + DUR.f4;
 
-  const pill3 = word('p2-07', 0.35); // 「清单现在是这些」：回答入档第四格
-  const vacancyAt = word('p2-07', 0.55); // 「没有工具调用」：空缺位一拍
-  const gateAt = word('p2-07', 0.8); // 「循环退出」：出口门开启
-  const stopAt = word('p2-07', 0.87); // 环体停转
-  const slot4Fill = pill3 + DUR.f3 + DUR.f5;
+  const text3At = word('p2-06', 0.55); // 「给出文字回答」：条内文本亮
+  const pill3 = word('p2-06', 0.8); // 回答入档第六格
+  const slot5Fill = pill3 + DUR.f3 + DUR.f5;
+  const vacancyAt = word('p2-07', 0.15); // 「没有工具调用」：空缺位一拍
+  const gateAt = word('p2-07', 0.45); // 「出口开启」：出口门开启
+  const stopAt = word('p2-07', 0.8); // 「平稳退出」：环体停转
 
   const counterAt = word('p2-09', 0.1); // 「三次调用、两次执行」：计数重音
+  // 三闪落「每次决策都精确踩在喂回的结果上」从句（三次 assistant 决策：格 1/3/5）
   const flashAt: [number, number, number] = [
-    word('p2-09', 0.16),
-    word('p2-09', 0.45),
-    word('p2-09', 0.72),
+    word('p2-09', 0.5),
+    word('p2-09', 0.68),
+    word('p2-09', 0.86),
   ];
 
   return (
@@ -691,16 +778,17 @@ export const P2Walkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
         atTag={tagAt}
         atRow={rowAt}
         atScan={exec2}
-        fillAt={[slot1Fill, slot2Fill, slot3Fill, slot4Fill]}
-        activeFrom={[slot1Fill, bB.from, bC.from, bD.from]}
+        fillAt={[slot0Fill, slot1Fill, slot2Fill, slot3Fill, slot4Fill, slot5Fill]}
+        activeFrom={[slot0Fill, slot1Fill, slot2Fill, slot3Fill, slot4Fill, slot5Fill]}
         atGate={gateAt}
         atStop={stopAt}
         atCounter={counterAt}
         flashAt={flashAt}
+        glanceAt={glance1At}
       />
 
       <Sequence {...bA} name="2-A 走查舞台">
-        <ShotA atBubble={bubbleAt - bA.from} atFill={slot1Fill - bA.from} />
+        <ShotA atBubble={bubbleAt - bA.from} atFill={slot0Fill - bA.from} />
       </Sequence>
 
       <Sequence {...bB} name="2-B 第一轮 · 写文件">
@@ -711,12 +799,16 @@ export const P2Walkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
           params={[{k: '路径', v: 'list.txt'}, {k: '新内容', milk: true}]}
           mode="write"
           atStrip={2}
-          atCall={word('p2-03', 0.5) - bB.from} // 「写文件」：调用块弹出（新句该词约 0.5 处）
-          atParam={word('p2-03b', 0.32) - bB.from} // 「参数是…」：参数签弹出（拆句后词移至 p2-03b）
+          atCall={atCall1 - bB.from}
+          atParam={atParam1 - bB.from}
           atExec={exec1 - bB.from}
           atFeed={feed1 - bB.from}
-          slotIdx={1}
+          slotIdx={2}
           pillNode={<>{'写入 ✓'}</>}
+          push
+          nextAt={next1At - bB.from}
+          nextZh={'读文件'}
+          nextEn={'read_file'}
           foot="write_file(list.txt, 牛奶)"
         />
       </Sequence>
@@ -729,11 +821,11 @@ export const P2Walkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
           params={[{k: '路径', v: 'list.txt'}]}
           mode="read"
           atStrip={2}
-          atCall={word('p2-05', 0.42) - bC.from}
-          atParam={word('p2-05', 0.62) - bC.from}
+          atCall={atCall2 - bC.from}
+          atParam={atParam2 - bC.from}
           atExec={exec2 - bC.from}
           atFeed={feed2 - bC.from}
-          slotIdx={2}
+          slotIdx={4}
           pillNode={
             <>
               {'读出 · '}
@@ -746,7 +838,13 @@ export const P2Walkthrough: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
 
       <Sequence {...bD} name="2-D 第三轮 · 循环出口">
-        <ShotD atStrip={2} atPill={pill3 - bD.from} atVacancy={vacancyAt - bD.from} slotIdx={3} />
+        <ShotD
+          atStrip={2}
+          atText={text3At - bD.from}
+          atPill={pill3 - bD.from}
+          atVacancy={vacancyAt - bD.from}
+          slotIdx={5}
+        />
       </Sequence>
     </AbsoluteFill>
   );

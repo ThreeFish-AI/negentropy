@@ -43,10 +43,12 @@ const polar = (cx: number, cy: number, r: number, deg: number): {x: number; y: n
 /** 环体巡游节律：2.5s/圈（全片同值；MiniCore 惯用形） */
 const LAP_FRAMES = 75;
 
-/** 匀速巡游进度（0..多圈），喂给 LoopRing.dotProgress */
-const useLaps = (span: number): number => {
+/** 匀速巡游进度（0..1），喂给 LoopRing.dotProgress。
+ *  phase：跨镜相位接续（镜间身份恒常 §3.3——光点在 cut 上不瞬移回 12 点位；
+ *  相位常量自前镜 span 推导，仍零手写绝对帧） */
+const useLaps = (span: number, phase = 0): number => {
   const p = useProgress(0, Math.max(1, span), 'linear');
-  return p * (span / LAP_FRAMES);
+  return (phase + p * (span / LAP_FRAMES)) % 1;
 };
 
 /** 4-D 描边金线用金（storyboard 指定「金线」；theme 无金档、概念色不扩——
@@ -55,8 +57,8 @@ const GOLD = '#E6C06A';
 
 // ── 4-A 基线标尺双柱（p4-01..p4-02） ────────────────────────────────────
 
-/** 轴几何：基线 y=800；右柱高 560 ↔ 1700+ 行；左柱 = 560×30/1700 ≈ 10px
- *  （真实线性比例——悬殊本身即画面冲击；精确值由数字标签承载，柱高不取整失真） */
+/** 轴几何：基线 y=800；右柱高 560 ↔ 1729 行（gl-notes §7 精确核查值）；
+ *  左柱 = 560×30/1729 ≈ 10px（真实线性比例——悬殊本身即画面冲击；柱高不取整失真） */
 const A = {baseY: 800, barW: 150, leftX: 485, rightX: 1255, rightH: 560, leftH: 10} as const;
 
 /** 顶圆角柱 path（底边贴基线） */
@@ -72,23 +74,28 @@ const ShotABaseline: React.FC<{s1: Win; s2: Win}> = ({s1, s2}) => {
   // p4-01（设问拍留白）：基线标尺铺开 + 柱位刻度/柱名先行落位
   const ruler = useDraw(at(s1, 0.2), DUR.f6);
   const marksO = useProgress(at(s1, 0.55), DUR.f4);
-  // p4-02：两柱先后生长定格（useProgress 非弹簧——柱高数据红线）
+  // p4-02：两柱先后生长定格（useProgress 非弹簧——柱高数据红线）；
+  // 右柱窗后移 0.55..0.92（3-E 金句定格后两级重音留呼吸，land 更贴句尾词）
   const leftStart = at(s2, 0.1);
   const leftDur = spanF(s2, 0.1, 0.3);
   const leftP = useProgress(leftStart, leftDur, 'decelerate');
   const leftN = useCount({to: 30, at: leftStart, dur: leftDur});
-  // 「一千七百多行」为句尾词（句窗 0.86 ≈ 语音 0.9 分位）——右柱到位=重音镜
-  const rightStart = at(s2, 0.35);
-  const rightDur = spanF(s2, 0.35, 0.86);
+  // 「一千七百多行」为句尾词（句窗 0.92 ≈ 语音尾停顿）——右柱到位=重音镜
+  const rightStart = at(s2, 0.55);
+  const rightDur = spanF(s2, 0.55, 0.92);
   const rightP = useProgress(rightStart, rightDur, 'decelerate');
-  const rightN = useCount({to: 1700, at: rightStart, dur: rightDur});
-  const land = at(s2, 0.86);
+  // 1729 = gl-notes §3.4/§7 对 src/query.ts 的精确核查值【一】级——口播字数锁死
+  // 只能念「一千七百多」，画面直给精确值（柱高仍真实线性：560×30/1729≈10）
+  const rightN = useCount({to: 1729, at: rightStart, dur: rightDur});
+  const land = at(s2, 0.92);
   const glow = useImpulse({at: land, dur: DUR.f6});
   const leftNumO = useProgress(leftStart, DUR.f2);
   const rightNumO = useProgress(rightStart, DUR.f3);
+  // ≈57× 比例读数（Data-ink：数值直接标在数据旁；乘数 = 1729/30 推导值）
+  const ratioO = useProgress(land + DUR.f4, DUR.f4);
 
   const leftShown = Math.min(30, Math.round(leftN));
-  const rightShown = Math.min(1700, Math.round(rightN));
+  const rightShown = Math.min(1729, Math.round(rightN));
   const hL = Math.max(2, A.leftH * leftP);
   const hR = A.rightH * rightP;
 
@@ -204,11 +211,37 @@ const ShotABaseline: React.FC<{s1: Win; s2: Win}> = ({s1, s2}) => {
           textShadow: `0 0 ${20 * glow}px ${theme.core}`,
         }}
       >
-        {`${rightShown}${rightP >= 1 ? '+' : ''} 行`}
+        {`${rightShown} 行`}
       </div>
 
-      {/* 右柱出处角标（Visual Lock：右柱必带出处；Footnote 位 bottom=168 ≥150） */}
-      <Footnote delay={land}>{'源码分析 · 计数随时点漂移'}</Footnote>
+      {/* ≈57× 比例参考线：左柱顶高度横贯到右柱（悬殊的定量感，一条线钉死） */}
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        <line
+          x1={A.leftX + A.barW}
+          y1={A.baseY - A.leftH}
+          x2={A.rightX}
+          y2={A.baseY - A.leftH}
+          stroke={theme.dim}
+          strokeWidth={2}
+          strokeDasharray="6 8"
+          opacity={0.7 * ratioO}
+        />
+        <text
+          x={(A.leftX + A.barW + A.rightX) / 2}
+          y={A.baseY - A.leftH - 12}
+          textAnchor="middle"
+          fontFamily={theme.mono}
+          fontSize={24}
+          fill={theme.dim}
+          opacity={ratioO}
+        >
+          {'≈57×'}
+        </text>
+      </svg>
+
+      {/* 右柱出处角标（Visual Lock：右柱必带出处；query.ts 是【三】级归属指针，
+          漂移警示归 p5-08 口播兜底；delay 提前至 0.7 保净可读 ≥0.5s） */}
+      <Footnote delay={at(s2, 0.7)}>{'源码分析 · query.ts'}</Footnote>
     </AbsoluteFill>
   );
 };
@@ -222,8 +255,11 @@ const B_CELLS = 26; // 流式字符格 2 行 × 13
 const ShotBSection: React.FC<{s4: Win; s4b: Win}> = ({s4, s4b}) => {
   const span = s4.durationInFrames + s4b.durationInFrames;
   const laps = useLaps(span);
-  const panelIn = useEnter('pop', {at: at(s4, 0.02), dur: DUR.f5});
+  // 4-A→4-B 剖面承接：slideL 自右滑入（运动方向=自 4-A 右柱来——「这是那根柱的内部」）
+  const panelIn = useEnter('slideL', {at: at(s4, 0.02), dur: DUR.f5, dist: 90});
   const headO = useProgress(at(s4, 0.08), DUR.f4);
+  // 工程剖切符（M-004 学科视觉语言）：面板外缘短平行双撇线，随面板描线出现
+  const sectionMark = useDraw(at(s4, 0.06), DUR.f4);
 
   // 「同样不信收尾字段」词位（≈0.36）：徽章先现、打叉一闪、随后压暗=不再参与判定
   const atCross = at(s4, 0.36);
@@ -232,28 +268,42 @@ const ShotBSection: React.FC<{s4: Win; s4b: Win}> = ({s4, s4b}) => {
   const crossB = useDraw(atCross + 2, DUR.f4);
   const flash = useImpulse({at: atCross, dur: DUR.f5});
   const badgeSettle = useProgress(atCross + DUR.f5, DUR.f4);
+  // P3 迟到徽章同框闪回一拍（分镜承诺「前后印证」）：0.45 倍缩略 + 「旧值」字样
+  const flashback = useEnter('pop', {at: atCross + DUR.f4, dur: DUR.f4});
+  const flashDim = useProgress(atCross + DUR.f4 + DUR.f5, DUR.f4);
 
   // 「还要不要继续」的开关词位（≈0.72）：开关入画，停在「否」
   const switchO = useProgress(at(s4, 0.72), DUR.f4);
 
   // p4-04b：流式字符到达（线性匀速）→ 调用块一现（0.58）→ 开关即拨「要」
-  // 单一致动因素：块与拨同一锚（f1 追随），拨动 f5 行程恰落「要」词位（≈0.75）
+  // 单一致动因素：块与拨同一锚（f2 追随），「要」随拨钮落位点亮（非起步）
   const streamP = useProgress(at(s4b, 0.04), spanF(s4b, 0.04, 0.55), 'linear');
   const filled = Math.round(streamP * B_CELLS);
   const streamTagO = useProgress(at(s4b, 0.02), DUR.f3);
   const blockAt = at(s4b, 0.58);
-  const flipAt = blockAt + DUR.f1;
+  const flipAt = blockAt + DUR.f2;
   const knob = useProgress(flipAt, DUR.f5, 'decelerate');
   const blockIn = useEnter('pop', {at: blockAt, dur: DUR.f4});
   const blockGlow = useImpulse({at: blockAt, dur: DUR.f5});
-  const on = knob > 0.02;
+  const on = knob > 0.95;
+  // 块→开关致动连线（Show Don't Tell：单一致动因素的物理连接）
+  const causalLine = useDraw(blockAt, DUR.f4);
+  const causalGlow = useImpulse({at: blockAt, dur: DUR.f5});
+  const causalDim = 1 - 0.7 * useProgress(flipAt + DUR.f5, DUR.f4);
 
   return (
     <AbsoluteFill>
-      {/* 剖面面板（右柱的放大剖面框） */}
+      {/* 剖面面板（右柱的放大剖面框；slideL 自 4-A 右柱方向承接） */}
       <div style={{position: 'absolute', left: B.panelL, top: B.panelT, ...panelIn}}>
         <Panel style={{width: B.panelW, height: B.panelH, boxSizing: 'border-box'}} />
       </div>
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        {/* 剖切符（面板左上外缘，短平行双撇线） */}
+        <g stroke={theme.dim} strokeWidth={3} opacity={0.8}>
+          <line x1={B.panelL - 26} y1={B.panelT + 22} x2={B.panelL - 6} y2={B.panelT + 2} {...sectionMark} />
+          <line x1={B.panelL - 26} y1={B.panelT + 36} x2={B.panelL - 6} y2={B.panelT + 16} {...sectionMark} />
+        </g>
+      </svg>
 
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
         {/* 面板头注：CU 语境内核归属 */}
@@ -310,11 +360,37 @@ const ShotBSection: React.FC<{s4: Win; s4b: Win}> = ({s4, s4b}) => {
             fontSize={15}
             fill={theme.dim}
           >
-            {'stop_reason'}
+            {'流式下不可靠'}
           </text>
           {/* 打叉两笔（pathLength 描线） */}
           <line x1={1192} y1={276} x2={1358} y2={318} stroke={theme.warn} strokeWidth={3.5} {...crossA} />
           <line x1={1358} y1={276} x2={1192} y2={318} stroke={theme.warn} strokeWidth={3.5} {...crossB} />
+          {/* P3 迟到徽章同框闪回一拍（前后印证）：0.45 倍缩略「旧值」胶囊 */}
+          <g
+            transform="translate(1398 258) scale(0.45)"
+            opacity={flashback.opacity * (1 - 0.7 * flashDim)}
+          >
+            <rect
+              x={-95}
+              y={-31}
+              width={190}
+              height={62}
+              rx={31}
+              fill={theme.panel}
+              stroke={theme.warn}
+              strokeWidth={2.5}
+            />
+            <text
+              x={0}
+              y={8}
+              textAnchor="middle"
+              fontFamily={theme.sans}
+              fontSize={26}
+              fill={theme.warn}
+            >
+              {'旧值'}
+            </text>
+          </g>
         </g>
 
         {/* 流式字符格：逐格到达（打字机节律） */}
@@ -372,6 +448,20 @@ const ShotBSection: React.FC<{s4: Win; s4b: Win}> = ({s4, s4b}) => {
           <span style={{fontFamily: theme.mono, fontSize: 18, color: theme.dim}}>{'tool_use'}</span>
         </Panel>
       </div>
+
+      {/* 块→开关致动连线：块现即描、拨定后压暗（单一致动因素的物理连接） */}
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        <line
+          x1={940}
+          y1={486}
+          x2={940}
+          y2={562}
+          stroke={theme.tool}
+          strokeWidth={2.5}
+          opacity={causalDim * (0.55 + 0.45 * causalGlow)}
+          {...causalLine}
+        />
+      </svg>
 
       {/* 「还要不要继续」开关：拨到「要」 */}
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
@@ -432,20 +522,24 @@ const ShotBSection: React.FC<{s4: Win; s4b: Win}> = ({s4, s4b}) => {
 const C = {cx: 960, cy: 555, r: 280} as const;
 const SLOT_ANGLE = (k: number): number => -90 + 36 * k;
 
-/** 点亮的代表槽（只亮代表，不逐个展开——后续集的粮） */
+/** 点亮的代表槽（只亮代表，不逐个展开——后续集的粮）。
+ *  标签 = gl-notes §3.4 State 字段原文名（压缩追踪 / Token 恢复计数 / 轮次计数）——
+ *  画面点名须有事实源依据，禁编造（「错误」不在 §3.4 枚举内，弃用） */
 const C_REPS = [
-  {k: 0, label: '上下文', lx: 960, ly: 238, anchor: 'middle' as const},
-  {k: 7, label: '错误', lx: 664, ly: 649, anchor: 'end' as const},
+  {k: 0, label: '压缩', lx: 960, ly: 238, anchor: 'middle' as const},
+  {k: 7, label: 'Token 恢复', lx: 690, ly: 649, anchor: 'end' as const},
   {k: 3, label: '轮次', lx: 1256, ly: 649, anchor: 'start' as const},
 ];
 
 /** 四条退出路径：自外圈槽位引出细线，各带处置小签（重试/续跑=ok，中止=warn——
- *  与 4-D 保险丝「弹=恢复 / 断=终态」同向的色彩语言） */
+ *  与 4-D 保险丝「弹=恢复 / 断=终态」同向的色彩语言）。
+ *  signX/signY 由引出线径向终点 to 推导（+ 外推 24px），不再手调脱接；
+ *  「轮次上限」回口播/分镜同词（Land on the Word 的同词原则） */
 const C_EXITS = [
-  {name: '超长', disp: '续跑', ok: true, k: 2, signX: 1372, signY: 336, w: 150},
-  {name: '报错', disp: '重试', ok: true, k: 8, signX: 548, signY: 336, w: 150},
-  {name: '中止', disp: '中止', ok: false, k: 6, signX: 600, signY: 806, w: 140},
-  {name: '轮次到顶', disp: '中止', ok: false, k: 4, signX: 1330, signY: 806, w: 170},
+  {name: '超长', disp: '续跑', ok: true, k: 2, w: 150},
+  {name: '报错', disp: '重试', ok: true, k: 8, w: 150},
+  {name: '中止', disp: '中止', ok: false, k: 6, w: 140},
+  {name: '轮次上限', disp: '中止', ok: false, k: 4, w: 170},
 ];
 
 const RepSlot: React.FC<{atIn: number; k: number; label: string; lx: number; ly: number; anchor: 'middle' | 'start' | 'end'}> = ({
@@ -491,19 +585,19 @@ const ExitPath: React.FC<{
   name: string;
   disp: string;
   ok: boolean;
-  signX: number;
-  signY: number;
   w: number;
-}> = ({atIn, k, name, disp, ok, signX, signY, w}) => {
+}> = ({atIn, k, name, disp, ok, w}) => {
   const draw = useDraw(atIn, DUR.f5);
   const signO = useProgress(atIn + DUR.f3, DUR.f4);
   const from = polar(C.cx, C.cy, C.r, SLOT_ANGLE(k));
-  // 引出细线终点：指向处置小签方向（径向外推）
+  // 引出细线终点：径向外推；小签中心 = 终点再外推 24px（几何推导，连接感不悬空）；
+  // 底部签 y 钳 ≤866——径向推导在下半区会顶到字幕带边缘（920）
   const dir = {
     x: Math.cos((SLOT_ANGLE(k) * Math.PI) / 180),
     y: Math.sin((SLOT_ANGLE(k) * Math.PI) / 180),
   };
   const to = {x: C.cx + dir.x * (C.r + 105), y: C.cy + dir.y * (C.r + 105)};
+  const sign = {x: to.x + dir.x * 24, y: Math.min(to.y + dir.y * 24, 866)};
   const enter = useEnter('fade', {at: atIn + DUR.f3, dur: DUR.f4});
   return (
     <>
@@ -519,7 +613,7 @@ const ExitPath: React.FC<{
           {...draw}
         />
       </svg>
-      <div style={{position: 'absolute', left: signX - w / 2, top: signY - 36, width: w, ...enter}}>
+      <div style={{position: 'absolute', left: sign.x - w / 2, top: sign.y - 36, width: w, ...enter}}>
         <Panel
           style={{
             boxSizing: 'border-box',
@@ -541,17 +635,22 @@ const ExitPath: React.FC<{
   );
 };
 
-const ShotCStateRim: React.FC<{s5: Win; s6: Win}> = ({s5, s6}) => {
+const ShotCStateRim: React.FC<{s5: Win; s6: Win; lapPhase: number}> = ({s5, s6, lapPhase}) => {
   const span = s5.durationInFrames + s6.durationInFrames;
-  const laps = useLaps(span);
+  const laps = useLaps(span, lapPhase);
   // p4-05：外圈成形 → 十字段槽成组落位（快速涟漪，非逐个展开）→ 计数角标
   const rim = useDraw(at(s5, 0.06), DUR.f6);
   const slots = useStagger(10, {at: at(s5, 0.2), stride: 2, dur: DUR.f2});
-  const countO = useProgress(at(s5, 0.32), DUR.f4);
+  // 「State · 十个字段」词位（≈0.58-0.76）：计数随词落（原 0.32 抢跑 ~1.5s）
+  const countO = useProgress(at(s5, 0.58), DUR.f4);
   // 「十个字段各追一类」词位区（0.58..0.78）：代表槽逐个点亮
   const repAnchors = [at(s5, 0.58), at(s5, 0.68), at(s5, 0.78)];
   // p4-06：四条退出路径随口播枚举各亮一条（0.28..0.66），处置小签跟落
   const exitAnchors = [at(s6, 0.28), at(s6, 0.4), at(s6, 0.52), at(s6, 0.66)];
+  // 教学版对照 chip：p4-05 前半句「教学版只管对话列表」的对照面（1 列表 vs 10 字段，
+  // 口播对照句的前半拍），slots 涟漪后压暗退位
+  const teachIn = useEnter('pop', {at: at(s5, 0.08), dur: DUR.f4});
+  const teachDim = 1 - 0.6 * useProgress(at(s5, 0.52), DUR.f4);
 
   return (
     <AbsoluteFill>
@@ -576,7 +675,7 @@ const ShotCStateRim: React.FC<{s5: Win; s6: Win}> = ({s5, s6}) => {
             />
           );
         })}
-        {/* 计数角标「10」 */}
+        {/* 计数角标（State 命名补位：narration 角标三件套之 State 首次上屏） */}
         <text
           x={C.cx}
           y={872}
@@ -586,9 +685,41 @@ const ShotCStateRim: React.FC<{s5: Win; s6: Win}> = ({s5, s6}) => {
           fill={theme.dim}
           opacity={countO}
         >
-          {'10 字段'}
+          {'State · 10 字段'}
         </text>
       </svg>
+
+      {/* 教学版对照 chip（左上空置区）：缩微消息列表 ×1（P1 母题缩微） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 240,
+          top: 250,
+          width: 230,
+          opacity: teachIn.opacity * teachDim,
+          transform: teachIn.transform,
+        }}
+      >
+        <Panel style={{padding: '10px 14px'}}>
+          <div style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim}}>{'教学版'}</div>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8}}>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                style={{
+                  height: 14,
+                  borderRadius: 4,
+                  border: `1.5px solid ${i === 0 ? theme.core : theme.panelBorder}`,
+                  background: i === 0 ? `${theme.core}1F` : 'transparent',
+                }}
+              />
+            ))}
+          </div>
+          <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim, marginTop: 6}}>
+            {'1 个列表'}
+          </div>
+        </Panel>
+      </div>
 
       {/* 环体（M-001 恒定锚居中；本镜主角是外圈，站牌标签关闭） */}
       <div style={{position: 'absolute', left: C.cx - 155, top: C.cy - 155}}>
@@ -600,7 +731,7 @@ const ShotCStateRim: React.FC<{s5: Win; s6: Win}> = ({s5, s6}) => {
       ))}
 
       {C_EXITS.map((e, i) => (
-        <ExitPath key={e.name} atIn={exitAnchors[i]} k={e.k} name={e.name} disp={e.disp} ok={e.ok} signX={e.signX} signY={e.signY} w={e.w} />
+        <ExitPath key={e.name} atIn={exitAnchors[i]} k={e.k} name={e.name} disp={e.disp} ok={e.ok} w={e.w} />
       ))}
     </AbsoluteFill>
   );
@@ -611,12 +742,14 @@ const ShotCStateRim: React.FC<{s5: Win; s6: Win}> = ({s5, s6}) => {
 /** 收束舞台：环心 (960,520)，保险丝层虚线圈 r=200；两小图对举于 (600/1320,520) */
 const D = {cx: 960, cy: 520, rFuse: 200} as const;
 
-/** 真保险丝：一烧即断=断口终态（断开后永不合拢、整体压暗；X-001：无恢复暗示） */
+/** 真保险丝：一烧即断=断口终态（断开后永不合拢、整体压暗；X-001：无恢复暗示）。
+ *  结论字幕随「断路」动作落词（不再入场即预告） */
 const FuseReal: React.FC<{atIn: number; atBreak: number}> = ({atIn, atBreak}) => {
   const enter = useEnter('pop', {at: atIn, dur: DUR.f4});
   const gap = 18 * useProgress(atBreak, DUR.f4, 'decelerate');
   const spark = useImpulse({at: atBreak, dur: DUR.f4});
   const settle = useProgress(atBreak + DUR.f5, DUR.f4);
+  const capO = useProgress(atBreak, DUR.f4);
   const mid = 600;
   // 入场 opacity 与终态压暗相乘（避免对象字面量重复键覆盖入场淡入）
   const glyphStyle: React.CSSProperties = {...enter, opacity: enter.opacity * (1 - 0.35 * settle)};
@@ -633,7 +766,7 @@ const FuseReal: React.FC<{atIn: number; atBreak: number}> = ({atIn, atBreak}) =>
         <line x1={592} y1={528} x2={580} y2={540} />
         <line x1={608} y1={528} x2={620} y2={540} />
       </g>
-      <text x={600} y={596} textAnchor="middle" fontFamily={theme.sans} fontSize={23} fill={theme.dim}>
+      <text x={600} y={596} textAnchor="middle" fontFamily={theme.sans} fontSize={23} fill={theme.dim} opacity={capO}>
         {'真保险丝 · '}
         <tspan fill={theme.warn}>{'永久断路'}</tspan>
       </text>
@@ -641,12 +774,19 @@ const FuseReal: React.FC<{atIn: number; atBreak: number}> = ({atIn, atBreak}) =>
   );
 };
 
-/** 可重试保险丝：回弹恢复（灯丝下弯两拍后归直——弹=恢复，方向与真保险丝相反相成） */
-const FuseRetry: React.FC<{atIn: number; atBounce: number}> = ({atIn, atBounce}) => {
+/** 可重试保险丝：回弹恢复（灯丝两拍分别落「重试/续跑」两词——弹=恢复） */
+const FuseRetry: React.FC<{atIn: number; atBounce: number; atBounce2: number}> = ({
+  atIn,
+  atBounce,
+  atBounce2,
+}) => {
   const enter = useEnter('pop', {at: atIn, dur: DUR.f4});
   const b1 = useImpulse({at: atBounce, dur: DUR.f5});
-  const b2 = useImpulse({at: atBounce + DUR.f5, dur: DUR.f5});
+  const b2 = useImpulse({at: atBounce2, dur: DUR.f5});
   const bend = 26 * (b1 + b2);
+  // 结论字幕拆两拍落词：可重试→b1 词、可续跑→b2 词
+  const cap1O = useProgress(atBounce, DUR.f4);
+  const cap2O = useProgress(atBounce2, DUR.f4);
   const x0 = 1255;
   const x1 = 1385;
   const mid = (x0 + x1) / 2;
@@ -661,37 +801,50 @@ const FuseRetry: React.FC<{atIn: number; atBounce: number}> = ({atIn, atBounce})
         strokeWidth={3}
       />
       <text x={mid} y={596} textAnchor="middle" fontFamily={theme.sans} fontSize={23} fill={theme.dim}>
-        <tspan fill={theme.ok}>{'可重试'}</tspan>
+        <tspan fill={theme.ok} opacity={cap1O}>
+          {'可重试'}
+        </tspan>
         {' · '}
-        <tspan fill={theme.ok}>{'可续跑'}</tspan>
+        <tspan fill={theme.ok} opacity={cap2O}>
+          {'可续跑'}
+        </tspan>
       </text>
     </g>
   );
 };
 
-const ShotDFuse: React.FC<{s7: Win; s7b: Win; s8: Win}> = ({s7, s7b, s8}) => {
+const ShotDFuse: React.FC<{s7: Win; s7b: Win; s8: Win; lapPhase: number}> = ({
+  s7,
+  s7b,
+  s8,
+  lapPhase,
+}) => {
   const span = s7.durationInFrames + s7b.durationInFrames + s8.durationInFrames;
-  const laps = useLaps(span);
-  const ringIn = useEnter('fade', {at: 0, dur: DUR.f5});
-  // p4-07「…的保险丝」词位区：外圈整体退为保险丝层虚线圈（携十字段槽残点），两小图对举入画
-  const fuseO = useProgress(at(s7, 0.55), DUR.f5);
+  const laps = useLaps(span, lapPhase);
+  // p4-07「…的保险丝」词位（≈0.74-0.93）：外圈整体退为保险丝层虚线圈——
+  // 命名动作落词（前半句「面对不确定性的」是悬念铺垫，不再提前 1.2s 贴谜底）
+  const fuseO = useProgress(at(s7, 0.74), DUR.f5);
   const atBreak = at(s7b, 0.28); // 「一烧就永久断路」词位
-  const atBounce = at(s7b, 0.6); // 「还能重试、还能续跑」词位（弹两次）
-  const glyphL = at(s7, 0.66);
-  const glyphR = at(s7, 0.76);
-  // p4-08：保险丝层让位压暗，双柱骨架/核心入画，金线相连定格
+  const atBounce = at(s7b, 0.6); // 「还能重试」词位（第一拍）
+  const atBounce2 = at(s7b, 0.82); // 「还能续跑」词位（第二拍）
+  const glyphL = at(s7, 0.8);
+  const glyphR = at(s7, 0.88);
+  // p4-08：保险丝层让位压暗，双柱骨架/核心拆锚入画（骨架/核心两词各一拍），金线相连定格
   const fuseDim = useDim({at: s8.from + 2, to: 0.55, dur: DUR.f5});
-  const barsIn = useProgress(at(s8, 0.1), DUR.f5);
+  const barsL = useProgress(at(s8, 0.06), DUR.f4);
+  const barsR = useProgress(at(s8, 0.24), DUR.f5);
   // 「就是那一千七百多行的核心」词位（≈0.84）：金线自左柱骨架描向右柱核心
   const goldDraw = useDraw(at(s8, 0.44), spanF(s8, 0.44, 0.84));
   const dotsO = useProgress(at(s8, 0.84), DUR.f3);
+  // 「守护」词位（≈0.8）：保险丝层 ok 绿描边脉冲一拍（守护是进行时；绿=机制在位）
+  const guardPulse = useImpulse({at: at(s8, 0.8), dur: DUR.f5});
   const GOLD_PATH =
-    'M 300 710 C 520 420, 760 268, 960 268 C 1160 268, 1400 430, 1580 550';
+    'M 300 717 C 520 420, 760 268, 960 268 C 1160 268, 1400 430, 1580 550';
 
   return (
     <AbsoluteFill>
-      {/* 环体（EWS 缩微；M-001 恒定锚） */}
-      <div style={{position: 'absolute', left: D.cx - 130, top: D.cy - 130, ...ringIn}}>
+      {/* 环体（EWS 缩微；M-001 恒定锚——cut 即在场，不再 fade-in 眨眼） */}
+      <div style={{position: 'absolute', left: D.cx - 130, top: D.cy - 130}}>
         <LoopRing size={260} showLabels={false} showExit={false} dotProgress={laps} />
       </div>
 
@@ -720,15 +873,18 @@ const ShotDFuse: React.FC<{s7: Win; s7b: Win; s8: Win}> = ({s7, s7b, s8}) => {
         {/* 两小图对举：断=终态（左）/ 弹=恢复（右）——方向一致，无反转（X-001） */}
         <g opacity={fuseDim}>
           <FuseReal atIn={glyphL} atBreak={atBreak} />
-          <FuseRetry atIn={glyphR} atBounce={atBounce} />
+          <FuseRetry atIn={glyphR} atBounce={atBounce} atBounce2={atBounce2} />
         </g>
 
-        {/* 双柱召回（骨架=描边 / 核心=core 描边+淡填充）；mini 比例示意、数字标签承载精确值 */}
-        <g style={{opacity: barsIn, transform: `translateY(${(1 - barsIn) * 14}px)`}}>
-          <rect x={272} y={710} width={56} height={10} fill="none" stroke={theme.dim} strokeWidth={2} />
-          <text x={300} y={692} textAnchor="middle" fontFamily={theme.mono} fontSize={22} fill={theme.dim}>
+        {/* 双柱召回拆锚：骨架（「三十行骨架」词）/ 核心（「恒定核心」词）各一拍；
+            mini 柱比例回真实（170/56.7≈3px + 2px 描边保可见——同物同比，A-13） */}
+        <g style={{opacity: barsL, transform: `translateY(${(1 - barsL) * 14}px)`}}>
+          <rect x={272} y={717} width={56} height={3} fill="none" stroke={theme.dim} strokeWidth={2} />
+          <text x={300} y={700} textAnchor="middle" fontFamily={theme.mono} fontSize={22} fill={theme.dim}>
             {'骨架 ≈30'}
           </text>
+        </g>
+        <g style={{opacity: barsR, transform: `translateY(${(1 - barsR) * 14}px)`}}>
           <rect
             x={1552}
             y={550}
@@ -740,14 +896,24 @@ const ShotDFuse: React.FC<{s7: Win; s7b: Win; s8: Win}> = ({s7, s7b, s8}) => {
             strokeWidth={2.5}
           />
           <text x={1580} y={528} textAnchor="middle" fontFamily={theme.mono} fontSize={22} fill={theme.core}>
-            {'核心 1700+'}
+            {'核心 1729'}
           </text>
         </g>
 
         {/* 描边金线：左柱骨架 —（越过保险丝层顶）— 右柱核心，词落位描成定格〔M-003〕 */}
         <path d={GOLD_PATH} fill="none" stroke={GOLD} strokeWidth={9} opacity={0.22} {...goldDraw} />
         <path d={GOLD_PATH} fill="none" stroke={GOLD} strokeWidth={4} {...goldDraw} />
-        <circle cx={300} cy={710} r={5.5} fill={GOLD} opacity={dotsO} />
+        {/* 「守护」词位：保险丝层 ok 绿描边一拍（守护进行时；绿=机制在位，P2 出口门同语义） */}
+        <circle
+          cx={D.cx}
+          cy={D.cy}
+          r={D.rFuse}
+          fill="none"
+          stroke={theme.ok}
+          strokeWidth={3}
+          opacity={0.8 * guardPulse * fuseDim}
+        />
+        <circle cx={300} cy={717} r={5.5} fill={GOLD} opacity={dotsO} />
         <circle cx={1580} cy={550} r={5.5} fill={GOLD} opacity={dotsO} />
       </svg>
     </AbsoluteFill>
@@ -776,6 +942,13 @@ export const P4ProductionFuse: React.FC<{scene: SceneRange}> = ({scene}) => {
   const rC = rel(bC);
   const rD = rel(bD);
 
+  // 环体巡游相位接续（§3.3 镜间身份恒常：光点在 cut 上不瞬移回 12 点位；
+  // 相位 = 前镜累计帧 / LAP 取模，纯派生）
+  const spanB = bB.durationInFrames;
+  const spanC = bC.durationInFrames;
+  const phaseC = spanB % LAP_FRAMES;
+  const phaseD = (spanB + spanC) % LAP_FRAMES;
+
   return (
     <AbsoluteFill>
       <Sequence {...bA} name="4-A">
@@ -785,10 +958,10 @@ export const P4ProductionFuse: React.FC<{scene: SceneRange}> = ({scene}) => {
         <ShotBSection s4={rB('p4-04')} s4b={rB('p4-04b')} />
       </Sequence>
       <Sequence {...bC} name="4-C">
-        <ShotCStateRim s5={rC('p4-05')} s6={rC('p4-06')} />
+        <ShotCStateRim s5={rC('p4-05')} s6={rC('p4-06')} lapPhase={phaseC / LAP_FRAMES} />
       </Sequence>
       <Sequence {...bD} name="4-D">
-        <ShotDFuse s7={rD('p4-07')} s7b={rD('p4-07b')} s8={rD('p4-08')} />
+        <ShotDFuse s7={rD('p4-07')} s7b={rD('p4-07b')} s8={rD('p4-08')} lapPhase={phaseD / LAP_FRAMES} />
       </Sequence>
     </AbsoluteFill>
   );

@@ -311,9 +311,9 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 | 7 | 按需调页（虚拟存储） | 常驻与按需的分层：常驻集要小（目录/清单），缺页才按需调（正文全文） | 内存页调入不按次收流量费；上下文是每轮请求全额计费的稀缺资源（§5 的账），经济 LLM 更苛刻 | §10 规律三 |
 | 8 | 延展心智（把心智状态放进环境再读回来） | 状态外置：todo 存外部结构、渲染回可见文本，别考验记忆 | 认知科学的延展心智是哲学论题；工程的版本更朴素——别考验记忆，考验摆放（原文自带此限定） | §10 规律二 |
 
-※ 禁用依据：[旧系列地图 §口播禁喻词表](../../../../source-map/claude-code-explained.md)（系列地图 §四指明继续禁用）含「台面」，组装台面同族意象不进口播；本集开场若用「三通道汇合」表述，改工程直陈（「汇合层」）。
+※ 禁用依据：[系列信源地图 §六](../../../../source-map/claude-code-chapters.md)（系列地图 §四指明继续禁用）含「台面」，组装台面同族意象不进口播；本集开场若用「三通道汇合」表述，改工程直陈（「汇合层」）。
 
-> **承袭登记**（2026-10-31）：现行 172 正文不含类比登记表；本表自旧系列《Claude Code Harness Engineering》ep2 规划冻结件（[claude-code-planning/research/gl-notes.md](../../../claude-code-explained/claude-code-planning/research/gl-notes.md)，同 GL 谱系、172 第五次冻结 2026-10-14 代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s05 单章）拟用条目：**#1 聊天群刷屏**（开场痛点：长对话稀释早期目标，锚冻结正文 §1 s05 例）、**#8 延展心智**（机制收束：todo 存外部结构、渲染回可见文本——「别考验记忆，考验摆放」，锚 §10 规律二）；其余条目属同系列其他集（#3 → ep6、#7 → ep7、#4 / #5 / #2 → ep10、#6 → ep11），本集不启用。
+> **承袭登记**（2026-10-31）：现行 172 正文不含类比登记表；本表自旧系列《Claude Code Harness Engineering》ep2 规划冻结件（claude-code-planning/research/gl-notes.md（旧系列冻结件，已随该系列 2026-11-10 退役移除；承袭内容已逐字在本附录，git 历史可考），同 GL 谱系、172 第五次冻结 2026-10-14 代次）逐字承袭，继续作为本集口播类比唯一准入清单。本集（s05 单章）拟用条目：**#1 聊天群刷屏**（开场痛点：长对话稀释早期目标，锚冻结正文 §1 s05 例）、**#8 延展心智**（机制收束：todo 存外部结构、渲染回可见文本——「别考验记忆，考验摆放」，锚 §10 规律二）；其余条目属同系列其他集（#3 → ep6、#7 → ep7、#4 / #5 / #2 → ep10、#6 → ep11），本集不启用。
 
 
 ## 附录 B · 本集复算与穿透记录（2026-10-31 · ep5 开工首核）
@@ -335,7 +335,7 @@ main 轨的收尾章 s17_goal_loop 回答的是另一个问题：Agent 说「做
 - 站点轨 raw：README.md `92f4fa9f54ba2a56`（6736 B / 158 行）· code.py `118dac9e16090b86`（12588 B / 302 行）——与旧系列 2026-10-07 登记/归档**逐字一致**（钉点不可变性双验，本集归档字节 cmp 通过）。
 - main 轨 raw：README.zh.md `c71212f2f290ba1b`（5316 B / 149 行）· code.py `4195fca02d7417f5`（14008 B / 370 行）。
 - LICENSE：两钉字节一致，sha256 `204ff5ee216c8f895268a23b66d959f82aa4d868e871e0690fbf2844eff8a26b`（承 ep1/ep2 归档复核）。
-- 站点实况 `s05-site`：raw `a412b7eee5948071` / text `d4967c3a6690d07f`（60709 B / 146 行）——与旧系列 2026-10-07 基线（[claude-code-planning/research/sources.toml](../../../claude-code-explained/claude-code-planning/research/sources.toml) s05-site 条目）**零漂移**。
+- 站点实况 `s05-site`：raw `a412b7eee5948071` / text `d4967c3a6690d07f`（60709 B / 146 行）——与旧系列 2026-10-07 基线（claude-code-planning/research/sources.toml（旧系列冻结件，已随该系列 2026-11-10 退役移除；承袭内容已逐字在本附录，git 历史可考） s05-site 条目）**零漂移**。
 - 台账回执：`source_ledger.py verify`：**受检 6 · FAIL 0 · WARN 0**。
 - 官方页 `doc-todo-tracking`：2026-10-31 fetch text `14974ed59484714e`（518707 B / 771 行）vs 旧系列 2026-10-07 登记 text `1a2f87596ecfce22`（697732 B / 1812 行）——构建态重写（bytes −26%），verify 对本集登记基线通过、当日单态无两态交替迹象；**语义面复核（B 轨 WARN 复核纪律前置执行）**：本集所引断言现页逐字在场——"the four Task tools, or TodoWrite instead when you set `CLAUDE_CODE_ENABLE_TASKS=0`" / "This default set applies in Claude Code v2.1.268 and later" / "Newer models track multi-step work without a written todo list" / "Claude creates todos for most multi-step work, such as: Complex multi-step tasks requiring three or more distinct actions"；且现页新增默认启用模型清单（Opus 4.7 / Sonnet 4.6 / Haiku 4.5 及更早默认提供，其余模型需 opt-in）——断言未失效、反获增强；口播引官方口径一律带「截至 2026-10-31」。
 - GL 代次备注：现行 172 为 2026-10-23 I-235 缩写首现注解轮后代次（git `4876f80d3`），与旧系列规划冻结件所冻 2026-10-14 第五次冻结逐字 diff 复核——差异全部为随文括注（如「main HEAD（分支最新提交的指针）」「TodoManager（管理待办清单的类）」）与「拆除实验→破坏性实验」措辞，无断言面与数字变化。

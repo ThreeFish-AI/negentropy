@@ -23,7 +23,7 @@ on:
       - ".github/workflows/media-assets-consistency.yml"
       - "docs/assets/architecture/core/negentropy-architecture-story.mp4"
       - "docs/assets/architecture/core/negentropy-architecture-story.gif"
-      - "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh.mp3"
+      - "apps/negentropy-influence/series-assets/claude-code-harness/intro/series-intro-zh.mp3"
   push:
     branches: [master, main]
     paths:
@@ -34,7 +34,7 @@ on:
       - ".github/workflows/media-assets-consistency.yml"
       - "docs/assets/architecture/core/negentropy-architecture-story.mp4"
       - "docs/assets/architecture/core/negentropy-architecture-story.gif"
-      - "apps/negentropy-influence/series-assets/claude-code-explained/intro/series-intro-zh.mp3"
+      - "apps/negentropy-influence/series-assets/claude-code-harness/intro/series-intro-zh.mp3"
 
 permissions:
   contents: read

@@ -1,6 +1,6 @@
 /** chrome 层组件种子（seeded 档——scaffold 复制后完全自由，无门，随集演进）。
  *
- *  本文件从《拆开 Claude Code》集（claude-code-explained）的 motifs.tsx
+ *  本文件从《拆开 Claude Code》集（claude-code-explained，已退役 2026-11）的 motifs.tsx
  *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
  *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
  *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
@@ -263,7 +263,11 @@ export const Terminal: React.FC<{
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const frozen = freezeCursorAt !== undefined && frame >= freezeCursorAt;
-  const blink = frozen ? 0.35 : Math.floor((frame / fps) * 2) % 2 === 0 ? 1 : 0.15;
+  // 光标呼吸闪烁（分镜 0-A「光标孤闪、呼吸闪烁」）：1Hz 正弦 0.35..1 连续插值，
+  // 读作活物等待而非机械告警；frozen 死寂态恒 0.35（停闪本身是 M-002 的落点语义）
+  const blink = frozen
+    ? 0.35
+    : 0.35 + 0.65 * (0.5 + 0.5 * Math.sin((2 * Math.PI * frame) / fps));
   return (
     <Panel style={{width, height, padding: 0, overflow: 'hidden'}}>
       <div
@@ -337,24 +341,31 @@ export const LoopRing: React.FC<{
   size?: number;
   draw?: number;
   dotProgress?: number;
+  /** 光点整体透明度（缺省 1；0-C 结果光点的入场/退场通道） */
+  dotOpacity?: number;
   activeNode?: number;
   exitPull?: number;
   dimNodes?: boolean;
   nodes?: RingNode[];
   nodeLabels?: string[];
   showExit?: boolean;
+  /** 激活站点的强调色（缺省 mech；本集站位属环体机制域应传 core——
+   *  mech 与 tool 同色时会把「唯一青碧」类 Visual Lock 稀释成两处） */
+  activeAccent?: string;
   /** 节点文案。size < 260 时必须关掉——两侧标签会在小尺寸下互相压字 */
   showLabels?: boolean;
 }> = ({
   size = 460,
   draw = 1,
   dotProgress,
+  dotOpacity = 1,
   activeNode,
   exitPull = 0,
   dimNodes = false,
   nodes,
   nodeLabels,
   showExit = true,
+  activeAccent,
   showLabels,
 }) => {
   const stationNodes = nodes ?? RING_NODES;
@@ -409,7 +420,7 @@ export const LoopRing: React.FC<{
               cy={p.y}
               r={on ? 16 + 5 * pulse : 13}
               fill={theme.bg}
-              stroke={on ? theme.mech : theme.core}
+              stroke={on ? (activeAccent ?? theme.mech) : theme.core}
               strokeWidth={4}
               opacity={dimNodes && !on ? 0.4 : 1}
             />
@@ -422,7 +433,7 @@ export const LoopRing: React.FC<{
                 fontFamily={theme.sans}
                 fontSize={24}
                 fontWeight={600}
-                fill={on ? theme.mech : dimNodes ? theme.dim : theme.text}
+                fill={on ? (activeAccent ?? theme.mech) : dimNodes ? theme.dim : theme.text}
               >
                 {nodeLabels?.[i] ?? n.label}
               </text>
@@ -436,7 +447,7 @@ export const LoopRing: React.FC<{
           cy={exitPull > 0 ? exitY : dot.y}
           r={11}
           fill={theme.core}
-          opacity={exitPull > 0.9 ? 0.5 : 1}
+          opacity={dotOpacity * (exitPull > 0.9 ? 0.5 : 1)}
         />
       ) : null}
     </svg>

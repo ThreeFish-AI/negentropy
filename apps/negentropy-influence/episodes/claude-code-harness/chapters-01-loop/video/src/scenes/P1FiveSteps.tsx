@@ -65,14 +65,17 @@ const RING_CU: RingAnchor = {size: 460, left: 370, top: 290, cx: 600, cy: 520, r
 const LIST = {x: 1450, y: 322, w: 330, headerH: 44, slotH: 64, gap: 14} as const;
 const slotTop = (i: number) => LIST.y + LIST.headerH + 10 + i * (LIST.slotH + LIST.gap);
 
-/** 环体挂载：五步 nodes + 牌位关（覆写层自绘），退出线留给 P2 出口门 */
+/** 环体挂载：五步 nodes + 牌位关（覆写层自绘），退出线留给 P2 出口门。
+ *  activeAccent 恒 core：站位属环体机制域（陶土橙）——本集 mech 与 tool 同色，
+ *  缺省会破 1-C「调用块为唯一青碧元素」Visual Lock */
 const RingMount: React.FC<{
   anchor: RingAnchor;
   draw?: number;
   activeNode?: number;
   dimNodes?: boolean;
   dotProgress?: number;
-}> = ({anchor, draw, activeNode, dimNodes, dotProgress}) => (
+  dotOpacity?: number;
+}> = ({anchor, draw, activeNode, dimNodes, dotProgress, dotOpacity}) => (
   <div style={{position: 'absolute', left: anchor.left, top: anchor.top}}>
     <LoopRing
       size={anchor.size}
@@ -83,6 +86,8 @@ const RingMount: React.FC<{
       activeNode={activeNode}
       dimNodes={dimNodes}
       dotProgress={dotProgress}
+      dotOpacity={dotOpacity}
+      activeAccent={theme.core}
     />
   </div>
 );
@@ -139,34 +144,46 @@ const StationMark: React.FC<{anchor: RingAnchor; index: number; at?: number; glo
   );
 };
 
-/** 特写档共用舞台：环 + 牌位（lit = i ≤ active）+ 已走标记（null = 该站未走） */
+/** 特写档共用舞台：环 + 牌位（lit = i ≤ active）+ 已走标记（null = 该站未走）。
+ *  glowAts（按站序）优先于单值 glowAt——「一整圈点亮」逐站顺序涟漪用 */
 const StepStage: React.FC<{
   active: number;
   markAts: readonly (number | null)[];
   dotProgress?: number;
   glowAt?: number;
-}> = ({active, markAts, dotProgress, glowAt}) => {
+  glowAts?: readonly (number | undefined)[];
+}> = ({active, markAts, dotProgress, glowAt, glowAts}) => {
   const frame = useCurrentFrame();
+  const gAt = (i: number) => glowAts?.[i] ?? glowAt;
   return (
     <>
       <RingMount anchor={RING_CU} activeNode={active} dimNodes dotProgress={dotProgress} />
       {STATIONS.map((s, i) => (
-        <StationPlate key={s.label} anchor={RING_CU} index={i} lit={i <= active} glowAt={glowAt} />
+        <StationPlate key={s.label} anchor={RING_CU} index={i} lit={i <= active} glowAt={gAt(i)} />
       ))}
       {STATIONS.map((s, i) =>
         markAts[i] !== null && frame >= (markAts[i] as number) ? (
-          <StationMark key={`m-${s.label}`} anchor={RING_CU} index={i} glowAt={glowAt} />
+          <StationMark key={`m-${s.label}`} anchor={RING_CU} index={i} glowAt={gAt(i)} />
         ) : null,
       )}
     </>
   );
 };
 
-/** 消息列表：表头 + 五格虚线空架；fills 按槽位入列（角色签 1-E 前保持中性） */
+/** 消息列表：表头 + 五格虚线空架；fills 按槽位入列（角色签 1-E 前保持中性）。
+ *  at = OFFSCREEN 表示跨镜已在场（钳制后恒终态，不重播入场——列表是跨镜累积装置）。
+ *  packAt/restoreAt：打包拍整行随工具卡压暗微抬（「带上对话」半句的画面参与）、
+ *  调用完成后恢复（原件仍在档） */
 type MsgFill = {slot: number; role: 'user' | 'assistant'; label: string; at: number; accent?: string};
 
-const SlotRow: React.FC<{fill: MsgFill}> = ({fill}) => {
+const SlotRow: React.FC<{fill: MsgFill; packAt?: number; restoreAt?: number}> = ({
+  fill,
+  packAt,
+  restoreAt,
+}) => {
   const enter = useEnter('slideR', {at: fill.at, dur: DUR.f4, dist: 26});
+  const packP =
+    useProgress(packAt ?? OFFSCREEN, DUR.f4) * (1 - useProgress(restoreAt ?? OFFSCREEN, DUR.f4));
   return (
     <div
       style={{
@@ -182,8 +199,8 @@ const SlotRow: React.FC<{fill: MsgFill}> = ({fill}) => {
         borderRadius: 10,
         background: fill.accent ? `${fill.accent}1F` : theme.panel,
         borderLeft: `4px solid ${fill.accent ?? theme.panelBorder}`,
-        opacity: enter.opacity,
-        transform: enter.transform,
+        opacity: enter.opacity * (1 - 0.55 * packP),
+        transform: `${enter.transform} translateY(${-6 * packP}px)`,
       }}
     >
       <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim}}>{fill.role}</span>
@@ -192,7 +209,12 @@ const SlotRow: React.FC<{fill: MsgFill}> = ({fill}) => {
   );
 };
 
-const MsgList: React.FC<{fills: MsgFill[]; headerAt?: number}> = ({fills, headerAt = 0}) => {
+const MsgList: React.FC<{
+  fills: MsgFill[];
+  headerAt?: number;
+  packAt?: number;
+  restoreAt?: number;
+}> = ({fills, headerAt = 0, packAt, restoreAt}) => {
   const head = useProgress(headerAt, DUR.f4);
   const slots = useStagger(5, {at: headerAt + 2, stride: 3, dur: DUR.f3});
   return (
@@ -223,7 +245,7 @@ const MsgList: React.FC<{fills: MsgFill[]; headerAt?: number}> = ({fills, header
               opacity: slots[i],
             }}
           >
-            {fill ? <SlotRow fill={fill} /> : null}
+            {fill ? <SlotRow fill={fill} packAt={packAt} restoreAt={restoreAt} /> : null}
           </div>
         );
       })}
@@ -256,7 +278,9 @@ const TravelChip: React.FC<{
 
 // ── 1-A 空环亮相：五站牌位 + 两枚信号旗 + 消息列表空架 ──────────────────
 
-/** 信号旗：旗杆三角旗 + 关键词；词落位各闪一次（impulse 辉光 + 轻弹） */
+/** 信号旗：旗杆三角旗 + 关键词；词落位各闪一次（impulse 辉光 + 轻弹）；
+ *  flash2At 可选二闪（左旗「要工具」在「模型要不要调工具」词位再轻闪一次——
+ *  两枚旗=两去向，这段在教「一个信号、两个去向」） */
 const SignalFlag: React.FC<{
   x: number;
   y: number;
@@ -265,9 +289,12 @@ const SignalFlag: React.FC<{
   color: string;
   at: number;
   flashAt: number;
-}> = ({x, y, keyword, sub, color, at, flashAt}) => {
+  flash2At?: number;
+}> = ({x, y, keyword, sub, color, at, flashAt, flash2At}) => {
   const enter = useEnter('rise', {at, dur: DUR.f4, dist: 16});
   const flash = useImpulse({at: flashAt, dur: DUR.f5});
+  const flash2 = 0.6 * useImpulse({at: flash2At ?? OFFSCREEN, dur: DUR.f5});
+  const glow = Math.max(flash, flash2);
   return (
     <div
       style={{
@@ -275,7 +302,7 @@ const SignalFlag: React.FC<{
         left: x,
         top: y,
         opacity: enter.opacity,
-        transform: `${enter.transform} scale(${1 + 0.07 * flash})`,
+        transform: `${enter.transform} scale(${1 + 0.07 * glow})`,
       }}
     >
       <div
@@ -287,7 +314,7 @@ const SignalFlag: React.FC<{
           borderRadius: 12,
           border: `2px solid ${color}`,
           background: theme.panel,
-          boxShadow: `0 0 ${26 * flash}px ${color}`,
+          boxShadow: `0 0 ${26 * glow}px ${color}`,
         }}
       >
         <svg width={32} height={44} viewBox="0 0 32 44">
@@ -303,24 +330,72 @@ const SignalFlag: React.FC<{
   );
 };
 
-const RingReveal: React.FC<{flagInAt: number; flashLAt: number; flashRAt: number; tickAt: number}> = ({
-  flagInAt,
-  flashLAt,
-  flashRAt,
-  tickAt,
-}) => {
-  // 环体先入：幕首快速描线（承接 0-C 末闭环的 morph 连续——同色同线宽同圆度）
-  const draw = useProgress(2, DUR.f6, 'decelerate');
+const RingReveal: React.FC<{
+  flagInAt: number;
+  flashLAt: number;
+  flash2LAt: number;
+  flashRAt: number;
+  linesAt: number;
+  tickAt: number;
+}> = ({flagInAt, flashLAt, flash2LAt, flashRAt, linesAt, tickAt}) => {
+  // 0-C→1-A morph 承接（分镜 Morph Continuity）：draw 恒 1（继承末帧闭环，不重描拆环），
+  // 尺度接棒由整体 pushIn 承载（同色同线宽同圆度逐帧不变，仅尺度变化）
+  const push = usePushIn(2, {scale: 0.07, dur: DUR.f6});
   // 五站牌位随三句依次浮出（fit 进 p1-03 前收口，杜绝一次全亮的幻灯片感）
   const plates = useStagger(5, {at: 14, fit: {total: Math.max(24, tickAt - 24 - 14)}});
+  // 「三十行」规模具象：环心 30 根等高发丝行快速铺满（行数=数据本体，只做 opacity
+  // 不吃形变；为 1-F「≈30 行」与 P4 双柱预建视觉记忆；fit.total ≥ 30——schedule
+  // 硬约束 total ≥ 子项数）
+  const hair = useStagger(30, {at: linesAt, fit: {total: 34}});
+  const linesO = useProgress(linesAt, DUR.f4);
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{transform: push}}>
       <SceneTag chapter="Agent Loop" tagline="三十行循环" accent={theme.core} />
-      <RingMount anchor={RING_WS} draw={draw} />
+      <RingMount anchor={RING_WS} draw={1} />
       {STATIONS.map((s, i) => (
         <StationPlate key={s.label} anchor={RING_WS} index={i} enter={plates[i]} glowAt={tickAt + i * 3} />
       ))}
-      <SignalFlag x={540} y={138} keyword="要工具" sub="tool_use" color={theme.tool} at={flagInAt} flashAt={flashLAt} />
+      {/* 三十行代码剪影：环心 160×128 小卡，30 根发丝行（陶土橙低饱和） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 880,
+          top: 466,
+          width: 160,
+          height: 128,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          boxSizing: 'border-box',
+          borderRadius: 10,
+          border: `2px solid ${theme.panelBorder}`,
+          background: theme.panel,
+          opacity: 0.75 * linesO,
+        }}
+      >
+        {Array.from({length: 30}, (_, i) => (
+          <div
+            key={i}
+            style={{
+              height: 1.6,
+              borderRadius: 1,
+              background: theme.core,
+              opacity: 0.55 * hair[i],
+            }}
+          />
+        ))}
+      </div>
+      <SignalFlag
+        x={540}
+        y={138}
+        keyword="要工具"
+        sub="tool_use"
+        color={theme.tool}
+        at={flagInAt}
+        flashAt={flashLAt}
+        flash2At={flash2LAt}
+      />
       <SignalFlag x={1300} y={138} keyword="停" sub="stop" color={theme.dim} at={flagInAt} flashAt={flashRAt} />
       <MsgList headerAt={10} fills={[]} />
       <Footnote delay={6}>{'agent loop'}</Footnote>
@@ -370,15 +445,18 @@ const BrainChip: React.FC<{litAt: number}> = ({litAt}) => {
   );
 };
 
-const CallModel: React.FC<{qAt: number; cardsAt: number; packAt: number; brainAt: number; fill0At: number}> = ({
-  qAt,
-  cardsAt,
-  packAt,
-  brainAt,
-  fill0At,
-}) => {
+const CallModel: React.FC<{
+  qAt: number;
+  cardsAt: number;
+  packAt: number;
+  brainAt: number;
+  fill0At: number;
+  station1At: number;
+}> = ({qAt, cardsAt, packAt, brainAt, fill0At, station1At}) => {
   const frame = useCurrentFrame();
-  const active = frame >= brainAt ? 1 : 0;
+  // 「第二步」句首即亮牌（与 1-C/1-D「第 N 步开口即亮」的步进鼓点统一）；
+  // 调用完成的 mark（点）仍留 brainAt+4（调完才画点）
+  const active = frame >= station1At ? 1 : 0;
   const cards = useStagger(TOOLS.length, {at: cardsAt, stride: 4, dur: DUR.f4});
   const pack = useProgress(packAt, DUR.f4);
   const flow = useFlowDash({dash: 14, gap: 18, period: 24});
@@ -386,7 +464,12 @@ const CallModel: React.FC<{qAt: number; cardsAt: number; packAt: number; brainAt
     <AbsoluteFill>
       <StepStage active={active} markAts={[fill0At, brainAt + 4, null, null, null]} />
       <BrainChip litAt={brainAt} />
-      <MsgList headerAt={0} fills={[{slot: 0, role: 'user', label: '问题', at: fill0At}]} />
+      <MsgList
+        headerAt={0}
+        fills={[{slot: 0, role: 'user', label: '问题', at: fill0At}]}
+        packAt={packAt}
+        restoreAt={brainAt + DUR.f3}
+      />
 
       {/* p1-04：问题气泡自右缘（用户侧）入列首格 */}
       <TravelChip p0={{x: 1880, y: 420}} c={{x: 1755, y: 368}} p2={{x: 1655, y: 408}} at={qAt} dur={DUR.f5}>
@@ -477,6 +560,7 @@ const ArchiveScan: React.FC<{
   fill1At: number;
 }> = ({ansAt, hopAt, scanAt, scanDur, blockHitAt, pulseAt, pouchAt, fill1At}) => {
   const panel = useEnter('rise', {at: ansAt, dur: DUR.f5, dist: 26, restBottom: PANEL_C.y + PANEL_C.h});
+  // 扫描线单向一次（linear＝机器扫描语义豁免，A-02 注记）
   const scanP = useProgress(scanAt, scanDur, 'linear');
   const blockLit = useProgress(blockHitAt, DUR.f3);
   const pulse = useImpulse({at: pulseAt, dur: DUR.f6});
@@ -484,8 +568,14 @@ const ArchiveScan: React.FC<{
   const scanX = SCAN.x0 + (SCAN.x1 - SCAN.x0) * scanP;
   return (
     <AbsoluteFill>
-      <StepStage active={2} markAts={[0, 0, fill1At, null, null]} />
-      <MsgList headerAt={0} fills={[{slot: 0, role: 'user', label: '问题', at: 0}, {slot: 1, role: 'assistant', label: '回答', at: fill1At}]} />
+      <StepStage active={2} markAts={[OFFSCREEN, OFFSCREEN, fill1At, null, null]} />
+      <MsgList
+        headerAt={OFFSCREEN}
+        fills={[
+          {slot: 0, role: 'user', label: '问题', at: OFFSCREEN},
+          {slot: 1, role: 'assistant', label: '回答', at: fill1At},
+        ]}
+      />
 
       {/* 回答文本条（放大检视）：角色签中性——青碧只留给调用块 */}
       <div style={{position: 'absolute', left: PANEL_C.x, top: PANEL_C.y, ...panel}}>
@@ -644,64 +734,117 @@ const ExecuteFeed: React.FC<{
   fill2At: number;
   arrowAt: number;
   glowAt: number;
-}> = ({callAt, t1, pulseAt, resultAt, active5At, t2, fill2At, arrowAt, glowAt}) => {
+  atEnd: number;
+}> = ({callAt, t1, pulseAt, resultAt, active5At, t2, fill2At, arrowAt, glowAt, atEnd}) => {
   const frame = useCurrentFrame();
   const active = frame >= active5At ? 4 : 3;
   const glow = useImpulse({at: glowAt, dur: DUR.f6});
-  // 回放光点：自站位五起补完这一整圈（0.8 → 1.2 恰落回站位二）
+  // 重音镜 hold：impulse 峰后低档辉光常驻至 beat 尾（升格为标注重音镜）
+  const glowHold = useProgress(glowAt + DUR.f6, Math.max(1, atEnd - 5 - (glowAt + DUR.f6)));
+  // 「一整圈点亮」逐站顺序涟漪：站位顺 4→0→1→2→3（光点过站次序），每站隔 3 帧
+  const glowAts = STATIONS.map((_, i) => arrowAt + 10 + 3 * ((i + 1) % STATIONS.length));
+  // 回放光点：自站位五起补完这一整圈（0.8 → 1.2 恰落回站位二；匀速＝机械巡游豁免）
   const lap = useProgress(arrowAt, 26, 'linear');
   const arrow = useDraw(arrowAt, DUR.f5);
+  // 参数袋随行小签：callAt 出现、到达执行位（pulseAt 同帧）反向淡出融入脉冲
+  const paramTagO = useProgress(callAt, DUR.f3) * (1 - useProgress(pulseAt, DUR.f3));
+  // tool_use_id 配对签：调用块与结果条同一枚单号（gl-notes §3.2「带上 tool_use_id」）
+  const PairTag: React.FC = () => (
+    <span
+      style={{
+        position: 'absolute',
+        top: -12,
+        right: -10,
+        fontFamily: theme.mono,
+        fontSize: 13,
+        color: theme.dim,
+        padding: '1px 6px',
+        borderRadius: 6,
+        border: `1.5px solid ${theme.panelBorder}`,
+        background: theme.panel,
+      }}
+    >
+      #01
+    </span>
+  );
   return (
     <AbsoluteFill>
       <StepStage
         active={active}
         markAts={[0, 0, 0, pulseAt, arrowAt]}
         dotProgress={frame >= arrowAt ? 0.8 + 0.4 * lap : undefined}
-        glowAt={glowAt}
+        glowAts={glowAts}
       />
       <ExecBay pulseAt={pulseAt} />
       <MsgList
-        headerAt={0}
+        headerAt={OFFSCREEN}
         fills={[
-          {slot: 0, role: 'user', label: '问题', at: 0},
-          {slot: 1, role: 'assistant', label: '回答', at: 0},
+          {slot: 0, role: 'user', label: '问题', at: OFFSCREEN},
+          {slot: 1, role: 'assistant', label: '回答', at: OFFSCREEN},
           {slot: 2, role: 'user', label: '工具结果', at: fill2At, accent: theme.tool},
         ]}
       />
 
-      {/* p1-08：调用块（回答里检出的那枚）进入执行位 */}
+      {/* p1-08：调用块（回答里检出的那枚，参数袋随行）进入执行位 */}
       <TravelChip p0={{x: 1470, y: 486}} c={{x: 1000, y: 700}} p2={{x: 560, y: 800}} at={t1} dur={DUR.f6} enterAt={callAt}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 10,
-            padding: '8px 16px',
-            borderRadius: 10,
-            border: `2px solid ${theme.tool}`,
-            background: `${theme.tool}26`,
-          }}
-        >
-          <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.tool}}>{'tool_use'}</span>
-          <span style={{fontFamily: theme.sans, fontSize: 21, fontWeight: 600, color: theme.text}}>{'调用'}</span>
+        <div style={{position: 'relative'}}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 10,
+              padding: '8px 16px',
+              borderRadius: 10,
+              border: `2px solid ${theme.tool}`,
+              background: `${theme.tool}26`,
+            }}
+          >
+            <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.tool}}>{'tool_use'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 21, fontWeight: 600, color: theme.text}}>{'调用'}</span>
+          </div>
+          <PairTag />
+          {/* 「照单执行」的单：1-C 弹出的参数袋随行到达，脉冲即融入 */}
+          <div
+            style={{
+              position: 'absolute',
+              left: '100%',
+              top: 6,
+              marginLeft: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '3px 8px',
+              borderRadius: 8,
+              border: `1.5px solid ${theme.panelBorder}`,
+              background: theme.panel,
+              opacity: paramTagO,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{fontFamily: theme.sans, fontSize: 16, color: theme.dim}}>{'参数'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>{'input'}</span>
+          </div>
         </div>
       </TravelChip>
 
-      {/* p1-08「包成工具结果」→ p1-09「塞回对话」：结果条以新消息身份入列三格 */}
+      {/* p1-08「包成工具结果」→ p1-09「塞回对话」：结果条以新消息身份入列三格（同 #01 配对签） */}
       <TravelChip p0={{x: 560, y: 800}} c={{x: 1150, y: 868}} p2={{x: 1598, y: 568}} at={t2} dur={DUR.f6} enterAt={resultAt}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 10,
-            padding: '10px 18px',
-            borderRadius: 12,
-            border: `2px solid ${theme.tool}`,
-            background: `${theme.tool}26`,
-          }}
-        >
-          <span style={{fontFamily: theme.sans, fontSize: 24, fontWeight: 600, color: theme.text}}>{'工具结果'}</span>
-          <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.tool}}>{'tool_result'}</span>
+        <div style={{position: 'relative'}}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 10,
+              padding: '10px 18px',
+              borderRadius: 12,
+              border: `2px solid ${theme.tool}`,
+              background: `${theme.tool}26`,
+            }}
+          >
+            <span style={{fontFamily: theme.sans, fontSize: 24, fontWeight: 600, color: theme.text}}>{'工具结果'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.tool}}>{'tool_result'}</span>
+          </div>
+          <PairTag />
         </div>
       </TravelChip>
 
@@ -721,7 +864,7 @@ const ExecuteFeed: React.FC<{
           transform={`translate(${BACK_ARC.end.x} ${BACK_ARC.end.y}) rotate(72)`}
           opacity={frame >= arrowAt + DUR.f5 ? 1 : 0}
         />
-        {/* 一整圈点亮：环体辉光一拍（五站标记同步 glowAt） */}
+        {/* 一整圈点亮：环体辉光一拍（峰 0.7 + 低档 hold 0.3 至 beat 尾——重音镜） */}
         <circle
           cx={RING_CU.cx}
           cy={RING_CU.cy}
@@ -729,7 +872,7 @@ const ExecuteFeed: React.FC<{
           fill="none"
           stroke={theme.core}
           strokeWidth={RING_STROKE + 4}
-          opacity={0.7 * glow}
+          opacity={Math.max(0.7 * glow, 0.3 * glowHold)}
         />
       </svg>
 
@@ -748,8 +891,11 @@ const RoleRow: React.FC<{
   at: number;
   f1: number;
   f2: number;
-}> = ({top, role, color, text, at, f1, f2}) => {
-  const enter = useEnter('slideL', {at, dur: DUR.f5, dist: 60, springPreset: 'settle'});
+  /** 身份签（如 user 行的 tool_result）——跨镜同物恒常：1-D 青条在 1-E 的延续 */
+  tag?: string;
+}> = ({top, role, color, text, at, f1, f2, tag}) => {
+  // 长距 slideL：自右侧消息列表方向滑入（1-D→1-E 焦点迁移的运动轨迹引导，§3.3）
+  const enter = useEnter('slideL', {at, dur: DUR.f6, dist: 500, springPreset: 'settle'});
   const g1 = useImpulse({at: f1, dur: DUR.f5, peak: 0.9});
   const g2 = useImpulse({at: f2, dur: DUR.f6, peak: 1.7});
   const flash = Math.max(g1, g2);
@@ -766,7 +912,24 @@ const RoleRow: React.FC<{
         }}
       />
       <div>
-        <div style={{fontFamily: theme.mono, fontSize: 26, color: theme.dim}}>{role}</div>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+          <span style={{fontFamily: theme.mono, fontSize: 26, color: theme.dim}}>{role}</span>
+          {tag ? (
+            <span
+              style={{
+                fontFamily: theme.mono,
+                fontSize: 14,
+                color: theme.tool,
+                padding: '1px 8px',
+                borderRadius: 6,
+                border: `1.5px solid ${theme.tool}`,
+                opacity: 0.8,
+              }}
+            >
+              {tag}
+            </span>
+          ) : null}
+        </div>
         <div style={{fontFamily: theme.sans, fontSize: 62, fontWeight: 700, color: theme.text, marginTop: 4}}>{text}</div>
       </div>
     </div>
@@ -782,6 +945,8 @@ const RoleTags: React.FC<{fA1: number; fB1: number; fA2: number; fB2: number; li
 }) => {
   const frames = useStagger(2, {at: 2, stride: 5, dur: DUR.f4});
   const line = useDraw(lineAt, DUR.f5);
+  // 「对话输入侧」空槽容器：细线落点接住（不再是悬空文字）；恒空置守「第三条消息禁入镜」
+  const slotO = useProgress(lineAt + DUR.f4, DUR.f4);
   return (
     <AbsoluteFill>
       {/* 两条消息的空槽轮廓（只此两条——第三条消息禁入镜） */}
@@ -801,14 +966,40 @@ const RoleTags: React.FC<{fA1: number; fB1: number; fA2: number; fB2: number; li
         />
       ))}
       <RoleRow top={376} role="assistant" color={theme.tool} text="我要调工具" at={2} f1={fA1} f2={fA2} />
-      <RoleRow top={566} role="user" color={theme.dim} text="这是你要的结果" at={2 + DUR.f3} f1={fB1} f2={fB2} />
+      <RoleRow
+        top={566}
+        role="user"
+        color={theme.dim}
+        text="这是你要的结果"
+        at={2 + DUR.f3}
+        f1={fB1}
+        f2={fB2}
+        tag="tool_result"
+      />
 
-      {/* p1-10b「都算输入」：一条细线自结果条指向对话输入侧 */}
+      {/* p1-10b「都算输入」：一条细线自结果条指向对话输入侧（空槽容器承接） */}
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
         <path d="M590 640 L320 730" fill="none" stroke={theme.dim} strokeWidth={3} {...line} />
         <path d="M0 -6 L0 6 L11 0 Z" fill={theme.dim} transform="translate(326 728) rotate(162.5)" opacity={line.strokeDashoffset < 0.1 ? 1 : 0} />
       </svg>
-      <div style={{position: 'absolute', left: 236, top: 738, fontFamily: theme.mono, fontSize: 22, color: theme.dim, opacity: line.strokeDashoffset < 0.1 ? 1 : 0}}>
+      <div
+        style={{
+          position: 'absolute',
+          left: 190,
+          top: 708,
+          width: 122,
+          height: 44,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 10,
+          border: `2px dashed ${theme.dim}`,
+          fontFamily: theme.mono,
+          fontSize: 20,
+          color: theme.dim,
+          opacity: 0.55 * slotO,
+        }}
+      >
         {'输入'}
       </div>
 
@@ -831,29 +1022,57 @@ const NameRow: React.FC<{at: number; color: string; text: string; top: number}> 
   );
 };
 
-const MinimalCore: React.FC<{replayAt: number; breathAt: number; plateA: number; plateB: number}> = ({
-  replayAt,
-  breathAt,
-  plateA,
-  plateB,
-}) => {
+const MinimalCore: React.FC<{
+  replayAt: number;
+  exitAt: number;
+  breathAt: number;
+  plateA: number;
+  plateB: number;
+}> = ({replayAt, exitAt, breathAt, plateA, plateB}) => {
   // @pushIn 负增量：p1-12 把五步收束为一图（镜头拉远，变换原点钉在环心）
   const push = usePushIn(0, {scale: -0.06, dur: DUR.f6});
   const breath = useImpulse({at: breathAt, dur: DUR.f6});
   const lap = useProgress(replayAt, 30, 'linear');
   const frame = useCurrentFrame();
+  // 出口门微亮（分镜 1-F 承诺）：dim 档双门柱闭合门，随「平稳退出」词显形 +
+  // 微光一拍——确认绿留给 P2 2-D 唯一绿元素锁，此处只建门形前情（M-006 语义槽）
+  const doorO = useProgress(exitAt, DUR.f4);
+  const doorGlow = useImpulse({at: exitAt + DUR.f4, dur: DUR.f5});
+  const ringRight = polar(RING_WS.cx, RING_WS.cy, RING_WS.r, 0);
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', inset: 0, transformOrigin: '960px 530px', transform: push}}>
         <div style={{position: 'absolute', inset: 0, transform: `scale(${1 + 0.035 * breath})`}}>
           <RingMount anchor={RING_WS} dotProgress={frame >= replayAt ? lap : undefined} />
-          {/* 五站快速顺序再点亮一圈（回放节奏：每站隔 5 帧） */}
+          {/* 五站快速顺序再点亮一圈（回放节奏：每站隔 5 帧；再入场也逐站顺序化） */}
           {STATIONS.map((s, i) => (
             <StationPlate key={s.label} anchor={RING_WS} index={i} lit glowAt={replayAt + i * 5} />
           ))}
           {STATIONS.map((s, i) => (
-            <StationMark key={`m-${s.label}`} anchor={RING_WS} index={i} glowAt={replayAt + i * 5} />
+            <StationMark
+              key={`m-${s.label}`}
+              anchor={RING_WS}
+              index={i}
+              at={replayAt + i * 5 - DUR.f3}
+              glowAt={replayAt + i * 5}
+            />
           ))}
+          {/* 出口门：环右缘 3 点钟引线 + 双门柱闭合门（无文字——铭牌是唯一新增文字） */}
+          <svg
+            width={240}
+            height={100}
+            style={{position: 'absolute', left: ringRight.x - 10, top: ringRight.y - 50, overflow: 'visible'}}
+            opacity={doorO}
+          >
+            <line x1={0} y1={50} x2={38} y2={50} stroke={theme.dim} strokeWidth={3} />
+            <g stroke={theme.dim} strokeWidth={4} fill="none" opacity={0.55 + 0.45 * doorGlow}>
+              <line x1={44} y1={22} x2={44} y2={78} />
+              <line x1={148} y1={22} x2={148} y2={78} />
+              <path d="M44 22 H148" strokeWidth={3} />
+              <path d="M44 78 H148" strokeWidth={3} />
+              <line x1={96} y1={22} x2={96} y2={78} strokeWidth={2.5} strokeDasharray="6 6" opacity={0.8} />
+            </g>
+          </svg>
           {/* 分工铭牌（环心，两行随 p1-13 逐行落定；模型=决策 陶土橙 / 程序=执行 青碧） */}
           <NameRow at={plateA} color={theme.core} text="模型 = 决策" top={466} />
           <NameRow at={plateB} color={theme.tool} text="程序 = 执行" top={540} />
@@ -889,8 +1108,10 @@ export const P1FiveSteps: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bA} name="1-A">
         <RingReveal
           flagInAt={wa('p1-02', 0.02) - bA.from}
-          flashLAt={wa('p1-02', 0.14) - bA.from}
-          flashRAt={wa('p1-02', 0.14) + 6 - bA.from}
+          flashLAt={wa('p1-02', 0.45) - bA.from}
+          flash2LAt={wa('p1-02', 0.86) - bA.from}
+          flashRAt={wa('p1-02', 0.45) + 4 - bA.from}
+          linesAt={wa('p1-02', 0.3) - bA.from}
           tickAt={wa('p1-03', 0.3) - bA.from}
         />
       </Sequence>
@@ -900,8 +1121,9 @@ export const P1FiveSteps: React.FC<{scene: SceneRange}> = ({scene}) => {
           qAt={wa('p1-04', 0.16) - bB.from}
           cardsAt={wa('p1-05', 0.22) - bB.from}
           packAt={wa('p1-05', 0.58) - bB.from}
-          brainAt={wa('p1-05', 0.66) - bB.from}
+          brainAt={wa('p1-05', 0.85) - bB.from}
           fill0At={wa('p1-04', 0.16) + DUR.f5 - bB.from}
+          station1At={at('p1-05') - bB.from}
         />
       </Sequence>
 
@@ -925,10 +1147,11 @@ export const P1FiveSteps: React.FC<{scene: SceneRange}> = ({scene}) => {
           pulseAt={wa('p1-08', 0.26) + DUR.f6 - bD.from}
           resultAt={wa('p1-08', 0.62) - bD.from}
           active5At={at('p1-09') - bD.from}
-          t2={wa('p1-09', 0.2) - bD.from}
-          fill2At={wa('p1-09', 0.2) + DUR.f6 - bD.from}
+          t2={wa('p1-09', 0.38) - bD.from}
+          fill2At={wa('p1-09', 0.38) + DUR.f6 - bD.from}
           arrowAt={wa('p1-09', 0.68) - bD.from}
           glowAt={wa('p1-09', 0.68) + 14 - bD.from}
+          atEnd={bD.durationInFrames}
         />
       </Sequence>
 
@@ -945,7 +1168,8 @@ export const P1FiveSteps: React.FC<{scene: SceneRange}> = ({scene}) => {
       <Sequence {...bF} name="1-F">
         <MinimalCore
           replayAt={4}
-          breathAt={wa('p1-12', 0.45) - bF.from}
+          exitAt={wa('p1-12', 0.8) - bF.from}
+          breathAt={wa('p1-12', 0.8) - bF.from}
           plateA={wa('p1-13', 0.35) - bF.from}
           plateB={wa('p1-13', 0.75) - bF.from}
         />

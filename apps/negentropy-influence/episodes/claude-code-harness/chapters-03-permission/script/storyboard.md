@@ -98,4 +98,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承 ep1/ep2 种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：GateCard（闸卡，含命中/放行/灰化/拆除状态机）、GateChain（三卡串联 + 移驻/长大状态）、CallCard（调用卡，含打标/弹回/通关/落地状态）、DenyListTable（七行黑名单）、RuleLane（规则双通道+边界框）、AskTerminal（问人终端暂停帧）、SwitchPanel（实验开关+权限改写线）、VoteBoard（点头/摇头签+否决章）、VerdictPanel（四格答案卡+八来源层叠）、TribunalChain（四级判案子链）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=3 为集号、标题卡 = 本集题《Permission：三道闸门，动手之前的裁决》、进度点 = 五组粒度（孪生件固定五槽，组位查表 groupOf(3)=1 亮第一组「工具与执行」，本组=系列前四集）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-harness/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、ACTIVE_INDEX=3 为集号、标题卡 = 本集题《Permission：三道闸门，动手之前的裁决》、进度点 = 五组粒度（孪生件固定五槽，组位查表 groupOf(3)=1 亮第一组「工具与执行」，本组=系列前四集）。

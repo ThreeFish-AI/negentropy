@@ -100,4 +100,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承 ep1 种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：RoutingTable（分类表，含行点火/抽走/残影/全表缩微状态机）、BackoffCurve（退避紫阶梯，含封顶虚线/细齿/实测节点）、TokenBudgetCard（额度卡 8000→64000 翻牌＋增长条）、MessageStack（消息块列收叠）、BalanceScale（参数天平）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生＋音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位＝五大组（片头音频点名五部分仍成立）、数据面 series-layers.json activeIndex=11 为集号、组件导出常量 ACTIVE_INDEX=groupOf(11)=2 为组号（两层契约定名：集号经 groupOf 查表归组，ACTIVE_INDEX 取组号——承 ep5/ep6 写法）、标题卡＝本集题《Error Recovery：报错先分类，循环不亡》、进度点亮组位＝第 2 组「规划与协调」（查表结论）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-harness/intro/`（series-intro.tsx 七路径字节孪生＋音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位＝五大组（片头音频点名五部分仍成立）、数据面 series-layers.json activeIndex=11 为集号、组件导出常量 ACTIVE_INDEX=groupOf(11)=2 为组号（两层契约定名：集号经 groupOf 查表归组，ACTIVE_INDEX 取组号——承 ep5/ep6 写法）、标题卡＝本集题《Error Recovery：报错先分类，循环不亡》、进度点亮组位＝第 2 组「规划与协调」（查表结论）。

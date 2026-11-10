@@ -97,4 +97,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承系列种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：TodoListCard（清单卡：三态/建单/重建/挤出渐暗状态机）、NagCounter（紫色四格刻度盘：清零/步进/脉冲注入）、VisibilityWindow（可见区视窗：照亮/挤出/顶回）、MessageFlow（消息瀑布/双轨消息条/提醒条注入）、TurnStrip（轮次带/任务步进带/t 刻度轴游标）、DriftLoop（漂移环+跳 7 计数）、ThresholdBars（阈值三档并列动态条+工况角标）、AblationTracks（左绿右红双轨+四指标数字条）、TripleCards（教学/产品/官方三卡）、DebateScale（争议天平+版本漂移曲线）、ContextPool（对话池下期钩）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、集号 5 经 groupOf 查表归组 2，ACTIVE_INDEX=2 为组号，组位查表 groupOf(5)=2 亮第二组「规划与协调」——组内集号归属不连续，区间串列由组件按五大组归属表折叠，不在分镜枚举）。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-harness/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、集号 5 经 groupOf 查表归组 2，ACTIVE_INDEX=2 为组号，组位查表 groupOf(5)=2 亮第二组「规划与协调」——组内集号归属不连续，区间串列由组件按五大组归属表折叠，不在分镜枚举）。

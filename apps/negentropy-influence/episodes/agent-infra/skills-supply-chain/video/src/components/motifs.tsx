@@ -1,6 +1,6 @@
 /** chrome 层组件种子（seeded 档——scaffold 复制后完全自由，无门，随集演进）。
  *
- *  本文件从《拆开 Claude Code》集（claude-code-explained）的 motifs.tsx
+ *  本文件从《拆开 Claude Code》集（claude-code-explained，已退役 2026-11）的 motifs.tsx
  *  抽出**通用排版/标注机械**，只读底座 token（panel/panelBorder/text/dim +
  *  字体三族）；概念色一律经 `accent` prop 由调用方注入。任何集的 theme.ts
  *  底座都齐，故 scaffold 后无需改动即可 tsc 通过。随集演进时直接改本集副本
@@ -8,7 +8,7 @@
  *
  *  刻意**不进模板**的是创作性母题（Terminal / LoopRing / DispatchTable /
  *  GateRouter / SlotRing）：它们承载各集的叙事隐喻，属于每集的创作产物。
- *  需要时从 claude-code-explained 的 motifs.tsx 复制对应段落后裁剪、
+ *  需要时从 claude-code-harness 系列各集的 motifs.tsx（同谱系持有者）复制对应段落后裁剪、
  *  追加到本文件；母题目录与适用场景见 references/08 的母题表。
  */
 import React from 'react';

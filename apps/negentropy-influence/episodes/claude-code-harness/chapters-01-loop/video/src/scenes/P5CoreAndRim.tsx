@@ -23,7 +23,19 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {LoopRing, Panel, type RingNode} from '../components/motifs';
-import {DUR, clamp01, useBreathe, useDraw, useEnter, useFadeOut, useImpulse, useProgress} from '../motion';
+import {
+  DUR,
+  clamp01,
+  useBreathe,
+  useDim,
+  useDraw,
+  useEnter,
+  useFadeOut,
+  useImpulse,
+  useProgress,
+  usePushIn,
+  useShake,
+} from '../motion';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
 
@@ -65,9 +77,15 @@ const QuoteShot: React.FC<{at01: number; dur01: number}> = ({at01, dur01}) => {
   // 背景：环体+外圈同构缩微、定格不转（收束态水印；金句卡为唯一主体）
   const ringO = useProgress(at01, DUR.f5);
   const card = useEnter('pop', {at: at01 + 6, dur: DUR.f6});
-  // 词落位：p5-01「核心」约 30%、「保险丝」约 78%（句首「一句话收束」铺垫后）
+  // 收束重音镜 Ken Burns 兜底（§1.2：静态结论卡长推，分镜未注 camera static；
+  // usePushIn 自带 decelerate 缓动， sanctioned 长周期档）
+  const push = usePushIn(at01, {scale: 0.04, dur: Math.max(DUR.f6, dur01)});
+  // 词落位：p5-01「核心」约 30%、「保护外圈」约 78%（句首「一句话收束」铺垫后；
+  // I-256 改稿后口播为「保护外圈」，卡文同步——豁免前提「逐字重合」重新成立）
   const coreAt = at01 + Math.round(dur01 * 0.3);
-  const fuseAt = at01 + Math.round(dur01 * 0.78);
+  const rimAt = at01 + Math.round(dur01 * 0.78);
+  // 「保护外圈」词位：背景虚线圆应答一拍（词与图形所指绑定——外圈就在画面上）
+  const rimPulse = useImpulse({at: rimAt, dur: DUR.f6});
   return (
     <AbsoluteFill>
       <div
@@ -78,12 +96,13 @@ const QuoteShot: React.FC<{at01: number; dur01: number}> = ({at01, dur01}) => {
           alignItems: 'center',
           justifyContent: 'center',
           opacity: ringO * 0.3,
+          transform: push,
         }}
       >
         <div style={{position: 'relative', width: 720, height: 720}}>
           <LoopRing size={720} nodes={EMBLEM_NODES} dimNodes showExit={false} showLabels={false} />
           {/* 外圈（4-D 保险丝层同构）：像素 dasharray 虚线圆——与环体的 pathLength
-              描线分属不同元素（红线三） */}
+              描线分属不同元素（红线三）；「保护外圈」词位 opacity/strokeWidth 应答一拍 */}
           <svg
             width={720}
             height={720}
@@ -96,9 +115,9 @@ const QuoteShot: React.FC<{at01: number; dur01: number}> = ({at01, dur01}) => {
               r={336}
               fill="none"
               stroke={theme.dim}
-              strokeWidth={3}
+              strokeWidth={3 + 1.5 * rimPulse}
               strokeDasharray="10 12"
-              opacity={0.8}
+              opacity={0.8 + 0.2 * rimPulse}
             />
           </svg>
         </div>
@@ -111,7 +130,7 @@ const QuoteShot: React.FC<{at01: number; dur01: number}> = ({at01, dur01}) => {
           alignItems: 'center',
           justifyContent: 'center',
           opacity: card.opacity,
-          transform: card.transform,
+          transform: `${card.transform} ${push}`,
         }}
       >
         <Panel accent={theme.core} style={{padding: '58px 78px'}}>
@@ -126,7 +145,7 @@ const QuoteShot: React.FC<{at01: number; dur01: number}> = ({at01, dur01}) => {
           >
             <KeyWord at={coreAt}>{'核心'}</KeyWord>
             {'不长大，长大的是'}
-            <KeyWord at={fuseAt}>{'保险丝'}</KeyWord>
+            <KeyWord at={rimAt}>{'保护外圈'}</KeyWord>
           </div>
         </Panel>
       </div>
@@ -164,7 +183,9 @@ const TOOLBOX_GLYPH = (c: string) => (
   </g>
 );
 
-/** 手拼命令串：三段微错位（拼凑感＝非成功可运行态），breakAt 中段断落 + 碎屑飘落 */
+/** 手拼命令串：三段错峰「拼装」入场（先拼后断——「拼」本身是口播讲两遍、
+ *  画面该演的过程；gl-notes §4.1 机制内核=意图→shell 语法的翻译损耗），
+ *  落位停在三段微错位（拼凑感＝非成功可运行态），breakAt 中段断落 + 碎屑飘落 */
 const CmdString: React.FC<{
   top: number;
   at: number;
@@ -174,10 +195,15 @@ const CmdString: React.FC<{
   midX: number;
 }> = ({top, at, breakAt, segs, wobble, midX}) => {
   const frame = useCurrentFrame();
-  const inO = useProgress(at, DUR.f5);
   const fall = useProgress(breakAt, 30, 'accelerate');
   const gone = useProgress(breakAt + 6, 24);
   const gap = useProgress(breakAt, DUR.f5);
+  // 三段拼装：各带小横移滑入（±14px）、每段隔 f3 错峰；落位停在静态 wobble 上
+  const segIn0 = useProgress(at, DUR.f4);
+  const segIn1 = useProgress(at + DUR.f3, DUR.f4);
+  const segIn2 = useProgress(at + 2 * DUR.f3, DUR.f4);
+  const segIn = [segIn0, segIn1, segIn2];
+  const segShift = (i: number) => (i === 1 ? 14 : -14) * (1 - segIn[i]);
   // 碎屑（断口处三片、固定偏移错峰——无随机）：纯函数进度，不进 hook
   const bits = [0, 1, 2].map((i) => {
     const p = clamp01((frame - (breakAt + 4 + i * 3)) / 26);
@@ -190,26 +216,37 @@ const CmdString: React.FC<{
         position: 'absolute',
         left: 872,
         top,
-        opacity: inO,
         fontFamily: theme.mono,
         fontSize: 30,
         whiteSpace: 'nowrap',
       }}
     >
-      <span style={{display: 'inline-block', transform: `translate(${-gap * 10}px, ${wobble[0]}px)`}}>
+      <span
+        style={{
+          display: 'inline-block',
+          opacity: segIn[0],
+          transform: `translate(${-gap * 10 + segShift(0)}px, ${wobble[0]}px)`,
+        }}
+      >
         {segs[0]}
       </span>
       <span
         style={{
           display: 'inline-block',
           color: fall > 0 ? theme.warn : theme.text,
-          transform: `translate(${gap * 10}px, ${wobble[1] + fall * 170}px) rotate(${fall * -24}deg)`,
-          opacity: 1 - gone,
+          opacity: segIn[1] * (1 - gone),
+          transform: `translate(${gap * 10 + segShift(1)}px, ${wobble[1] + fall * 170}px) rotate(${fall * -24}deg)`,
         }}
       >
         {segs[1]}
       </span>
-      <span style={{display: 'inline-block', transform: `translate(${gap * 10}px, ${wobble[2]}px)`}}>
+      <span
+        style={{
+          display: 'inline-block',
+          opacity: segIn[2],
+          transform: `translate(${gap * 10 + segShift(2)}px, ${wobble[2]}px)`,
+        }}
+      >
         {segs[2]}
       </span>
       {bits.map((b, i) => (
@@ -232,10 +269,12 @@ const CmdString: React.FC<{
   );
 };
 
-/** 下期卡（p5-06「下期」词落位浮起；措辞只「下期」，剪影零预告） */
-const NextCard: React.FC<{at: number}> = ({at}) => {
+/** 下期卡（p5-06「下期」词落位浮起；「专业工具」词位剪影单独弹出——拆两拍，
+ *  剪影与它的词绑定、p5-06 尾不再 3s 静止；措辞只「下期」，剪影零预告） */
+const NextCard: React.FC<{at: number; toolAt: number}> = ({at, toolAt}) => {
   const e = useEnter('rise', {at, dur: DUR.f6, dist: 22});
   const bob = useBreathe({period: 110, amp: 3, base: 0, offset: at});
+  const tool = useEnter('pop', {at: toolAt, dur: DUR.f5});
   return (
     <div
       style={{
@@ -262,7 +301,12 @@ const NextCard: React.FC<{at: number}> = ({at}) => {
         >
           {'下期'}
         </div>
-        <svg width={168} height={112} viewBox="0 0 168 112" style={{marginTop: 14}}>
+        <svg
+          width={168}
+          height={112}
+          viewBox="0 0 168 112"
+          style={{marginTop: 14, opacity: tool.opacity, transform: tool.transform}}
+        >
           {TOOLBOX_GLYPH(withAlpha(theme.core, 0.92))}
         </svg>
       </Panel>
@@ -288,56 +332,75 @@ const BashHand: React.FC<{
   const strBAt = at05 + Math.round(dur05 * 0.44);
   const breakA = at05 + Math.round(dur05 * 0.74);
   const breakB = breakA + DUR.f3;
-  // p5-06：「下期」为首词，约 12% 落位
+  // p5-06：「下期」为首词约 12%；「专业工具」约 72%（剪影拆拍弹出 + 左簇 dim 让焦）
   const nextAt = at06 + Math.round(dur06 * 0.12);
+  const toolAt = at06 + Math.round(dur06 * 0.72);
+  const clusterDim = useDim({at: toolAt, to: 0.55, dur: DUR.f5});
+  // 灰手生命感 + 断落因果归位：常驻 ±2px 呼吸；断落拍一次衰减颤动（代价归手）
+  const handBob = useBreathe({period: 96, amp: 2, base: 0, offset: at04});
+  const handShake = useShake({at: breakA, amp: 2, freq: 1.6, decay: true, dur: DUR.f6});
   return (
     <AbsoluteFill>
-      {/* 环体（M-001 主角侧位，五站缩微、labels 关） */}
-      <div style={{position: 'absolute', left: 130, top: 330, opacity: ringO}}>
-        <LoopRing size={250} nodes={EMBLEM_NODES} showExit={false} />
-      </div>
-      {/* 灰臂：自环缘伸向手（pathLength 归一化描线，红线三） */}
-      <svg width={340} height={200} viewBox="0 0 340 200" style={{position: 'absolute', left: 316, top: 412, overflow: 'visible'}}>
-        <path
-          d="M12 44 C 120 8, 230 64, 326 168"
-          fill="none"
-          stroke={theme.dim}
-          strokeWidth={15}
-          strokeLinecap="round"
-          {...arm}
+      {/* 左簇（环体/臂/手/bash/命令串）：p5-06「专业工具」词位起 dim 让焦（§4.1 suppression） */}
+      <div style={{position: 'absolute', inset: 0, opacity: clusterDim}}>
+        {/* 环体（M-001 主角侧位，五站缩微、labels 关） */}
+        <div style={{position: 'absolute', left: 130, top: 330, opacity: ringO}}>
+          <LoopRing size={250} nodes={EMBLEM_NODES} showExit={false} />
+        </div>
+        {/* 灰臂：自环缘伸向手（pathLength 归一化描线，红线三） */}
+        <svg width={340} height={200} viewBox="0 0 340 200" style={{position: 'absolute', left: 316, top: 412, overflow: 'visible'}}>
+          <path
+            d="M12 44 C 120 8, 230 64, 326 168"
+            fill="none"
+            stroke={theme.dim}
+            strokeWidth={15}
+            strokeLinecap="round"
+            {...arm}
+          />
+        </svg>
+        {/* 灰手（能力受限语义；呼吸=活性信号，断落拍颤动=代价归位到这双手） */}
+        <svg
+          width={170}
+          height={150}
+          viewBox="0 0 170 150"
+          style={{
+            position: 'absolute',
+            left: 600,
+            top: 545,
+            opacity: hand.opacity,
+            transform: `${hand.transform} translateY(${handBob}px) translateX(${handShake}px)`,
+          }}
+        >
+          {HAND_GLYPH(theme.dim)}
+        </svg>
+        {/* 手里仅 bash 一件家什（工具语义＝tool 色，$ 提示符走 core 同 Terminal 惯例） */}
+        <div style={{position: 'absolute', left: 634, top: 460, opacity: bash.opacity, transform: bash.transform}}>
+          <Panel accent={withAlpha(theme.tool, 0.75)} style={{padding: '10px 20px'}}>
+            <span style={{fontFamily: theme.mono, fontSize: 28, whiteSpace: 'nowrap'}}>
+              <span style={{color: theme.core}}>{'$ '}</span>
+              <span style={{color: theme.text}}>{'bash'}</span>
+            </span>
+          </Panel>
+        </div>
+        {/* 两串手拼命令（读文件 / 找文件）：先三段拼装、断落拍碎屑飘落 */}
+        <CmdString
+          top={356}
+          at={strAAt}
+          breakAt={breakA}
+          segs={['cat ', './notes/', 'plan.md']}
+          wobble={[1, -3, 2]}
+          midX={72}
         />
-      </svg>
-      {/* 灰手（能力受限语义） */}
-      <svg width={170} height={150} viewBox="0 0 170 150" style={{position: 'absolute', left: 600, top: 545, opacity: hand.opacity, transform: hand.transform}}>
-        {HAND_GLYPH(theme.dim)}
-      </svg>
-      {/* 手里仅 bash 一件家什（工具语义＝tool 色，$ 提示符走 core 同 Terminal 惯例） */}
-      <div style={{position: 'absolute', left: 634, top: 460, opacity: bash.opacity, transform: bash.transform}}>
-        <Panel accent={withAlpha(theme.tool, 0.75)} style={{padding: '10px 20px'}}>
-          <span style={{fontFamily: theme.mono, fontSize: 28, whiteSpace: 'nowrap'}}>
-            <span style={{color: theme.core}}>{'$ '}</span>
-            <span style={{color: theme.text}}>{'bash'}</span>
-          </span>
-        </Panel>
+        <CmdString
+          top={476}
+          at={strBAt}
+          breakAt={breakB}
+          segs={['find . ', '-name ', '"*.md"']}
+          wobble={[-2, 3, -1]}
+          midX={126}
+        />
       </div>
-      {/* 两串手拼命令（读文件 / 找文件），「又丑又容易错」处各断一截、碎屑飘落 */}
-      <CmdString
-        top={356}
-        at={strAAt}
-        breakAt={breakA}
-        segs={['cat ', './notes/', 'plan.md']}
-        wobble={[1, -3, 2]}
-        midX={72}
-      />
-      <CmdString
-        top={476}
-        at={strBAt}
-        breakAt={breakB}
-        segs={['find . ', '-name ', '"*.md"']}
-        wobble={[-2, 3, -1]}
-        midX={126}
-      />
-      <NextCard at={nextAt} />
+      <NextCard at={nextAt} toolAt={toolAt} />
     </AbsoluteFill>
   );
 };
@@ -345,8 +408,10 @@ const BashHand: React.FC<{
 // ── 5-C 片尾署源卡（尾部署源位，RSI I-080 豁免） ────────────────────────
 
 const CreditCard: React.FC<{at07: number; dur07: number}> = ({at07, dur07}) => {
-  // 卡随 p5-07 口播同拍淡入；两行先后落定（课程名约 56% 被念到，次行隔 DUR.f6 跟落）
+  // 卡随 p5-07 口播同拍淡入；两行先后落定（课程名约 56% 被念到，次行隔 DUR.f6 跟落）；
+  // 自右 70px 微引归位（5-B→5-C 焦点位移 ≈1/3 屏宽，给眼睛一条回扫动线）
   const card = useEnter('rise', {at: at07 + 2, dur: DUR.f6, dist: 24, restBottom: 560});
+  const lead = useProgress(at07 + 2, DUR.f6);
   const l1At = at07 + Math.round(dur07 * 0.56);
   const l1 = useProgress(l1At, DUR.f5);
   const l2At = l1At + DUR.f6;
@@ -362,7 +427,7 @@ const CreditCard: React.FC<{at07: number; dur07: number}> = ({at07, dur07}) => {
         alignItems: 'flex-start',
         paddingTop: 316,
         opacity: card.opacity,
-        transform: card.transform,
+        transform: `${card.transform} translateX(${(1 - lead) * 70}px)`,
       }}
     >
       <Panel
