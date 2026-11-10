@@ -1,10 +1,10 @@
 ---
 sidebar_position: 7
 title: "OpenViking 精读笔记"
-description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，2026-10-21，v0.5.1.1，AGPL-3.0）：viking:// 树统一资源/记忆/技能、目录级 L0/L1/L2 sidecar 与新鲜度冒泡、检索换代为全局召回 2×limit + 单遍精排 + 阈值后置（上游 #5450 删除目录递归）、会话两阶段提交与 schema 身份判据记忆提炼、Gateway 模型代理（v0.5 新增）与 User/Peer 归属一等化、多租户/ACL/信封加密/快照治理面；含新旧两代对照、营销页滞后矛盾清单、10 张信源原图（官方网关/基准/论文图，官网、托管版与博客的插图和实拍）与 clean-room 原型八场景五破坏实验"
+description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，2026-10-21，v0.5.1.1，AGPL-3.0）：viking:// 树统一资源/记忆/技能、目录级 L0/L1/L2 sidecar 与新鲜度冒泡、检索换代为全局召回 2×limit + 单遍精排 + 阈值后置（上游 #5450 删除目录递归）、会话两阶段提交与 schema 身份判据记忆提炼、Gateway 模型代理（v0.5 新增）与 User/Peer 归属一等化、多租户/ACL/信封加密/快照治理面；含新旧两代对照、营销页滞后矛盾清单、10 张信源原图（官方网关/基准/论文图，官网、托管版与博客的插图和实拍）与 clean-room 原型八场景五破坏实验；含 955aa6fc（2026-11-10）接入面增量：宿主 hooks/日志摄取/Gateway 三路自动捕获与保真度分层、Agent Evolution 开关链、矛盾清单 N9–N11、新增 §15"
 last_update:
   author: Aurelius Huang
-  as-of: 2026-11-02
+  as-of: 2026-11-10
 ---
 
 # OpenViking 精读笔记
@@ -25,6 +25,7 @@ last_update:
 - **证据分级**：【一】钉点代码实测可复现 /【二】官方文档与博客陈述 /【三】厂商自报基准与营销表述 /【四】第三方分析。凡【三】必标注，引用必须带归属（§9）。
 - **引用记号**（行号均以钉点为准）：`HR:` = `openviking/retrieve/hierarchical_retriever.py`；`SP:` = `storage/queuefs/semantic_processor.py`；`SE:` = `storage/queuefs/semantic_executor.py`；`SS:` = `session/session.py`；`CFG:` = `openviking_cli/utils/config/*`；`NS:` = `openviking/core/namespace.py`；`GW:` = `openviking_gateway/*`。完整路径随文标注。
 - **配套产物**：[OpenViking ↔ negentropy 机制映射汇总](../mapping-negentropy.md)。
+- **增量补测钉点（2026-11-10）**：`955aa6fc`，记号 **【一·955】**= 该钉点只读代码实值（未运行代码）；增量以定点修正与新增 §15 承载，文内 [1]/[17] 分钉引用，主钉 `6227af51` 未复核处维持原口径。
 
 </details>
 
@@ -49,7 +50,7 @@ last_update:
 
 ## 2. 全貌：一树三相三面
 
-换代后的 OpenViking 可以拆成「一棵树、三个相、三个面」：**编目相**（资源入库 → 切分 → 自底向上摘要 → 向量化 → 新鲜度冒泡）与**检索相**（意图分析 → 全局召回 → 单遍精排 → 六域装配）围绕同一棵 `viking://` 树读写；**记忆相**（会话归档 → 异步提炼 → 记忆写回）在树的 user/peer 空间里生长。三个面是新长出来的：**网关面**把读写都挪到服务端代理（§7）；**治理面**管多人共用的钥匙锁与备份（§8）；**编译面**（`ov compile`）把树上的材料再加工成 wiki/知识图谱/日报——它是 VikingBot 层的应用能力（`bot/vikingbot/compile/`），不是核心服务器的机制，本篇不展开。下面逐一给每个概念的图例与机制原理。
+换代后的 OpenViking 可以拆成「一棵树、三个相、三个面」：**编目相**（资源入库 → 切分 → 自底向上摘要 → 向量化 → 新鲜度冒泡）与**检索相**（意图分析 → 全局召回 → 单遍精排 → 六域装配）围绕同一棵 `viking://` 树读写；**记忆相**（会话归档 → 异步提炼 → 记忆写回）在树的 user/peer 空间里生长。三个面是新长出来的：**网关面**把读写都挪到服务端代理（§7）；**治理面**管多人共用的钥匙锁与备份（§8）；**编译面**（`ov compile`）把树上的材料再加工成 wiki/知识图谱/日报——它是 VikingBot 层的应用能力（`bot/vikingbot/compile/`），不是核心服务器的机制，本篇不展开。`955aa6fc` 增量补测又长出一组面向「上下文怎么进来」的**接入面**机制（宿主 hooks 插件运行时、日志摄取、Gateway 客户端识别与工具托管、Agent Evolution、Rules），集中于新增 §15，各机制章仅在与增量冲突处定点修正。下面逐一给每个概念的图例与机制原理。
 
 ![OpenViking 全貌：一棵树、三个相与三个面（暗色）](../../assets/architecture/cognitive-context/openviking--panorama-dark.png)
 *图 1 · 全貌：一棵树（`viking://` 三空间）居中，编目 / 检索 / 记忆三个相是绕树的写、读、回写三条路径；网关面在客户端与模型厂商之间代理读写，治理面包裹树的钥匙、锁、备份与回放，编译面（虚线）把树上材料再加工——VikingBot 层，本篇不展开。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--panorama.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--panorama.html) · candidate [JSON](../../diagrams/openviking--panorama/openviking--panorama.json)*
@@ -152,7 +153,7 @@ user 空间下另长着三个**保留段**（`_USER_RELATIVE_ROOT_SEGMENTS`，`N
 - **步骤 2 · 提炼 + 写窄**：异步提炼产出一张 preferences 类记忆卡「花生过敏」；会话挂着 peer=customer-alice ⇒ 写窄纪律钉定归属 peer，卡落 peer 子树而非 user 平级目录。
 - **步骤 3 · URI 逐段推导**：`viking://user/support-bot/peers/customer-alice/memories/preferences/花生过敏.md` 一段一段读——段[0]=`user` ⇒ 进 user 空间；段[1]=`support-bot` ⇒ 数据属主；段[2]=`peers` ⇒ 交互对象子树；段[3]=`customer-alice` ⇒ 交互对象；段[4]=`memories` 命中 peer 内容段 ⇒ 类型 memory。旁支反例：段[4] 若写成 `skills`，不命中 `_PEER_CONTENT_SEGMENTS`，类型回落 resource。
 - **步骤 4 · 主键由位置算出**：向量记录的 id 用 md5（把任意字符串算成 32 位十六进制指纹的哈希算法，输入变一位指纹全变）——id = `md5("acme:" + URI)`，本例文件记录 `f255eb543a90…`；L0/L1 记录在 seed 后追加 `/.abstract.md`、`/.overview.md` 再各算一次（`ac82e8073a7f…` / `799bb4e54b48…`），同一位置的文件/标签/导览三条记录 id 不同、共存一棵索引（`storage/vector_ids.py:52-62`）。推论：`mv` 改路径 ⇒ id 全变 ⇒ 必须重算主键（rm/mv 同步向量记录，【二】storage 概念页）。
-- **步骤 5 · 检索时 peer 过滤**：下次 alice 问「我能吃花生酱吗」，以 actor_peer=customer-alice 检索——她自己的卡不降权；customer-bob 的同类卡若被跨 peer 召回，events/entities ×0.1、其余 ×0.02 降权且来源随行（lab S7 实测这一幕）。
+- **步骤 5 · 检索时 peer 过滤**：下次 alice 问「我能吃花生酱吗」，以 actor_peer=customer-alice 检索——她自己的卡不降权；customer-bob 的同类卡若被跨 peer 召回，按类别**减法扣分**且来源随行（`955aa6fc` 复核改判：events/entities 扣 0.1、其余扣 0.02，rerank 后保留，非乘法降权，`retrieve/context_assembler/params.py:112`【一·955】；`6227af51` 口径写作 ×0.1/×0.02，原样留此存照；lab S7 实测这一幕）。
 - **步骤 6 · 收束**：同一次 commit 里，原文进 `sessions`、记忆进 `peers`、三条索引 id 由位置算出——「放哪、是什么、归谁」三问，全部由路径一段一段回答。
 
 同一格局在火山引擎托管版的产品页上有一张架构图——团队共享的 resources 在 user 空间里，每个 peer 另有自己独享的 resources：
@@ -252,10 +253,10 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 
 会话结束那一刻，系统手里有两样东西：一段完整的对话（事实）和未来要从中长出的记忆（派生物）。事实必须先安全落袋，派生物可以慢慢算、可以失败——但不能让失败的派生物污染事实，也不能让重试把同一事实算两遍。判断「新记忆该并入旧卡还是另立新卡」时，像不像只是把卡递到管理员面前的理由，是不是同一张卡看卡上的身份字段（机制见 6.3）。
 
-- **6.1 两阶段**：Phase 1 在路径锁下同步归档——写 `messages.jsonl`、入持久队列、立即返回 task_id；Phase 2 出队异步执行「长期记忆提炼」，成功才最后写 `.done`（提交点，`SS:1869/2464` 附近）。`.failed.json` 是终态：无自动重试、已应用的记忆不回滚；归档 N+1 等归档 N 写完 `.done` 才开始（顺序保证）。**Working Memory（工作记忆摘要，即归档时顺手生成的会话概览）自 v0.5.0 默认关闭**：commit 仍归档原始消息并提炼长期记忆，但不再生成归档概览/检查点摘要——「归档=事实、摘要=派生」的显式化；需要时按次 `enable_working_memory: true`。
+- **6.1 两阶段**：Phase 1 在路径锁下同步归档——写 `messages.jsonl`、入持久队列、立即返回 task_id；Phase 2 出队异步执行「长期记忆提炼」，成功才最后写 `.done`（提交点，`SS:1869/2464` 附近）。`.failed.json` 是终态：无自动重试、已应用的记忆不回滚；`955aa6fc` 起另有关键字绑定的人工重投入口 `retry_archive`（`session/session.py:2096-2118`【一·955】），前驱等待亦放宽为「到达终态」（`.done` 或 `.failed.json` 均放行，`session/archive_store.py:207-219`【一·955】）；Phase 1 另新增 preparing→ready 标记与 `messages_sha256` 快照、Task 改锁外发布（`session/session.py:1306,2051-2058`【一·955】）。原「归档 N+1 等归档 N 写完 `.done` 才开始」随增量对账放宽。**Working Memory（工作记忆摘要，即归档时顺手生成的会话概览）自 v0.5.0 默认关闭**：commit 仍归档原始消息并提炼长期记忆，但不再生成归档概览/检查点摘要——「归档=事实、摘要=派生」的显式化；需要时按次 `enable_working_memory: true`。
 - **6.2 提炼协议（v3）**：一次输出原子「写集」——新建 `create/set`，已有对象走字段级补丁或 `delete(replacement=…)`（折叠独有事实后才准删）；写前必读护栏仍在：写入一个存在但没读过的 URI 会触发代读再迭代（`session/memory/extract_loop.py:364` 附近）。旧文档的「skip/create/none + merge/delete」口径已不存在。
 - **6.3 身份判据**：找「相似的已有记忆」只做一次跨类型向量检索（预取 top-5）+ 单文件直读；**相似只提名候选，同一性由 schema 身份字段裁决**——URI 由各类型 schema（结构模板）的 `filename_template`——「文件名怎么由身份字段拼出来」的规则——确定性生成（`openviking/prompts/templates/memory/*.yaml`，此处列举主要类型）：preferences=`{user}/{topic}.md`（谁 + 关于什么主题）、entities=`{category}/{name}.md`（类别 + 名字）、events=`{年/月/日}/{event_name}.md`（日期 + 事件名，线上实例见 §3.3 信源原图 3）、cases/experiences 按各自名称、trajectories 带会话时间戳后缀、profile/identity/soul 为固定单文件——「是否同一条记忆」被降维成「文件名是否相同」。合并安全策略明文化（`session/memory/merge_policy.py`）：相似度、同类目、主题重叠都只是提名理由；真人/真物/真事件须同一对象或显式别名；偏好须属主与选择维度都对上；**宁可重复、不可错并**——重复可事后清理，错并丢事实不可恢复。（另一张 6 类「模板可编辑字段」表在 `account_templates.py:46-52`，管的是模板文案可改哪些字段，与身份判据是两回事。）落到用户身上就是：不管第几次提起，同一主题的偏好永远写同一张卡——原型的三次来访实测只落一张卡，前后变化全记在改动日志（memory_diff）里。
-- **6.4 九类记忆 × 合并语义**：全部在 `viking://user/{uid}/memories/`（peer 记忆在 `.../peers/{peer}/memories/`）；内置 11 类中 `tools`/`skills` 默认禁用（【二】memory API 页）；`experiences` 开启时自动联动 `cases`/`trajectories`（Agent Evolution 闭环：case → trajectory → experience）；记忆温度 hotness（7 天半衰期）只进健康统计、**不影响排序、不删冷记忆**（【二】博客明示）。
+- **6.4 九类记忆 × 合并语义**：全部在 `viking://user/{uid}/memories/`（peer 记忆在 `.../peers/{peer}/memories/`）；内置 11 类中 `tools`/`skills` 默认禁用（【二】memory API 页）；`experiences` 与 `cases`/`trajectories` 组成 Agent Evolution 闭环（case → trajectory → experience），但**默认关**：`agent_evolution.enabled` 默认 false（`openviking_cli/utils/config/agent_evolution_config.py:13`【一·955】），关闭时三类被剔出有效 memory_types、普通记忆照常提炼（`session/session.py:193-227`【一·955】），并非整场 commit 被跳过；开启后硬门是主抽取至少产出 1 个 case（`session/compressor_v3.py:970-972`【一·955】），ToolPart 并非硬输入——提炼上下文对每个 tool part 只带 `output[:500]`（`session/memory/session_extract_context_provider.py:347`【一·955】），线上 outcome 取 trajectory 自带字段、evaluator 在线路径为 None（`session/compressor_v3.py:1055-1080`【一·955】）；commit 内读过的 experience URI 会给新 trajectory 打 search_tags 血缘（`session/memory/experience_lineage.py:103-156`【一·955】），消费走 `search(mode="context")` 的 experiences 配额（§5.7）；另有会话→技能抽取：`memory.session_skill_extraction_enabled` 默认 false，开启时从「用户明确要求记住的流程」提炼 SKILL.md 落 `~/skills/`（`session/compressor_v3.py:486-508`【一·955】）。本机实例佐证：开启后 3.6 天产出 cases 832 / trajectories 1144 / experiences 871，每 commit 至少多约 3 段 LLM 调用（静态推断）。记忆温度 hotness（7 天半衰期）只进健康统计、**不影响排序、不删冷记忆**（【二】博客明示）。
 - **6.5 记忆整合与消费闭环**：`ov compile --skill memory` 对既有记忆原地「去重/合并/拆分/压缩」，不经 VikingBot、直接跑在服务端记忆框架上；rename 走「写新 URI → 迁移 links → 删旧 URI」，目标已存在报冲突不覆盖；**部分成功的任务仍标 completed，调用方必须检查 `errors` 字段**（【二】memory-consolidation 指南）。召回侧 `/recall` 已弃用（响应带 `Deprecation: true`），统一走 `search(mode="context")`——chat 预设里 experiences 配额为 1，旧版「经验只写不用」的断言就此过时。`memory_diff.json` 记录增删改 before/after：现被多批次提炼的内部合并读取（`SS:2092-2135`），对外的回滚 API 仍不存在；真正可回退的是 git 快照（§8.4，不含 ACL 与向量索引）。
 - **6.6 自动提交**：服务端 auto-commit 默认关闭；开启后策略默认 150,000 pending tokens / 100 条消息 / 86,400 秒空闲（【二】sessions API 页）。插件侧普遍 20,000 pending tokens 触发 commit（Claude Code/Codex/OpenCode/DSH），且 v0.5.0 起统一归档全部消息（`keep_recent_count: 0`）。
 
@@ -281,11 +282,11 @@ THINKING recall@3 = 1.00  （候选池合计 19 条、精排 1 次/查询·合�
 
 插件路线要求每个客户端装 hooks/插件（22 个集成页就是这么来的）；但有一大类客户端只能改 Base URL 和 API Key。网关（源码在 `openviking_gateway/`）的答案是做一个**模型 API 反向代理**：客户端以为自己在跟模型厂商对话，网关在中间识别会话、注入记忆、保存对话——什么插件都不用装。类比只在首句：像一位秘书把你的记忆便签附在每句话后面，下一轮一字不差地再贴一遍（为什么必须一字不差见下）。网关与插件不叠加：请求里检测到插件标记（`x-openviking-plugin` 头或插件注入的上下文标签），网关就对这段对话停召回、停保存、停工具，全交给插件（`openviking_gateway/kernel.py:212/231` 的 `plugin_present`，【一】）。
 
-- **7.1 五步一轮**：识别会话（六层 header 优先级链，无 header 按最近回复唯一匹配）→ 回放记忆（把已注入内容逐字节放回原位）→ 召回（仅新用户消息触发，至多等 2 秒，超时则该条消息永无记忆）→ 转发上游（不做协议转换，支持 Anthropic Messages / OpenAI Chat Completions / Responses 三种）→ 滞后保存（下一轮用户消息到达才存上一轮，或 10 分钟静默 / 20,000 tokens 触发 commit）。
+- **7.1 五步一轮**：识别会话（六层 header 优先级链，无 header 按最近回复唯一匹配）→ 回放记忆（把已注入内容逐字节放回原位）→ 召回（仅新用户消息触发，至多等 2 秒，超时则该条消息永无记忆）→ 转发上游（不做协议转换，支持 Anthropic Messages / OpenAI Chat Completions / Responses 三种）→ 滞后保存（下一轮用户消息到达才存上一轮，或 10 分钟静默 / 20,000 tokens 触发 commit）。`955aa6fc` 增量两点：客户端识别改走 `client-rules.json` 四张表（插件标记/噪声标签/旁路模式/噪声模式）加请求分类头（`openviking_gateway/protocols.py:35-44,373-419`【一·955】）；会话身份由六层 header 链命中者取值 sha256、全缺时由 kernel 反查最近回复唯一属主或落 `anonymous-<uuid>`（`openviking_gateway/protocols.py:422-436`【一·955】）。
 - **7.2 逐字节回放保缓存**：每条新消息触发的召回附在**消息尾部**（不碰已有前文），后续请求把已注入内容原样重放——服务商的提示缓存（prompt cache，对重复前文按折扣计费的机制）与 Claude thinking 签名因此保持有效，记忆注入按缓存价计费。改动一个字，整段按全价重算（缓存 streak 重置）。放回与不放回的缓存命中对比，见本节末信源原图 5 中段。
 - **7.3 预算与压缩**（`GW models.py:34-52`，全部代码实值）：每消息召回预算 1600 token / 每窗口 30,000 / 相关性阈值 0.35 / 开场档案 4000（skills 至多占 1/4）/ 压缩阈值 0.9 / 摘要上限 8000（额外 16000 输出余量）/ 未设窗口按 1,000,000 token 计。压缩由同一模型写摘要替换切点前历史，失败 60 秒内不重试、除仍超阈值外回退全量。
 - **7.4 工具代理**：网关在回复期间代跑 OpenViking 的 MCP（Model Context Protocol，模型上下文协议——把外部工具与数据用标准插口接给模型的业界协议）工具（`openviking_` 前缀、来自服务器 `tools/list`），无 MCP 的纯聊天客户端因此获得 agentic 记忆。新建上下文配置默认只开 13 个只读工具（其中 `search` 被上游 MCP 标注为「会修改数据」，网关仍默认勾选——上游文档明示该例外）；`remember/write/edit/add_resource/add_skill/forget/set_acl/cancel_watch` 8 个改数据工具须管理员勾选——**代跑绕过客户端的权限审批**，这是官方明示的安全边界（「含写/删数据的工具不经确认直接执行」）。工具循环默认不限轮数/总时长/token（单次调用 30 秒）。循环结构与官方红标的「不经过客户端的权限确认」见本节末信源原图 6。
-- **7.5 状态与安全**：本机两个 SQLite（单文件轻量数据库；`~/.openviking/gateway`：management + kernel——kernel 存记忆原文回放副本、工具轮次、待存文本）；无跨机 failover（故障自动切换到备用机）；会话/日志留存 30 天；网关 key `ovgw_` 只在签发时显示一次；改上游 `base_url` 即清空已存密钥与 headers（防密钥外送）；Claude 订阅 token 恒拒、Coding Plan 上游默认 403 须显式放行；上游能看到含记忆与工具结果的**全部**模型输入。
+- **7.5 状态与安全**：本机两个 SQLite（单文件轻量数据库；`~/.openviking/gateway`：management + kernel——kernel 存记忆原文回放副本、工具轮次、待存文本）；`955aa6fc` 起两库可各自改选 Redis（`openviking_gateway/config.py:76-78`【一·955】）并随 Helm 多副本获得跨机形态（Unreleased），嵌入形态默认存储目录移至 `<workspace>/gateway`、legacy 目录保留告警回落（`server/gateway_host.py:29-41`【一·955】；docs 仍写 `~/.openviking/gateway`）；`6227af51` 时无跨机 failover（故障自动切换到备用机）；会话/日志留存 30 天；网关 key `ovgw_` 只在签发时显示一次；改上游 `base_url` 即清空已存密钥与 headers（防密钥外送）；Claude 订阅 token 恒拒、Coding Plan 上游默认 403 须显式放行；上游能看到含记忆与工具结果的**全部**模型输入。
 
 ![OpenViking 网关面：五步一轮的模型代理（暗色）](../../assets/architecture/cognitive-context/openviking--gateway-proxy-dark.png)
 *图 12 · 网关面五步一轮（§7.1）：识别会话（六层 header 优先级链，无 header 按最近回复唯一匹配）→ 回放记忆（逐字节放回原位，保 prompt cache 与 thinking 签名）→ 召回（仅新用户消息触发，至多等 2 秒）→ 转发上游（Anthropic Messages / OpenAI Chat Completions / Responses 三协议直通、不做转换）→ 滞后保存（下一轮用户消息到达才存上一轮，或 10 分钟静默 / 20,000 tokens 触发 commit）；回复期间代跑 `openviking_` 前缀工具（默认 13 只读、8 个写工具须管理员勾选）。图源：[.mmd](../../assets/mermaid/cognitive-context/openviking--gateway-proxy.mmd) · 交互版 [HTML](../../assets/architecture/cognitive-context/openviking--gateway-proxy.html) · candidate [JSON](../../diagrams/openviking--gateway-proxy/openviking--gateway-proxy.json)*
@@ -359,6 +360,9 @@ VikingMem 的 schema 原图能把「部分核心能力」落到字段层面：
 | N6 | 火山引擎托管版产品页 [16]「产品优势」写「递归检索·目录层层定位」、「产品功能」写「目录递归检索：基于目录结构逐层定位」，并以 L0/L1/L2「降低 Token 消耗」为卖点 | 开源钉点的递归检索已于 #5450 删除；托管版实现无法核验，此条只比对「托管产品页口径 vs 开源钉点」，不断言托管版行为（2026-10-25 渲染页实测） |
 | N7 | 官网首页准确率图：Hermes + OpenViking「82.26%」；关键结论「在高消耗基线下，输入 Token 最高下降 63%」 | 博客 [3] 与钉点 README 均为 82.86%；同区块的 Token 对比图里 OpenClaw 392.6M → 37.4M 即降 90.5%，「最高 63%」与之互斥（中、英、繁、日、韩、西六种语言文案同错，前端 bundle `index-BfoH6ZUa.js` 实测） |
 | N8 | 官网其余三页：enterprise/permissions 页（企业版·权限管控）把 account 数据空间标「规划中」；integrations 页 Codex 写入泳道标「keep_recent_count 10」；concepts 页会话提交流程画「为归档生成 L0/L1」 | 钉点已交付多 account（`examples/multi_tenant/`）；Codex 插件阈值提交写死 `keep_recent_count: 0`（`examples/codex-memory-plugin/scripts/auto-capture.mjs:79`）；归档概览属 v0.5.0 起默认关闭的 Working Memory（§6.1）。permissions 页讲的是火山企业版层级，此条只比口径 |
+| N9 | docs 02-context-types 与 04-viking-uri 把 `agent/tools` 标「planned」 | `955aa6fc` 代码已实现 Tool Catalog 与 Live Context：上游工具落 `agent/tools` 或 `~/tools` 下 resource 型 JSON（注册表存 `_system/mcps*.json`，`service/mcp_service.py:114-118`【一·955】）、`/mcps/find` 语义检索与 `/mcps/invoke` 校验代调、mount 后 `content/read` 实时调用；`endpoints`/`payments` 确未实现、仅空目录 |
+| N10 | docs 16-capability-reference 称 server 注册 22 个 MCP 工具 | `955aa6fc` 代码注册 27 个，漏列 `find_mcp_tools`/`invoke_mcp_tool` 与 3 个 privacy 工具（`server/mcp_endpoint.py` 全量注册段【一·955】） |
+| N11 | docs 宿主行为三处口径：pi takeover 默认开、CC 召回压缩模型 sonnet、agent-plugins skills 4 个 | 代码实况三者皆反：takeover 默认关（`examples/memory-plugin-shared/lib/config-schema.mjs:192`）、压缩默认 haiku（`examples/claude-code-memory-plugin/scripts/lib/host-compressor.mjs:117`）、skills 7 个（`agent-plugins/README.md:39`）——均【一·955】 |
 
 营销口径滞后在 product 页上最直观——同一屏里新旧两代说法并排：
 
@@ -424,7 +428,7 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 ### 12.2 材料没有证明的事（5 条）
 
 1. **提升来自哪个机制**：仍无任何消融——分层、精排、记忆提炼、网关各贡献多少拆不开；「论文机制已并入」同样无并入前后对照。
-2. **默认部署即得头条能力**：无 rerank ⇒ 全部入口纯平铺；WM（Working Memory，工作记忆摘要，§6.1）默认关；ACL 默认关；auto-commit 默认关；网关写工具默认关——「装完就好」与实况相反，每一项都要显式开启。
+2. **默认部署即得头条能力**：无 rerank ⇒ 全部入口纯平铺；WM（Working Memory，工作记忆摘要，§6.1）默认关；ACL 默认关；auto-commit 默认关；网关写工具默认关；Agent Evolution 经验链、日志摄取、独立网关亦默认关（【一·955】）——「装完就好」与实况相反，每一项都要显式开启。
 3. **基准可复现、可比**：单 judge、宽松判分、失败题不进分母、竞品自选基线；tau2 官网挂名无数值；知识库问答（KB QA）与 ClawWork 仍无公开脚本。
 4. **一致性达到「数据库」直觉**：官方明示无跨存储原子事务（文件为事实源、索引可重建）；多写 V2 崩溃可丢复制事件；`memory_diff` 无对外回滚；快照不含 ACL/向量；加密不覆盖向量库、日志与导出包。
 5. **「刚说的立刻能长期召回」**：记忆在 commit 后异步提炼——官方 FAQ 与选型文都明示这属于会话上下文职责，不承诺即时。
@@ -439,9 +443,51 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 
 机制 ↔ negentropy 的映射与最大真增量结论见 [机制映射汇总](../mapping-negentropy.md) OV 域（随本次换代按四桶重验：检索类条目改判、身份/两阶段/分层类保留、网关/peer 为新增候选）；设计蓝图层面对位见 [013 Context Layer 蓝图](./013-context-layer-blueprint.md)（其 §6/§6.3 引用的提交点与身份判据小节编号在本版保持不变）；Agent Skills 规范侧先例见 [Agent Skills 规范精读](../agent-infra/230-agent-skills-standard.md)；据旧版笔记制成的科普视频见 [OpenViking 篇](../../../apps/negentropy-influence/episodes/context-layer/openviking/README.md)（2026-09 制作、基于旧钉点与旧检索机制，早于 #5450 换代——视频中的「目录递归」叙事为当时的准确史实）。
 
+## 15. 接入面：上下文怎么进来（`955aa6fc` 增补）
+
+主钉各章讲的是「进来之后怎么处理」；本节补上游一个月里新长出来的「怎么进来」，回答的问题是：各类 Agent 的会话、记忆、能力（Skills/工具/经验）与知识如何被接入这棵树。全部为【一·955】级只读代码实值（未运行代码；钉点 [17]），经五切片只读走查、主笔逐条复核关键主张；图 1 的三面总览未随增量重绘，接入面以本节文字承载。一句话结论：**OpenViking 不从任何 Agent 侧拉取上下文，接入全部由客户端推送，共四条路径；服务端收到会话后经 §6 的提炼链自动长出记忆与经验。**
+
+### 15.1 四条路径与保真度分层
+
+| 路径 | 触发 | 工具调用保真度 | 宿主侧要求 |
+| --- | --- | --- | --- |
+| 宿主 hooks 插件（`install.sh` 一次装 12 种宿主） | 宿主事件：SessionStart 注入 profile+记忆骨架+skills 目录、UserPromptSubmit 调 `search(mode=context)`、Stop 读 transcript 批量捕获；20k tokens/8 turns 或 PreCompact/SessionEnd 触发 commit | 多数宿主构造 `tool` part（tool_id/tool_name/tool_status/tool_input/tool_output，`examples/memory-plugin-shared/lib/capture-utils.mjs:169-188`【一·955】）；TRAE/ZCode/Kimi/CodeBuddy 仅文本 | 逐机安装插件；失败可重试项落 `~/.openviking/pending` 回放 |
+| 日志摄取 `openviking-server ingest` | 手动 CLI，约 5s 轮询 | **全丢**：normalize 只留文本、tool-only 轮次整条丢弃（`openviking/ingest/normalize.py:5-7`、`sources/claude_code.py:53-55`【一·955】） | 不改宿主，须跑在日志所在机；session 名 `import__{harness}__{原生id}`（`openviking/ingest/replay.py`【一·955】） |
+| Gateway 反代（§7） | 每个模型请求，保存滞后一轮 | 成对保存调用与结果（`openviking_gateway/capture.py:470-480`【一·955】） | 能改 Base URL 与 key |
+| 显式 API / MCP（`add_resource`/`add_skill`/session API/`remember`/`rules compile`/`ov mcps add`） | 手动 | 自定 | 一切客户端；Rules 与能力类只有这条路 |
+
+三点跨路径事实：其一，服务端对消息追加**不去重**（`session/session.py:1011-1050`【一·955】），幂等全靠客户端游标与队列；其二，peer 语义分路径——插件默认按 git origin 推 workspace peer、session 写入只认消息体 `peer_id`，摄取侧 assistant peer 为 `{harness}__{model}`、用户 peer 取 cwd 的 git 身份（`openviking/ingest/peer.py:24-28`【一·955】）；其三，读侧默认 `peer_scope=all`：跨 peer 命中按类别减法扣分（§3.2 步骤 5 的复核口径），设 actor peer 才对其他 peer 硬隐藏。
+
+### 15.2 五类上下文的落点
+
+| 上下文 | 落点 | 自动接入方式 | 状态 |
+| --- | --- | --- | --- |
+| 会话 | `sessions/{sid}/`（§6.1） | 三条捕获路径 + 客户端阈值 commit | 一等 |
+| 记忆（profile/preferences/events/identity/soul） | `memories/`（§6.3–6.4） | commit 后异步提炼 | 一等 |
+| 实体 / 客户 Profile | `memories/entities/` 与 profile（peer 树或 user 树） | 会话提炼；归属由 user 消息 `peer_id` 决定 | 一等 |
+| 经验（cases/trajectories/experiences） | `memories/`（§6.4） | Agent Evolution，默认关 | 一等子类型 |
+| Skills | `~/skills/` 或 `agent/skills/`（§3.1） | 显式 `add_skill`；会话抽取默认关（§6.4） | 一等 |
+| 工具 | `agent/tools` 或 `~/tools` 下 resource 型 JSON（矛盾 N9） | `ov mcps add` 手动 sync，无自动同步 | 已实现 |
+| Agents | 无一等对象；`agent_id` 是过渡字段、映射 Actor-Peer | 无 | 缺口（官方明示无 Agent 身份层） |
+| 指标口径 | 无一等支持（见 15.3） | 显式 | 缺口 |
+| 知识 | `resources/` | `add_resource` + Watch（15s 轮询、git head 未变短路）+ Compile 回检索（调度默认关需 Redis） | 一等 |
+
+### 15.3 缺口与边界
+
+- **指标口径无一等支持**：全库检索 semantic layer/glossary/业务口径无业务含义命中（`openviking/metrics` 是服务自身可观测性，勿混淆）。最贴近的四个落点各有短板：Resources（权威可共享，无字段结构与「必须遵守」语义）、Rules（可执行约束，Beta、per-user、未配 Jev 判官时全放行）、entities 记忆（LLM patch 合并、非权威）、Live Context（mount 后 `content/read` 读时直调上游 MCP、正文不入索引只能靠标题描述找）。
+- **无结构化数据摄入路径**：Excel/CSV 转 Markdown 表、JSON/YAML/SQL 当纯文本、`.sqlite/.db` 直接忽略；近实时数据走 MCP Live Context 读时直调而非入库。
+- **隐私两处收紧**：会话侧仅替换已登记敏感值、新值自动发现在代码内禁用（`openviking/privacy/session_extractor.py:33-35`【一·955】）；Skill 侧入库前经 VLM 把密钥类值抽进 `privacy/` 换 `{{ov_privacy:…}}` 占位符（`openviking/utils/skill_processor.py:494`【一·955】）。
+- **Rules（Beta）摄入全显式**：`POST /api/v1/rules/compile` 是唯一编译入口，session commit 不触发、会话起始不自动注入；宿主侧经 `rule_search` 工具与 `openviking-rule-search` skill 按需召回。
+
+### 15.4 对既有记载的对账
+
+本节证据与主钉四处定点修正（§3.2/§6.1/§6.4/§7.5）、三条新矛盾（N9–N11）的去向，见文末换代对账的增量段；与本仓消费侧的映射不变（§14）。
+
 ## 换代对账（旧版结论去向速查）
 
 旧版（`14a7b81`）八条文档 vs 代码矛盾中六条已被上游修复（C1/C3/C4/C5/C7/C8；C7 的轨迹承诺以「删除」方式了结）；C2 切分规则复算仍成立；C6 演进为「内部有读者、对外无回滚」。旧五规律中规律 3 重铸（§11.1）、其余保留并换演示；旧争议 1 因上游改判而重述；ClawWork 算术错仍在（数值卡 −22.8% 与原始数并存，§9.1）。旧版附录 A 的对话考评记录已随换代移出正文。四桶计数：保留 9 / 更新 14 / 删除 5 / 新增 7+。
+
+**955aa6fc 增量对账（2026-11-10）**：四处结论随增量复核改判——§3.2 步骤 5 跨 peer 降权由乘法改判减法扣分；§6.1 前驱等待由「写完 `.done`」放宽为「到达终态」并新增人工重投；§6.4 Agent Evolution 补全开关链与 case≥1 硬门（关闭=剔出三类、非整场跳过）；§7.5 状态层新增 Redis/Helm 跨机形态。矛盾清单新增 N9–N11（官方文档滞后代码）。以上均【一·955】级证据，`6227af51` 原口径在相应位置留作史实注记。
 
 ## 参考（IEEE）
 
@@ -461,3 +507,4 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 [14] OpenViking Team, "OpenViking product," openviking.ai. [Online]. Available: https://openviking.ai/product (accessed Oct. 25, 2026).
 [15] tosaki and Alice (Agent Hub), "Agent swarms don't lack scale — They lack memory," blog, Jul. 22, 2026. [Online]. Available: https://blog.openviking.ai/post/agent-swarm-memory/
 [16] Volcano Engine, "OpenViking Context," product page. [Online]. Available: https://www.volcengine.com/product/openviking-service (accessed Oct. 25, 2026).
+[17] Volcano Engine Viking Team, "OpenViking: One filesystem for everything an agent knows," GitHub repository, commit 955aa6f, Nov. 2026. [Online]. Available: https://github.com/volcengine/OpenViking
