@@ -362,3 +362,6 @@ apps/negentropy-influence/episodes/self-evolution/dream-rsi/research/html-split/
 # END media-allowlist
 # archify 图表创作工作区（candidate 与修复中间态；正式产物在 docs/assets）
 .archify/
+
+# graphify knowledge-graph outputs (rebuildable artifact)
+graphify-out/
