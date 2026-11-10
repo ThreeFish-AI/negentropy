@@ -12,7 +12,7 @@ last_update:
 > [!NOTE] **核心精读范围**
 >
 > - 课程仓库 main 轨（17 章整合版）：[shareAI-lab/learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) @ [`ce8f9f18`](https://github.com/shareAI-lab/learn-claude-code/tree/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3)（2026-09-28），License **MIT**——① 层（①–⑤ 层＝执行/规划/记忆/时机/协作五层，见 §1）机制钉点（取证锚定的固定 Git 提交，结论只对它成立）与 main 轨独有两章
-> - 课程站点（20 章修订）：[Learn Claude Code](https://learn.shareai.run/zh/s01/)，内容与分支 @ `67a9126c`（2026-07-29）逐节对账一致（2026-10-07 复核 20/20）——②–⑤ 层机制钉点；逐集钉选理由见[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)（登记章→集归属与各篇钉点的总账文档）
+> - 课程站点（20 章修订）：[Learn Claude Code](https://learn.shareai.run/zh/s01/)，内容与分支 @ `67a9126c`（2026-07-29）逐节对账一致（2026-10-07 复核 20/20）——②–⑤ 层机制钉点；逐集钉选理由见[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-chapters.md)（登记章→集归属与各篇钉点的总账文档）
 > - Anthropic 官方文档（产品现状口径）：[code.claude.com/docs](https://code.claude.com/docs)，各篇按缺口补读、实抓快照（2026-10-07）
 > - **本组的五个分篇（171–175）为 guided-learn（一手材料精读 Skill）《精读与通俗拆解》产物**（2026-10-07 全新首读，防污染重写：不承接旧版精读的任何叙述，一切结论从钉点材料重新推导）；每篇配套纯标准库原型 `assets/lcc_<part>_lab.py`（lcc＝learn-claude-code 的缩写，仅作文件名前缀；`--selftest` 自证 + 破坏性实验（每次只去掉一个机制看它怎么退化）实测退化）。旧版总类比叙事（角色台账剧场：以固定角色通篇演类比）随本轮换代（整组文档推倒重写为新一代版本）废止，各篇类比就地局部准入、随文声明失配边界，不设总类比剧场
 
@@ -42,7 +42,7 @@ last_update:
 | [④ 并发与时机](./174-claude-code-concurrency.md) | 站点 `67a9126c`（附录 main） | 后台任务 · 定时调度 | 所谓后台没有平行宇宙，只是「不等它」；而有些活连按开始的人都不要 |
 | [⑤ 多 Agent 平台](./175-claude-code-multi-agent-platform.md) | 站点 `67a9126c`（main 对照并陈） | 任务图（写成文件的任务单集合，带依赖、可认领）· 团队 · 协议（Agent 间带格式的请求／响应报文约定）· 自治 · 隔离（各 Agent 在独立工作目录改动、互不干扰）· MCP（外接工具与数据源的开放协议） | 把「多 Agent」拆开，全是朴素物件；而循环还是那一个 |
 
-每篇各配一张全貌全景图（`lcc-<part>--panorama` 四件套：`.mmd` 图源 / 交互 HTML / dark·light PNG，位于 [docs/assets/mermaid/agent-harness/](../../assets/mermaid/agent-harness/) 与 [docs/assets/architecture/agent-harness/](../../assets/architecture/agent-harness/)）。哪一篇钉哪个提交的全系列登记处是[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
+每篇各配一张全貌全景图（`lcc-<part>--panorama` 四件套：`.mmd` 图源 / 交互 HTML / dark·light PNG，位于 [docs/assets/mermaid/agent-harness/](../../assets/mermaid/agent-harness/) 与 [docs/assets/architecture/agent-harness/](../../assets/architecture/agent-harness/)）。哪一篇钉哪个提交的全系列登记处是[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-chapters.md)。
 
 ## 3. 证据分级（全组纪律）
 
@@ -57,14 +57,14 @@ last_update:
 
 > [!IMPORTANT] **本组不是口播（视频解说配音的逐字稿文本）取证源**
 >
-> 科普视频（本仓同课程的五集解说视频系列）各集的逐章取证、原文引语与生产版对照（含轨 C（官方文档信源轨，与站点轨／main 轨并立）官方事实集全量），归各集 `research/`（C 型信源冻结快照 `gl-notes.md`；C 型信源＝把 guided-learn 精读产物冻结为本集事实源）；章→集归属、钉选与三轨（旧 12 课／main 17 章／站点 20 章三代课程）撞号（不同版本课程同章号却不是同一章）防御，只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)。
+> 科普视频（本仓同课程的五集解说视频系列）各集的逐章取证、原文引语与生产版对照（含轨 C（官方文档信源轨，与站点轨／main 轨并立）官方事实集全量），归各集 `research/`（C 型信源冻结快照 `gl-notes.md`；C 型信源＝把 guided-learn 精读产物冻结为本集事实源）；章→集归属、钉选与三轨（旧 12 课／main 17 章／站点 20 章三代课程）撞号（不同版本课程同章号却不是同一章）防御，只登记在[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-chapters.md)。
 > **除「main 轨独有两章」与各篇原型实测外，本组任何断言若与各集取证冲突，一律以集侧为准。**
 
 ## 4. 本组不得重述的事实（SSOT（Single Source of Truth，单一事实源）边界）
 
 为避免第二事实源漂移，以下事实**只给链接，不在本组复述**：
 
-1. 章→集归属 · 2. 固定提交的选择与理由 · 3. 站点 20 章 ↔ main 17 章逐行对照表 · 4. 三轨编号对照与全部撞号点 · 5. 取证台账的条目命名与审计判据 —— 全部指向[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)（其 §二「撞号防御」是全仓唯一展开层）
+1. 章→集归属 · 2. 固定提交的选择与理由 · 3. 站点 20 章 ↔ main 17 章逐行对照表 · 4. 三轨编号对照与全部撞号点 · 5. 取证台账的条目命名与审计判据 —— 全部指向[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-chapters.md)（其 §五「撞号防御」是全仓唯一展开层）
 6. 各集标题／集序／配色／时长／交付状态 —— 指向 `series.json` / `series.md`
 7. 逐字口播文本与各集口播禁用清单 · 8. 站点／仓库原文的逐字引语 · 9. 站点插图的文字规格转写 · 10. 闭源源码的文件名与行号 —— 全部指向各集 `research/`（main 独有两章的附录为唯一豁免，见 §5）；GL（guided-learn 缩写）伴生信源台账（sources.md 五节）在 `.temp/` 沙箱，不随仓
 
@@ -72,7 +72,7 @@ last_update:
 
 ## 5. main 轨独有的两章：视频未取材的净增量
 
-课程仓库 main 有两章不在站点 20 章修订内，[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-explained.md)已登记其不被任何一集取材——即科普视频五个作品均未以它们为信源。它们没有任何一集持有，**因此本组是它们的唯一事实源**（唯一豁免：参数与官方对位在本节末与 §7 写全；对位＝课程机制逐条映射到本仓对应实现）：
+课程仓库 main 有两章不在站点 20 章修订内，[系列信源地图](../../../apps/negentropy-influence/source-map/claude-code-chapters.md)已登记其不被任何一集取材——即科普视频五个作品均未以它们为信源。它们没有任何一集持有，**因此本组是它们的唯一事实源**（唯一豁免：参数与官方对位在本节末与 §7 写全；对位＝课程机制逐条映射到本仓对应实现）：
 
 | 目录（main 轨全称） | 文件 | 落位（机制概述见各篇附录；常量与官方对位的唯一落点＝本文 §7） |
 |:---|:---|:---|
@@ -81,7 +81,7 @@ last_update:
 
 > 取证：`raw.githubusercontent.com/shareAI-lab/learn-claude-code/ce8f9f186058939da54c9d6fead78dfb5d0fd6c3/<目录>/<文件>`，License MIT。换钉复核【一】：自旧钉 `0dcafa2a` 前进 2 提交（Windows s11/s15（sNN＝课程章节目录号，s01 即第 1 章）进程清理修复 + 课程 prompt 增加 OS-aware（随操作系统给出对应 shell 提示）shell 上下文），两章 `README.zh.md` 与 `code.py` 均未触及——机制内容不受影响。
 >
-> ⚠️ **撞号警告**：这两章的编号与站点 20 章修订里的 s16／s17 **不是同一章**——main 与站点的 s13–s17 全部错位，s10–s12 更与旧 12 课轨构成三轨三物高危区。三轨编号对照与全部撞号点的唯一展开层是[系列信源地图 · §二 撞号防御](../../../apps/negentropy-influence/source-map/claude-code-explained.md)；本组提及它们时一律书写「main 轨 + 完整目录名」全称，禁止裸用编号。
+> ⚠️ **撞号警告**：这两章的编号与站点 20 章修订里的 s16／s17 **不是同一章**——main 与站点的 s13–s17 全部错位，s10–s12 更与旧 12 课轨构成三轨三物高危区。三轨编号对照与全部撞号点的唯一展开层是[系列信源地图 · §五 撞号防御](../../../apps/negentropy-influence/source-map/claude-code-chapters.md)；本组提及它们时一律书写「main 轨 + 完整目录名」全称，禁止裸用编号。
 
 ## 6. 全局批判性边界（材料没有证明的事）
 
@@ -93,7 +93,7 @@ last_update:
 4. **课程实现没有项目级配置文件加载机制——但这是「课程没证明」，不是「产品没有」**。两个钉点的全部代码都没有 `CLAUDE.md` / `.claude/` 的读取，项目记忆完全由自研记忆目录承担；而产品侧官方文档载有完整的 CLAUDE.md 层级与加载口径【官】。凡涉及「Claude Code 怎么读项目约定」，课程材料给不出证据，产品证据在官方——两个口径必须分开写。
 5. **全程没有横向对照实验**。「多 Agent 更好」「待办清单减少跑偏」「后台任务更省」这类主张，材料**一次 A/B 都没做过**；官方文档也只给成本警告（班组 token 显著增多；班组＝官方 agent teams 机制，多个 Claude Code 实例组队协作；token＝LLM 计量上下文额度的文字单位）而无收益数据【官】。它证明的是机制自洽，不是效果更优。
 
-此外有一条**仓内导航纪律**：课程信源实为三轨（旧 12 课轨遗产／main 17 章／站点 20 章），章号互不对应、多处同号不同物——三轨对照与撞号防御只看[系列信源地图 · §二](../../../apps/negentropy-influence/source-map/claude-code-explained.md)，本组不再展开。本仓此前的两处旧轨引用已消歧（见下节）。另注意本地克隆的默认远端停在课程 2026-04 的旧谱系（`36897b1`「realign teaching path」至 `5dfe67f`，12 课 `agents/`+web 文档形态），与上游 main 的 17 章制是先后两代结构——引用一律走钉点，勿信本地 clone 的默认分支。
+此外有一条**仓内导航纪律**：课程信源实为三轨（旧 12 课轨遗产／main 17 章／站点 20 章），章号互不对应、多处同号不同物——三轨对照与撞号防御只看[系列信源地图 · §五](../../../apps/negentropy-influence/source-map/claude-code-chapters.md)，本组不再展开。本仓此前的两处旧轨引用已消歧（见下节）。另注意本地克隆的默认远端停在课程 2026-04 的旧谱系（`36897b1`「realign teaching path」至 `5dfe67f`，12 课 `agents/`+web 文档形态），与上游 main 的 17 章制是先后两代结构——引用一律走钉点，勿信本地 clone 的默认分支。
 
 ## 7. 与本仓 negentropy 的关联
 
@@ -144,4 +144,4 @@ uv run --no-project python lcc_multiagent_lab.py   --selftest   # ⑤ 任务/团
 
 [3] Anthropic, "Claude Code Docs," *code.claude.com/docs/en*（【官】级唯一来源，产品现状口径；各篇按缺口补读、实抓快照 2026-10-07）. [Online]. Available: https://code.claude.com/docs
 
-[4] 本仓, "系列信源地图 · Claude Code Harness Engineering," `apps/negentropy-influence/source-map/claude-code-explained.md`（章→集归属、双钉选择与三轨撞号防御的唯一登记处）
+[4] 本仓, "系列信源地图 · Claude Code 的 20 个核心机制," `apps/negentropy-influence/source-map/claude-code-chapters.md`（章→集归属、双钉选择与三轨撞号防御的唯一登记处）

@@ -14,12 +14,12 @@ project_globs = ["docs/.agents/knowledge-map.md", "CHANGELOG.md"]
 # 不在列。系列 id 集是内容策略而非机制——规则 7/8 原为 skill 前身
 # check_series.py 里的硬编码，2026-09 机制外置时随内容留在工作区（skill 不
 # 携带任何具体系列的身份）。
-course_series_ids = ["claude-code-explained", "claude-code-chapters"]
+course_series_ids = ["claude-code-chapters"]
 
 # 规则 8「下期卡同步」的适用系列：配了「系列身份卡 + 下期预告卡」统一收尾
 # 装置的系列（Harness Engineering 五集）；self-evolution 系是旧版论文型收尾
 # （无身份卡），对其执法是假报——装置在哪个系列落地，规则就管到哪。
-next_card_series_ids = ["claude-code-explained"]
+next_card_series_ids = []
 
 # 规则 7「署源豁免」白名单（RSI I-080，2026-10-29 审批）：观众层信源标识只许
 # 首尾既定署源位——narration_ids 豁免该口播句及其所属 beat 的画面备注、
@@ -92,13 +92,13 @@ reason = "字幕风格分代（2026-09-14）：模板已升级为渲染层剥除
 episode = "chapters-01-loop"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头《一个循环》挂载（2026-10-29，用户审批沿用）：Intro Sequence 压 leadIn 23.5s + 章节条片头静默 wrapper（chromeIn）——与旧系列五集 78664c3010fd 同族挂载形态，指纹差异仅一处注释措辞（本集末幕为 P5，尾幕渐黑由末幕场景从末 beat 推导）。孪生组件 seeds 见 series-assets/claude-code-explained/intro/（七路径字节孪生，check_twin_files series-intro-seed 组）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头《一个循环》挂载（2026-10-29，用户审批沿用）：Intro Sequence 压 leadIn 23.5s + 章节条片头静默 wrapper（chromeIn）——与旧系列五集 78664c3010fd 同族挂载形态，指纹差异仅一处注释措辞（本集末幕为 P5，尾幕渐黑由末幕场景从末 beat 推导）。孪生组件 seeds 见 series-assets/claude-code-harness/intro/（七路径字节孪生，check_twin_files series-intro-seed 组）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-02-tooluse"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01-loop 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + 章节条 chromeIn 静默 wrapper——Main.tsx 与 ep1 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01-loop 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + 章节条 chromeIn 静默 wrapper——Main.tsx 与 ep1 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-03-permission"
@@ -109,96 +109,96 @@ reason = "系列片头挂载承 chapters-01/02 同族形态（2026-11-01 制作�
 episode = "chapters-04-hooks"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01/02/03 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep3 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01/02/03 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep3 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 [[skeleton.drift]]
 episode = "chapters-05-todowrite"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–04 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep4 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–04 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep4 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 [[skeleton.drift]]
 episode = "chapters-06-subagent"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–05 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep5 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–05 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep5 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 [[skeleton.drift]]
 episode = "chapters-07-skillloading"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–06 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep6 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–06 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep6 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 [[skeleton.drift]]
 episode = "chapters-08-contextcompact"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–07 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep7 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–07 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep7 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 [[skeleton.drift]]
 episode = "chapters-09-memory"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–08 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep8 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–08 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep8 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 [[skeleton.drift]]
 episode = "chapters-10-systemprompt"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–09 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep9 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–09 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep9 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（七路径字节孪生）。撤销条件=skill 模板吸纳挂载点或片头退役"
 [[skeleton.drift]]
 episode = "chapters-11-errorrecovery"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–10 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep10 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（组件副本与 ep10/种子 cmp 逐字节一致；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–10 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep10 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（组件副本与 ep10/种子 cmp 逐字节一致；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-12-tasksystem"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–11 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep11 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx / harness-stack.tsx / intro mp3 三拷贝与 ep11 cmp 逐字节一致；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–11 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep11 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx / harness-stack.tsx / intro mp3 三拷贝与 ep11 cmp 逐字节一致；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-15-agentteams"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–14 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep14 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–14 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep14 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-16-teamprotocols"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–15 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep15 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–15 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep15 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-17-autonomousagents"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–16 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep16 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–16 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep16 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-18-worktreeisolation"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–17 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep17 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–17 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep17 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-19-mcpplugin"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–18 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep18 逐行对齐（仅场景 import/registry 换 ep19 六件，regioned 归一化指纹一致）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–18 同族形态（2026-11-02 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep18 逐行对齐（仅场景 import/registry 换 ep19 六件，regioned 归一化指纹一致）；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-20-comprehensive"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–19 同族形态（2026-11-02 制作轮·系列终章）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep19 逐行对齐（仅场景 import/registry 换 ep20 六件，regioned 归一化指纹一致；终章不改片头冻结件，收官仪式感由 P5 场景 bespoke 承载）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–19 同族形态（2026-11-02 制作轮·系列终章）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep19 逐行对齐（仅场景 import/registry 换 ep20 六件，regioned 归一化指纹一致；终章不改片头冻结件，收官仪式感由 P5 场景 bespoke 承载）；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-14-cronscheduler"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–13 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep13 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–13 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep13 逐行对齐故指纹一致；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx/harness-stack.tsx 与 ep1 cmp 逐字节一致、intro mp3 拷贝在位）。撤销条件=skill 模板吸纳挂载点或片头退役"
 
 [[skeleton.drift]]
 episode = "chapters-13-backgroundtasks"
 path = "video/src/Main.tsx"
 fingerprint = "1c779384d763"
-reason = "系列片头挂载承 chapters-01–12 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep12 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-explained/intro/（series-intro.tsx 与种子 cmp 逐字节一致、harness-stack.tsx 与 ep12 cmp 逐字节一致、intro mp3 拷贝在位；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
+reason = "系列片头挂载承 chapters-01–12 同族形态（2026-11-01 制作轮）：Intro Sequence 压 leadIn 23.5s + chromeIn 静默 wrapper——Main.tsx 与 ep1–ep12 逐行对齐故指纹一致（本集末幕同为 P5，注释口径不改）；孪生种子 series-assets/claude-code-harness/intro/（series-intro.tsx 与种子 cmp 逐字节一致、harness-stack.tsx 与 ep12 cmp 逐字节一致、intro mp3 拷贝在位；twin 门 series-intro-seed 组现仅覆盖至 ep1，组扩展属系列层待办）。撤销条件=skill 模板吸纳挂载点或片头退役"
 # 顶部进度条分代（2026-09-22）：模板 Main.tsx 归一化指纹 179be60ed605 为分代前
 # 模板值（10 个既有集此前已收敛对齐、零历史登记——均已发布），与上方 Subtitle
 # 分代同构；新 frozen 的 ChapterProgress.tsx 既有集尚无此
@@ -252,102 +252,6 @@ reason = "停在 2026-09-22 分代之前的更早版本（该集晚于此文件�
 # 含 I-177/180/182 修复后形态）推广到全系列五集；依赖整组追新至 4.0.529
 # （同 major 全家桶，three 0.186.1 / fiber 9.8.1 / lottie-web 5.13.0）。
 # 组件文件属 seeded 档不进门；此处只登记受门文件的合法偏离。
-[[skeleton.drift]]
-episode = "claude-code-explained"
-path = "video/package.json"
-fingerprint = "bdfea44ecd31"
-reason = "V3D 3D 遗产接线（2026-09-28）：+@remotion/{three,lottie,paths,shapes,layout-utils,media}@4.0.529 +three@0.186.1+@react-three/fiber@9.8.1+lottie-web@5.13.0+@types/three。撤销条件=3D 视觉方向放弃时按模板回退"
-
-[[skeleton.drift]]
-episode = "claude-code-explained"
-path = "video/remotion.config.ts"
-fingerprint = "cdc1b4788cca"
-reason = "V3D：@remotion/three 无头渲染强制 Chromium OpenGL=angle（一行）。撤销条件同上"
-
-[[skeleton.drift]]
-episode = "claude-code-planning"
-path = "video/package.json"
-fingerprint = "bdfea44ecd31"
-reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
-
-[[skeleton.drift]]
-episode = "claude-code-planning"
-path = "video/remotion.config.ts"
-fingerprint = "cdc1b4788cca"
-reason = "V3D：angle 后端（同 EP1 条目）"
-
-[[skeleton.drift]]
-episode = "claude-code-memory"
-path = "video/package.json"
-fingerprint = "bdfea44ecd31"
-reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
-
-[[skeleton.drift]]
-episode = "claude-code-memory"
-path = "video/remotion.config.ts"
-fingerprint = "cdc1b4788cca"
-reason = "V3D：angle 后端（同 EP1 条目）"
-
-[[skeleton.drift]]
-episode = "claude-code-concurrency"
-path = "video/package.json"
-fingerprint = "bdfea44ecd31"
-reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）"
-
-[[skeleton.drift]]
-episode = "claude-code-concurrency"
-path = "video/remotion.config.ts"
-fingerprint = "cdc1b4788cca"
-reason = "V3D：angle 后端（同 EP1 条目）"
-
-[[skeleton.drift]]
-episode = "claude-code-multiagent"
-path = "video/package.json"
-fingerprint = "639be7f7420c"
-reason = "V3D 3D 遗产接线（2026-09-28，同 EP1 条目）；ep5 完全重制退役 lottie 残留依赖（2026-10-03，structured 档依赖集变化，指纹随更）"
-
-[[skeleton.drift]]
-episode = "claude-code-multiagent"
-path = "video/src/components/ChapterProgress.tsx"
-fingerprint = "ead4b18ce81f"
-reason = "ep5 完全重制 v2（2026-10-02..03）：七幕章集适配与 SceneTag 迁位（top:112）后 as-built 头注矫正，重制轮内组件自由演进。撤销条件=下轮重制对齐模板或随片头挂载轮统一刷新"
-
-[[skeleton.drift]]
-episode = "claude-code-multiagent"
-path = "video/remotion.config.ts"
-fingerprint = "cdc1b4788cca"
-reason = "V3D：angle 后端（同 EP1 条目）"
-
-[[skeleton.drift]]
-episode = "claude-code-explained"
-path = "video/src/Main.tsx"
-fingerprint = "78664c3010fd"
-reason = "系列片头《一个循环》（2026-10-06 样板、2026-10-08 五集铺开）：Main.tsx 挂 SeriesIntro Sequence（from=0 压扩展 leadIn）+ frozen ChapterProgress 调用点侧 wrapper（片头期静默、交棒后 12 帧淡入——不动 frozen 本体）。五集挂载块同字节（归一化指纹同为本值，见下方四条同款登记）；组件种子=series-assets/claude-code-explained/intro/（七路径孪生门 series-intro-seed 执法）。en 待办：片头 zh-only（音轨 series-intro-zh.mp3 + zh 字幕），en 交付前须补 en 文案与 series-intro-en.mp3；另存在机械阻断——pipeline.py 非主语言渲染预检 check_skeleton_for_lang 直比 Main.tsx 归一化指纹与 skill 模板、不读本登记，铺开态下 en render 预检 FAIL，en 交付前置=skill 侧修预检（I-209）。撤销条件=skill 模板吸纳片头挂载点或片头退役时，五条同款登记齐撤"
-
-[[skeleton.drift]]
-episode = "claude-code-planning"
-path = "video/src/Main.tsx"
-fingerprint = "78664c3010fd"
-reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
-
-[[skeleton.drift]]
-episode = "claude-code-memory"
-path = "video/src/Main.tsx"
-fingerprint = "78664c3010fd"
-reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
-
-[[skeleton.drift]]
-episode = "claude-code-concurrency"
-path = "video/src/Main.tsx"
-fingerprint = "78664c3010fd"
-reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
-
-[[skeleton.drift]]
-episode = "claude-code-multiagent"
-path = "video/src/Main.tsx"
-fingerprint = "78664c3010fd"
-reason = "系列片头《一个循环》铺开（2026-10-08）：挂载块自 E1 整文件移植（场景 import/注册表外五集同字节），leadInSec=23.5。同款登记说明与撤销条件见 EP1 条目"
-
 [[skeleton.drift]]
 episode = "agent-skills"
 path = "video/pnpm-workspace.yaml"
