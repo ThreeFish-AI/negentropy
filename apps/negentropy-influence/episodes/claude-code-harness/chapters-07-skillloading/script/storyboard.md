@@ -104,4 +104,4 @@
 
 公共组件：骨架自带 Subtitle / SceneFade / ChapterProgress；母题件 LoopRing 承 ep1 种子复制（描边色/线宽跨集恒定）；本集新增 bespoke 装置件：CatalogBand（开场白带状态机：病灶含爆涨/目录/走查/反例/生产 共六态；定格为收束形态不计态）、FullTextCard（全文卡：待命/进场/已在历史/内联反例/虚位/堆积态）、LoadChannel（蓝色加载通道）、RegistryCard（注册表 名字↔技能）、BillingStack（每轮复制叠印计费帧）、RoundCounter（三轮输入计数器）——⑧ 轮按 seeded 档自由定制。
 
-**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-explained/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、集号 7 经 groupOf 查表归组 2，ACTIVE_INDEX=groupOf(7)=2 为组号（series-layers.json activeIndex=7 为集号——两层契约定名区分）；组位亮第二组「规划与协调」——组内集号归属不连续（组 2 = 5–7、10–11），区间串列由组件按五大组归属表折叠，不在分镜枚举；。
+**系列片头挂载（⑧ 轮）**：`timing.json` leadInSec=18.7、Main.tsx 压 Intro Sequence（口播独立音轨不入 narration manifest）；种子沿用 `series-assets/claude-code-harness/intro/`（series-intro.tsx 七路径字节孪生 + 音轨复制，未建新种子目录）；`harness-stack` 数据面适配——点火位 = 五大组（片头音频点名五部分仍成立）、集号 7 经 groupOf 查表归组 2，ACTIVE_INDEX=groupOf(7)=2 为组号（series-layers.json activeIndex=7 为集号——两层契约定名区分）；组位亮第二组「规划与协调」——组内集号归属不连续（组 2 = 5–7、10–11），区间串列由组件按五大组归属表折叠，不在分镜枚举；。

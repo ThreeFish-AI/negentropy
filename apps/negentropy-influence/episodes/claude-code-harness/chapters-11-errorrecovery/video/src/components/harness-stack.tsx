@@ -1,7 +1,7 @@
 /** 系列身份数据面：五大组 × 20 章拆集（claude-code-chapters 系列适配层）。
  *
  * 片头组件 series-intro.tsx 是跨系列字节孪生件（种子在
- * series-assets/claude-code-explained/intro/，check_twin_files 执法），其
+ * series-assets/claude-code-harness/intro/，check_twin_files 执法），其
  * 「五站点 + 五进度点 + 标题卡」的词表以 5 为模数——而本系列 series.json 按
  * 集登记、20 集逐集增长，series-layers.json 的 layers（build_narration 从
  * series.json 派生）直接喂给片头会在第 6 集起越界（STATION_XS 固定 5 槽）。

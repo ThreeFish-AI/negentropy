@@ -1,6 +1,0 @@
-[
- {"id": "not-handwritten", "label": "扉页不是手写的", "focus": ["index-page"], "note": "登记簿的扉页是张目录，一行一条写名目——但它不是手写的。"},
- {"id": "full-rebuild", "label": "从头重排", "focus": ["rebuild-arrow", "index-page", "memory-file"], "note": "每写一页，扉页就从所有文件从头重排一遍——索引条目逐行重生成。"},
- {"id": "derived-vs-source", "label": "派生对事实源", "focus": ["index-page", "file-source"], "note": "索引是派生物，文件才是事实源——重排箭头永远从文件指向扉页。"},
- {"id": "index-cheap-files-precious", "label": "丢扉页不丢文件", "focus": ["index-page", "rebuild-arrow", "file-source"], "note": "扉页丢了，重排一遍就有；文件丢了，才是真丢了（终态）。"}
-]
