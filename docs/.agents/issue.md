@@ -5954,6 +5954,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **表因 / 根因**：OpenViking 官方 setup wizard 对 vlm 槽推荐 9B 起、4B 仅为预设下限；本地小模型做结构化记忆抽取的输出形态可靠性是上游已知风险（volcengine/OpenViking#605，llama3.1 复现后 PR #618 修 parser，但生成质量仍取决于模型能力），单次手测通过不能代表持续负载下的稳定性。
 - **处理方式**：到期在本机执行 `grep -c "Memory extraction failed" ~/.openviking/logs/server.log` 与 `grep -c "retry_vlm" ~/.openviking/logs/server.log`，只统计 2026-11-10 23:00 之后新增（迁移完成时两项均为 0）；新增 ≈ 0 → 观察通过，回写结果并关闭本条；失败/重试频发 → 升档 `qwen3-vl:8b-instruct-q4_K_M`（Q4 驻留 ~7GB，空闲时段 `ollama pull` 后改 `~/.openviking/ov.conf` 的 `vlm.model` 为 `ollama/qwen3-vl:8b-instruct-q4_K_M`，再 `launchctl kickstart -k gui/$(id -u)/ai.openviking.server` 重启）。
 - **后续防范**：本地小模型承接结构化抽取类任务，上线后必须挂日志观察期以计数验收，禁止仅凭单次手测即判定就绪；升降档路径与内存红线（单模型 Q4 ≤6GB、三模型峰值 ≤8GB，24GB 统一内存）预先写入方案再动。
+- **生命周期**：GitHub Issue [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)（`chore` 标签）；执行结果与关闭状态以 Issue 为准，本条仅承载经验沉淀面，Issue 关闭后如有可沉淀经验在此增量更新。
 - **同类问题影响**：今后 OpenViking 模型槽位调整沿用「选型在线核验 → 配置迁移 → reindex 重建 → 日志观察期 → 升降档」闭环；完整方案与执行实录见 OpenViking `viking://user/default/resources/openviking/ollama-local-migration-plan.md`，到期提醒挂云 routine trig_01D3A7RP4pr6vubVuFBhrZPB（2026-11-13 10:00 Asia/Shanghai）。
 
 <a id="I-258"></a>
@@ -5964,4 +5965,5 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **表因 / 根因**：embedding 从 `text-embedding-3-small`（1536 维）换 `qwen3-embedding:0.6b`（1024 维）触发 `EmbeddingRebuildRequiredError`，源码无开关可绕过（`allow_metadata_override` 仅救同维换模型）、`ov reindex` 又依赖 server 起不来，只能先 `mv` 旧向量库备份再让 server 新建空库后全量 reindex（4925 条零失败）；备份件因此必须保留至观察期满，不可即用即删。
 - **处理方式**：前置确认过去一周 `ov find` 中文检索正常、server 无维度/向量相关报错后，执行 `rm -rf ~/.openviking/data/vectordb/context.bak-1536d-20261110 ~/.openviking/ov.conf.bak-20261110-ollama` 并回写结果；若期间出现任何检索异常，先暂停清理交由排查，异常根因处置后再评估。
 - **后续防范**：向量库 schema/维度变更类迁移统一遵循「备份 → 重建 → 观察期 → 到期清理」节奏，清理动作挂到期提醒并回写台账收口，防止备份件无限期堆积或被误提前删除。
+- **生命周期**：GitHub Issue [#1247](https://github.com/ThreeFish-AI/negentropy/issues/1247)（`chore` 标签）；执行结果与关闭状态以 Issue 为准，本条仅承载经验沉淀面，Issue 关闭后如有可沉淀经验在此增量更新。
 - **同类问题影响**：所有 SSOT 库结构变更（维度迁移、schema 演进）同样适用该节奏；到期事项备案见 OpenViking `viking://user/default/resources/openviking/notes/ollama-migration-followups.md`，到期提醒挂云 routine trig_01GFgxE8iX2a6kY6DNbeUuU1（2026-11-17 10:00 Asia/Shanghai）。
