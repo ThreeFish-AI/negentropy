@@ -262,6 +262,8 @@
 | I-254 | 013 沉淀轴吸收 Anthropic Agent 记忆精读（254）：巩固消费端动作类型学、写入拓扑与 salience 判据 | ✅ 已完成 | 2026-11-08 | [详情](#I-254) |
 | I-255 | claude-code-harness 系列：片头空白压到约 1s、配音 atempo 提速 1.25×（20 集全量重渲交付） | ✅ 已完成 | 2026-11-08 | [详情](#I-255) |
 | I-256 | claude-code-harness ep01《Agent Loop》逐字稿、分镜与策划案公理化重构与声画咬合 | ✅ 已完成 | 2026-11-08 | [详情](#I-256) |
+| I-257 | OpenViking 本地 Ollama 迁移观察期检查：vlm 记忆抽取质量验收（到期 2026-11-13） | 🔄 进行中 | — | [详情](#I-257) |
+| I-258 | OpenViking 迁移备份件清理：旧 1536 维向量库与旧网关配置（到期 2026-11-17） | 🔄 进行中 | — | [详情](#I-258) |
 
 ---
 
@@ -5943,3 +5945,23 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **处理方式**：①逐字稿（`narration.md`）：全面公理化重构（P0 行动瓶颈与 Harness 定义 → P1 30 行 5 步循环与分工公理 → P2 清单走查因果验证 → P3 流式时序矛盾、出警比喻与消融实证 → P4 1700 行 query.ts 生产对照与保险丝哲学 → P5 系统规律升华与下期专业工具体系）；②进度条标题重塑：字数工整（8~9 字符），1920 宽安全留白 13%~56%，零截断；③分镜表（`storyboard.md`）全量同步：25 镜与口播逐句咬合，彻底清洗旧意象；④策划案（`planning.md`）同步最新 1.25× 语速规格与公理体系；⑤配音台本（`narration.cues.toml`）`say` 表演标点 100% 对齐；⑥管线全量编译（`build_narration.py`）与内容门质检（`check_script.py`，57 句 25 镜 `FAIL 0 WARN 0`）。
 - **后续防范**：视频脚本创作必须坚持“逐字稿、分镜表、策划案三位一体”协同，口播词位必须与画面机件产生明确投影；严禁使用网络黑话与方言生造词。
 - **同类问题影响**：后续 ep02~ep20 若有类似逻辑重构，沿用本次建立的公理化推演框架与声画咬合规范。
+
+<a id="I-257"></a>
+
+## I-257：OpenViking 本地 Ollama 迁移观察期检查：vlm 记忆抽取质量验收（到期 2026-11-13）
+
+- **问题描述**：OpenViking 三模型槽（embedding / query_planner / vlm）已于 2026-11-10 晚从云端 LiteLLM 网关迁移到本机 Ollama（vlm 槽为 4B 档 `qwen3-vl:4b-instruct-q4_K_M`），vlm 承担记忆抽取（tool-calling 重负载、prompt ~5k+ tokens）、工作记忆压缩与语义工件生成，需以三天真实使用数据确认 4B 档抽取质量达标，达标后方可收口迁移。
+- **表因 / 根因**：OpenViking 官方 setup wizard 对 vlm 槽推荐 9B 起、4B 仅为预设下限；本地小模型做结构化记忆抽取的输出形态可靠性是上游已知风险（volcengine/OpenViking#605，llama3.1 复现后 PR #618 修 parser，但生成质量仍取决于模型能力），单次手测通过不能代表持续负载下的稳定性。
+- **处理方式**：到期在本机执行 `grep -c "Memory extraction failed" ~/.openviking/logs/server.log` 与 `grep -c "retry_vlm" ~/.openviking/logs/server.log`，只统计 2026-11-10 23:00 之后新增（迁移完成时两项均为 0）；新增 ≈ 0 → 观察通过，回写结果并关闭本条；失败/重试频发 → 升档 `qwen3-vl:8b-instruct-q4_K_M`（Q4 驻留 ~7GB，空闲时段 `ollama pull` 后改 `~/.openviking/ov.conf` 的 `vlm.model` 为 `ollama/qwen3-vl:8b-instruct-q4_K_M`，再 `launchctl kickstart -k gui/$(id -u)/ai.openviking.server` 重启）。
+- **后续防范**：本地小模型承接结构化抽取类任务，上线后必须挂日志观察期以计数验收，禁止仅凭单次手测即判定就绪；升降档路径与内存红线（单模型 Q4 ≤6GB、三模型峰值 ≤8GB，24GB 统一内存）预先写入方案再动。
+- **同类问题影响**：今后 OpenViking 模型槽位调整沿用「选型在线核验 → 配置迁移 → reindex 重建 → 日志观察期 → 升降档」闭环；完整方案与执行实录见 OpenViking `viking://user/default/resources/openviking/ollama-local-migration-plan.md`，到期提醒挂云 routine trig_01D3A7RP4pr6vubVuFBhrZPB（2026-11-13 10:00 Asia/Shanghai）。
+
+<a id="I-258"></a>
+
+## I-258：OpenViking 迁移备份件清理：旧 1536 维向量库与旧网关配置（到期 2026-11-17）
+
+- **问题描述**：2026-11-10 迁移时留有两个备份件：`~/.openviking/data/vectordb/context.bak-1536d-20261110`（旧 1536 维向量库，62MB）与 `~/.openviking/ov.conf.bak-20261110-ollama`（旧云端网关配置），需在迁移满一周且确认稳定后清理释放，在此之前保留作为回滚保险。
+- **表因 / 根因**：embedding 从 `text-embedding-3-small`（1536 维）换 `qwen3-embedding:0.6b`（1024 维）触发 `EmbeddingRebuildRequiredError`，源码无开关可绕过（`allow_metadata_override` 仅救同维换模型）、`ov reindex` 又依赖 server 起不来，只能先 `mv` 旧向量库备份再让 server 新建空库后全量 reindex（4925 条零失败）；备份件因此必须保留至观察期满，不可即用即删。
+- **处理方式**：前置确认过去一周 `ov find` 中文检索正常、server 无维度/向量相关报错后，执行 `rm -rf ~/.openviking/data/vectordb/context.bak-1536d-20261110 ~/.openviking/ov.conf.bak-20261110-ollama` 并回写结果；若期间出现任何检索异常，先暂停清理交由排查，异常根因处置后再评估。
+- **后续防范**：向量库 schema/维度变更类迁移统一遵循「备份 → 重建 → 观察期 → 到期清理」节奏，清理动作挂到期提醒并回写台账收口，防止备份件无限期堆积或被误提前删除。
+- **同类问题影响**：所有 SSOT 库结构变更（维度迁移、schema 演进）同样适用该节奏；到期事项备案见 OpenViking `viking://user/default/resources/openviking/notes/ollama-migration-followups.md`，到期提醒挂云 routine trig_01GFgxE8iX2a6kY6DNbeUuU1（2026-11-17 10:00 Asia/Shanghai）。
