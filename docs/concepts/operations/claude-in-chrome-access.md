@@ -38,10 +38,10 @@ title: "Agent 登录态浏览器接入 · Claude in Chrome"
 ## 4. 标签组统一（claude-tab-group-unifier）
 
 - **问题**：官方扩展为每个会话创建独立标签组，组名硬编码 `✅Claude`（会话中）/ `⌛Claude`（闲置标记），手动改名会被重置，无任何官方配置（[#72443](https://github.com/anthropics/claude-code/issues/72443)）；并行会话（多 Orca workspace 同跑）下组迅速膨胀。
-- **方案**：自建伴生扩展（源码 SSOT 在 [`scripts/claude-tab-group-unifier/`](../../../scripts/claude-tab-group-unifier/)），把 `Claude` / `✅Claude` / `⌛Claude` 全部同族组收敛为唯一主组：多余组的页签自动并入、空壳移除、Agent 遗留空白页丢弃；主组择优「会话在用的 ✅ 组 > 常驻 Claude 组 > 页签最多者」（常驻页签并入活组等价于给会话上下文，官方支持的模式）；触发为组事件 4s 去抖加 `chrome.alarms` 每分钟兜底扫描。
+- **方案**：自建伴生扩展（源码 SSOT 在独立仓 [ThreeFish-AI/chrome-plugins](https://github.com/ThreeFish-AI/chrome-plugins) 的 `claude-tab-group-unifier/` 目录，v1.1.1），把 `Claude` / `✅Claude` / `⌛Claude` 全部同族组收敛为唯一主组：多余组的页签自动并入、空壳移除、明确闲置组的遗留空白页丢弃；主组择优「会话在用的 ✅ 组 > 常驻 Claude 组 > 页签最多者」（常驻页签并入活组等价于给会话上下文，官方支持的模式）；触发为闲置标记（`⌛`/`⏳`）事件 4s 去抖加 `chrome.alarms` 每分钟兜底扫描，无前缀新组带 90 秒组龄保护窗（防止会话新建组被过早收编导致 browser 工具报组失效）、`✅` 活组不改名（消除组名抖动）。
 - **已知抖动**：会话操作期间主组名被官方扩展临时改回 `✅Claude`，下轮扫描归一为 `Claude`（按组 ID 追踪，改名不破坏会话）；并行会话期间短暂存在第二组，结束后一分钟内收敛。
-- **关键教训**：`✅→⌛` 状态翻转时序不受控（实测会话结束 4 分钟不翻），不可作为归并触发器；unpacked 扩展的 Service Worker 初次加载可能显示「无效」，在 `chrome://extensions` 点「重新加载」即愈。
-- **部署**：拷贝 `manifest.json` 与 `sw.js` 至仓外稳定目录（本机为 `~/tools/claude-tab-group-unifier/`）后以开发者模式「加载未打包」安装；勿直接加载仓内路径（worktree 分支切换会突变 Chrome 侧文件）。改源码后同样需重载。
+- **关键教训**：`✅→⌛` 状态翻转时序不受控（实测会话结束 4 分钟不翻），不可作为归并触发器；会话新建组在官方扩展打上 `✅` 前存在无前缀窗口，此窗口内合并会破坏会话组追踪（v1.1.0 实测回归，v1.1.1 以 90 秒保护窗修复）；unpacked 扩展的 Service Worker 可能显示「无效」，在 `chrome://extensions` 点「重新加载」即愈。
+- **部署**：从独立仓拷贝 `manifest.json` 与 `sw.js` 至仓外稳定目录（本机为 `~/tools/claude-tab-group-unifier/`）后以开发者模式「加载已解压的扩展程序」安装；勿直接加载仓库工作副本（分支切换会突变 Chrome 侧文件）。改源码后先同步部署目录再在扩展页重载。
 
 ## 5. 兜底路径
 

@@ -1,8 +1,0 @@
-{
-  "manifest_version": 3,
-  "name": "Claude Tab Group Unifier",
-  "description": "把所有 Claude 系标签组（Claude/✅Claude/⌛Claude）自动收敛为唯一的 Claude 主组",
-  "version": "1.1.0",
-  "permissions": ["tabs", "tabGroups", "alarms"],
-  "background": { "service_worker": "sw.js" }
-}

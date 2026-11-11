@@ -4,10 +4,10 @@
 
 ## [Unreleased]
 
-### Agent 日常 Chrome 登录态接入记录与标签组统一扩展入仓（2026-11-10）
+### Agent 日常 Chrome 登录态接入记录与标签组统一扩展独立建仓（2026-11-10）
 
 - 新增 [Agent 登录态浏览器接入](docs/concepts/operations/claude-in-chrome-access.md)：Claude in Chrome 集成的有效开关（用户级 `CLAUDE_CODE_ENABLE_CFC=1`，实测 `claudeInChromeDefaultEnabled` 键单独不生效）、`stream-json` init 事件验证手法、排错链（同账号同组织 / `bridge.claudeusercontent.com` / Reconnect extension），及与 Playwright MCP 回归路线的正交分工。
-- 新增 `scripts/claude-tab-group-unifier/`（v1.1.0）：自建 Chrome 扩展源码 SSOT，把 Claude/✅Claude/⌛Claude 标签组收敛为唯一主组（事件去抖 + alarms 每分钟兜底），绕开官方组名硬编码无配置的现状（anthropics/claude-code#72443）；部署方式为拷贝至仓外稳定目录后 unpacked 加载。
+- 标签组统一扩展独立建仓 [ThreeFish-AI/chrome-plugins](https://github.com/ThreeFish-AI/chrome-plugins)（v1.1.1，源码 SSOT）：把 Claude/✅Claude/⌛Claude 标签组收敛为唯一主组（闲置标记即时处理 + 新组 90s 保护窗 + alarms 每分钟兜底），绕开官方组名硬编码无配置的现状（anthropics/claude-code#72443）；本仓文档 §4 链接指向该仓，部署方式为拷贝至仓外稳定目录后 unpacked 加载。
 
 ### claude-code-harness 系列片头空白压缩与配音提速 1.25×（I-255，2026-11-08）
 
