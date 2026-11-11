@@ -262,7 +262,7 @@
 | I-254 | 013 沉淀轴吸收 Anthropic Agent 记忆精读（254）：巩固消费端动作类型学、写入拓扑与 salience 判据 | ✅ 已完成 | 2026-11-08 | [详情](#I-254) |
 | I-255 | claude-code-harness 系列：片头空白压到约 1s、配音 atempo 提速 1.25×（20 集全量重渲交付） | ✅ 已完成 | 2026-11-08 | [详情](#I-255) |
 | I-256 | claude-code-harness ep01《Agent Loop》逐字稿、分镜与策划案公理化重构与声画咬合 | ✅ 已完成 | 2026-11-08 | [详情](#I-256) |
-| I-257 | OpenViking 本地 Ollama 迁移观察期检查：vlm 记忆抽取质量验收（到期 2026-11-13） | 🔄 进行中 | — | [详情](#I-257) |
+| I-257 | OpenViking 本地 Ollama 迁移观察期：11-11 提前破线，根因为 vlm 超时而非抽取质量，timeout 120→300 已处置待 11-13 复查 | 🔄 进行中 | — | [详情](#I-257) |
 | I-258 | OpenViking 迁移备份件清理：旧 1536 维向量库与旧网关配置（到期 2026-11-17） | 🔄 进行中 | — | [详情](#I-258) |
 
 ---
@@ -5950,10 +5950,10 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 ## I-257：OpenViking 本地 Ollama 迁移观察期检查：vlm 记忆抽取质量验收（到期 2026-11-13）
 
-- **问题描述**：OpenViking 三模型槽（embedding / query_planner / vlm）已于 2026-11-10 晚从云端 LiteLLM 网关迁移到本机 Ollama（vlm 槽为 4B 档 `qwen3-vl:4b-instruct-q4_K_M`），vlm 承担记忆抽取（tool-calling 重负载、prompt ~5k+ tokens）、工作记忆压缩与语义工件生成，需以三天真实使用数据确认 4B 档抽取质量达标，达标后方可收口迁移。
-- **表因 / 根因**：OpenViking 官方 setup wizard 对 vlm 槽推荐 9B 起、4B 仅为预设下限；本地小模型做结构化记忆抽取的输出形态可靠性是上游已知风险（volcengine/OpenViking#605，llama3.1 复现后 PR #618 修 parser，但生成质量仍取决于模型能力），单次手测通过不能代表持续负载下的稳定性。
-- **处理方式**：到期在本机执行 `grep -c "Memory extraction failed" ~/.openviking/logs/server.log` 与 `grep -c "retry_vlm" ~/.openviking/logs/server.log`，只统计 2026-11-10 23:00 之后新增（迁移完成时两项均为 0）；新增 ≈ 0 → 观察通过，回写结果并关闭本条；失败/重试频发 → 升档 `qwen3-vl:8b-instruct-q4_K_M`（Q4 驻留 ~7GB，空闲时段 `ollama pull` 后改 `~/.openviking/ov.conf` 的 `vlm.model` 为 `ollama/qwen3-vl:8b-instruct-q4_K_M`，再 `launchctl kickstart -k gui/$(id -u)/ai.openviking.server` 重启）。
-- **后续防范**：本地小模型承接结构化抽取类任务，上线后必须挂日志观察期以计数验收，禁止仅凭单次手测即判定就绪；升降档路径与内存红线（单模型 Q4 ≤6GB、三模型峰值 ≤8GB，24GB 统一内存）预先写入方案再动。
+- **问题描述**：OpenViking 三模型槽（embedding / query_planner / vlm）已于 2026-11-10 晚从云端 LiteLLM 网关迁移到本机 Ollama（vlm 槽为 4B 档 `qwen3-vl:4b-instruct-q4_K_M`），vlm 承担记忆抽取（tool-calling 重负载，2026-11-11 实测抽取 prompt 最高 16091 tokens）、工作记忆压缩与语义工件生成，需以三天真实使用数据确认 4B 档抽取质量达标，达标后方可收口迁移。
+- **表因 / 根因**：OpenViking 官方 setup wizard 对 vlm 槽推荐 9B 起、4B 仅为预设下限；本地小模型做结构化记忆抽取的输出形态可靠性是上游已知风险（volcengine/OpenViking#605，llama3.1 复现后 PR #618 修 parser，但生成质量仍取决于模型能力），单次手测通过不能代表持续负载下的稳定性。2026-11-11 观察期提前破线（迁移后累计 `Memory extraction failed` 12 次、`retry_vlm` 728 次），实测根因不是抽取质量而是超时：16k prompt 在 qwen3-vl（llamacpp runner，SWA/hybrid 结构致 KV 缓存频繁失效全量重算）上预填吞吐 260→139 tok/s 随上下文递减，仅预填充即 ~115s，撞穿 litellm `vlm.timeout=120`；超时重试再把同一巨型 prompt 重新排队，`NUM_PARALLEL=1` 下堵塞后续全部请求（人工探测 curl / ollama run 均被堵 3 分钟以上），队列排空后模型原生调用实测正常。
+- **处理方式**：2026-11-11 已执行处置：`~/.openviking/ov.conf` 的 `vlm.timeout` 120→300（改前备份 `ov.conf.bak-20261111-timeout120`），`launchctl kickstart` 重启后零新增失败、在飞 16k 抽取在 300s 预算内正常运行，计数与根因已回写 [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)。11-13 复查口径更新：若 300s 后仍新增 failed，下一步是压抽取 prompt 长度上限或换更快 runner；原「升档 `qwen3-vl:8b-instruct-q4_K_M`」预案针对质量不足场景（Q4 驻留 ~7GB，空闲时段 `ollama pull` 后改 `vlm.model` 再重启），预填充更慢，不解决超时。到期计数命令不变：`grep -c "Memory extraction failed" ~/.openviking/logs/server.log` 与 `grep -c "retry_vlm" ~/.openviking/logs/server.log`，只统计 2026-11-10 23:00 之后新增；新增 ≈ 0 → 观察通过，回写结果并关闭本条。
+- **后续防范**：本地小模型承接结构化抽取类任务，上线后必须挂日志观察期以计数验收，禁止仅凭单次手测即判定就绪；升降档路径与内存红线（单模型 Q4 ≤6GB、三模型峰值 ≤8GB，24GB 统一内存）预先写入方案再动。vlm 失败先分诊「超时 or 质量」再选预案（升大模型只治质量不治超时）；重启 `ai.openviking.server` 前先 `lsof -nP -iTCP:18790 -sTCP:LISTEN` 查孤儿 gateway——kickstart 时在飞重试可让 vikingbot gateway 子进程逃逸成孤儿，占住 18790 令 KeepAlive 重拉循环内每个新实例报 `port 18790 is already in use` 退出（exit 1、1933 失联），`kill` 孤儿（对 TERM 无响应需 -9）后下一轮重拉自愈。
 - **生命周期**：GitHub Issue [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)（`chore` 标签）；执行结果与关闭状态以 Issue 为准，本条仅承载经验沉淀面，Issue 关闭后如有可沉淀经验在此增量更新。
 - **同类问题影响**：今后 OpenViking 模型槽位调整沿用「选型在线核验 → 配置迁移 → reindex 重建 → 日志观察期 → 升降档」闭环；完整方案与执行实录见 OpenViking `viking://user/default/resources/openviking/ollama-local-migration-plan.md`，到期提醒挂云 routine trig_01D3A7RP4pr6vubVuFBhrZPB（2026-11-13 10:00 Asia/Shanghai）。
 
