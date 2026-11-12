@@ -265,7 +265,7 @@
 | I-257 | OpenViking 本地 Ollama 迁移观察期：11-11 超时破线后经 I-259 全程治理，观察基线冻结于 4b+6144/900（服务已 bootout） | 🔄 进行中 | — | [详情](#I-257) |
 | I-258 | OpenViking 迁移备份件清理：旧 1536 维向量库与旧网关配置（到期 2026-11-17） | 🔄 进行中 | — | [详情](#I-258) |
 | I-259 | OpenViking vlm 槽本地轻量化全程：三代模型切换、输出帽耦合根因、到达率死局与用户裁决冻结 | ✅ 已完成 | 2026-11-12 | [详情](#I-259) |
-| I-260 | OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（qwen-flash 主推待接入） | 🔄 进行中 | — | [详情](#I-260) |
+| I-260 | OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（终选公司平台 production，qwen-flash 降备选） | 🔄 进行中 | — | [详情](#I-260) |
 
 ---
 
@@ -5976,19 +5976,19 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 ## I-259：OpenViking vlm 槽本地轻量化全程：三代模型切换、输出帽耦合根因、到达率死局与用户裁决冻结
 
 - **问题描述**：OpenViking 三槽本地化（I-257）后 vlm 抽取在 MacBook Air M4 24GB（无风扇）上持续 GPU 满载致整机卡顿；2026-11-12 晨 192 条积压、任务面板大面积 failed/pending，用户最终裁决冻结服务待云端方案（见 [I-260](#I-260)）。
-- **表因 / 根因**：多层叠加——①「到达率 > 服务率」死局：keyword 模式到达 ~100 条/天 vs 本地 4b 串行 15-30 分钟/条（积压 2-4 天）；② 多模态模型文本预算 = num_ctx/2（Ollama 给视觉预留，284 次/日截断全 `limit=8194` 铁证，prompt 中位 19.3k 被静默截掉 ~60% 尾部）；③ 输出帽与输入修复耦合：截断修复后 19-33k 输入合法产出 4-6k+ token 抽取结果，max_tokens 1024→2560→4096 三次顶帽全部伪装成 `parse_error`（`finish_reason=length` → ast 解析失败 → 4 轮修复迭代全撞同一顶帽）；④ 嵌套重试最坏 12 连发（内层 RetryVLM×3 × 外层 Phase2×4，TimeoutError 必重试）放大 GPU 占用；⑤ 热墙：持续 decode 仅 11-12 tok/s（冷机 28-32），无风扇机的物理天花板，换模型只能在「卡得久一点」与「卡得短一点」之间滑动；⑥ 机制面死路实证：nice/taskpolicy 治不了 GPU 争抢（d-inference #1116 最小复现）、macOS 无 per-process GPU cap、M4 无 ANE 路。
+- **表因 / 根因**：多层叠加——①「到达率 > 服务率」死局：keyword 模式到达 ~100 条/天 vs 本地 4b 串行 15-30 分钟/条（积压 2-4 天）；② 多模态模型文本预算 = num_ctx/2（Ollama 给视觉预留，284 次/日截断全 `limit=8194` 铁证，prompt 中位 19.3k（五路调研全量日志口径，与 I-257 晨间诊断样本的最高 16091 属不同统计面，解冻后对账）被静默截掉 ~60% 尾部）；③ 输出帽与输入修复耦合：截断修复后 19-33k 输入合法产出 4-6k+ token 抽取结果，max_tokens 1024→2560→4096 三次顶帽全部伪装成 `parse_error`（`finish_reason=length` → ast 解析失败 → 4 轮修复迭代全撞同一顶帽）；④ 嵌套重试最坏 12 连发（内层 RetryVLM×3 × 外层 Phase2×4，TimeoutError 必重试）放大 GPU 占用；⑤ 热墙：持续 decode 仅 11-12 tok/s（冷机 28-32），无风扇机的物理天花板，换模型只能在「卡得久一点」与「卡得短一点」之间滑动；⑥ 机制面死路实证：nice/taskpolicy 治不了 GPU 争抢（d-inference #1116 最小复现）、macOS 无 per-process GPU cap、M4 无 ANE 路。
 - **处理方式**：三代模型切换（`qwen3-vl:4b`→`qwen3.5:2b-q4_K_M` 1.9GB 线性注意力→`qwen3:4b-instruct-2507-q4_K_M` 2.5GB 质量地板）+ 配置卫生包（retries 1、双并发 1、`ollama_chat/` 前缀走原生 tools、num_ctx 65536→32768、max_tokens 6144、timeout 900、agent_evolution off、prefetch topn 3、客户端 `AUTO_CAPTURE=0`/`CAPTURE_TOOL_MAX_CHARS=50000`）。终态 4b 输出质量过关（合法 python 抽取、零 parse_error）但积压消化 2-4 天不可接受，用户裁决 `launchctl bootout` 冻结；另诊断出 45% 卡点根因=语义摘要与抽取共用单槽 vlm 车道的优先级倒置饿死（Semantic 队列当日完成数 0）。
 - **后续防范**：实测值永远优先于子代理估算（max_tokens 1024 覆盖了当日已有实测 1600-1800 的记录，白烧 19 个任务）；改输入侧约束必须同步重估输出侧（截断修复 ↔ 输出帽耦合）；统计日志必须行首时间戳锚定——无前缀 traceback 行字典序恒大于时间戳串会混进任意时间窗、`1[0-9]:` 类正则会吞 10 点整段（同一陷阱踩 4 次，行数差分法免疫）；`memory.extraction_enabled=false` 在 Phase 2 运行时读取 = 在途任务完成但不抽取 = 静默丢 192 条记忆，不可作暂停手段；安全暂停 = 客户端 `AUTO_CAPTURE=0` + 停服，可逆停牌手术 = queue.db `pending→failed`（队列重启恢复仅从 queue.db 快照重建、task json 非独立重排源，源码已验证、未执行）；带 runner 级 options 的探测请求会驱逐重建生产 runner。
-- **生命周期**：GitHub Issue [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)（含 3 条评论承载全部时间线与基线变更）；完整调研（五路 workflow 56 万 token 证据链：模型盘点/runner/机制面/云混合量化）与执行实录见 OpenViking `viking://user/default/resources/openviking/notes/2026-11-11-lighter-local-inference-research.md`（OV 服务冻结中，恢复后补写云端评估与 GLM 实证节）。
+- **生命周期**：GitHub Issue [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)（含 3 条评论承载全部时间线与基线变更）；完整调研（五路 workflow 56 万 token 证据链：模型盘点/runner/机制面/云混合量化等）与执行实录见 OpenViking `viking://user/default/resources/openviking/notes/2026-11-11-lighter-local-inference-research.md`（OV 服务冻结中，恢复后补写云端评估与 GLM 实证节）。
 - **同类问题影响**：无风扇 Apple Silicon 承接持续 LLM 推理（记忆抽取/批量摘要）前先算「吞吐 × 热墙」账；GPU 争抢无软件优先级解，唯一零卡顿本地方案是 CPU-only（同质量 4-5 倍时长）；OV 队列无优先级/无闲时窗口，重负载与交互式任务（导入摘要）共享单槽必饿死后者。
 
 <a id="I-260"></a>
 
-## I-260：OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（qwen-flash 主推待接入）
+## I-260：OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（终选公司平台 production，qwen-flash 降备选）
 
 - **问题描述**：vlm 槽去云选型——识别「便宜且保证效果」的云端 API 并实证智谱 GLM-4.7-Flash「免费不限量」传闻是否可用。
 - **表因 / 根因**：云成本必须按迭代重发计——单任务全链路 ~80k input（20k prompt × 4-6 轮 ReAct 迭代重发；本地 llama.cpp 有 KV 前缀复用近乎免费、云端每调用全量计费）而非单轮 20k；云端时代 7.3 天烧穿 llms.as-in.io 配额（13.8M input/天）的真相即此，单轮口径会低估 4-5 倍。
-- **处理方式**：2026-11-12 两路官方页实核 10 档现价（用量底数：常规日 ~100 条 = 8M in/0.45M out）：**qwen-flash ¥0.15/¥1.5 → 常规日 ¥1.9**（缓存命中再省 90%、同源质量必过线，主推）、doubao-seed-2.0-mini 低优 ¥1.25/天、GLM-4.7-Flash/GLM-4.6V-Flash 免费档、Together Qwen3.5-9B $0.17/$0.25（IFEval 91.5 + VLM 恢复视觉）、Haiku 5.5 $0.10/$0.50（cache read $0.01、官方定位即抽取）。**GLM 免费档实证否决**：11 次真实调用 0 成功——老代免费档（4.5/4/4v/4.1v）`1309` 与已到期的 GLM Coding Plan 硬绑（顺带发现该账户套餐已过期），现行档（4.7/4.6v）全量瞬拒 `1305`（高峰挤兑与过期套餐降权不可区分），免费 ≠ 可用。
+- **处理方式**：2026-11-12 两路官方页实核 10 档现价（用量底数：常规日 ~100 条 = 8M in/0.45M out）：**qwen-flash ¥0.15/¥1.5 → 常规日 ¥1.9**（缓存命中再省 90%、同源质量必过线，外部市场主推）、doubao-seed-2.0-mini 低优 ¥1.25/天、GLM-4.7-Flash/GLM-4.6V-Flash 免费档、Together Qwen3.5-9B $0.17/$0.25（IFEval 91.5 + VLM 恢复视觉）、Haiku 5.5 $0.10/$0.50（cache read $0.01、官方定位即抽取）。**GLM 免费档实证否决**：11 次真实调用 0 成功——老代免费档（4.5/4/4v/4.1v）`1309` 与已到期的 GLM Coding Plan 硬绑（顺带发现该账户套餐已过期），现行档（4.7/4.6v）全量瞬拒 `1305`（高峰挤兑与过期套餐降权不可区分），免费 ≠ 可用。
 - **后续防范**：免费档选型必须真实调用验证——定价页「免费」与账户实际可用是两回事，套餐/权益等级会叠加门槛（限速数字仅控制台登录态可见）；云按量付费无配额焦虑（原网关烧穿的配额按市价仅值 ~¥14）；GLM 错峰复测留翻案窗口（22:00 后同 key 重跑实证组，若通过可作夜跑批处理专用档）。
-- **生命周期**：待办挂 [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)：百炼/豆包 key 接入后 ov.conf vlm 槽一个配置块切换（`openai/<模型>` + api_base + api_key + 18790 预检 kickstart），192 积压分钟级清空、本地 GPU 归零；回滚锚点 `ov.conf.bak-20261111-2b` 系列。
+- **生命周期**：待办挂 [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)。终选（2026-11-12 晚，公司 platform-llm 实核后）改走平台 production 个人 key（testing $30/月硬限已被 OV 打爆 112% 停用；production $100/天/$3,000/月软限）：vlm 槽 gpt-5-nano（稳健起步 gpt-6-luna，$0.05/$0.40/$0.005 vs $0.10/$0.50/$0.01）、embedding 槽保持本地 qwen3-embedding:0.6b（回云 3-small 须过 I-258 维度迁移，收益仅 ~$0.02/天暂不值），Semantic ≈$2.0/天、Keyword ≈$0.6/天，完整比价见 [014 精读 §16](../research/cognitive-context/014-openviking.md)；外部百炼/豆包（qwen-flash ¥1.9/天）降为无平台 key 时的备选，接入方式不变（ov.conf vlm 槽一个配置块切换 + 18790 预检 kickstart）；回滚锚点 `ov.conf.bak-20261111-2b` 系列沿用。
 - **同类问题影响**：OV 后续任何槽位上云沿用「迭代重发成本模型 → 官方页实核 → 真实调用实证」三步；报告类交付禁以子代理估算替代实测（GLM 案例中官方文档面全绿、实测一票否决）。

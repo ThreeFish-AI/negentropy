@@ -1,7 +1,7 @@
 ---
 sidebar_position: 7
 title: "OpenViking 精读笔记"
-description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，2026-10-21，v0.5.1.1，AGPL-3.0）：viking:// 树统一资源/记忆/技能、目录级 L0/L1/L2 sidecar 与新鲜度冒泡、检索换代为全局召回 2×limit + 单遍精排 + 阈值后置（上游 #5450 删除目录递归）、会话两阶段提交与 schema 身份判据记忆提炼、Gateway 模型代理（v0.5 新增）与 User/Peer 归属一等化、多租户/ACL/信封加密/快照治理面；含新旧两代对照、营销页滞后矛盾清单、10 张信源原图（官方网关/基准/论文图，官网、托管版与博客的插图和实拍）与 clean-room 原型八场景五破坏实验；含 955aa6fc（2026-11-10）接入面增量：宿主 hooks/日志摄取/Gateway 三路自动捕获与保真度分层、Agent Evolution 开关链、矛盾清单 N9–N11、新增 §15；含部署经济学 §16（2026-11-12）：本机 vlm 槽「到达率>服务率」死局（多模态文本预算减半、热墙、重试级联）与云端选型全比价（外部市场、GLM/Gemini 免费档实证否决、公司 LLM 平台 51 模型 Detail 实核、testing 个人额度已爆停用须切 production），选定 gpt-5-nano + text-embedding-3-small（Semantic ≈$2.0/天、Keyword ≈$0.6/天）"
+description: "volcengine/OpenViking 精读（换代重写；钉点 6227af51，2026-10-21，v0.5.1.1，AGPL-3.0）：viking:// 树统一资源/记忆/技能、目录级 L0/L1/L2 sidecar 与新鲜度冒泡、检索换代为全局召回 2×limit + 单遍精排 + 阈值后置（上游 #5450 删除目录递归）、会话两阶段提交与 schema 身份判据记忆提炼、Gateway 模型代理（v0.5 新增）与 User/Peer 归属一等化、多租户/ACL/信封加密/快照治理面；含新旧两代对照、营销页滞后矛盾清单、10 张信源原图（官方网关/基准/论文图，官网、托管版与博客的插图和实拍）与 clean-room 原型八场景五破坏实验；含 955aa6fc（2026-11-10）接入面增量：宿主 hooks/日志摄取/Gateway 三路自动捕获与保真度分层、Agent Evolution 开关链、矛盾清单 N9–N11、新增 §15；含部署经济学 §16（2026-11-12）：本机 vlm 槽「到达率>服务率」死局（多模态文本预算减半、热墙、重试级联）与云端选型全比价（外部市场、GLM/Gemini 免费档实证否决、公司 LLM 平台全量枚举与候选 Detail 实核、testing 个人额度已爆停用须切 production），选定 vlm 槽 gpt-5-nano（embedding 槽保持本地 0.6b；Semantic ≈$2.0/天、Keyword ≈$0.6/天）"
 last_update:
   author: Aurelius Huang
   as-of: 2026-11-12
@@ -485,11 +485,11 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 
 ## 16. 部署经济学：本机推理死局与云端选型（2026-11-12）
 
-主钉各章讲机制，本节讲把它跑起来的钱与热：本机自部署 OpenViking 时 vlm（抽取）/embedding 两槽的推理经济性。回答的问题是：无风扇 MacBook Air M4（24GB）自托管全量语义抽取是否可行，不可行时云端切到哪、每天多少钱。结论先行：本机全量语义抽取撞「到达率>服务率」死局，已冻结（`AUTO_CAPTURE=0` + launchctl bootout，找到有效优化方式前不拉起）；云端最优组合为公司 LLM 平台 gpt-5-nano + text-embedding-3-small，Semantic 全量 ≈$2.0/天、Keyword ≈$0.6/天，占 production 个人日额度 $100 的 2%。运营时间线、冻结手术与恢复 SOP 见台账 [I-257/I-259/I-260](../../.agents/issue.md)；56 万 token 全量调研存在 OpenViking 笔记 `viking://user/default/resources/openviking/notes/2026-11-11-lighter-local-inference-research.md`（服务冻结期间不可读）。本节只承载可复用的对比结论，价格均为 2026-11-12 实核、随市场与平台更新漂移。
+主钉各章讲机制，本节讲把它跑起来的钱与热：本机自部署 OpenViking 时 vlm（抽取）/embedding 两槽的推理经济性。回答的问题是：无风扇 MacBook Air M4（24GB）自托管全量语义抽取是否可行，不可行时云端切到哪、每天多少钱。结论先行：本机全量语义抽取撞「到达率>服务率」死局，已冻结（`AUTO_CAPTURE=0` + launchctl bootout，找到有效优化方式前不拉起）；云端最优路径为公司 LLM 平台 gpt-5-nano 接管 vlm 槽（embedding 槽保持本地 qwen3-embedding:0.6b），Semantic 全量 ≈$2.0/天、Keyword ≈$0.6/天，占 production 个人日额度 $100 的 2%。运营时间线、冻结手术与恢复 SOP 见台账 [I-257/I-259/I-260](../../.agents/issue.md)；56 万 token 全量调研存在 OpenViking 笔记 `viking://user/default/resources/openviking/notes/2026-11-11-lighter-local-inference-research.md`（服务冻结期间不可读）。本节只承载可复用的对比结论，价格均为 2026-11-12 实核、随市场与平台更新漂移。
 
 ### 16.1 本机推理死局：到达率 > 服务率
 
-根因链（本机实测，2026-11-11）：插件按 20k pending tokens 触发 commit、auto-commit 空闲兜底，日均 19–33k 条抽取 prompt；多模态模型在 Ollama 下文本预算仅 num_ctx/2（视觉预留，实测 limit=8194、284 次截断）；无风扇 M4 持续 decode 仅 9–15 tok/s（预填 113 tok/s，热墙距 M4 标称水位差 3–8 倍）；NUM_PARALLEL=1 单车道排队 → 420s 超时 → 嵌套重试级联（当日 797 次超时，memories 12 个/天，云端时代 866 个/天）。硬结论：GPU/WindowServer 争抢无优先级解（PRIO_DARWIN_GPU 需私有授权）、macOS 无 per-process GPU cap、M4 无 ANE 路径、MLX 对 4B 档无优势、ov.conf `extra_request_body.num_gpu` 是死键（落顶层不在 options）；语义摘要与抽取共用单槽 vlm 车道且无优先级，语义导入被饿死 45%。
+根因链（本机实测，2026-11-11）：插件按 20k pending tokens 触发 commit、auto-commit 空闲兜底，单条抽取 prompt 19–33k token（五路调研全量日志统计中位 19.3k；与 I-257 晨间诊断样本同日最高 16091 属不同统计面，源日志待解冻对账）、日均数百条；多模态模型在 Ollama 下文本预算仅 num_ctx/2（视觉预留，实测 limit=8194、284 次截断）；无风扇 M4 持续 decode 仅 9–15 tok/s（预填 113 tok/s，热墙距 M4 标称水位差 3–8 倍）；NUM_PARALLEL=1 单车道排队 → 超时级联（vlm timeout 自 120 逐档上调 300/420/900 仍追不上单任务服务时间，11-11 当日 797 次超时，memories 12 个/天，云端时代 866 个/天）。硬结论：GPU/WindowServer 争抢无优先级解（PRIO_DARWIN_GPU 需私有授权）、macOS 无 per-process GPU cap、M4 无 ANE 路径、MLX 对 4B 档无优势、ov.conf `extra_request_body.num_gpu` 是死键（落顶层不在 options）；语义摘要与抽取共用单槽 vlm 车道且无优先级，语义导入被饿死 45%。
 
 | 本地候选（Ollama） | 实测 | 判决 |
 | --- | --- | --- |
@@ -501,36 +501,36 @@ uv run --no-project python docs/research/cognitive-context/assets/openviking_lab
 
 ### 16.2 云端外部市场比价（2026-11-12 核价）
 
-成本模型两要点：云成本须按迭代重发计（单任务 ~80k input = 20k × 4–6 轮 ReAct 迭代重发 + 4.5k output，非单轮 20k）；prompt cache read 约为输入价 1/10，是主要省钱杠杆。
+成本模型三要点：云成本须按迭代重发计（单任务 ~80k input = 20k × 4–6 轮 ReAct 迭代重发 + 4.5k output，非单轮 20k）；prompt cache read 约为输入价 1/10，是主要省钱杠杆；下表折算用**常规日口径**（keyword 常态 ~100 条 = 8M in/0.45M out，I-260），Semantic 全量口径见 §16.4、约为常规日的 3–3.5 倍。
 
-| 供应商/模型 | 输入/输出每 1M | Semantic 日成本折算 | 备注 |
+| 供应商/模型 | 输入/输出每 1M | 常规日成本折算 | 备注 |
 | --- | --- | --- | --- |
 | 阿里 qwen-flash | ¥0.15/¥1.5 | ≈¥1.9 | 外部市场主推，缓存再省九成 |
-| 豆包 doubao-2.0-mini（低优先级档） | — | ≈¥1.25 | 次选 |
+| 豆包 doubao-seed-2.0-mini（低优先级档） | — | ≈¥1.25 | 次选 |
 | qwen3.7-flash | $0.03/$0.13 | — | 国际档 |
 | Together Qwen3.5-9B | $0.17/$0.25 | ≈$1.5 | 开放权重多模态，视觉恢复档 |
-| Anthropic Haiku 5.5 | $0.10/$0.50（cache read $0.01） | ≈$3.2 | 与公司平台 gpt-6-luna 同价，无独立优势 |
+| Anthropic Haiku 5.5 | $0.10/$0.50（cache read $0.01） | ≈$1.0 | 与公司平台 gpt-6-luna 同价，无独立优势 |
 
 免费档逐路实证否决：GLM-4.7-Flash 11 次真实调用 0 成功（1305 现行档瞬拒、1309 老代档与已到期 Coding Plan 硬绑），免费≠可用（22:00 后错峰复测留翻案窗口）；OpenRouter ernie-5.5-flash:free 受 1000 RPD 上限 + $10 充值门槛；Gemini API 免费档 flash 仅 20 RPD，Google AI Pro 学生订阅不解锁 API 限额，且免费档条款允许训练 + 人工审阅（非 EEA 地区），公司代码上下文直接否决；Gemini embedding 换维度还会触发 vectordb rebuild（EmbeddingRebuildRequiredError）。
 
 ### 16.3 公司 LLM 平台实核（platform-llm.automizely.org，2026-11-12）
 
-平台按 Output 单价分三层档位（T1 高价 >$10、T2 标准 $1–10、T3 经济 <$1）；3 页 51 个模型全部枚举、关键候选逐一开 Detail 实核。
+平台按 Output 单价分三层档位（T1 高价 >$10、T2 标准 $1–10、T3 经济 <$1）；列表 3 页全量枚举（按调用量实时排序、翻页成员会漂移，不作精确计数）、关键候选逐一开 Detail 实核。
 
-额度面（决定走哪个环境）：个人 testing $30/月为硬限制，OV 云端时代正走 testing，本月 33,948 请求、160.8M in/15.9M out、$33.56（112%）已停用、次月 1 日恢复；个人 production 默认 $100/天、$3,000/月为软限制（超限提醒不停用）。OV 切云必须走 production。实测锚点：gpt-5.6-luna 时代活跃日 $6.1–8.7、七日均值 $4.1；text-embedding-3-small 月 19,166 次调用仅 $0.43。
+额度面（决定走哪个环境）：个人 testing $30/月为硬限制，OV 云端时代正走 testing，本月 33,948 请求、160.8M in/15.9M out、$33.56（112%）已停用、次月 1 日恢复；个人 production 默认 $100/天、$3,000/月为软限制（超限提醒不停用）。OV 切云必须走 production。实测锚点：gpt-5.6-luna 时代七日均值 $4.1、活跃四日（11-06–11-09）均值 $6.1、峰值 $8.7；text-embedding-3-small 月 19,166 次调用仅 $0.43（迁移前云端累计，见下）。
 
 LLM/VLM 槽（需 text·image 输入，T3 经济档实核）：
 
 | 模型 | 输入/输出/缓存读每 1M | Context/MaxOut | 判读 |
 | --- | --- | --- | --- |
-| gpt-5-nano ⭐ | $0.05/$0.40/$0.005（Batch 价再五折） | 272k/128k | 三项单价全场最低；全司仅 ~11 次调用，抽取质量未实证 |
+| gpt-5-nano ⭐ | $0.05/$0.40/$0.005（Batch 价再五折） | 272k/128k | 可收图候选中三项单价最低（单价更低的 decision-1 因 32k ctx 与纯文本被否决）；全司仅 ~11 次调用，抽取质量未实证 |
 | gpt-6-luna | $0.10/$0.50/$0.01 | 922k/128k | 全司主力（10 万级调用），稳健档；专项 Rate Limits 未配置（回落 Azure 侧） |
 | claude-haiku-5-5 | $0.10/$0.50/$0.01 | 1M/128k | 与 gpt-6-luna 同价、ctx 更大，经 Vertex 提供 |
 | gpt-4.1-nano | $0.10/$0.40/$0.025 | 1M/32k | 缓存读反而更贵，无优势 |
 | decision-1 | $0.042/$0（输出免费） | 32k/纯文本 | 纸面全场最低，但单任务 ~80k 迭代重发第二轮即爆 ctx 且不能收图，VLM 槽否决 |
 | gemini-3.1-flash-lite（Gemini 系最便宜） | $0.25/$1.50/$0.025 | 1M/65k | 输入 5×、输出 3.75× 于 gpt-5-nano；Gemini LLM 全系落 T1/T2，无更便宜选择（3.5-flash-lite $0.30/$2.50，flash/pro 档更贵） |
 
-Embedding 槽（T3 经济档实核）：text-embedding-3-small ⭐ $0.022/1M、ctx 8,192，冻结前两日（11-10/11-11）仍有计费调用，即 embedding 槽本就指向云端 3-small，保持现状零迁移；gemini-embedding-2 $0.20（多模态 embedding）；text-embedding-004/005 各 $0.10 但 ctx 仅 2,048；text-embedding-ada-002 被平台标注应由 3-small 替代。
+Embedding 槽（T3 经济档实核）：云端最便宜是 text-embedding-3-small $0.022/1M、ctx 8,192（gemini-embedding-2 $0.20 多模态；text-embedding-004/005 各 $0.10 但 ctx 仅 2,048；ada-002 被平台标注应由 3-small 替代）。本机实况（台账 I-258）：embedding 槽在 I-257 本地迁移中已换 qwen3-embedding:0.6b（1024 维）并全量 reindex 完成，本月 19,166 次/$0.43 为迁移前云端累计——回云端 3-small 须再过一次 1024→1536 维度迁移加 reindex（EmbeddingRebuildRequiredError，I-258 备份流程），并非零迁移；选定方案因此让 embedding 槽保持本地（0.6b 推理轻量、非卡顿根因），切云留作后续可选项。
 
 ### 16.4 双模式日成本与选定组合
 
@@ -538,12 +538,12 @@ Token 基准取平台 My Usage 实测：Semantic 活跃日 ~25M 输入（含 21%
 
 | 组合 | Semantic/天 | Keyword/天 |
 | --- | --- | --- |
-| gpt-5-nano + text-embedding-3-small（选定） | ≈$2.0（¥15） | ≈$0.6（¥4.3） |
-| gpt-6-luna 或 claude-haiku-5-5 + 3-small（稳健档） | ≈$3.2 | ≈$1.0 |
-| gemini-3.1-flash-lite + 3-small | ≈$8.6 | — |
-| 旧 gpt-5.6-luna（testing，已爆停用） | 实测 $4.1–8.7 | — |
+| vlm=gpt-5-nano、embedding 留本地 0.6b（选定） | ≈$2.0（≈¥14） | ≈$0.6（≈¥4.3） |
+| vlm=gpt-6-luna 或 claude-haiku-5-5、embedding 留本地（稳健档） | ≈$3.2 | ≈$1.0 |
+| vlm=gemini-3.1-flash-lite、embedding 留本地 | ≈$8.6 | — |
+| 旧 gpt-5.6-luna 全云（testing，已爆停用） | 实测均值 $4.1 / 峰值 $8.7 | — |
 
-选定组合与执行前提：vlm 槽 gpt-5-nano（稳健路径先用 gpt-6-luna 跑通并清 192 积压、抽检质量后再 A/B 切 nano 省钱），embedding 槽保持 3-small 不动，query_planner 本地 752M 不动；必须申请 production 个人 key（testing 已停用）；gpt-5-nano 质量坏例回退 gpt-6-luna。恢复链路：ov.conf vlm 槽一配置块切云 → 18790 孤儿网关 SOP 拉起服务 → 清积压 → CAPTURE_MODE 回 semantic。
+表内成本为 vlm 槽云端部分（embedding 留本地；若一并切云 3-small 每天再加约 $0.02，且须过 I-258 维度迁移流程，暂不值）。选定组合与执行前提：vlm 槽 gpt-5-nano（稳健路径先用 gpt-6-luna 跑通并清 192 积压、抽检质量后再 A/B 切 nano 省钱），embedding 槽保持本地 qwen3-embedding:0.6b 不动，query_planner 本地 752M 不动；必须申请 production 个人 key（testing 已停用）；gpt-5-nano 质量坏例回退 gpt-6-luna。恢复链路：ov.conf vlm 槽一配置块切云 → 18790 孤儿网关 SOP 拉起服务 → 清积压 → CAPTURE_MODE 回 semantic。
 
 ## 换代对账（旧版结论去向速查）
 
