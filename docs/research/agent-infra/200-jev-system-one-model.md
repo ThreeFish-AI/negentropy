@@ -1,15 +1,15 @@
 ---
 sidebar_position: 6
 title: "Jev（TypeSafe System One Model）精读与通俗拆解"
-description: "TypeSafe Jev 决策模型精读（2026-11-03 快照，Jev 1.14.0）：闭合输出 × 共享读隔离问 × 校准概率与 confidence × 快慢分工；官方口径与第三方实测对账；原型 jev_lab.py、S1–S11 自检、B1–B5 破坏实验、laya 复刻实测"
+description: "TypeSafe Jev 决策模型精读（2026-11-12 复核，Jev 1.14.0）：闭合输出 × 共享读隔离问 × 校准概率与 confidence × 快慢分工；官方口径与第三方实测对账；原型 jev_lab.py、S1–S11 自检、B1–B5 破坏实验、laya 复刻实测；5 张信源原图"
 last_update:
   author: Aurelius Huang
-  as-of: 2026-11-03
+  as-of: 2026-11-12
 ---
 
 # Jev（TypeSafe System One Model）精读与通俗拆解
 
-> [1] TypeSafe AI, "Introducing System One Models and Jev," typesafe.ai 博客，2026-09-15（[原文](https://typesafe.ai/blog/introducing-system-one-models-and-jev)）；docs.typesafe.ai，所据 `jev-1.14.0`（2026-10-14 发布，2026-11-03 抓取）。较 2026-09-26 快照已换代：模型版本化（1.13/1.14 + `jev-latest`）、实验性 images 输入与 Box 类型、可选 262k 长上下文，受影响处两说并陈。
+> [1] TypeSafe AI, "Introducing System One Models and Jev," typesafe.ai 博客，2026-09-15（[原文](https://typesafe.ai/blog/introducing-system-one-models-and-jev)）；docs.typesafe.ai，所据 `jev-1.14.0`（2026-10-14 发布，2026-11-03 抓取、2026-11-12 复核无版本变化）。较 2026-09-26 快照已换代：模型版本化（1.13/1.14 + `jev-latest`）、实验性 images 输入与 Box 类型、可选 262k 长上下文，受影响处两说并陈。
 
 **一句话定位**：Jev 改变了「判断」的交付方式——从「写一段话再由程序解析」改成「在预先定好的选项上直接交出一张概率表」。换来结构确定、一次多问、按量对账的便宜判断；它不保证判断正确，**只保证判断的形状与不确定性可以被代码消费**。
 
@@ -58,7 +58,11 @@ M1 预钉答案空间 → M2 state 编码一次 · 各题隔离 → M3 概率可
 
 Score 的答案是概率加权期望而非某个等级，可合法落在两级之间：文档示例 `0×0.0 + 1×0.57 + 2×0.43 = 1.43`；模型看不到级号与相邻级 [1]。question id 不送入模型，但选项名与描述会送入 [1]；单选行建议印「其他 / 都不是」格。255 上限（2⁸ − 1）由服务端执行：第三方实测 256 选项返回 400，公开原始响应里 225 条同因被拒（nibzard@8404980）。1.14 新增实验性第四类型 Box——在请求所附图片中定位指令描述的目标（须 `jev-preview` 模型；JevBench Box 赛道也只有 1.14 一行，75.71）。
 
-走查（实际运行日志，原型 `assets/jev_lab.py`）：六张客服工单各问「归哪个部门」（Choice：billing / technical / account / other），S2 越界 **0/6**、内容错 **2/6**——形状保证不等于内容保证。陷阱工单「There is no error… I just want my refund」被字面读成技术故障，集中度 0.981 照样自动执行（S3b）：集中也会集中地错。第三方基准 Emotion 任务 16% 样本对真标签给出零概率——格子全对、填的是错格。去掉闭合输出的世界由 B1 演示：六问 6/6 越界、下游 switch 全部落空（§8）。官方把「0% hallucinations」画进图表时自报「Our number is not empirical」[1]——「零幻觉」**只能紧跟「仅指格式与类型层」使用**。
+走查（实际运行日志，原型 `assets/jev_lab.py`）：六张客服工单各问「归哪个部门」（Choice：billing / technical / account / other），S2 越界 **0/6**、内容错 **2/6**——形状保证不等于内容保证。陷阱工单「There is no error… I just want my refund」被字面读成技术故障，集中度 0.981 照样自动执行（S3b）：集中也会集中地错。第三方基准 Emotion 任务 16% 样本对真标签给出零概率——格子全对、填的是错格。去掉闭合输出的世界由 B1 演示：六问 6/6 越界、下游 switch 全部落空（§8）。官方在错误率对比图（信源原图 1）里给 Jev 的结构化输出与工具调用都记 0%，同时自报「Our number is not empirical」[1]——「零幻觉」**只能紧跟「仅指格式与类型层」使用**。
+
+![官方错误率对比：结构化输出与工具调用，Jev 两项记 0%，LLM 对照组非零](../../assets/source-figures/agent-infra/jev--src-01-error-rates.png)
+
+*信源原图 1（来源：TypeSafe AI 2026 [1] 原文〈Hallucination and Type-safety〉节配图，2026-11-12 抓取；版权归原作者，仅作学习引用）：结构化输出与工具调用两项出错率（测各家 LLM 代答时的类型与调用错误）——Jev 按构造记 0%（官方自报非实测、LLM 数字取自 OpenRouter 且自认存在路由偏置），对照组错误率非零。*
 
 ## 4. 机制二：共享读 · 隔离问——资料读一遍，各题互不可见
 
@@ -90,9 +94,21 @@ Score 的答案是概率加权期望而非某个等级，可合法落在两级�
 
 ## 6. 机制四：快慢分工与分流编排——收益在编排，不在模型
 
-原则是 code owns the workflow：Jev 是「smart if-statements」里的那个判断，不是流程的持有者 [1]。推荐三档分流——自动执行 / 复核后执行 / 转人工或上报，且「thresholds scale with risk」（confidence 页示例 0.5 下限、routing pattern 0.6，高风险动作更高阈值 [1]）。慢而贵的 System 2 推理模型负责起草问题与预案、接手疑难（快慢分工与级联谱系 [15][16][17]）。反面教材是让 LLM agent 自己持有控制流——官方原话「every loop introduces another opportunity to go off the rails」[1]。
+原则是 code owns the workflow：Jev 是「smart if-statements」里的那个判断，不是流程的持有者 [1]。推荐三档分流——自动执行 / 复核后执行 / 转人工或上报，且「thresholds scale with risk」（confidence 页示例 0.5 下限、routing pattern 0.6，高风险动作更高阈值 [1]）。慢而贵的 System 2 推理模型负责起草问题与预案、接手疑难（快慢分工与级联谱系 [15][16][17]）。反面教材是让 LLM agent 自己持有控制流——官方原话「every loop introduces another opportunity to go off the rails」[1]；docs 的三联架构对照（信源原图 2）把这层分工画成官方立场。
 
-原型一屏演完分流（实际运行日志）：conf=0.8 时 reply 自动执行、refund 进复核（S9：reply→auto · refund→review）；去掉风险分档改一刀切，refund 0.62 与 approve_transfer 0.7 全部 auto（B5）。官方 workflow evals 的核心结论不是 Jev 最准——四任务均值 67.8% 低于对照 sol 的 74.1%——而是「every model is more accurate, cheaper and faster in the workflow than with the same policy as a prompt」（workflow＝按清单逐题问、代码组合；prompt＝同一套规则一次答完）[1]。
+![官方三联架构对照：传统软件、LLM agents、AI-powered software](../../assets/source-figures/agent-infra/jev--src-02-software-architectures.webp)
+
+*信源原图 2（来源：TypeSafe AI docs [1] 原文〈Three software architectures〉节配图，2026-11-12 抓取；版权归原作者，仅作学习引用）：传统软件（复杂决策树全由代码写死）、LLM agents（模型自选下一步，每个 loop 多一次脱轨机会）、AI-powered software（代码持有控制流与副作用，模型只在需要常识判断处做原子窄判断）三种架构的官方对照。*
+
+原型一屏演完分流（实际运行日志）：conf=0.8 时 reply 自动执行、refund 进复核（S9：reply→auto · refund→review）；去掉风险分档改一刀切，refund 0.62 与 approve_transfer 0.7 全部 auto（B5）。官方 workflow evals 的核心结论不是 Jev 最准——四任务均值 67.8% 低于对照 sol 的 74.1%——而是「every model is more accurate, cheaper and faster in the workflow than it is with the same policy as a prompt」（workflow＝按清单逐题问、代码组合；prompt＝同一套规则一次答完）[1]。workflow 长什么样、prompt 怎么输，见信源原图 3/4。
+
+![官方最简 workflow 实例：安全告警分诊四段流水线](../../assets/source-figures/agent-infra/jev--src-03-alert-triage-workflow.png)
+
+*信源原图 3（来源：TypeSafe AI 2026 [1] 原文〈Workflow evals〉节配图「最简单的一个 workflow」，2026-11-12 抓取；版权归原作者，仅作学习引用）：官方公开四个评测 workflow 中最简单的一个——安全告警分诊。告警 state 先过 Triage（3 个读取题：是否未授权、有无记录可解释、证据多强）；代码在 Disposition 按概率分流 auto close / notify user / escalate，判为 act（很可能未授权）者再过 Containment（11 个读取题判事件状态）；Playbook 里代码按首个命中的处置组选动作、无组命中则紧急升级。题目全是 Noul/Choice/Score 三原语，阈值与分组握在代码手里——三档分流的官方实景。*
+
+![四 workflow 均值的精度-成本散点：workflow 菱形对 prompt 圆点，Jev 占前沿](../../assets/source-figures/agent-infra/jev--src-04-accuracy-vs-cost.png)
+
+*信源原图 4（来源：TypeSafe AI 2026 [1] 原文〈Workflow evals〉节配图 "Average of 4 workflows: accuracy vs cost"，2026-11-12 抓取；版权归原作者，仅作学习引用）：四任务均值散点（成本对数轴），菱形＝workflow、圆点＝prompt；Pareto 前沿＝没有别的点同时更便宜又更准，官方口径 Jev 占住前沿近两个数量级（快与省两维），同模型的 workflow 点普遍比自己的 prompt 点更准更省。本图即 §7 #1/#2 与争议 2 所对账的原始出处。*
 
 判断变便宜后，**被判断的东西会变多**（Jevons 效应 [1]；Doom demo 每秒约 10 次查询、约 $7/小时）。但便宜只对「问对了对象」的流水线兑现：第三方逐行提问付款决策，32/32 批准判断全对，16 例金额错误一例没抓到——问错维度，便宜也白搭。
 
@@ -110,11 +126,15 @@ Score 的答案是概率加权期望而非某个等级，可合法落在两级�
 | 8 | kev 对拍（dev 集 11 任务） | Jev 0.857 / Brier 0.211；5% 错误预算自动化率 0.70 vs 0.45–0.57 | 2026-09 @58d9438 | 差距在排序——单一温度无法重排置信 |
 | 9 | laya 复刻（feishu_zh / 49 suite） | 中文 64/64 vs 20/64（64 例合成题）；温度修复 ECE 0.466→0.081 | 2026-09 @55cf4c4 | 中文差距真实；过度自信可在读数层修 |
 
-独立证据：延迟 2–6×（0.44s 对 2.16–2.83s、0.65s 对 1.48s）支撑「便宜快」；§5 的分布内 ECE 0.031 对 #3/#4 支撑「分布内外分界」；#1 的跨模型结论支撑「收益在编排」。
+独立证据：延迟 2–6×（0.44s 对 2.16–2.83s、0.65s 对 1.48s）支撑「便宜快」；§5 的分布内 ECE 0.031 对 #3/#4 支撑「分布内外分界」；#1 的跨模型结论支撑「收益在编排」。#8 的逐源对拍见图（信源原图 5）。
+
+![Kev 各尺寸与 Jev 在 11 个未训练新源任务上的逐源精度哑铃图](../../assets/source-figures/agent-infra/jev--src-05-kev-jev-accuracy.png)
+
+*信源原图 5（来源：[jaredpalmer/kev @58d9438](https://github.com/jaredpalmer/kev/blob/58d9438/docs/kev-family.png) README 配图，Apache-2.0）：Kev 训练从未覆盖的 11 个新数据源上的逐源精度（每源一行、行内各点为各模型精度）。据 kev README 自报，Kev-27B 在 9/11 源上与 Jev 相差 3 分以内或反超；各家差距集中在知识（MMLU 上 Jev 0.90 对 Kev-27B 0.84），较小尺寸另输在日期算术——均值接近（#8 的 0.857）但排序追不上，温度缩放只改读数不改排序（§5），重排不了置信。*
 
 ## 8. 动手实验室
 
-原型 [`assets/jev_lab.py`](./assets/jev_lab.py)：纯标准库、确定性（无随机数）的最小复刻，判读器是关键词打分 mock，验证机制自洽而非模型聪明。`--selftest` 秒级跑完 S1–S11；`--break B1..B5` 每次只拆一个机制；`--count <md>` 是本笔记字数门禁（≤6000）。「实际运行日志」均来自真实运行（2026-11-03 复跑，与 2026-09 版逐字一致）。
+原型 [`assets/jev_lab.py`](./assets/jev_lab.py)：纯标准库、确定性（无随机数）的最小复刻，判读器是关键词打分 mock，验证机制自洽而非模型聪明。`--selftest` 秒级跑完 S1–S11；`--break B1..B5` 每次只拆一个机制；`--count <md>` 是本笔记字数门禁（≤7000）。「实际运行日志」均来自真实运行（2026-11-03 复跑，与 2026-09 版逐字一致）。
 
 | 机制 | 函数（行号） |
 | --- | --- |

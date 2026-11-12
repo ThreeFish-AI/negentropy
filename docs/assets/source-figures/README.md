@@ -160,3 +160,15 @@ Memadapter 论文图 1–3 取自 [arXiv:2610.05162v1](https://arxiv.org/html/26
 | [amc--fig10-wiki-scaling.png](./cognitive-context/amc--fig10-wiki-scaling.png) | 原文图 10（3136×1432，wiki 随会话增长） | 同上 | 原样（1112 KiB） |
 | [amc--fig11-wiki-benefit-by-task.png](./cognitive-context/amc--fig11-wiki-benefit-by-task.png) | 原文图 11（3840×3694，wiki 收益大与小的任务） | 同上 | 原样（1178 KiB） |
 | [amc--fig14-shared-page-collision.png](./cognitive-context/amc--fig14-shared-page-collision.png) | 原文图 14（3840×1822，共享页覆盖与一合同一页） | 同上 | 原样（219 KiB） |
+
+### agent-infra · Jev 精读（[200](../../research/agent-infra/200-jev-system-one-model.md)）
+
+抓取基准：博客/文档站 2026-11-12 抓取（上游 changelog 最新条目仍为 Jev 1.14 / 2026-10-14，与笔记所据版本一致）；kev 取 [jaredpalmer/kev](https://github.com/jaredpalmer/kev) `58d9438` 下 `docs/kev-family.png`。TypeSafe 页面未挂开放许可，站点 Terms of Use（2026-09-19）含再限制让条款——**经用户 2026-11-12 明示指令（把高价值信源原图找补回正文）按例外通道入库**，署名「版权归原作者，仅作学习引用」；kev 为 Apache-2.0 按许可名署名、链接固定 SHA。原图 3 的 palette 半透明索引（#1d1d1d，未命中实际像素）剥 tRNS 后以同族底色不透明呈现，无内容改动；其余原样入库。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [jev--src-01-error-rates.png](./agent-infra/jev--src-01-error-rates.png) | 博客〈Hallucination and Type-safety〉节配图（2048×633，结构化输出/工具调用错误率，Jev 记 0%） | 版权归 TypeSafe AI，仅作学习引用（用户授权 2026-11-12） | 原样（25 KiB） |
+| [jev--src-02-software-architectures.webp](./agent-infra/jev--src-02-software-architectures.webp) | docs〈Three software architectures〉节配图 dark 变体（2048×1117，传统软件/agent/AI-powered 三联对照） | 同上 | webp 原样（178 KiB，VP8 无透明） |
+| [jev--src-03-alert-triage-workflow.png](./agent-infra/jev--src-03-alert-triage-workflow.png) | 博客〈Workflow evals〉节配图「最简单的一个 workflow」（2048×704，安全告警分诊四段流水线） | 同上 | 剥未命中像素的 tRNS 索引（103 KiB） |
+| [jev--src-04-accuracy-vs-cost.png](./agent-infra/jev--src-04-accuracy-vs-cost.png) | 博客〈Workflow evals〉节配图 "Average of 4 workflows: accuracy vs cost"（1672×918，workflow/prompt 散点与前沿） | 同上 | 原样（29 KiB） |
+| [jev--src-05-kev-jev-accuracy.png](./agent-infra/jev--src-05-kev-jev-accuracy.png) | [kev README @58d9438](https://github.com/jaredpalmer/kev/blob/58d9438/docs/kev-family.png) 配图 "Accuracy by source for Kev and Jev"（2380×1615，11 源哑铃图） | Apache-2.0 | 原样（263 KiB，RGBA 全不透明） |

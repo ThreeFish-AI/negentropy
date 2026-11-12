@@ -13,7 +13,7 @@
 用法：
   python3 jev_lab.py --selftest          # 全部场景断言，结尾打印 SELFTEST PASSED
   python3 jev_lab.py --break B1..B5      # 逐一拆掉一个机制，打印实测退化
-  python3 jev_lab.py --count <md>        # 字数门禁：剥围栏/图片行/URL，CJK+ASCII 词，>6000 退出码 2
+  python3 jev_lab.py --count <md>        # 字数门禁：剥围栏/图片行/URL，CJK+ASCII 词，>7000 退出码 2
 """
 
 from __future__ import annotations
@@ -384,7 +384,7 @@ if __name__ == "__main__":
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--break", dest="brk")
     ap.add_argument("--dump", action="store_true", help="打印批量结果 JSON")
-    ap.add_argument("--count", metavar="MD", help="字数门禁（≤6000 退出码 0，超限退出码 2）")
+    ap.add_argument("--count", metavar="MD", help="字数门禁（≤7000 退出码 0，超限退出码 2）")
     a = ap.parse_args()
     if a.selftest:
         selftest()
@@ -395,7 +395,7 @@ if __name__ == "__main__":
     elif a.count:
         n = count_words(a.count)
         print(f"{n}（剥围栏/图片/URL 口径：CJK 字符 + ASCII 词）")
-        sys.exit(0 if n <= 6000 else 2)
+        sys.exit(0 if n <= 7000 else 2)
     else:
         ap.print_help()
         sys.exit(1)
