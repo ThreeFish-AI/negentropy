@@ -262,10 +262,10 @@
 | I-254 | 013 沉淀轴吸收 Anthropic Agent 记忆精读（254）：巩固消费端动作类型学、写入拓扑与 salience 判据 | ✅ 已完成 | 2026-11-08 | [详情](#I-254) |
 | I-255 | claude-code-harness 系列：片头空白压到约 1s、配音 atempo 提速 1.25×（20 集全量重渲交付） | ✅ 已完成 | 2026-11-08 | [详情](#I-255) |
 | I-256 | claude-code-harness ep01《Agent Loop》逐字稿、分镜与策划案公理化重构与声画咬合 | ✅ 已完成 | 2026-11-08 | [详情](#I-256) |
-| I-257 | OpenViking 本地 Ollama 迁移观察期：11-11 超时破线后经 I-259 全程治理，观察基线冻结于 4b+6144/900（服务已 bootout） | 🔄 进行中 | — | [详情](#I-257) |
+| I-257 | OpenViking 本地 Ollama 迁移观察期：11-11 超时破线后经 I-259 全程治理与冻结，11-13 切云上线后观察期终结（服务云端槽位运行中） | ✅ 已完成 | 2026-11-13 | [详情](#I-257) |
 | I-258 | OpenViking 迁移备份件清理：旧 1536 维向量库与旧网关配置（到期 2026-11-17） | 🔄 进行中 | — | [详情](#I-258) |
 | I-259 | OpenViking vlm 槽本地轻量化全程：三代模型切换、输出帽耦合根因、到达率死局与用户裁决冻结 | ✅ 已完成 | 2026-11-12 | [详情](#I-259) |
-| I-260 | OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（终选公司平台 production，qwen-flash 降备选） | 🔄 进行中 | — | [详情](#I-260) |
+| I-260 | OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（终选公司平台 production 并于 11-13 执行上线，210 条排水 100% 挽回） | ✅ 已完成 | 2026-11-13 | [详情](#I-260) |
 
 ---
 
@@ -5959,6 +5959,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **生命周期**：GitHub Issue [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)（`chore` 标签）；执行结果与关闭状态以 Issue 为准，本条仅承载经验沉淀面，Issue 关闭后如有可沉淀经验在此增量更新。
 - **同类问题影响**：今后 OpenViking 模型槽位调整沿用「选型在线核验 → 配置迁移 → reindex 重建 → 日志观察期 → 升降档」闭环；完整方案与执行实录见 OpenViking `viking://user/default/resources/openviking/ollama-local-migration-plan.md`，到期提醒挂云 routine trig_01D3A7RP4pr6vubVuFBhrZPB（2026-11-13 10:00 Asia/Shanghai）。
 - **2026-11-12 增量**：观察期中止——11-11 22:2x 观察对象换为 `qwen3.5:2b-q4_K_M`、11-12 换 `qwen3:4b-instruct-2507-q4_K_M`（max_tokens 6144/timeout 900，零失败但单任务 15-30 分钟），当日 11:5x 用户裁决冻结（`launchctl bootout` + `AUTO_CAPTURE=0`）；11-13 到期检查按 [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246) 最新评论口径处置，全程治理与冻结依据沉淀于 [I-259](#I-259)。
+- **2026-11-13 终态**：切云上线（[I-260](#I-260)），vlm/embedding 槽云端运行、planner 保持本地，本机 GPU 归零；`AUTO_CAPTURE=1` + semantic 模式恢复，冻结期防御解除，观察期正式终结——「本地化观察」目标被「云端运行」取代，到期检查随之关闭。
 
 <a id="I-258"></a>
 
@@ -5984,7 +5985,7 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 
 <a id="I-260"></a>
 
-## I-260：OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（终选公司平台 production，qwen-flash 降备选）
+## I-260：OV 云端 vlm 供应商现价评估与 GLM 免费档实证否决（终选公司平台 production 并于 11-13 执行上线，210 条排水 100% 挽回）
 
 - **问题描述**：vlm 槽去云选型——识别「便宜且保证效果」的云端 API 并实证智谱 GLM-4.7-Flash「免费不限量」传闻是否可用。
 - **表因 / 根因**：云成本必须按迭代重发计——单任务全链路 ~80k input（20k prompt × 4-6 轮 ReAct 迭代重发；本地 llama.cpp 有 KV 前缀复用近乎免费、云端每调用全量计费）而非单轮 20k；云端时代 7.3 天烧穿 llms.as-in.io 配额（13.8M input/天）的真相即此，单轮口径会低估 4-5 倍。
@@ -5992,3 +5993,8 @@ R7 后浏览器对照 Section 2.1 区域发现两类正交缺陷：
 - **后续防范**：免费档选型必须真实调用验证——定价页「免费」与账户实际可用是两回事，套餐/权益等级会叠加门槛（限速数字仅控制台登录态可见）；云按量付费无配额焦虑（原网关烧穿的配额按市价仅值 ~¥14）；GLM 错峰复测留翻案窗口（22:00 后同 key 重跑实证组，若通过可作夜跑批处理专用档）。
 - **生命周期**：待办挂 [#1246](https://github.com/ThreeFish-AI/negentropy/issues/1246)。终选（2026-11-12 晚，公司 platform-llm 实核后）改走平台 production 个人 key（testing $30/月硬限已被 OV 打爆 112% 停用；production $100/天/$3,000/月软限）：vlm 槽 gpt-5-nano（稳健起步 gpt-6-luna，$0.05/$0.40/$0.005 vs $0.10/$0.50/$0.01）、embedding 槽保持本地 qwen3-embedding:0.6b（回云 3-small 须过 I-258 维度迁移，收益仅 ~$0.02/天暂不值），Semantic ≈$2.0/天、Keyword ≈$0.6/天，完整比价见 [014 精读 §16](../research/cognitive-context/014-openviking.md)；外部百炼/豆包（qwen-flash ¥1.9/天）降为无平台 key 时的备选，接入方式不变（ov.conf vlm 槽一个配置块切换 + 18790 预检 kickstart）；回滚锚点 `ov.conf.bak-20261111-2b` 系列沿用。
 - **同类问题影响**：OV 后续任何槽位上云沿用「迭代重发成本模型 → 官方页实核 → 真实调用实证」三步；报告类交付禁以子代理估算替代实测（GLM 案例中官方文档面全绿、实测一票否决）。
+- **2026-11-13 执行终态**：选型落地——vlm 槽 `openai/gpt-5-nano`（用户裁定直接用 nano，跳过 luna 稳健起步）、embedding 槽回迁云端 `text-embedding-3-small`@1536（用户指示覆盖「留本地」预判，I-258 迁移流程走通：mv 旧 1024 维库备份 → 新库全量 reindex）、planner 保持本地 752M；全天实际花费 $1.30（210 条排水 + 四轮重投 + 三轮 reindex），远低于 $3/天预算线。
+- **gpt-5 系配置三坑**（ov.conf 槽位，均已实测固化）：① `temperature` 必须为 1——OV base 层缺省 0.0 且恒发送（`models/vlm/base.py:73`），litellm 客户端对 gpt-5 系直接抛 UnsupportedParamsError；② `max_tokens` 可用——litellm 自动翻译为 `max_completion_tokens`（网关直传裸 max_tokens 会 400）；③ `extra_request_body.reasoning_effort: "none"` 必须显式——nano 是 reasoning 模型，不关思考则小 max_tokens 预算下思考吃光输出、content 为空，OV 解析必败（语义对齐旧 ollama `think:false`）。
+- **失败重投方法**（v0.5.3 无 retry_archive、retry_archive 为上游 Unreleased）：Phase 1 已归档的 session 直接重发 commit 会因 `no_messages` 幂等跳过；正确做法＝把 `history/archive_NNN/messages.jsonl` 逐条经 `POST /sessions/{sid}/messages` 灌回活动区（保留 role/parts/peer_id/created_at/turn_id 等原字段）→ 再发 `POST /sessions/{sid}/commit`。存量 210 条首轮 175 成功（83%），35 条 parse_error 全部来自同一父会话的 subagent 会话（nano 对受限 DSL——仅 `sdk.create_*/set_*` 赋值与调用——遵循不足，4 轮迭代纠不回）；四轮重投后 210/210 = 100%，证明 parse_error 属采样运气而非能力死局（2 条顽固例第 4 轮通过）。
+- **Azure 3-small 限速与防御**：`embedding.dense.max_concurrent` 缺省 10，对 Azure East US 2 档位触发 `429 RateLimitReached`（仅大批量 reindex 场景，日常个位数调用零触发）；已固化 `max_concurrent=1` + `max_retries=6`（429 指数退避 5s→120s，容忍窗 ~4.5 分钟）+ 每晚 22:10 launchd 差量 reindex 自愈（`ai.openviking.reindex-nightly`，幂等、只补失败差量）。预算看门狗（`ai.openviking.budget-watchdog`，10 分钟周期）读本机 usage_audit 按牌价计费：≥$2.5 macOS 通知预警、≥$5 自动 bootout 停服并清 18790 孤儿网关、未知云模型按 $10/M 高位警示防漂移到贵模型。
+- **运维坑复现**：18790 孤儿网关在 bootout→bootstrap 循环中复现两次（kickstart 逃逸子进程占端口），每次启动前须 `lsof -nP -tiTCP:18790 -sTCP:LISTEN` 预检并 `kill -9`；`ov reindex` 全树 `viking://` 会超 CLI 等待窗（服务端异步继续），按子树分批或只看 `ov task list` 即可。执行实录全文见 OpenViking 笔记 `viking://user/default/resources/openviking/notes/2026-11-13-cloud-cutover-execution.md`。
