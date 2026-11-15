@@ -26,13 +26,13 @@ const polar = (cx: number, cy: number, r: number, deg: number): {x: number; y: n
   return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
 };
 
-/** 五步站位（与 P1 同构；牌位文字 2–4 字） */
-const STATIONS: RingNode[] = [
-  {label: '进消息', angle: -90},
-  {label: '调模型', angle: -18},
-  {label: '查信号', angle: 54},
-  {label: '执行', angle: 126},
-  {label: '回塞', angle: 198},
+/** 五步站位（与 P1 同构：明确五大主语） */
+const STATIONS: (RingNode & {subject: string; sub: string})[] = [
+  {label: 'User', subject: 'User', sub: '目标种子', angle: -90},
+  {label: 'Harness', subject: 'Harness', sub: '底座装配', angle: -18},
+  {label: 'LLM', subject: 'LLM', sub: '认知决策', angle: 54},
+  {label: 'Tool', subject: 'Tool', sub: '终端执行', angle: 126},
+  {label: 'Context', subject: 'Context', sub: '观察回填', angle: 198},
 ];
 
 /** 三联布局 */
@@ -114,6 +114,46 @@ const Stage: React.FC<{
           dimNodes={active >= 0}
         />
       </div>
+
+      {/* 舞台中央：当前步主语徽章与核心动作 */}
+      {active >= 0 && active < STATIONS.length ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 790,
+            top: 220,
+            width: 460,
+            background: 'rgba(8, 14, 24, 0.92)',
+            border: `2px solid ${active === 0 ? theme.text : active === 1 ? theme.core : active === 2 ? theme.core : active === 3 ? theme.tool : theme.ok}`,
+            borderRadius: 14,
+            padding: '12px 18px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+            zIndex: 10,
+          }}
+        >
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6}}>
+            <span style={{fontFamily: theme.mono, fontSize: 13, fontWeight: 700, color: theme.dim}}>
+              {`STEP 0${active + 1} / 05`}
+            </span>
+            <span
+              style={{
+                fontFamily: theme.mono,
+                fontSize: 16,
+                fontWeight: 800,
+                color: active === 0 ? theme.text : active === 1 ? theme.core : active === 2 ? theme.core : active === 3 ? theme.tool : theme.ok,
+                background: 'rgba(255,255,255,0.08)',
+                padding: '2px 10px',
+                borderRadius: 6,
+              }}
+            >
+              {`[ 主语: ${STATIONS[active].subject} ]`}
+            </span>
+          </div>
+          <div style={{fontFamily: theme.sans, fontSize: 22, fontWeight: 700, color: theme.text}}>
+            {STATIONS[active].sub}
+          </div>
+        </div>
+      ) : null}
 
       {/* 左：代码窗（编辑器框架 + 逐步行落定） */}
       <div style={{position: 'absolute', left: CODE.x, top: CODE.y, width: CODE.w, ...winIn}}>
@@ -229,27 +269,25 @@ const BracketSweep: React.FC<{at: number}> = ({at}) => {
 // ── 2-B 步二特写件：工具清单打包流光 + 模型脑 ───────────────────────────
 
 const TOOLS = [
-  {zh: '读文件', en: 'read_file'},
-  {zh: '写文件', en: 'write_file'},
-  {zh: '命令行', en: 'bash'},
+  {zh: 'Shell 命令行', en: 'tools: [bash]', desc: 'run_bash'},
 ] as const;
 
 const BrainChip: React.FC<{litAt: number}> = ({litAt}) => {
   const enter = useProgress(2, DUR.f4);
   const lit = useImpulse({at: litAt, dur: DUR.f6});
   return (
-    <div style={{position: 'absolute', left: 880, top: 130, opacity: enter}}>
-      <div style={{boxShadow: `0 0 ${36 * lit}px ${theme.core}`}}>
-        <Panel style={{padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 12}}>
-          <svg width={44} height={44} viewBox="0 0 52 52">
-            <circle cx={26} cy={26} r={23} fill={theme.panel} stroke={theme.dim} strokeWidth={2.5} />
+    <div style={{position: 'absolute', left: 860, top: 120, opacity: enter}}>
+      <div style={{boxShadow: `0 0 ${40 * lit}px ${theme.core}`}}>
+        <Panel accent={lit > 0.5 ? theme.core : undefined} style={{padding: '10px 22px', display: 'flex', alignItems: 'center', gap: 14}}>
+          <svg width={48} height={48} viewBox="0 0 52 52">
+            <circle cx={26} cy={26} r={23} fill={theme.panel} stroke={lit > 0.5 ? theme.core : theme.dim} strokeWidth={2.5} />
             <g fill={theme.core} opacity={0.35 + 0.65 * lit}>
               <circle cx={17} cy={19} r={3.4} />
               <circle cx={33} cy={16} r={3.4} />
               <circle cx={22} cy={34} r={3.4} />
               <circle cx={36} cy={31} r={3.4} />
             </g>
-            <g stroke={theme.dim} strokeWidth={1.6} opacity={0.7}>
+            <g stroke={lit > 0.5 ? theme.core : theme.dim} strokeWidth={1.8} opacity={0.75}>
               <line x1={17} y1={19} x2={33} y2={16} />
               <line x1={17} y1={19} x2={22} y2={34} />
               <line x1={33} y1={16} x2={36} y2={31} />
@@ -257,8 +295,8 @@ const BrainChip: React.FC<{litAt: number}> = ({litAt}) => {
             </g>
           </svg>
           <div>
-            <div style={{fontFamily: theme.sans, fontSize: 24, fontWeight: 600, color: theme.text}}>{'模型'}</div>
-            <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>{'model'}</div>
+            <div style={{fontFamily: theme.sans, fontSize: 24, fontWeight: 700, color: theme.text}}>{'LLM 模型推理'}</div>
+            <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>{'client.messages.create'}</div>
           </div>
         </Panel>
       </div>
@@ -273,36 +311,36 @@ const CallPack: React.FC<{cardsAt: number; packAt: number; brainAt: number}> = (
   return (
     <AbsoluteFill>
       <BrainChip litAt={brainAt} />
-      {/* 工具清单小卡（打包时抬升压暗——内容并入流光） */}
+      {/* 工具定义小卡（打包时并入流光向模型发送） */}
       {TOOLS.map((t, i) => (
         <div
           key={t.en}
           style={{
             position: 'absolute',
-            left: 800,
-            top: 300 + i * 58,
-            width: 300,
-            height: 46,
+            left: 820,
+            top: 260 + i * 58,
+            width: 360,
+            height: 64,
             display: 'flex',
-            alignItems: 'baseline',
-            gap: 12,
-            padding: '0 16px',
+            alignItems: 'center',
+            gap: 14,
+            padding: '0 20px',
             boxSizing: 'border-box',
-            borderRadius: 10,
-            border: `2px solid ${theme.panelBorder}`,
-            background: theme.panel,
-            opacity: cards[i] * (1 - 0.62 * pack),
+            borderRadius: 12,
+            border: `2px solid ${theme.tool}`,
+            background: `${theme.tool}1A`,
+            opacity: cards[i] * (1 - 0.5 * pack),
             transform: `translateY(${(1 - cards[i]) * 12 - 10 * pack}px)`,
           }}
         >
-          <span style={{fontFamily: theme.sans, fontSize: 21, fontWeight: 600, color: theme.text}}>{t.zh}</span>
-          <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim, marginLeft: 'auto'}}>{t.en}</span>
+          <span style={{fontFamily: theme.sans, fontSize: 22, fontWeight: 700, color: theme.text}}>{t.zh}</span>
+          <span style={{fontFamily: theme.mono, fontSize: 16, color: theme.tool, marginLeft: 'auto'}}>{t.en}</span>
         </div>
       ))}
-      {/* 流光：消息列 → 掠工具卡 → 入环 */}
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
-        <path d={`M1380 300 C1240 330 1100 330 1000 300 C920 276 860 240 ${RC.cx + 30} ${RC.cy + 60}`} fill="none" stroke={theme.core} strokeWidth={4} strokeLinecap="round" opacity={0.5 * pack} />
-        <path d={`M1380 300 C1240 330 1100 330 1000 300 C920 276 860 240 ${RC.cx + 30} ${RC.cy + 60}`} fill="none" stroke={theme.core} strokeWidth={5} strokeLinecap="round" opacity={pack} {...flow} />
+      {/* 请求流光：messages 堆栈 + 工具清单 → 上行注入 LLM 芯片 */}
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
+        <path d="M1380 280 C1180 320 1080 300 960 210" fill="none" stroke={theme.core} strokeWidth={4} strokeLinecap="round" opacity={0.5 * pack} />
+        <path d="M1380 280 C1180 320 1080 300 960 210" fill="none" stroke={theme.core} strokeWidth={5} strokeLinecap="round" opacity={pack} {...flow} />
       </svg>
     </AbsoluteFill>
   );
@@ -396,9 +434,9 @@ const ScanVerdict: React.FC<{
   );
 };
 
-// ── 2-D 步四特写件：执行脉冲 + #01 配对 ─────────────────────────────────
+/// ── 2-D 步四特写件：本地 Shell 沙箱执行 + #01 配对 ───────────────────────
 
-const BAY = {x: 850, y: 660, w: 300, h: 104} as const;
+const BAY = {x: 820, y: 590, w: 380, h: 140} as const;
 
 const ExecPair: React.FC<{callAt: number; paramAt: number; pulseAt: number; resultAt: number}> = ({
   callAt,
@@ -409,7 +447,6 @@ const ExecPair: React.FC<{callAt: number; paramAt: number; pulseAt: number; resu
   const call = useEnter('pop', {at: callAt, dur: DUR.f4});
   const paramO = useProgress(paramAt, DUR.f3);
   const pulse = useImpulse({at: pulseAt, dur: DUR.f6});
-  const corners = 'M2 26 V2 H26 M272 2 H298 V26 M298 78 V102 H274 M26 102 H2 V78';
   const result = useEnter('pop', {at: resultAt, dur: DUR.f4});
   const PairTag: React.FC = () => (
     <span
@@ -419,46 +456,48 @@ const ExecPair: React.FC<{callAt: number; paramAt: number; pulseAt: number; resu
         right: -10,
         fontFamily: theme.mono,
         fontSize: 13,
-        color: theme.dim,
-        padding: '1px 6px',
+        color: theme.tool,
+        padding: '2px 8px',
         borderRadius: 6,
-        border: `1.5px solid ${theme.panelBorder}`,
-        background: theme.panel,
+        border: `1.5px solid ${theme.tool}`,
+        background: '#0D1117',
+        fontWeight: 700,
       }}
     >
-      {'#01'}
+      {'id: #01'}
     </span>
   );
+
   return (
     <AbsoluteFill>
-      {/* 调用块（携参数签）→ 执行位 */}
-      <div style={{position: 'absolute', left: 900, top: 480, ...call}}>
+      {/* 调用块（携参数签）→ 进入执行位 */}
+      <div style={{position: 'absolute', left: 860, top: 480, ...call}}>
         <div style={{position: 'relative'}}>
           <div
             style={{
               display: 'flex',
-              alignItems: 'baseline',
-              gap: 10,
-              padding: '10px 16px',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 18px',
               borderRadius: 10,
               border: `2.5px solid ${theme.tool}`,
-              background: `${theme.tool}26`,
+              background: `${theme.tool}20`,
             }}
           >
-            <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.tool}}>{'tool_use'}</span>
-            <span style={{fontFamily: theme.sans, fontSize: 21, fontWeight: 600, color: theme.text}}>{'调用'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 16, color: theme.tool, fontWeight: 700}}>{'tool_use'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 18, color: theme.text}}>{'bash(cmd="ls -la")'}</span>
           </div>
           <PairTag />
           <div
             style={{
               position: 'absolute',
               left: '100%',
-              top: 6,
-              marginLeft: 8,
+              top: 8,
+              marginLeft: 12,
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              padding: '3px 8px',
+              padding: '3px 10px',
               borderRadius: 8,
               border: `1.5px solid ${theme.panelBorder}`,
               background: theme.panel,
@@ -466,49 +505,74 @@ const ExecPair: React.FC<{callAt: number; paramAt: number; pulseAt: number; resu
               whiteSpace: 'nowrap',
             }}
           >
-            <span style={{fontFamily: theme.sans, fontSize: 15, color: theme.dim}}>{'参数'}</span>
-            <span style={{fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>{'input'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 14, color: theme.dim}}>{'参数'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 13, color: theme.tool}}>{'block.input["command"]'}</span>
           </div>
         </div>
       </div>
-      {/* 执行位（脉冲一闪；输出滚出由 Footnote/消息列承接） */}
-      <div style={{position: 'absolute', left: BAY.x, top: BAY.y, width: BAY.w, height: BAY.h}}>
-        <svg width={BAY.w} height={BAY.h} style={{position: 'absolute', left: 0, top: 0}}>
-          <path d={corners} fill="none" stroke={theme.panelBorder} strokeWidth={3} strokeLinecap="round" />
-          <path d={corners} fill="none" stroke={theme.tool} strokeWidth={4} strokeLinecap="round" opacity={pulse} />
-        </svg>
+
+      {/* 本地 Shell 执行沙箱终端 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: BAY.x,
+          top: BAY.y,
+          width: BAY.w,
+          height: BAY.h,
+          borderRadius: 12,
+          background: '#060A10',
+          border: `2px solid ${pulse > 0.1 ? theme.tool : theme.panelBorder}`,
+          boxShadow: pulse > 0.1 ? `0 0 24px ${theme.tool}40` : 'none',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <div
           style={{
-            position: 'absolute',
-            inset: 0,
+            height: 32,
+            background: '#0E1420',
+            borderBottom: `1px solid ${theme.panelBorder}`,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
+            padding: '0 12px',
+            gap: 8,
           }}
         >
-          <div style={{fontFamily: theme.sans, fontSize: 27, fontWeight: 600, color: theme.text, textShadow: `0 0 ${22 * pulse}px ${theme.tool}`}}>
-            {'执行'}
+          <div style={{width: 8, height: 8, borderRadius: '50%', background: '#FF5F56'}} />
+          <div style={{width: 8, height: 8, borderRadius: '50%', background: '#FFBD2E'}} />
+          <div style={{width: 8, height: 8, borderRadius: '50%', background: '#27C93F'}} />
+          <span style={{fontFamily: theme.mono, fontSize: 12, color: theme.tool, marginLeft: 'auto'}}>
+            run_bash(command) 沙箱
+          </span>
+        </div>
+        <div style={{padding: '12px 14px', fontFamily: theme.mono, fontSize: 14, display: 'flex', flexDirection: 'column', gap: 6}}>
+          <div>
+            <span style={{color: theme.tool}}>$ </span>
+            <span style={{color: theme.text}}>ls -la</span>
           </div>
-          <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>{'run_bash'}</div>
+          <div style={{color: theme.dim, fontSize: 13, opacity: pulse > 0.1 ? 1 : 0.8}}>
+            stdout: "hello.py code.py XXX.py"
+          </div>
         </div>
       </div>
-      {/* 结果条（同 #01 签；2-E 回塞承接） */}
-      <div style={{position: 'absolute', left: 900, top: 810, ...result}}>
+
+      {/* 组装包裹为 tool_result 消息条 */}
+      <div style={{position: 'absolute', left: 860, top: 760, ...result}}>
         <div style={{position: 'relative'}}>
           <div
             style={{
               display: 'flex',
-              alignItems: 'baseline',
-              gap: 10,
-              padding: '9px 16px',
+              alignItems: 'center',
+              gap: 12,
+              padding: '10px 18px',
               borderRadius: 11,
               border: `2.5px solid ${theme.tool}`,
               background: `${theme.tool}26`,
             }}
           >
-            <span style={{fontFamily: theme.sans, fontSize: 22, fontWeight: 600, color: theme.text}}>{'工具结果'}</span>
-            <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.tool}}>{'tool_result'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 20, fontWeight: 700, color: theme.text}}>{'包装工具结果'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.tool}}>{'type: "tool_result"'}</span>
           </div>
           <PairTag />
         </div>
@@ -692,18 +756,62 @@ const WrapUp: React.FC<{plateA: number; plateB: number; chipsAt: number; pulseAt
         {/* 恒定宣示：确认绿描边脉冲一拍（唯一落在环体上的绿） */}
         <circle cx={CX} cy={CY} r={R} fill="none" stroke={theme.ok} strokeWidth={5} opacity={0.85 * greenPulse} />
       </svg>
-      {/* 分工铭牌（两行随词落定） */}
-      <div style={{position: 'absolute', left: 0, top: 770, width: 1920, textAlign: 'center', ...plateAe}}>
-        <span style={{display: 'inline-flex', alignItems: 'center', gap: 16}}>
-          <span style={{width: 18, height: 18, borderRadius: 5, background: theme.core}} />
-          <span style={{fontFamily: theme.sans, fontSize: 42, fontWeight: 700, color: theme.text}}>{'模型 = 决策'}</span>
-        </span>
+      {/* 2-G 五大主语协同矩阵总铭牌 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 260,
+          top: 730,
+          width: 1400,
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 16,
+          ...plateAe,
+        }}
+      >
+        {STATIONS.map((s, i) => (
+          <div
+            key={s.subject}
+            style={{
+              flex: 1,
+              background: 'rgba(8, 14, 24, 0.94)',
+              border: `2px solid ${i === 0 ? theme.text : i === 1 ? theme.core : i === 2 ? theme.core : i === 3 ? theme.tool : theme.ok}`,
+              borderRadius: 12,
+              padding: '12px 10px',
+              textAlign: 'center',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginBottom: 4}}>
+              {`0${i + 1}`}
+            </div>
+            <div style={{fontFamily: theme.mono, fontSize: 20, fontWeight: 800, color: theme.text}}>
+              {s.subject}
+            </div>
+            <div style={{fontFamily: theme.sans, fontSize: 15, fontWeight: 600, color: i === 0 ? theme.text : i === 1 ? theme.core : i === 2 ? theme.core : i === 3 ? theme.tool : theme.ok, marginTop: 4}}>
+              {s.sub}
+            </div>
+          </div>
+        ))}
       </div>
-      <div style={{position: 'absolute', left: 0, top: 840, width: 1920, textAlign: 'center', ...plateBe}}>
-        <span style={{display: 'inline-flex', alignItems: 'center', gap: 16}}>
-          <span style={{width: 18, height: 18, borderRadius: 5, background: theme.tool}} />
-          <span style={{fontFamily: theme.sans, fontSize: 42, fontWeight: 700, color: theme.text}}>{'程序 = 执行'}</span>
-        </span>
+      <div style={{position: 'absolute', left: 0, top: 855, width: 1920, textAlign: 'center', ...plateBe}}>
+        {/* caption-dup-ok: 2-G 终极架构分工总铭牌横幅 */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 12,
+            background: 'rgba(10, 16, 26, 0.88)',
+            padding: '10px 28px',
+            borderRadius: 24,
+            border: `2px solid ${theme.core}`,
+            boxShadow: `0 0 24px ${theme.core}30`,
+          }}
+        >
+          <span style={{fontFamily: theme.sans, fontSize: 25, fontWeight: 700, color: theme.text, letterSpacing: 2}}>
+            {'目标注入 · 宿主调度 · 认知裁决 · 终端落地 · 观察总线'}
+          </span>
+        </div>
       </div>
     </AbsoluteFill>
   );

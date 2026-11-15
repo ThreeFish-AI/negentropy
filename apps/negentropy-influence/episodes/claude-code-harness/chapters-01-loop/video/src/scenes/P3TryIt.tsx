@@ -159,6 +159,27 @@ const SafetyShield: React.FC<{at: number}> = ({at}) => {
   );
 };
 
+const ProjectTree: React.FC<{at: number}> = ({at}) => {
+  const enter = useEnter('rise', {at, dur: DUR.f4, dist: 14});
+  return (
+    <div style={{position: 'absolute', left: 1510, top: 250, width: 280, ...enter}}>
+      <Panel style={{padding: '14px 18px'}}>
+        <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginBottom: 8}}>{'WORKSPACE'}</div>
+        <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.core, fontWeight: 700}}>{'s01_agent_loop/'}</div>
+        <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.text, marginTop: 6, paddingLeft: 12}}>
+          {'├── '}<span style={{color: theme.core, fontWeight: 700}}>{'code.py'}</span>
+        </div>
+        <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginTop: 4, paddingLeft: 12}}>
+          {'├── requirements.txt'}
+        </div>
+        <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginTop: 4, paddingLeft: 12}}>
+          {'└── .env'}
+        </div>
+      </Panel>
+    </div>
+  );
+};
+
 // ── 3-B：调用块飞行（消息列 → 终端执行 → 回喂） ─────────────────────────
 
 const CallFly: React.FC<{atCall: number; atExec: number; atFeed: number; cmd: string}> = ({atCall, atExec, atFeed, cmd}) => {
@@ -276,11 +297,11 @@ const ObservedCards: React.FC<{atL: number; atR: number; spinAt: number; stopAt:
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', inset: 0, background: theme.bg, opacity: (1 - dim) * 0.62}} />
-      <div style={{position: 'absolute', left: 330, top: 400, ...l}}>
-        <Panel accent={theme.core} style={{width: 480, padding: '30px 34px', textAlign: 'center'}}>
+      <div style={{position: 'absolute', left: 260, top: 380, ...l}}>
+        <Panel accent={theme.core} style={{width: 580, padding: '30px 34px', textAlign: 'center'}}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 22}}>
-            <span style={{fontFamily: theme.mono, fontSize: 30, color: theme.tool}}>{'tool_use ✓'}</span>
-            <span style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim}}>{'→'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 32, color: theme.tool, fontWeight: 700}}>{'tool_use ✓'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 32, color: theme.dim}}>{'→'}</span>
             <svg width={54} height={54} viewBox="0 0 44 44">
               <g transform={`rotate(${spin} 22 22)`}>
                 <path d="M35 22 A 13 13 0 1 1 22 9" fill="none" stroke={theme.core} strokeWidth={4.5} strokeLinecap="round" />
@@ -288,19 +309,25 @@ const ObservedCards: React.FC<{atL: number; atR: number; spinAt: number; stopAt:
               </g>
             </svg>
           </div>
+          <div style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 700, color: theme.core, marginTop: 14}}>
+            调工具 ➔ 循环继续 (Loop Continues)
+          </div>
         </Panel>
       </div>
-      <div style={{position: 'absolute', left: 1110, top: 400, ...r}}>
-        <Panel accent={theme.ok} style={{width: 480, padding: '30px 34px', textAlign: 'center'}}>
+      <div style={{position: 'absolute', left: 1080, top: 380, ...r}}>
+        <Panel accent={theme.ok} style={{width: 580, padding: '30px 34px', textAlign: 'center'}}>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 22}}>
-            <span style={{fontFamily: theme.mono, fontSize: 30, color: theme.dim}}>{'∅'}</span>
-            <span style={{fontFamily: theme.sans, fontSize: 30, color: theme.dim}}>{'→'}</span>
+            <span style={{fontFamily: theme.mono, fontSize: 32, color: theme.dim, fontWeight: 700}}>{'∅ 无调用'}</span>
+            <span style={{fontFamily: theme.sans, fontSize: 32, color: theme.dim}}>{'→'}</span>
             <svg width={54} height={54} viewBox="0 0 44 44">
               <g stroke={theme.ok} strokeWidth={4.5} fill="none" strokeLinecap="round">
                 <circle cx={22} cy={22} r={13} opacity={0.9 + 0.1 * stopPulse} />
                 <line x1={22} y1={9} x2={22} y2={35} opacity={0.9 + 0.1 * stopPulse} />
               </g>
             </svg>
+          </div>
+          <div style={{fontFamily: theme.sans, fontSize: 26, fontWeight: 700, color: theme.ok, marginTop: 14}}>
+            不调用 ➔ 循环平稳退出 (Loop Exits)
           </div>
         </Panel>
       </div>
@@ -343,14 +370,15 @@ export const P3TryIt: React.FC<{scene: SceneRange}> = ({scene}) => {
   const stopAt = wa('p3-05', 0.82);
 
   const lines = [
-    {text: 'python agent_loop/code.py', delay: tBoot, prompt: '$ '},
+    {text: 'python s01_agent_loop/code.py', delay: tBoot, prompt: '$ '},
     {text: 'List all Python files in this directory', delay: tPrompt1, prompt: '>> '},
     {text: '$ ls *.py', delay: tExec1, color: theme.tool},
-    {text: 'a.py  b.py  c.py  demo.py', delay: tOut1, color: theme.dim},
-    {text: 'loop exited', delay: tExit, prompt: '$ ', color: theme.dim},
+    {text: 'code.py  demo.py  hello.py', delay: tOut1, color: theme.dim},
+    {text: 'Here are the Python files: code.py, demo.py, hello.py.', delay: slot4, color: theme.text},
+    {text: '✓ loop exited (no tool_use)', delay: tExit, prompt: '$ ', color: theme.ok},
     {text: 'What is the current git branch?', delay: tPrompt2, prompt: '>> '},
     {text: '$ git branch --show-current', delay: tExec2, color: theme.tool},
-    {text: 'feature/agent-loop', delay: tOut2, color: theme.dim},
+    {text: 'main (git branch)', delay: tOut2, color: theme.dim},
   ];
 
   return (
@@ -370,6 +398,7 @@ export const P3TryIt: React.FC<{scene: SceneRange}> = ({scene}) => {
 
       <Sequence {...bA} name="3-A 会话开场">
         <SafetyShield at={wa('p3-01', 0.9) - bA.from} />
+        <ProjectTree at={tBoot - bA.from} />
         <Footnote delay={10}>{'prompt · messages[0]'}</Footnote>
       </Sequence>
 

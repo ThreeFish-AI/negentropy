@@ -11,7 +11,7 @@
  *    只缩排不改写）、while True 行唯一陶土橙高亮、行号左缘五枚半透明括号锚（五步
  *    占位，P2 下钻）；「三十多行」词位行计数 1→30+ 快滚定格（重音镜）；p1-05 题眼
  *    图形等式（工具方块 + 环体 → Agent 徽记，纯图形）+ @pushIn 推近等式区。
- *  ★ 源码上屏纪律（storyboard 头部契约）：代码逐字取 s01f-code 归档，仅省略注释。
+ *  ★ 源码上屏纪律（storyboard 头部契约）：代码逐字取源码归档，仅省略注释。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -19,6 +19,7 @@ import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
 import {Footnote, LoopRing, Panel, RING_STROKE, SceneTag, type RingNode} from '../components/motifs';
+import {AgentLoopMaster} from '../components/AgentLoopMaster';
 import {DUR, clamp01, useCount, useEnter, useImpulse, useProgress, usePushIn, useStagger} from '../motion';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
@@ -28,11 +29,17 @@ const polar = (cx: number, cy: number, r: number, deg: number): {x: number; y: n
   return {x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad)};
 };
 
-/** 五步站位刻度（与 P2 STATIONS 同构：-90 起每 +72°；1-A 只做刻度不做牌） */
-const STATIONS: RingNode[] = [0, 1, 2, 3, 4].map((i) => ({label: `s${i + 1}`, angle: -90 + i * 72}));
+/** 贯穿全片的五步节点与明确主语（与 P2 STATIONS 同构：-90 起每 +72°） */
+const STATIONS: (RingNode & {subject: string; sub: string})[] = [
+  {label: 's1', subject: 'User', sub: '目标种子', angle: -90},
+  {label: 's2', subject: 'Harness', sub: '底座装配', angle: -18},
+  {label: 's3', subject: 'LLM', sub: '认知决策', angle: 54},
+  {label: 's4', subject: 'Tool', sub: '终端执行', angle: 126},
+  {label: 's5', subject: 'Context', sub: '观察回填', angle: 198},
+];
 
-/** 环体锚点：1-A 全景档居中 */
-const RING_WS = {size: 540, left: 690, top: 250, cx: 960, cy: 520, r: 224} as const;
+/** 0:47 处包容模型与终端的宏大 Harness 大圈 */
+const RING_WS = {size: 780, left: 570, top: 140, cx: 960, cy: 530, r: 350} as const;
 
 // ── 1-A 循环形状（p1-01） ────────────────────────────────────────────────
 
@@ -53,87 +60,34 @@ const LoopShape: React.FC<{atSpin: number; atGo: number; atStop: number; atGate:
   atSpin,
   atGo,
   atStop,
-  atGate,
 }) => {
-  // 0-C→1-A morph 承接：draw 恒 1（继承闭环，不重描拆环），尺度由 pushIn 接棒
+  // 0-C→1-A 无缝承接：直接沿用同一套 AgentLoopMaster 模型
   const push = usePushIn(2, {scale: 0.06, dur: DUR.f6});
   const frame5 = useProgress(0, DUR.f4);
-  // 「不停转的循环」词窗：环体微转一格示活（~36°，机器匀速豁免）
+  // 「不停转的循环」词窗：环体微转一格示活（~36°）
   const spin = clamp01(useProgress(atSpin, 26, 'linear')) * 36;
-  // 「调工具就继续」词窗：前弧段（站位 0→1 之间）亮一拍
+  // 「调工具就继续」词窗：前弧段亮一拍
   const go = useImpulse({at: atGo, dur: DUR.f6});
-  // 「不调就停」词窗：制动一拍（弧光骤停 + 站位刻度轻颤）
+  // 「不调就停」词窗：制动一拍
   const stop = useImpulse({at: atStop, dur: DUR.f6});
   const ticks = useStagger(5, {at: 10, stride: 4, dur: DUR.f3});
-  const gateO = useProgress(atGate, DUR.f5);
+
   return (
     <AbsoluteFill style={{transform: push}}>
       <SceneTag chapter="Agent Loop" tagline="一个循环就够了" accent={theme.core} />
-      {/* 环体（M-001 恒定锚；五站位刻度暗态、无牌文字） */}
-      <div style={{position: 'absolute', left: RING_WS.left, top: RING_WS.top, opacity: frame5}}>
-        <LoopRing size={RING_WS.size} nodes={STATIONS} showLabels={false} showExit={false} />
-      </div>
-      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
-        {/* 五枚暗态刻度（LoopRing 站位圆点外的短刻线，暗态轮廓） */}
-        {STATIONS.map((s, i) => {
-          const p = polar(RING_WS.cx, RING_WS.cy, RING_WS.r + 34, s.angle);
-          return (
-            <line
-              key={s.label}
-              x1={p.x - 10}
-              y1={p.y}
-              x2={p.x + 10}
-              y2={p.y}
-              transform={`rotate(${s.angle + 90} ${p.x} ${p.y})`}
-              stroke={theme.dim}
-              strokeWidth={4}
-              strokeLinecap="round"
-              opacity={0.5 * ticks[i]}
-            />
-          );
-        })}
-        {/* 前弧段亮一拍（「调工具就继续」）：站位 0→1 间弧段 core 辉光包络 */}
-        {go > 0.01 ? (
-          <path
-            d={describeArc(RING_WS.cx, RING_WS.cy, RING_WS.r, -90, -18)}
-            fill="none"
-            stroke={theme.core}
-            strokeWidth={RING_STROKE + 3}
-            strokeLinecap="round"
-            opacity={0.8 * go}
-          />
-        ) : null}
-        {/* 制动一拍（「不调就停」）：整环暗描边一闪（骤停的可视化） */}
-        <circle
-          cx={RING_WS.cx}
-          cy={RING_WS.cy}
-          r={RING_WS.r}
-          fill="none"
-          stroke={theme.dim}
-          strokeWidth={RING_STROKE}
-          opacity={0.5 * stop}
-        />
-        {/* 微转示活的行进光点（spin 窗内自 -90° 起步走一格） */}
-        <circle
-          cx={polar(RING_WS.cx, RING_WS.cy, RING_WS.r, -90 + spin).x}
-          cy={polar(RING_WS.cx, RING_WS.cy, RING_WS.r, -90 + spin).y}
-          r={11}
-          fill={theme.core}
-          opacity={spin > 0 && spin < 36 ? 1 : 0}
-        />
-      </svg>
-      <GateFrame o={gateO} />
-      <Footnote delay={8}>{'while True'}</Footnote>
+      <AgentLoopMaster
+        headerOpacity={frame5}
+        coreOpacity={frame5}
+        drawProgress={1}
+        stationOpacities={ticks.map((t) => t * frame5)}
+        footnoteOpacity={frame5}
+        spinDeg={spin}
+        goImpulse={go}
+        stopImpulse={stop}
+      />
     </AbsoluteFill>
   );
 };
-
-/** 圆弧 path（度数制；供 1-A 前弧段亮一拍） */
-function describeArc(cx: number, cy: number, r: number, a0: number, a1: number): string {
-  const p0 = polar(cx, cy, r, a0);
-  const p1 = polar(cx, cy, r, a1);
-  return `M ${p0.x.toFixed(1)} ${p0.y.toFixed(1)} A ${r} ${r} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
-}
 
 // ── 1-B 闸门双态演示（p1-02..p1-03） ─────────────────────────────────────
 
@@ -142,6 +96,7 @@ const G = {cx: 960, cy: 420, halfW: 150, top: 300, bot: 560} as const;
 const MINI_RING = {size: 150, x: 885, y: 720} as const;
 
 /** 信号牌（纯图形零成句）：chip/空托盘 + 环转/门开 icon */
+/** 信号牌：精确对齐双信号机制（stop_reason == "tool_use" 与 != "tool_use"） */
 const SignPlate: React.FC<{
   x: number;
   lit: boolean;
@@ -152,32 +107,52 @@ const SignPlate: React.FC<{
   const enter = useEnter('rise', {at: 4, dur: DUR.f4, dist: 18});
   const litP = useProgress(litAt, DUR.f4);
   const pop = useImpulse({at: litAt, dur: DUR.f5});
-  const accent = lit ? theme.core : theme.panelBorder;
+  const accent = lit ? (kind === 'chip' ? theme.core : theme.ok) : theme.panelBorder;
+  const isTool = kind === 'chip';
+
   return (
-    <div style={{position: 'absolute', left: x - 130, top: 350, opacity: enter.opacity, transform: enter.transform}}>
-      <Panel accent={accent} style={{width: 260, padding: '18px 20px', textAlign: 'center', opacity: lit ? 1 : 0.62}}>
-        {/* 图形一：受检物（chip = 实心块 / empty = 虚线空托盘） */}
+    <div style={{position: 'absolute', left: x - 150, top: 320, opacity: enter.opacity, transform: enter.transform}}>
+      <Panel accent={accent} style={{width: 300, padding: '18px 20px', textAlign: 'center', opacity: lit ? 1 : 0.65}}>
+        {/* 信号判断表达式（源页两大信号） */}
         <div
           style={{
-            width: 96,
+            fontFamily: theme.mono,
+            fontSize: 16,
+            fontWeight: 700,
+            color: lit ? (isTool ? theme.tool : theme.ok) : theme.dim,
+            marginBottom: 12,
+            background: '#0D1117',
+            padding: '6px 10px',
+            borderRadius: 6,
+            border: `1px solid ${lit ? accent : theme.panelBorder}`,
+          }}
+        >
+          {isTool ? 'stop_reason == "tool_use"' : 'stop_reason != "tool_use"'}
+        </div>
+
+        {/* 图形一：受检物（chip = 实体 tool_use 块 / empty = 纯文本结束） */}
+        <div
+          style={{
+            width: 140,
             height: 44,
             margin: '0 auto',
             boxSizing: 'border-box',
             borderRadius: 8,
-            background: kind === 'chip' && lit ? `${theme.tool}40` : 'transparent',
-            border: kind === 'chip' ? `2.5px solid ${lit ? theme.tool : theme.panelBorder}` : `2.5px dashed ${theme.panelBorder}`,
+            background: isTool && lit ? `${theme.tool}30` : 'transparent',
+            border: isTool ? `2.5px solid ${lit ? theme.tool : theme.panelBorder}` : `2.5px dashed ${lit ? theme.ok : theme.panelBorder}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             transform: `scale(${1 + 0.1 * pop})`,
           }}
         >
-          {kind === 'chip' ? (
-            <span style={{fontFamily: theme.mono, fontSize: 15, color: lit ? theme.tool : theme.dim}}>{'tool_use'}</span>
-          ) : null}
+          <span style={{fontFamily: theme.mono, fontSize: 15, color: lit ? (isTool ? theme.tool : theme.ok) : theme.dim}}>
+            {isTool ? 'tool_use 块' : '∅ 无调用'}
+          </span>
         </div>
-        {/* 图形二：去向 icon（环转 ⟳ / 门开 + 出口） */}
-        <svg width={120} height={56} viewBox="0 0 120 56" style={{marginTop: 12, display: 'block', margin: '12px auto 0'}}>
+
+        {/* 图形二：走向动效（环转 ⟳ / 出口开启） */}
+        <svg width={130} height={56} viewBox="0 0 120 56" style={{marginTop: 12, display: 'block', margin: '12px auto 0'}}>
           {icon === 'loop' ? (
             <g stroke={lit ? theme.core : theme.panelBorder} strokeWidth={4.5} fill="none" strokeLinecap="round">
               <path d="M92 28 A 22 22 0 1 1 70 8" />
@@ -185,7 +160,7 @@ const SignPlate: React.FC<{
               <path d="M58 2 L78 8 L62 20" stroke={lit ? theme.core : theme.panelBorder} strokeWidth={3} strokeLinejoin="round" />
             </g>
           ) : (
-            <g stroke={lit ? theme.core : theme.panelBorder} strokeWidth={4.5} fill="none" strokeLinecap="round">
+            <g stroke={lit ? theme.ok : theme.panelBorder} strokeWidth={4.5} fill="none" strokeLinecap="round">
               <line x1={38} y1={10} x2={38} y2={46} />
               <line x1={82} y1={10} x2={82} y2={46} />
               <rect x={42} y={14} width={16} height={28} transform={`rotate(${-28 * litP} 42 28)`} />
@@ -193,6 +168,10 @@ const SignPlate: React.FC<{
             </g>
           )}
         </svg>
+
+        <div style={{fontFamily: theme.sans, fontSize: 17, fontWeight: 600, color: lit ? (isTool ? theme.core : theme.ok) : theme.dim, marginTop: 8}}>
+          {isTool ? '放行 · 继续循环' : '开启出口 · 退出 return'}
+        </div>
       </Panel>
     </div>
   );

@@ -1,91 +1,69 @@
-/** P0 大模型的行动瓶颈（p0-01..p0-07，3 镜）——分镜 0-A / 0-B / 0-C（storyboard v5）。
+/** P0 大模型的行动瓶颈（p0-01..p0-07，3 镜）——分镜 0-A / 0-B / 0-C（storyboard v5 增强版）。
  *
- *  ★ 0-A 开篇视听合力（I-039）：Terminal 母题居中，一条命令 p0-01 落字起逐字打出又停住，
- *    光标孤闪；p0-03 句尾整窗轻沉一拍 + 光标停闪变灰——无回车的死寂〔M-002〕：
- *    p0-03 句区间内零强调动效，只有句尾这一个 sanctioned 拍点。
- *  ★ 0-B 分屏搬运回路：左「模型」右「终端」，用户图标沿椭圆回路往返——
- *    单趟等速（机械感，本镜匀速豁免）+ 逐趟加密（storyboard「逐趟加速」）；
- *    回合计数随趟递增；p0-05「中间层」词落位计数数字脉冲一次〔M-005〕
- *    （v5 贴源：源页 §问题原词「中间层」取代旧「人肉搬运工」）。
- *  ★ 0-C 接棒建锚：分屏收拢为竖直通道，用户图标淡出、程序方块自下而上滑入接棒；
- *    p0-07「喂回」词落位环体（LoopRing，core 描边 + RING_STROKE——〔M-001〕自此镜建锚）
- *    自雏形弧闭合成圆 + 一双手轻搭环上（类比 A#1）；@pushIn 揭示全片主角环体。
- *  ★ 署源角标（首部署源位，RSI I-080）：右下常驻「Learn Claude Code」，低饱和小字，
- *    一次淡入后全幕恒定不闪烁（挂在 Sequence 外，不受镜切换与 pushIn 影响）。
- *  ★ Visual Lock：0-C 程序方块无「脑」——决策脑（模型节点脑图标）恒在环上方；
- *    环体闭合成圆只发生在 p0-07 词落位（此前仅 22% 雏形弧）。
+ *  ★ 0-A 真实对话开局：拟真 AI Chat 界面中，用户提问源页原话：“帮我读取下我的目录下有哪些文件，
+ *    并且执行XXX.py”。模型输出了 bash 命令代码块 `ls -la`，但输出完就停在原地，光标孤单闪烁，
+ *    等待人类敲击回车——生动揭示「大模型是无状态文本预测器、不会自己行动」的核心瓶颈。
+ *  ★ 0-B 双窗联动与中间层：左侧 Chat 窗口，右侧真实的 Shell 终端！
+ *    命令复制 → 粘贴到终端 → 执行吐出文件列表 → 复制结果 → 贴回 Chat 窗口 → 模型吐出下一条命令……
+ *    往返计数器 1x, 2x, 3x 飙升，中间浮现醒目的「中间层 (Manual Middleman)」警示印章。
+ *  ★ 0-C Harness 自动化接棒：人肉搬运通道被一道蓝绿色的「Harness 运行时自动化总线」替换，
+ *    陶土橙环体（LoopRing）闭合锁死，给模型真正接上一双自动化运行的双手。
+ *  ★ 署源角标（首部署源位）：右下常驻「Learn Claude Code」，低饱和、不抢焦。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
 import {theme} from '../design/theme';
 import {beatWindow} from '../timing';
 import type {SceneRange} from '../types';
-import {LoopRing, Panel, Terminal} from '../components/motifs';
-import {DUR, clamp01, useBreathe, useEnter, useImpulse, useProgress, usePushIn, useSpring} from '../motion';
+import {LoopRing, Panel} from '../components/motifs';
+import {DUR, clamp01, useBreathe, useEnter, useImpulse, useProgress, usePushIn, useSpring, useStagger} from '../motion';
+import {AgentLoopMaster} from '../components/AgentLoopMaster';
 
 // ── 本幕通用 ────────────────────────────────────────────────────────────
 
-/** hex + 动态透明度（帧驱动，无随机） */
 const withAlpha = (hex: string, a: number): string =>
   `${hex}${Math.round(clamp01(a) * 255)
     .toString(16)
     .padStart(2, '0')}`;
 
-/** 句间停顿（timing.json sentenceGapSec 0.32s ≈ 10 帧）——「句尾」锚从句窗尾回退的量 */
 const TAIL_GAP_FRAMES = 10;
 
-/** 词落位近似（句内相对位置——无词级时间戳，按句窗比例锚定，TTS 变更自动重定时） */
 const W = {
-  /** p0-05「中间层」（句尾词，锚偏后） */
   midlayer: 0.72,
-  /** p0-06「交给程序」 */
   handoff: 0.55,
-  /** p0-06「就叫 Harness」（英文词 TTS 拖尾，锚偏后） */
   harness: 0.88,
-  /** p0-07 题眼「一个循环」（span 含句隙折算语音 ≈0.30 起读；全片标题词象绑定） */
   loop: 0.27,
-  /** p0-07「喂回给模型」（结果光点巡游词窗） */
   feedBack: 0.53,
-  /** p0-07「接上一双手」 */
   hands: 0.8,
 } as const;
 
-/** 0-A 命令行：p0-02「列目录、跑脚本」语义——一条合法、无害的组合命令 */
-const COMMAND = 'ls -la ./lab && bash build.sh';
+/** 0-A 源页面提问原话 */
+const USER_QUERY = '帮我读取下我的目录下有哪些文件，并且执行XXX.py';
+const COMMAND = 'ls -la';
 
-/** 0-B 搬运编排：总趟数与加密指数（t^a——逐趟加速；单趟内等速=机械感，匀速豁免） */
 const CARRY_TRIPS = 9;
 const CARRY_ACCEL = 1.3;
 
-/** 0-B 双节点位（上半区 y≤472，给计数器与字幕带让位） */
 const NODE = {y: 360, w: 380, h: 170, leftX: 330, rightX: 1590} as const;
-/** 0-B 搬运回路：节点内缘间的椭圆（左端点=停靠位，与 0-C 交棒） */
 const LOOP = {cx: 960, cy: NODE.y, rx: 430, ry: 112} as const;
 
-/** 0-C 环体：小尺寸雏形（〔M-001〕建锚——core 描边 + RING_STROKE 由 LoopRing 恒定给出） */
 const RING = {size: 340, cx: 960, cy: 570} as const;
-/** 与 LoopRing 内部 r = size/2 - 46 同式（双手搭环的定位半径） */
 const RING_R = RING.size / 2 - 46;
-/** 雏形弧长（Visual Lock：p0-09 词落位前禁止闭合成圆） */
 const RING_ARC0 = 0.22;
-/** 双手落位角（屏幕度，0=右、90=下——环的左肩/右肩） */
 const HAND_DEGREES = [205, 335] as const;
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-/** 椭圆回路上的点（屏幕度；180=左节点，270=顶点，0=右节点，90=谷点） */
 const ellPoint = (deg: number): {x: number; y: number} => {
   const rad = (deg * Math.PI) / 180;
   return {x: LOOP.cx + LOOP.rx * Math.cos(rad), y: LOOP.cy + LOOP.ry * Math.sin(rad)};
 };
 
-/** 椭圆切向（θ 增方向 = 搬运行进方向，箭头指向用） */
 const ellTangent = (deg: number): {x: number; y: number} => {
   const rad = (deg * Math.PI) / 180;
   return {x: -LOOP.rx * Math.sin(rad), y: LOOP.ry * Math.cos(rad)};
 };
 
-/** 回路方向箭头（纯函数产 polygon——回路箭头单向循环可追） */
 const arrowHead = (p: {x: number; y: number}, dir: {x: number; y: number}, color: string) => {
   const len = Math.hypot(dir.x, dir.y) || 1;
   const dx = dir.x / len;
@@ -100,9 +78,8 @@ const arrowHead = (p: {x: number; y: number}, dir: {x: number; y: number}, color
   );
 };
 
-// ── 图标（简笔 SVG，帧外常量） ──────────────────────────────────────────
+// ── 图标（简笔 SVG） ──────────────────────────────────────────────────
 
-/** 用户小人：头 + 肩（人工搬运在场是 0-B 痛点前提，全程可见） */
 const PersonGlyph: React.FC<{color: string}> = ({color}) => (
   <g>
     <circle cx={0} cy={-22} r={16} fill={color} />
@@ -110,7 +87,6 @@ const PersonGlyph: React.FC<{color: string}> = ({color}) => (
   </g>
 );
 
-/** 决策脑：轮廓 + 中央沟 + 两道脑回（只归模型节点——装置侧绝无此件，0-C Visual Lock） */
 const BrainGlyph: React.FC<{color: string}> = ({color}) => (
   <svg width={64} height={52} viewBox="-32 -26 64 52">
     <g stroke={color} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -122,7 +98,6 @@ const BrainGlyph: React.FC<{color: string}> = ({color}) => (
   </svg>
 );
 
-/** 终端：屏幕框 + 提示符（执行面，tool 青） */
 const TermGlyph: React.FC<{color: string}> = ({color}) => (
   <svg width={64} height={48} viewBox="-32 -24 64 48">
     <g stroke={color} strokeWidth={4} fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -133,7 +108,6 @@ const TermGlyph: React.FC<{color: string}> = ({color}) => (
   </svg>
 );
 
-/** 简笔手：掌缘贴环 + 四指 + 拇指侧（指端朝本地 +y，旋转后搭向环心；A#1 落锚） */
 const HAND_PATHS = [
   'M-22 4 Q-2 12 22 2',
   'M-14 -16 L-12 12',
@@ -249,76 +223,282 @@ const SourceCredit: React.FC = () => {
   );
 };
 
-// ── 0-A 终端冷启动 ──────────────────────────────────────────────────────
+// ── 0-A 算力巨兽与数字囚徒（神经光纤巨人大脑与微型终端死寂） ─────────────────────────
 
-/** 终端窗居中：p0-01 落字起命令逐字打出（cps=5）又停住，光标孤闪；
- *  p0-01「等你按回车」词位窗内右下浮出一枚幽灵 ⏎ 键帽（半透明低幅呼吸——
- *  缺的那一步只是一次回车，静音可读）；p0-03 句尾（≈句窗尾减句间停顿）整窗
- *  轻沉 7px + 微压暗，键帽随整窗沉至近隐，光标同时停闪变灰（死寂落点）。
- *  p0-03 句区间内无任何其他强调动效〔M-002〕。 */
+/** 深空悬浮的神经光纤巨人大脑 */
+const CyberneticBrain: React.FC<{dim: number; atSink: number}> = ({dim, atSink}) => {
+  const frame = useCurrentFrame();
+  const pulse = Math.sin(frame * 0.08) * 0.15 + 0.85;
+  const isDead = frame >= atSink;
+  const activeColor = isDead ? theme.dim : theme.tool;
+  const glowColor = isDead ? 'rgba(100,100,100,0.1)' : 'rgba(100, 196, 192, 0.35)';
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: 1920,
+        height: 1080,
+        pointerEvents: 'none',
+        opacity: 0.45 * dim,
+      }}
+    >
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
+        <defs>
+          <radialGradient id="brainGlow" cx="50%" cy="40%" r="50%">
+            <stop offset="0%" stopColor={glowColor} />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
+        </defs>
+        <circle cx={960} cy={420} r={460} fill="url(#brainGlow)" />
+        {/* 神经网络光纤拓扑 */}
+        {[
+          {x1: 720, y1: 280, x2: 960, y2: 200},
+          {x1: 960, y1: 200, x2: 1200, y2: 280},
+          {x1: 640, y1: 420, x2: 780, y2: 380},
+          {x1: 1280, y1: 420, x2: 1140, y2: 380},
+          {x1: 780, y1: 380, x2: 960, y2: 440},
+          {x1: 1140, y1: 380, x2: 960, y2: 440},
+          {x1: 720, y1: 560, x2: 960, y2: 620},
+          {x1: 1200, y1: 560, x2: 960, y2: 620},
+          {x1: 960, y1: 200, x2: 960, y2: 440},
+          {x1: 960, y1: 440, x2: 960, y2: 620},
+        ].map((line, i) => (
+          <line
+            key={i}
+            x1={line.x1}
+            y1={line.y1}
+            x2={line.x2}
+            y2={line.y2}
+            stroke={activeColor}
+            strokeWidth={1.5}
+            strokeDasharray="6 6"
+            opacity={0.35 * pulse}
+          />
+        ))}
+        {/* 活跃突触节点 */}
+        {[
+          {cx: 720, cy: 280},
+          {cx: 960, cy: 200},
+          {cx: 1200, cy: 280},
+          {cx: 640, cy: 420},
+          {cx: 1280, cy: 420},
+          {cx: 780, cy: 380},
+          {cx: 1140, cy: 380},
+          {cx: 960, cy: 440},
+          {cx: 720, cy: 560},
+          {cx: 1200, cy: 560},
+          {cx: 960, cy: 620},
+        ].map((node, i) => (
+          <circle
+            key={i}
+            cx={node.cx}
+            cy={node.cy}
+            r={5}
+            fill={activeColor}
+            opacity={isDead ? 0.2 : (Math.sin(frame * 0.1 + i) * 0.3 + 0.7)}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+};
+
 const ZeroA: React.FC<{atSink: number; atEnterKey: number}> = ({atSink, atEnterKey}) => {
+  const frame = useCurrentFrame();
   const enter = useEnter('fade', {at: 0, dur: DUR.f4});
   const sink = useProgress(atSink, DUR.f5, 'decelerate');
-  const dim = 1 - 0.08 * useProgress(atSink, DUR.f6);
-  // 幽灵键帽：入场淡至 ~0.3 + ±0.08 呼吸（呼吸是活性信号，不算强调动效）；
-  // 死寂拍只许单向压暗（M-002：p0-03 区间零新增强调）
+  const dim = 1 - 0.22 * useProgress(atSink, DUR.f6);
   const keyO =
     useProgress(atEnterKey, DUR.f5) *
-    (0.3 + 0.08 * useBreathe({period: 90, amp: 1, base: 0})) *
-    (1 - 0.6 * useProgress(atSink, DUR.f4));
+    (0.4 + 0.1 * useBreathe({period: 90, amp: 1, base: 0})) *
+    (1 - 0.7 * useProgress(atSink, DUR.f4));
+  const cursorBlink = frame < atSink ? Math.floor(frame / 16) % 2 === 0 : false;
+
   return (
     <AbsoluteFill style={{justifyContent: 'center', alignItems: 'center'}}>
+      <CyberneticBrain dim={dim} atSink={atSink} />
       <div
         style={{
-          position: 'relative',
+          width: 1260,
+          borderRadius: 16,
+          background: theme.panel,
+          border: `2px solid ${theme.panelBorder}`,
+          boxShadow: '0 24px 60px rgba(0,0,0,0.65)',
           opacity: enter.opacity * dim,
-          transform: `translateY(${7 * sink}px)`,
-          marginTop: -90,
+          transform: `translateY(${12 * sink}px)`,
+          marginTop: -60,
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 10,
         }}
       >
-        <Terminal
-          lines={[{text: COMMAND, delay: 0, prompt: '$ '}]}
-          cps={5}
-          freezeCursorAt={atSink}
-          width={1180}
-          height={430}
-        />
-        {/* 幽灵回车键帽：永远等不到的那一下 */}
+        {/* 窗口顶栏 */}
         <div
           style={{
-            position: 'absolute',
-            right: 44,
-            bottom: 30,
-            width: 96,
-            height: 40,
-            borderRadius: 8,
-            border: `2px solid ${theme.dim}`,
+            height: 48,
+            background: '#161B22',
+            borderBottom: `1px solid ${theme.panelBorder}`,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            opacity: Math.max(0, keyO),
+            padding: '0 20px',
+            gap: 12,
           }}
         >
-          <span style={{fontFamily: theme.mono, fontSize: 24, color: theme.dim}}>↵</span>
-          <span style={{fontFamily: theme.mono, fontSize: 15, letterSpacing: 1, color: theme.dim}}>
-            Enter
+          <div style={{display: 'flex', gap: 8}}>
+            <div style={{width: 14, height: 14, borderRadius: '50%', background: '#FF5F56'}} />
+            <div style={{width: 14, height: 14, borderRadius: '50%', background: '#FFBD2E'}} />
+            <div style={{width: 14, height: 14, borderRadius: '50%', background: '#27C93F'}} />
+          </div>
+          <span style={{fontFamily: theme.mono, fontSize: 16, color: theme.dim, marginLeft: 'auto'}}>
+            AI Chat · Claude Assistant (百亿算力巨脑受困于终端)
           </span>
+        </div>
+
+        {/* 对话内容区 */}
+        <div style={{padding: '30px 36px', display: 'flex', flexDirection: 'column', gap: 24}}>
+          {/* 用户提问气泡（源页面原话） */}
+          <div style={{display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'flex-start'}}>
+            <div
+              style={{
+                maxWidth: 820,
+                background: '#1F2937',
+                border: '1.5px solid #374151',
+                borderRadius: '16px 16px 4px 16px',
+                padding: '16px 22px',
+                fontFamily: theme.sans,
+                fontSize: 24,
+                color: theme.text,
+                lineHeight: 1.45,
+              }}
+            >
+              {USER_QUERY}
+            </div>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: theme.core,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: 18,
+              }}
+            >
+              你
+            </div>
+          </div>
+
+          {/* 模型回答与命令块 */}
+          <div style={{display: 'flex', justifyContent: 'flex-start', gap: 14, alignItems: 'flex-start'}}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: 18,
+              }}
+            >
+              AI
+            </div>
+            <div
+              style={{
+                width: 960,
+                background: '#0D1117',
+                border: `1.5px solid ${theme.panelBorder}`,
+                borderRadius: '4px 16px 16px 16px',
+                padding: '20px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+              }}
+            >
+              <div style={{fontFamily: theme.sans, fontSize: 22, color: theme.text}}>
+                你可以使用以下 Bash 命令读取目录下的文件：
+              </div>
+
+              {/* 终端代码块 */}
+              <div
+                style={{
+                  background: '#040711',
+                  border: `1.5px solid ${theme.tool}40`,
+                  borderRadius: 10,
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  position: 'relative',
+                }}
+              >
+                <div style={{display: 'flex', alignItems: 'center', gap: 12, fontFamily: theme.mono, fontSize: 26}}>
+                  <span style={{color: theme.tool}}>$</span>
+                  <span style={{color: theme.text}}>{COMMAND}</span>
+                  <span
+                    style={{
+                      width: 12,
+                      height: 26,
+                      background: cursorBlink ? theme.tool : 'transparent',
+                      display: 'inline-block',
+                    }}
+                  />
+                </div>
+
+                {/* 复制按钮与等待回车提示 */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
+                  <div
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 8,
+                      border: `1.5px solid ${theme.dim}50`,
+                      background: '#161B22',
+                      fontFamily: theme.sans,
+                      fontSize: 16,
+                      color: theme.dim,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <span>⎘</span> 复制命令
+                  </div>
+                  <div
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 8,
+                      border: `1.5px solid ${theme.dim}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      opacity: Math.max(0, keyO),
+                      background: '#1F242C',
+                    }}
+                  >
+                    <span style={{fontFamily: theme.mono, fontSize: 20, color: theme.dim}}>↵</span>
+                    <span style={{fontFamily: theme.mono, fontSize: 15, color: theme.dim}}>等待回车</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </AbsoluteFill>
   );
 };
 
-// ── 0-B 分屏搬运回路 ────────────────────────────────────────────────────
+// ── 0-B 双窗联动与中间层（Chat UI + Terminal 往返搬运 + 地动山摇印章） ─────────────────
 
-/** 搬运回路：双节点 + 椭圆回路（方向箭头）+ 用户小人往返 + 回合计数。
- *  相位纯函数：t^CARRY_ACCEL × CARRY_TRIPS——趟内等速、逐趟加密（加速）；
- *  atPark 后钉在整数相位 = 停靠左端（0-B 末态确定，供 0-C 交棒）。
- *  货物签（M-005/M-006）：去程（左→右）持「命令」签、回程持「输出」签，
- *  把 p0-05「复制→粘贴→回车→贴回输出」的信息流向演成可见双向货流；
- *  相位过 4 趟即退役（M-006 槽位到期，退役帧由相位反解、纯派生）。
- *  「人肉搬运工」词落位：计数脉冲 + dim 谷（节点/回路压暗，人+计数唯一高亮组）。 */
 const ZeroB: React.FC<{atCarry: number; atPark: number; atWord: number; atEnd: number}> = ({
   atCarry,
   atPark,
@@ -326,166 +506,429 @@ const ZeroB: React.FC<{atCarry: number; atPark: number; atWord: number; atEnd: n
   atEnd,
 }) => {
   const frame = useCurrentFrame();
-  const t = clamp01((frame - atCarry) / Math.max(1, atPark - atCarry));
-  const phase = Math.pow(t, CARRY_ACCEL) * CARRY_TRIPS;
-  const tripsDone = Math.min(CARRY_TRIPS, Math.floor(phase));
-  const frac = phase % 1;
-  const carrier = ellPoint(180 + frac * 360);
+
+  // 4 个关键行为区间：
+  // 1. 命令复制与飞跃：frame 8 ~ 110 (从 Chat 复制 $ ls -la 飞往 Terminal)
+  // 2. 终端敲回车与执行：frame 110 ~ 160 (终端执行产生 3 行文件列表)
+  // 3. 结果复制与回填：frame 160 ~ 260 (从 Terminal 复制结果飞回 Chat)
+  // 4. 对话框贴入与第二轮爆发：frame 260 ~ atWord (Chat 收到结果，AI 抛出第二条命令，往返加剧)
+  // 5. 压垮与印章：frame >= atWord (地动山摇，MANUAL MIDDLEMAN 盖章)
+
+  const isCopyCmd = frame >= 8 && frame < 38;
+  const isFlyCmd = frame >= 38 && frame < 110;
+  const isTermEnter = frame >= 110 && frame < 135;
+  const isTermExecuted = frame >= 135;
+  const isCopyOutput = frame >= 155 && frame < 185;
+  const isFlyOutput = frame >= 185 && frame < 260;
+  const isChatPasted = frame >= 260;
+
+  // 抛物线插值
+  const smooth = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * clamp01(x));
+  const cmdP = clamp01((frame - 38) / 72);
+  const flyCmdX = 520 + (1320 - 520) * smooth(cmdP);
+  const flyCmdY = 330 - Math.sin(cmdP * Math.PI) * 90;
+
+  const outP = clamp01((frame - 185) / 75);
+  const flyOutX = 1320 - (1320 - 520) * smooth(outP);
+  const flyOutY = 470 + Math.sin(outP * Math.PI) * 60;
+
+  // 搬运小人位置
+  const carrierX = isFlyCmd
+    ? flyCmdX
+    : isFlyOutput
+      ? flyOutX
+      : frame >= 260 && frame < atWord
+        ? 960 + Math.sin((frame - 260) * 0.12) * 280
+        : 960;
+  const carrierY = isFlyCmd
+    ? flyCmdY + 50
+    : isFlyOutput
+      ? flyOutY + 50
+      : 400;
+
   const personO = useProgress(0, DUR.f4);
   const trackO = useProgress(DUR.f2, DUR.f5);
   const countO = useProgress(atCarry, DUR.f4);
   const pulse = useImpulse({at: atWord, dur: DUR.f6});
-  // dim 谷：重音拍把系统件（节点/回路）压暗一档，痛点主体（人+计数）浮出
   const valley = 1 - 0.45 * useImpulse({at: atWord, dur: DUR.f6 + DUR.f4});
-  // 货物签生命周期：atCarry 起、相位 4 趟对应的帧退役（(4/9)^(1/1.3) 反解，纯派生）
-  const chipLife =
-    useProgress(atCarry, DUR.f4) *
-    (1 -
-      useProgress(
-        atCarry + Math.round(Math.pow(4 / CARRY_TRIPS, 1 / CARRY_ACCEL) * (atPark - atCarry)),
-        DUR.f4,
-      ));
-  // 去程/回程签在 frac 0.5±0.06 交叉淡化（节点触点处换手，防末段趟频闪）
-  const crossFade = 0.06;
-  const outO = clamp01(Math.min((0.5 + crossFade - frac) / (2 * crossFade), 1));
-  const retO = 1 - outO;
-  // 计数器切点退场（0-B→0-C 硬切处不再 pop 消失）
   const counterFade = 1 - useProgress(atEnd - DUR.f4, DUR.f4);
+  const middlemanStamp = useEnter('pop', {at: atWord, dur: DUR.f5});
+
+  // 地动山摇屏幕震颤（Earthquake Screen Shake）
+  const shakeDecay = Math.max(0, 1 - (frame - atWord) / 24);
+  const shakeX = frame >= atWord ? Math.sin((frame - atWord) * 1.3) * shakeDecay * 18 : 0;
+  const shakeY = frame >= atWord ? Math.cos((frame - atWord) * 1.5) * shakeDecay * 14 : 0;
+
+  // 红色冲击波光环（Shockwave Ripple）
+  const rippleProgress = frame >= atWord ? Math.min(1, (frame - atWord) / 22) : 0;
+  const rippleScale = 1 + rippleProgress * 2.8;
+  const rippleOpacity = frame >= atWord ? (1 - rippleProgress) * 0.75 : 0;
+
   return (
-    <AbsoluteFill>
-      <NodeRiser
-        at={0}
-        cx={NODE.leftX}
-        cy={NODE.y}
-        accent={theme.text}
-        label="模型"
-        glyph={<BrainGlyph color={theme.text} />}
-        dim={valley}
-      />
-      <NodeRiser
-        at={DUR.f2}
-        cx={NODE.rightX}
-        cy={NODE.y}
-        accent={theme.tool}
-        label="终端"
-        glyph={<TermGlyph color={theme.tool} />}
-        dim={valley}
-      />
-      <svg
-        width={1920}
-        height={1080}
-        style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
+    <AbsoluteFill style={{transform: `translate(${shakeX}px, ${shakeY}px)`}}>
+      {/* 冲击波扩散环 */}
+      {frame >= atWord && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 960 - 240,
+            top: 480 - 100,
+            width: 480,
+            height: 240,
+            borderRadius: 24,
+            border: `4px solid ${theme.warn}`,
+            boxShadow: `0 0 60px ${theme.warn}`,
+            transform: `scale(${rippleScale})`,
+            opacity: rippleOpacity,
+            pointerEvents: 'none',
+            zIndex: 30,
+          }}
+        />
+      )}
+
+      {/* 左侧：Chat 对话窗建模 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 80,
+          top: 140,
+          width: 600,
+          height: 500,
+          borderRadius: 14,
+          background: theme.panel,
+          border: `2px solid ${theme.panelBorder}`,
+          boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
+          overflow: 'hidden',
+          opacity: valley,
+        }}
       >
+        <div
+          style={{
+            height: 38,
+            background: '#161B22',
+            borderBottom: `1px solid ${theme.panelBorder}`,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 16px',
+            gap: 8,
+          }}
+        >
+          <div style={{width: 10, height: 10, borderRadius: '50%', background: '#FF5F56'}} />
+          <div style={{width: 10, height: 10, borderRadius: '50%', background: '#FFBD2E'}} />
+          <div style={{width: 10, height: 10, borderRadius: '50%', background: '#27C93F'}} />
+          <span style={{fontFamily: theme.mono, fontSize: 13, color: theme.dim, marginLeft: 'auto'}}>Chat 对话框</span>
+        </div>
+        <div style={{padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14}}>
+          {/* 用户提问 */}
+          <div style={{background: '#1F2937', padding: '10px 14px', borderRadius: '12px 12px 2px 12px', fontSize: 15, color: theme.text, alignSelf: 'flex-end', maxWidth: '85%'}}>
+            {'“帮我读取当前目录下的文件并执行...”'}
+          </div>
+
+          {/* AI 第一次回复与代码块 */}
+          <div style={{background: '#0D1117', padding: '12px 16px', borderRadius: '12px 12px 12px 2px', border: `1.5px solid ${theme.panelBorder}`}}>
+            <div style={{fontSize: 13, color: theme.dim, marginBottom: 8}}>{'你可以使用以下 Bash 命令读取目录：'}</div>
+            <div
+              style={{
+                background: isCopyCmd ? 'rgba(37, 99, 235, 0.35)' : '#040711',
+                border: `1.5px solid ${isCopyCmd || isFlyCmd ? theme.tool : theme.panelBorder}`,
+                borderRadius: 8,
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span style={{fontFamily: theme.mono, fontSize: 18, color: isCopyCmd ? '#60A5FA' : theme.tool}}>
+                {'$ ls -la'}
+              </span>
+              {isCopyCmd && (
+                <span style={{fontFamily: theme.mono, fontSize: 12, color: '#fff', background: '#2563EB', padding: '2px 8px', borderRadius: 4, fontWeight: 700}}>
+                  {'⌘C 复制命令'}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 阶段 3：从终端将输出结果贴回 Chat */}
+          {isChatPasted && (
+            <div style={{background: '#1F2937', border: `1.5px solid ${theme.ok}50`, padding: '10px 14px', borderRadius: '12px 12px 2px 12px', alignSelf: 'flex-end', maxWidth: '88%'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4}}>
+                <span style={{fontSize: 11, color: theme.ok, background: `${theme.ok}20`, padding: '1px 6px', borderRadius: 4, fontWeight: 700}}>
+                  {'⌘V 粘贴输出'}
+                </span>
+                <span style={{fontFamily: theme.mono, fontSize: 12, color: theme.dim}}>{'stdout 回喂'}</span>
+              </div>
+              <div style={{fontFamily: theme.mono, fontSize: 13, color: theme.text, lineHeight: 1.4}}>
+                {'file1.txt  XXX.py  config.json'}
+              </div>
+            </div>
+          )}
+
+          {/* 阶段 3 贴回后，AI 吐出第二道命令 */}
+          {isChatPasted && (
+            <div style={{background: '#0D1117', padding: '10px 14px', borderRadius: '12px 12px 12px 2px', border: `1.5px solid ${theme.core}40`}}>
+              <div style={{fontSize: 13, color: theme.dim, marginBottom: 6}}>{'已收到文件列表，正在执行入口脚本：'}</div>
+              <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.core}}>{'$ python XXX.py'}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 右侧：真实 Shell 终端建模 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 1240,
+          top: 140,
+          width: 600,
+          height: 500,
+          borderRadius: 14,
+          background: '#090D14',
+          border: `2px solid ${theme.tool}40`,
+          boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
+          overflow: 'hidden',
+          opacity: valley,
+        }}
+      >
+        <div
+          style={{
+            height: 38,
+            background: '#101726',
+            borderBottom: `1px solid ${theme.panelBorder}`,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 16px',
+            gap: 8,
+          }}
+        >
+          <div style={{width: 10, height: 10, borderRadius: '50%', background: '#FF5F56'}} />
+          <div style={{width: 10, height: 10, borderRadius: '50%', background: '#FFBD2E'}} />
+          <div style={{width: 10, height: 10, borderRadius: '50%', background: '#27C93F'}} />
+          <span style={{fontFamily: theme.mono, fontSize: 13, color: theme.tool, marginLeft: 'auto'}}>~/workspace (bash)</span>
+        </div>
+        <div style={{padding: '16px 20px', fontFamily: theme.mono, fontSize: 15, display: 'flex', flexDirection: 'column', gap: 8}}>
+          {/* 命令输入行 */}
+          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <span style={{color: theme.tool}}>~/workspace $</span>
+            {isTermExecuted ? (
+              <span style={{color: theme.text, fontWeight: 700}}>ls -la</span>
+            ) : isTermEnter ? (
+              <span style={{color: theme.tool}}>
+                ls -la <span style={{fontSize: 12, color: '#fff', background: '#374151', padding: '1px 6px', borderRadius: 3}}>⏎ Enter</span>
+              </span>
+            ) : (
+              <span style={{color: theme.dim, opacity: 0.5}}>_</span>
+            )}
+          </div>
+
+          {/* 执行结果输出 */}
+          {isTermExecuted && (
+            <div
+              style={{
+                background: isCopyOutput ? 'rgba(46, 160, 67, 0.25)' : 'transparent',
+                border: isCopyOutput ? `1.5px dashed ${theme.ok}` : '1.5px solid transparent',
+                borderRadius: 8,
+                padding: '6px 10px',
+                position: 'relative',
+              }}
+            >
+              {isCopyOutput && (
+                <div style={{position: 'absolute', right: 8, top: 6, fontSize: 11, color: '#fff', background: theme.ok, padding: '2px 8px', borderRadius: 4, fontWeight: 700}}>
+                  {'⌘C 复制输出结果'}
+                </div>
+              )}
+              <div style={{color: theme.dim, fontSize: 13.5, lineHeight: 1.6}}>
+                <div>-rw-r--r--  1 dev staff  240B Nov 15 10:00 file1.txt</div>
+                <div style={{color: theme.text}}>-rw-r--r--  1 dev staff  580B Nov 15 10:02 XXX.py</div>
+                <div>-rw-r--r--  1 dev staff  120B Nov 15 10:05 config.json</div>
+              </div>
+            </div>
+          )}
+
+          {/* 第二轮命令敲入 */}
+          {isChatPasted && (
+            <div style={{marginTop: 10, display: 'flex', alignItems: 'center', gap: 8}}>
+              <span style={{color: theme.tool}}>~/workspace $</span>
+              <span style={{color: theme.core, fontWeight: 700}}>python XXX.py</span>
+              <span style={{width: 8, height: 16, background: theme.core, display: 'inline-block'}} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 飞行卡片 1：从 Chat 飞往 Terminal 搬运命令 $ ls -la */}
+      {isFlyCmd && (
+        <div
+          style={{
+            position: 'absolute',
+            left: flyCmdX - 110,
+            top: flyCmdY - 25,
+            zIndex: 35,
+            background: '#0D1117',
+            border: `2px solid ${theme.tool}`,
+            boxShadow: `0 0 24px ${theme.tool}60`,
+            borderRadius: 10,
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <span style={{fontFamily: theme.mono, fontSize: 16, color: theme.tool, fontWeight: 700}}>$</span>
+          <span style={{fontFamily: theme.mono, fontSize: 17, color: theme.text, fontWeight: 600}}>ls -la</span>
+          <span style={{fontFamily: theme.mono, fontSize: 11, color: theme.tool, background: `${theme.tool}25`, padding: '2px 6px', borderRadius: 4, fontWeight: 700}}>
+            ⌘C 复制
+          </span>
+        </div>
+      )}
+
+      {/* 飞行卡片 2：从 Terminal 飞回 Chat 搬运执行输出 */}
+      {isFlyOutput && (
+        <div
+          style={{
+            position: 'absolute',
+            left: flyOutX - 130,
+            top: flyOutY - 30,
+            zIndex: 35,
+            background: '#0D1117',
+            border: `2px solid ${theme.ok}`,
+            boxShadow: `0 0 24px ${theme.ok}60`,
+            borderRadius: 10,
+            padding: '8px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+          }}
+        >
+          <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <span style={{fontFamily: theme.mono, fontSize: 11, color: theme.ok, background: `${theme.ok}25`, padding: '2px 6px', borderRadius: 4, fontWeight: 700}}>
+              ⌘C 复制输出
+            </span>
+            <span style={{fontFamily: theme.mono, fontSize: 13, color: theme.ok}}>stdout</span>
+          </div>
+          <div style={{fontFamily: theme.mono, fontSize: 12, color: theme.text}}>
+            file1.txt · XXX.py · config.json
+          </div>
+        </div>
+      )}
+
+      {/* 中间搬运回路与小人 */}
+      <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}>
         <ellipse
           cx={LOOP.cx}
           cy={LOOP.cy}
           rx={LOOP.rx}
           ry={LOOP.ry}
           fill="none"
-          stroke={withAlpha(theme.dim, 0.5)}
-          strokeWidth={3.5}
-          strokeDasharray="12 12"
+          stroke={withAlpha(theme.dim, 0.4)}
+          strokeWidth={3}
+          strokeDasharray="10 10"
           opacity={trackO * valley}
         />
         <g opacity={trackO * valley}>
           {arrowHead(ellPoint(300), ellTangent(300), withAlpha(theme.dim, 0.85))}
           {arrowHead(ellPoint(120), ellTangent(120), withAlpha(theme.dim, 0.85))}
         </g>
-        <g transform={`translate(${carrier.x} ${carrier.y})`} opacity={personO}>
+        <g transform={`translate(${carrierX} ${carrierY})`} opacity={personO}>
           <PersonGlyph color={theme.text} />
-        </g>
-        {/* 货物签：随小人飞行，去程命令（白）/ 回程输出（青碧）——信息流向可视化 */}
-        <g transform={`translate(${carrier.x} ${carrier.y - 58})`} opacity={chipLife}>
-          <g opacity={outO}>
-            <rect
-              x={-34}
-              y={-15}
-              width={68}
-              height={30}
-              rx={7}
-              fill={withAlpha(theme.panel, 0.92)}
-              stroke={theme.text}
-              strokeWidth={2.5}
-            />
-            <text
-              x={0}
-              y={6}
-              textAnchor="middle"
-              fontFamily={theme.mono}
-              fontSize={19}
-              fill={theme.text}
-            >
-              命令
-            </text>
-          </g>
-          <g opacity={retO}>
-            <rect
-              x={-34}
-              y={-15}
-              width={68}
-              height={30}
-              rx={7}
-              fill={withAlpha(theme.panel, 0.92)}
-              stroke={theme.tool}
-              strokeWidth={2.5}
-            />
-            <text
-              x={0}
-              y={6}
-              textAnchor="middle"
-              fontFamily={theme.mono}
-              fontSize={19}
-              fill={theme.tool}
-            >
-              输出
-            </text>
+          {/* 背负的层层红色重负代码卷轴 */}
+          <g transform="translate(18, -12) rotate(14)">
+            <rect x={-14} y={-24} width={28} height={8} rx={2} fill={theme.warn} />
+            <rect x={-16} y={-14} width={32} height={8} rx={2} fill={theme.warn} opacity={0.85} />
+            <rect x={-12} y={-4} width={24} height={8} rx={2} fill={theme.warn} opacity={0.7} />
+            {isChatPasted && (
+              <rect x={-18} y={-34} width={36} height={8} rx={2} fill={theme.warn} opacity={0.95} />
+            )}
           </g>
         </g>
       </svg>
-      {/* 回合计数：回路正下方 y≈600，避开字幕带（y≥920）与节点；「人肉搬运工」词落位脉冲一次 */}
+
+      {/* 底部当前具体操作说明横条 */}
       <div
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
-          top: 596,
+          top: 670,
           textAlign: 'center',
-          fontFamily: theme.mono,
-          fontSize: 30,
-          color: theme.dim,
-          opacity: countO * counterFade,
+          opacity: valley * counterFade,
+          zIndex: 20,
         }}
       >
-        来回{' '}
-        <span
+        <div
           style={{
-            display: 'inline-block',
-            fontSize: 64,
-            fontWeight: 700,
-            color: theme.text,
-            fontVariantNumeric: 'tabular-nums',
-            transform: `scale(${1 + 0.38 * pulse})`,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 12,
+            background: 'rgba(10, 16, 26, 0.9)',
+            border: `1.5px solid ${theme.panelBorder}`,
+            padding: '8px 22px',
+            borderRadius: 20,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
           }}
         >
-          {tripsDone}
-        </span>{' '}
-        趟
+          <span style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim}}>
+            {isCopyCmd
+              ? '① 选中 Chat 中的命令并按 ⌘C'
+              : isFlyCmd
+                ? '② 切换窗口，将命令 $ ls -la 运往本地终端'
+                : isTermEnter
+                  ? '③ 终端粘贴 ⌘V 并按下 ⏎ Enter 执行'
+                  : isCopyOutput
+                    ? '④ 全选终端执行产生的文件列表并按 ⌘C'
+                    : isFlyOutput
+                      ? '⑤ 切换回浏览器，将结果运回 Chat 对话框'
+                      : isChatPasted
+                        ? '⑥ 粘贴结果 ⌘V 喂给模型，触发下一轮折磨...'
+                        : '人类充当脆弱的数据管道，反复在两极折返跑'}
+          </span>
+        </div>
+      </div>
+
+      {/* 重型血红机械印章：中间层 (MANUAL MIDDLEMAN) 狠狠砸下 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 960 - 240,
+          top: 450,
+          width: 480,
+          padding: '16px 28px',
+          borderRadius: 16,
+          border: `4px solid ${theme.warn}`,
+          background: 'linear-gradient(180deg, rgba(239, 100, 97, 0.28) 0%, rgba(180, 40, 40, 0.42) 100%)',
+          boxShadow: `0 0 50px rgba(239, 100, 97, 0.5), inset 0 0 24px rgba(239, 100, 97, 0.3)`,
+          textAlign: 'center',
+          zIndex: 40,
+          backdropFilter: 'blur(8px)',
+          ...middlemanStamp,
+        }}
+      >
+        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14}}>
+          <span style={{fontSize: 32}}>⚠️</span>
+          <div style={{fontFamily: theme.sans, fontSize: 38, fontWeight: 900, color: theme.warn, letterSpacing: 2}}>
+            人肉中间层
+          </div>
+          <span style={{fontSize: 32}}>⚠️</span>
+        </div>
+        <div style={{fontFamily: theme.mono, fontSize: 20, fontWeight: 700, color: '#FFA09E', marginTop: 4, letterSpacing: 3}}>
+          [ MANUAL MIDDLEMAN ]
+        </div>
       </div>
     </AbsoluteFill>
   );
 };
 
-// ── 0-C 接棒建锚 ────────────────────────────────────────────────────────
+// ── 0-C 接棒建锚（统一 Agent Loop 模型首次宏大建锚） ──────────────────────────
 
-/** 分屏收拢为竖直通道（模型居顶、终端居底）：用户图标自 0-B 停靠位淡出，
- *  程序方块 p0-08「交给程序」词落位自终端端滑入接棒（无脑——纯执行件）；
- *  「就叫 Harness」词落位方块弹出 mono 副标 Harness（工程名↔视觉件绑定，常驻幕末）；
- *  环体雏形弧随方块到位亮出，p0-09 题眼「一个循环」词落位闭合成圆（全片标题词象
- *  绑定的最高价值落点）、「喂回给模型」词窗一枚 core 结果光点沿环自底巡游至顶
- *  （回喂动词的画面化）、双手句尾轻搭（A#1）；p0-09 起整幕 @pushIn，推近窗
- *  0.3·span 与「一个循环」词音/闭合同帧落定（§5.1 运镜时长取短语 30-60%）。
- *  通道虚线在闭合进行时让位（hero 时刻环内区不留横穿噪音）。
- *  决策脑（模型节点）经收拢恒居于环上方——装置不产生决策。 */
+/**
+ * 0-C Harness 宏大母体正式接棒：
+ * 完全采用全篇一以贯之的 Agent Loop 核心模型（图 2）：
+ * 1. 随着 p0-06 启动，内部左侧「LLM 认知大脑」与右侧「TOOL 物理终端」就位；
+ * 2. 「这套底座就是 Harness」：顶部宏观母体铭牌 [ HARNESS : AGENT LOOP & CONTEXT BUS ] 亮起弹出；
+ * 3. p0-07「它的秘密极简：一个死循环」：大圆环以电弧动效迅速绘制闭合，双轨虚线加速环同步点亮；
+ * 4. 五大主语外环节点（User, Harness, LLM, Tool, Context）依次顺时针点亮；
+ * 5. 「给瘫痪大脑接上一双手」：反馈巡游光点回填闭合，底部 — while True — 铭文呼吸点亮，完美无缝交棒 1-A。
+ */
 const ZeroC: React.FC<{
   atBlock: number;
   atHarness: number;
@@ -495,139 +938,34 @@ const ZeroC: React.FC<{
   atPush: number;
   pushDur: number;
   atEnd: number;
-}> = ({atBlock, atHarness, atFeed, atFeedDot, atHands, atPush, pushDur, atEnd}) => {
-  const cv = useSpring('settle', {at: 0, dur: DUR.f6});
+}> = ({atHarness, atFeed, atFeedDot, atPush, pushDur, atEnd}) => {
   const push = usePushIn(atPush, {scale: 0.055, dur: pushDur});
-  const personO = 1 - useProgress(0, DUR.f4);
-  const loopO = 1 - useProgress(0, DUR.f5);
-  const channelO = 0.65 * useProgress(DUR.f3, DUR.f5);
-  const blockP = useSpring('settle', {at: atBlock, dur: DUR.f6});
-  const blockO = useProgress(atBlock, DUR.f4);
-  const ringO = useProgress(atBlock + DUR.f5, DUR.f4);
-  const closeP = useProgress(atFeed, DUR.f6, 'decelerate');
-  const handP = useProgress(atHands, DUR.f5);
-  const harnessTag = useEnter('pop', {at: atHarness, dur: DUR.f4});
-  const draw = RING_ARC0 + (1 - RING_ARC0) * closeP;
-  // 结果光点：闭合后自环底（终端/方块侧）巡游至顶（模型侧），0-C 尾淡出交棒 1-A
+
+  // 1. 核心卡片就位升起（LLM 与 TOOL）
+  const coreO = useProgress(0, DUR.f4);
+  // 2. Harness 母体大铭牌：「这套底座就是 Harness」
+  const headerO = useProgress(atHarness, DUR.f4);
+  // 3. 大圆环电弧闭合：「一个死循环」
+  const draw = useProgress(atFeed, DUR.f5, 'decelerate');
+  // 4. 五大主语节点牌顺时针点亮
+  const stationTicks = useStagger(5, {at: atFeed + 4, stride: 3, dur: DUR.f3});
+  // 5. 底部 while True 铭文浮现
+  const footnoteO = useProgress(atFeed + DUR.f4, DUR.f4);
+  // 6. 结果巡游光点：沿环巡游闭合
   const dotP = useProgress(atFeedDot, DUR.f5 + DUR.f3);
   const dotO =
     useProgress(atFeedDot, DUR.f4) * (1 - useProgress(atEnd - DUR.f4, DUR.f4));
-  const modelNode = {x: lerp(NODE.leftX, 960, cv), y: lerp(NODE.y, 265, cv)};
-  const termNode = {x: lerp(NODE.rightX, 960, cv), y: lerp(NODE.y, 800, cv)};
-  const blockY = lerp(880, RING.cy, blockP);
-  const handoffPos = ellPoint(180);
+
   return (
     <AbsoluteFill style={{transform: push}}>
-      {/* 环体：LoopRing 恒定 core 描边 + RING_STROKE（〔M-001〕自此镜建锚，全片锁定）；
-          小尺寸关标签、零站点——五站牌位是 P1 的戏 */}
-      <div
-        style={{
-          position: 'absolute',
-          left: RING.cx - RING.size / 2,
-          top: RING.cy - RING.size / 2,
-          opacity: ringO,
-        }}
-      >
-        <LoopRing
-          size={RING.size}
-          draw={draw}
-          nodes={[]}
-          showLabels={false}
-          showExit={false}
-          dotProgress={0.5 + 0.5 * dotP}
-          dotOpacity={dotO}
-        />
-      </div>
-      <svg
-        width={1920}
-        height={1080}
-        style={{position: 'absolute', left: 0, top: 0, pointerEvents: 'none'}}
-      >
-        {/* 0-B 椭圆回路淡出 / 竖直通道淡入（分屏收拢） */}
-        <ellipse
-          cx={LOOP.cx}
-          cy={LOOP.cy}
-          rx={LOOP.rx}
-          ry={LOOP.ry}
-          fill="none"
-          stroke={withAlpha(theme.dim, 0.5)}
-          strokeWidth={3.5}
-          strokeDasharray="12 12"
-          opacity={loopO}
-        />
-        <line
-          x1={960}
-          y1={352}
-          x2={960}
-          y2={706}
-          stroke={withAlpha(theme.dim, 0.55)}
-          strokeWidth={3.5}
-          strokeDasharray="12 12"
-          opacity={channelO * (1 - 0.6 * closeP)}
-        />
-        {/* 用户图标自 0-B 停靠位（椭圆左端）淡出——牛马下场 */}
-        <g transform={`translate(${handoffPos.x} ${handoffPos.y})`} opacity={personO}>
-          <PersonGlyph color={theme.text} />
-        </g>
-        {/* 程序方块：自终端端沿通道滑入环心接棒 */}
-        <g transform={`translate(960 ${blockY})`} opacity={blockO}>
-          <rect
-            x={-32}
-            y={-32}
-            width={64}
-            height={64}
-            rx={10}
-            fill={withAlpha(theme.tool, 0.14)}
-            stroke={theme.tool}
-            strokeWidth={4}
-          />
-          <text x={0} y={8} textAnchor="middle" fontFamily={theme.sans} fontSize={24} fill={theme.tool}>
-            程序
-          </text>
-          {/* Harness 副标：「就叫 Harness」词落位弹出，常驻幕末（工程名绑定） */}
-          <g opacity={harnessTag.opacity} transform={harnessTag.transform}>
-            <text
-              x={0}
-              y={52}
-              textAnchor="middle"
-              fontFamily={theme.mono}
-              fontSize={22}
-              letterSpacing={1}
-              fill={theme.tool}
-            >
-              Harness
-            </text>
-          </g>
-        </g>
-        {/* 双手轻搭环上：自环外 14px 轻落（effects 通道纯缓动，不吃弹簧） */}
-        {HAND_DEGREES.map((deg) => {
-          const h = handAt(deg);
-          return (
-            <g
-              key={deg}
-              opacity={handP}
-              transform={`translate(${h.x} ${h.y}) rotate(${h.rot}) translate(0 ${(handP - 1) * 14})`}
-            >
-              {HAND_PATHS.map((d, i) => (
-                <path key={i} d={d} stroke={theme.text} strokeWidth={4.5} fill="none" strokeLinecap="round" />
-              ))}
-            </g>
-          );
-        })}
-      </svg>
-      <NodeCard
-        cx={modelNode.x}
-        cy={modelNode.y}
-        accent={theme.text}
-        label="模型"
-        glyph={<BrainGlyph color={theme.text} />}
-      />
-      <NodeCard
-        cx={termNode.x}
-        cy={termNode.y}
-        accent={theme.tool}
-        label="终端"
-        glyph={<TermGlyph color={theme.tool} />}
+      <AgentLoopMaster
+        headerOpacity={headerO}
+        coreOpacity={coreO}
+        drawProgress={draw}
+        stationOpacities={stationTicks}
+        footnoteOpacity={footnoteO}
+        dotProgress={dotP}
+        dotOpacity={dotO}
       />
     </AbsoluteFill>
   );

@@ -108,6 +108,24 @@ const ShotABaseline: React.FC<{s1: Win; s2: Win; s3: Win}> = ({s1, s2, s3}) => {
         ))}
         <path d={topRoundedBar(A.leftX, A.baseY, A.barW, hL)} fill={theme.dim} opacity={0.85} />
         <path d={topRoundedBar(A.rightX, A.baseY, A.barW, hR)} fill={theme.core} opacity={0.92} />
+
+        {/* 工业钢铁防洪堤装甲板接缝与金属铆钉 */}
+        {rightP > 0.15 && (
+          <g opacity={0.45 * rightP}>
+            {Array.from({length: 6}, (_, idx) => {
+              const lineY = A.baseY - (idx + 1) * 85;
+              if (lineY < A.baseY - hR + 20) return null;
+              return (
+                <g key={idx}>
+                  <line x1={A.rightX + 4} y1={lineY} x2={A.rightX + A.barW - 4} y2={lineY} stroke="#1F2937" strokeWidth={3} />
+                  <circle cx={A.rightX + 16} cy={lineY - 12} r={3.5} fill="#374151" />
+                  <circle cx={A.rightX + A.barW - 16} cy={lineY - 12} r={3.5} fill="#374151" />
+                </g>
+              );
+            })}
+          </g>
+        )}
+
         <rect x={A.rightX} y={A.baseY - hR - 6} width={A.barW} height={5} fill={theme.text} opacity={0.9 * glow} />
         {/* 右柱外缘细刻度（「判断上更较真」——更严判定的量具感） */}
         <g opacity={ticksO}>
@@ -117,10 +135,10 @@ const ShotABaseline: React.FC<{s1: Win; s2: Win; s3: Win}> = ({s1, s2, s3}) => {
           })}
         </g>
         <text x={A.leftX + A.barW / 2} y={848} textAnchor="middle" fontFamily={theme.sans} fontSize={28} fill={theme.dim} opacity={marksO}>
-          {'教学版'}
+          {'教学版 (30行)'}
         </text>
-        <text x={A.rightX + A.barW / 2} y={848} textAnchor="middle" fontFamily={theme.sans} fontSize={28} fontWeight={600} fill={theme.text} opacity={marksO}>
-          {'生产版'}
+        <text x={A.rightX + A.barW / 2} y={848} textAnchor="middle" fontFamily={theme.sans} fontSize={28} fontWeight={700} fill={theme.text} opacity={marksO}>
+          {'生产级防洪堤 (1729行)'}
         </text>
       </svg>
 
@@ -447,14 +465,21 @@ const HaltDrop: React.FC<{s7: Win}> = ({s7}) => {
   const fall = useProgress(dropAt, DUR.f6, 'accelerate');
   const fade = useProgress(dropAt + DUR.f4, DUR.f5);
   const guide = useProgress(dropAt + DUR.f2, DUR.f3);
-  const railShake = useShake({at: dropAt, amp: 3.5, freq: 1.6, decay: true, dur: DUR.f6});
+  const railShake = useShake({at: dropAt, amp: 8.5, freq: 2.2, decay: true, dur: DUR.f6});
   const labelO = useProgress(at(s7, 0.86), DUR.f4);
+  const frame = useCurrentFrame();
+
+  // 撞击地面的爆裂粒子（Exploding Particles）
+  const hitTime = dropAt + 14;
+  const shatterProgress = frame >= hitTime ? Math.min(1, (frame - hitTime) / 20) : 0;
+  const shatterEase = Math.pow(shatterProgress, 0.5);
+
   return (
     <AbsoluteFill>
       <div style={{position: 'absolute', left: 560, top: 300, ...enter, transform: `${enter.transform} translateX(${railShake}px)`}}>
-        <Panel style={{width: 800, height: 400, boxSizing: 'border-box', position: 'relative'}}>
+        <Panel style={{width: 800, height: 400, boxSizing: 'border-box', position: 'relative', overflow: 'hidden'}}>
           <div style={{position: 'absolute', left: 30, top: 26, fontFamily: theme.sans, fontSize: 30, fontWeight: 700, color: theme.text}}>
-            {'等字段再判断'}
+            {'死守收尾字段判断（隐患爆发）'}
           </div>
           <div style={{position: 'absolute', right: 30, top: 34, fontFamily: theme.mono, fontSize: 18, color: theme.dim}}>
             {'stop_reason'}
@@ -509,12 +534,39 @@ const HaltDrop: React.FC<{s7: Win}> = ({s7}) => {
                   width: 38,
                   height: 48,
                   borderRadius: 6,
-                  background: theme.tool,
+                  background: theme.warn,
                   opacity: 1 - fade,
+                  boxShadow: `0 0 16px ${theme.warn}`,
                 }}
               />
             </div>
           ))}
+
+          {/* 撞击地面的爆裂飞溅粒子 */}
+          {frame >= hitTime &&
+            Array.from({length: 16}, (_, i) => {
+              const ang = (i / 16) * Math.PI * 2;
+              const spd = 40 + (i % 4) * 20;
+              const px = 583 + Math.cos(ang) * spd * shatterEase;
+              const py = 296 + Math.sin(ang) * spd * shatterEase + shatterEase * 28;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    left: px,
+                    top: py,
+                    width: 7,
+                    height: 7,
+                    borderRadius: 2,
+                    background: i % 2 === 0 ? theme.warn : '#FFA09E',
+                    opacity: (1 - shatterProgress) * 0.9,
+                    pointerEvents: 'none',
+                  }}
+                />
+              );
+            })}
+
           <div
             style={{
               position: 'absolute',
@@ -522,30 +574,34 @@ const HaltDrop: React.FC<{s7: Win}> = ({s7}) => {
               bottom: 30,
               fontFamily: theme.mono,
               fontSize: 22,
+              fontWeight: 700,
               color: theme.warn,
               opacity: labelO,
             }}
           >
-            {'丢弃 ×2'}
+            {'⚠️ 致命误判：丢弃工具调用块 ×2'}
           </div>
-          {/* 判停章（AAS：抬起 2 帧后拍落） */}
+          {/* 判停重型血红印章 */}
           <div
             style={{
               ...stamp,
               position: 'absolute',
               right: 44,
-              top: 150,
-              padding: '8px 22px',
-              borderRadius: 10,
-              border: `3px solid ${theme.warn}`,
+              top: 140,
+              padding: '12px 28px',
+              borderRadius: 12,
+              border: `4px solid ${theme.warn}`,
+              background: 'rgba(239, 100, 97, 0.25)',
+              boxShadow: `0 0 40px rgba(239, 100, 97, 0.5)`,
               fontFamily: theme.sans,
-              fontSize: 34,
-              fontWeight: 700,
+              fontSize: 38,
+              fontWeight: 900,
               color: theme.warn,
+              letterSpacing: 3,
               transform: `${stamp.transform} rotate(-8deg)`,
             }}
           >
-            {'判停'}
+            {'[ 判停坠毁 ]'}
           </div>
         </Panel>
       </div>
@@ -694,18 +750,25 @@ const SwitchShot: React.FC<{s8: Win; s9: Win; lapPhase: number}> = ({s8, s9, lap
 
 // ── 4-F State 外圈（p4-10..p4-11） ──────────────────────────────────────
 
-const C = {cx: 960, cy: 555, r: 280} as const;
+const C = {cx: 960, cy: 540, r: 270} as const;
 const SLOT_ANGLE = (k: number): number => -90 + 36 * k;
 const C_REPS = [
-  {k: 0, label: '压缩', lx: 960, ly: 238, anchor: 'middle' as const},
-  {k: 7, label: 'Token 恢复', lx: 690, ly: 649, anchor: 'end' as const},
-  {k: 3, label: '轮次', lx: 1256, ly: 649, anchor: 'start' as const},
+  {k: 0, label: 'messages (上下文)', lx: 960, ly: 230, anchor: 'middle' as const},
+  {k: 1, label: 'toolUseContext', lx: 1150, ly: 280, anchor: 'start' as const},
+  {k: 2, label: 'autoCompact', lx: 1260, ly: 420, anchor: 'start' as const},
+  {k: 3, label: 'turnCount (轮次)', lx: 1256, ly: 640, anchor: 'start' as const},
+  {k: 4, label: 'transition (流转)', lx: 1120, ly: 770, anchor: 'start' as const},
+  {k: 5, label: 'stopHookActive', lx: 960, ly: 815, anchor: 'middle' as const},
+  {k: 6, label: 'pendingSummary', lx: 800, ly: 770, anchor: 'end' as const},
+  {k: 7, label: 'tokenRecovery', lx: 690, ly: 640, anchor: 'end' as const},
+  {k: 8, label: 'reactiveCompact', lx: 660, ly: 420, anchor: 'end' as const},
+  {k: 9, label: 'tokensOverride', lx: 770, ly: 280, anchor: 'end' as const},
 ];
 const C_EXITS = [
-  {name: '超长', disp: '续跑', ok: true, k: 2, w: 150},
-  {name: '报错', disp: '重试', ok: true, k: 8, w: 150},
-  {name: '中止', disp: '中止', ok: false, k: 6, w: 140},
-  {name: '轮次上限', disp: '中止', ok: false, k: 4, w: 170},
+  {name: '超时/超长', disp: 'Compact压缩续跑', ok: true, k: 2, w: 190},
+  {name: '模型报错', disp: '指数退避重试', ok: true, k: 8, w: 170},
+  {name: '用户中断', disp: '现场清理退出', ok: false, k: 6, w: 170},
+  {name: '轮次上限', disp: '检查点暂存', ok: false, k: 4, w: 160},
 ];
 
 const RepSlot: React.FC<{atIn: number; k: number; label: string; lx: number; ly: number; anchor: 'middle' | 'start' | 'end'}> = ({
@@ -767,10 +830,11 @@ const ShotStateRim: React.FC<{w10: Win; w11: Win; lapPhase: number}> = ({w10, w1
   const rim = useDraw(at(w10, 0.06), DUR.f6);
   const slots = useStagger(10, {at: at(w10, 0.2), stride: 2, dur: DUR.f2});
   const countO = useProgress(at(w10, 0.58), DUR.f4);
-  const repAnchors = [at(w10, 0.58), at(w10, 0.68), at(w10, 0.78)];
+  const repAnchors = Array.from({length: 10}, (_, i) => at(w10, 0.3 + i * 0.04));
   const exitAnchors = [at(w11, 0.28), at(w11, 0.4), at(w11, 0.52), at(w11, 0.66)];
   const teachIn = useEnter('pop', {at: at(w10, 0.08), dur: DUR.f4});
   const teachDim = 1 - 0.6 * useProgress(at(w10, 0.52), DUR.f4);
+  const budgetIn = useEnter('pop', {at: at(w10, 0.5), dur: DUR.f4});
   return (
     <AbsoluteFill>
       <svg width={1920} height={1080} style={{position: 'absolute', left: 0, top: 0}}>
@@ -784,6 +848,9 @@ const ShotStateRim: React.FC<{w10: Win; w11: Win; lapPhase: number}> = ({w10, w1
         <text x={C.cx} y={872} textAnchor="middle" fontFamily={theme.mono} fontSize={26} fill={theme.dim} opacity={countO}>
           {'State · 10 字段'}
         </text>
+        {C_REPS.map((r, i) => (
+          <RepSlot key={r.label} atIn={repAnchors[i]} k={r.k} label={r.label} lx={r.lx} ly={r.ly} anchor={r.anchor} />
+        ))}
       </svg>
       {/* 教学版对照 chip（1 个列表） */}
       <div style={{position: 'absolute', left: 240, top: 250, width: 230, opacity: teachIn.opacity * teachDim, transform: teachIn.transform}}>
@@ -802,15 +869,20 @@ const ShotStateRim: React.FC<{w10: Win; w11: Win; lapPhase: number}> = ({w10, w1
               />
             ))}
           </div>
-          <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim, marginTop: 6}}>{'1 个列表'}</div>
+          <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.dim, marginTop: 6}}>{'1 个列表 (messages)'}</div>
+        </Panel>
+      </div>
+      {/* taskBudgetRemaining 局部变量提示 (源教学页 291 行关键设计) */}
+      <div style={{position: 'absolute', left: 1420, top: 250, width: 280, opacity: budgetIn.opacity, transform: budgetIn.transform}}>
+        <Panel accent={theme.tool} style={{padding: '12px 16px'}}>
+          <div style={{fontFamily: theme.mono, fontSize: 14, color: theme.tool, fontWeight: 700}}>{'query.ts:291'}</div>
+          <div style={{fontFamily: theme.mono, fontSize: 16, color: theme.text, marginTop: 4, fontWeight: 700}}>{'taskBudgetRemaining'}</div>
+          <div style={{fontFamily: theme.sans, fontSize: 13, color: theme.dim, marginTop: 4}}>{'loop-local (不在 State 上)'}</div>
         </Panel>
       </div>
       <div style={{position: 'absolute', left: C.cx - 155, top: C.cy - 155}}>
         <LoopRing size={310} showLabels={false} showExit={false} dotProgress={laps} />
       </div>
-      {C_REPS.map((r, i) => (
-        <RepSlot key={r.label} atIn={repAnchors[i]} k={r.k} label={r.label} lx={r.lx} ly={r.ly} anchor={r.anchor} />
-      ))}
       {C_EXITS.map((e, i) => (
         <ExitPath key={e.name} atIn={exitAnchors[i]} k={e.k} name={e.name} disp={e.disp} ok={e.ok} w={e.w} />
       ))}
