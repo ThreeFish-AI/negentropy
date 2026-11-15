@@ -5,22 +5,22 @@
  },
  {
   "scene": "P1",
-  "title": "Agent Loop 核心机制"
+  "title": "一个循环就够了"
  },
  {
   "scene": "P2",
-  "title": "任务执行与回喂走查"
+  "title": "五步工作原理"
  },
  {
   "scene": "P3",
-  "title": "流式工况与判据抉择"
+  "title": "试一下"
  },
  {
   "scene": "P4",
-  "title": "Claude Code 源码对照"
+  "title": "生产源码对照"
  },
  {
   "scene": "P5",
-  "title": "架构规律与工具演进"
+  "title": "收束与工具演化"
  }
 ]
