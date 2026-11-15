@@ -1,8 +1,8 @@
-/** P5 核心与外圈（p5-01, p5-04..06, p5-07..08，3 镜）——分镜 5-A…5-C。
+/** P5 收束与工具演进（p5-01..p5-06，3 镜）——分镜 5-A…5-C（storyboard v5）。
  *
- *  ★ 镜界沿 narration 幕内 3 beat：5-A p5-01 / 5-B p5-04..06 / 5-C p5-07..08
- *    （联缀覆盖本幕全部句；无 p5-02/03）。本集零建图（storyboard 建图轮决策），
- *    故本幕无 ArchifyRecap 挂载。
+ *  ★ 镜界沿 narration 幕内 3 beat：5-A p5-01 / 5-B p5-02..04 / 5-C p5-05..06
+ *    （联缀覆盖本幕全部句）。本集零建图（storyboard 建图轮决策），
+ *    故本幕无 ArchifyRecap 挂载。v5：三串命令取源页原词 cat / echo / find。
  *  ★ 5-A 金句卡与口播 p5-01 逐字重合是 storyboard 已豁免的刻意复述
  *    （caption-dup-ok：收束定格仪式，同幕回扣豁免先例），照做。
  *  ★ 5-B Visual Lock：手为灰色（theme.dim＝能力受限语义）；命令串以断裂态
@@ -12,7 +12,7 @@
  *    仓库地址 / MIT 角注）；p5-08 漂移警示由口播承载、卡面零复述；主行 56px
  *    ≥44、次行 28px ≥26（可读阈值）；全片在此卡收束（黑场前最后画面）。
  *  ★ 尾幕渐黑（红线四，实现形态照 claude-code-concurrency P6ReconRules）：窗
- *    取末 beat 总时长（p5-07..p5-08 之和）——其终点即本幕终点，勿改用末句
+ *    取末 beat 总时长（p5-05..p5-06 之和）——其终点即本幕终点，勿改用末句
  *    单句窗（长黑屏教训：useFadeOut 只吃窗尾 36 帧，窗缩短≠起点不变）。
  *  ★ 收尾版式不挂 SceneTag（旧系列 P5/P6 让位收尾版式先例；系列身份由署源
  *    卡收束）。句内词落位一律按句时长比例推导，禁写死帧数。
@@ -153,7 +153,7 @@ const QuoteShot: React.FC<{at01: number; dur01: number}> = ({at01, dur01}) => {
   );
 };
 
-// ── 5-B bash 单手：灰手 + 两串断裂命令 + 下期卡（工具箱剪影） ────────────
+// ── 5-B bash 单手：灰手 + 三串断裂命令（cat/echo/find）+ 下期卡 ─────────
 
 /** 简笔手（stroke-only，灰＝能力受限语义）：掌 + 三道指缝 + 拇指 */
 const HAND_GLYPH = (c: string) => (
@@ -315,29 +315,32 @@ const NextCard: React.FC<{at: number; toolAt: number}> = ({at, toolAt}) => {
 };
 
 const BashHand: React.FC<{
+  at02: number;
+  dur02: number;
+  at03: number;
+  dur03: number;
   at04: number;
   dur04: number;
-  at05: number;
-  dur05: number;
-  at06: number;
-  dur06: number;
-}> = ({at04, dur04, at05, dur05, at06, dur06}) => {
-  const ringO = useProgress(at04, DUR.f5);
-  // 环体伸臂（「回到这双手」约 22%）→ 手落位（约 34%）→ bash 家什（「bash」约 66%）
-  const arm = useDraw(at04 + Math.round(dur04 * 0.22), DUR.f6);
-  const hand = useEnter('rise', {at: at04 + Math.round(dur04 * 0.34), dur: DUR.f5, dist: 20});
-  const bash = useEnter('pop', {at: at04 + Math.round(dur04 * 0.66), dur: DUR.f5});
-  // p5-05：读命令约 12% / 找命令约 44% / 「又丑又容易错」约 74% 起各断一截
-  const strAAt = at05 + Math.round(dur05 * 0.12);
-  const strBAt = at05 + Math.round(dur05 * 0.44);
-  const breakA = at05 + Math.round(dur05 * 0.74);
+}> = ({at02, dur02, at03, dur03, at04, dur04}) => {
+  const ringO = useProgress(at02, DUR.f5);
+  // 环体伸臂（「回到这双手」约 22%）→ 手落位（约 34%）→ bash 家什（「Bash 工具」约 66%）
+  const arm = useDraw(at02 + Math.round(dur02 * 0.22), DUR.f6);
+  const hand = useEnter('rise', {at: at02 + Math.round(dur02 * 0.34), dur: DUR.f5, dist: 20});
+  const bash = useEnter('pop', {at: at02 + Math.round(dur02 * 0.66), dur: DUR.f5});
+  // p5-03（源页原词三串）：拼 cat 约 10% / 拼 echo 约 38% / 拼 find 约 64%；
+  // 「又丑又容易出错」约 86% 起三串各断一截（f3 错峰）
+  const strAAt = at03 + Math.round(dur03 * 0.1);
+  const strBAt = at03 + Math.round(dur03 * 0.38);
+  const strCAt = at03 + Math.round(dur03 * 0.64);
+  const breakA = at03 + Math.round(dur03 * 0.86);
   const breakB = breakA + DUR.f3;
-  // p5-06：「下期」为首词约 12%；「专业工具」约 72%（剪影拆拍弹出 + 左簇 dim 让焦）
-  const nextAt = at06 + Math.round(dur06 * 0.12);
-  const toolAt = at06 + Math.round(dur06 * 0.72);
+  const breakC = breakB + DUR.f3;
+  // p5-04：「下期」为首词约 12%；「专业工具」约 72%（剪影拆拍弹出 + 左簇 dim 让焦）
+  const nextAt = at04 + Math.round(dur04 * 0.12);
+  const toolAt = at04 + Math.round(dur04 * 0.72);
   const clusterDim = useDim({at: toolAt, to: 0.55, dur: DUR.f5});
   // 灰手生命感 + 断落因果归位：常驻 ±2px 呼吸；断落拍一次衰减颤动（代价归手）
-  const handBob = useBreathe({period: 96, amp: 2, base: 0, offset: at04});
+  const handBob = useBreathe({period: 96, amp: 2, base: 0, offset: at02});
   const handShake = useShake({at: breakA, amp: 2, freq: 1.6, decay: true, dur: DUR.f6});
   return (
     <AbsoluteFill>
@@ -382,23 +385,10 @@ const BashHand: React.FC<{
             </span>
           </Panel>
         </div>
-        {/* 两串手拼命令（读文件 / 找文件）：先三段拼装、断落拍碎屑飘落 */}
-        <CmdString
-          top={356}
-          at={strAAt}
-          breakAt={breakA}
-          segs={['cat ', './notes/', 'plan.md']}
-          wobble={[1, -3, 2]}
-          midX={72}
-        />
-        <CmdString
-          top={476}
-          at={strBAt}
-          breakAt={breakB}
-          segs={['find . ', '-name ', '"*.md"']}
-          wobble={[-2, 3, -1]}
-          midX={126}
-        />
+        {/* 三串手拼命令（源页原词：读文件 cat / 写文件 echo / 找文件 find）：先拼后断、碎屑飘落 */}
+        <CmdString top={340} at={strAAt} breakAt={breakA} segs={['cat ', 'path/to/', 'file']} wobble={[1, -3, 2]} midX={78} />
+        <CmdString top={452} at={strBAt} breakAt={breakB} segs={['echo ', '"..." > ', 'file.py']} wobble={[-2, 3, -1]} midX={128} />
+        <CmdString top={564} at={strCAt} breakAt={breakC} segs={['find . ', '-name ', '"*.py"']} wobble={[2, -2, 1]} midX={118} />
       </div>
       <NextCard at={nextAt} toolAt={toolAt} />
     </AbsoluteFill>
@@ -483,7 +473,7 @@ const CreditCard: React.FC<{at07: number; dur07: number}> = ({at07, dur07}) => {
 
 /** 幕末渐黑（红线四）：挂在 5-C Sequence 最后子节点，盖过署源卡；
  *  useFadeOut 在本 Sequence 语境取 5-C 局部帧，窗=末 beat 总时长
- *  （p5-07..p5-08 之和）——终点即本幕终点，勿改用末句单句窗。 */
+ *  （p5-05..p5-06 之和）——终点即本幕终点，勿改用末句单句窗。 */
 const FadeTail: React.FC<{span: number}> = ({span}) => {
   const keep = useFadeOut(span, {frames: 36});
   return <AbsoluteFill style={{background: '#000', opacity: 1 - keep, pointerEvents: 'none'}} />;
@@ -498,8 +488,8 @@ export const P5CoreAndRim: React.FC<{scene: SceneRange}> = ({scene}) => {
 
   // 镜界（narration 幕内 3 beat，联缀覆盖本幕全部句）
   const bA = w('p5-01');
-  const bB = w('p5-04', 'p5-06');
-  const bC = w('p5-07', 'p5-08');
+  const bB = w('p5-02', 'p5-04');
+  const bC = w('p5-05', 'p5-06');
 
   return (
     <AbsoluteFill>
@@ -508,16 +498,16 @@ export const P5CoreAndRim: React.FC<{scene: SceneRange}> = ({scene}) => {
       </Sequence>
       <Sequence {...bB} name="5-B">
         <BashHand
+          at02={at('p5-02') - bB.from}
+          dur02={dur('p5-02')}
+          at03={at('p5-03') - bB.from}
+          dur03={dur('p5-03')}
           at04={at('p5-04') - bB.from}
           dur04={dur('p5-04')}
-          at05={at('p5-05') - bB.from}
-          dur05={dur('p5-05')}
-          at06={at('p5-06') - bB.from}
-          dur06={dur('p5-06')}
         />
       </Sequence>
       <Sequence {...bC} name="5-C">
-        <CreditCard at07={at('p5-07') - bC.from} dur07={dur('p5-07')} />
+        <CreditCard at07={at('p5-05') - bC.from} dur07={dur('p5-05')} />
         {/* 幕末渐黑：最后子节点，盖过署源卡（全片最后画面在此收束） */}
         <FadeTail span={bC.durationInFrames} />
       </Sequence>

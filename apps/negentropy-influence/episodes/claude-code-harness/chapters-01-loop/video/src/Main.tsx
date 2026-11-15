@@ -7,10 +7,10 @@ import {Subtitle} from './components/Subtitle';
 import {theme} from './design/theme';
 import {LangProvider} from './i18n';
 import {P0ColdOpen} from './scenes/P0ColdOpen';
-import {P1FiveSteps} from './scenes/P1FiveSteps';
-import {P2Walkthrough} from './scenes/P2Walkthrough';
-import {P3CriterionDuel} from './scenes/P3CriterionDuel';
-import {P4ProductionFuse} from './scenes/P4ProductionFuse';
+import {P1Solution} from './scenes/P1Solution';
+import {P2FiveSteps} from './scenes/P2FiveSteps';
+import {P3TryIt} from './scenes/P3TryIt';
+import {P4CCSource} from './scenes/P4CCSource';
 import {P5CoreAndRim} from './scenes/P5CoreAndRim';
 import {INTRO_FRAMES, SeriesIntro} from './components/series-intro';
 import {computeTimeline, SCENE_FADE_FRAMES} from './timing';
@@ -19,10 +19,10 @@ import type {ManifestItem, SceneRange} from './types';
 
 const SCENE_COMPONENTS: Record<string, React.FC<{scene: SceneRange}>> = {
   P0: P0ColdOpen,
-  P1: P1FiveSteps,
-  P2: P2Walkthrough,
-  P3: P3CriterionDuel,
-  P4: P4ProductionFuse,
+  P1: P1Solution,
+  P2: P2FiveSteps,
+  P3: P3TryIt,
+  P4: P4CCSource,
   P5: P5CoreAndRim,
 };
 

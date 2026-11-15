@@ -26,7 +26,7 @@ next_card_series_ids = []
 # storyboard 同 id 行；scene_stems 豁免具名场景组件（场景文件落地时补登记）。
 # 未登记位置仍全量执法；配置引用不存在的句 id / stem 直接 FAIL。
 [check_series.source_credit."chapters-01-loop"]
-narration_ids = ["p0-01", "p5-07"]
+narration_ids = ["p0-01", "p5-05"]
 scene_stems = ["P0ColdOpen", "P5CoreAndRim"]
 
 [check_series.source_credit."chapters-02-tooluse"]

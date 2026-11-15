@@ -1,18 +1,19 @@
-/** P0 会写不会做（p0-01..p0-09，3 镜）——分镜 0-A / 0-B / 0-C（storyboard v1）。
+/** P0 大模型的行动瓶颈（p0-01..p0-07，3 镜）——分镜 0-A / 0-B / 0-C（storyboard v5）。
  *
  *  ★ 0-A 开篇视听合力（I-039）：Terminal 母题居中，一条命令 p0-01 落字起逐字打出又停住，
  *    光标孤闪；p0-03 句尾整窗轻沉一拍 + 光标停闪变灰——无回车的死寂〔M-002〕：
  *    p0-03 句区间内零强调动效，只有句尾这一个 sanctioned 拍点。
  *  ★ 0-B 分屏搬运回路：左「模型」右「终端」，用户图标沿椭圆回路往返——
  *    单趟等速（机械感，本镜匀速豁免）+ 逐趟加密（storyboard「逐趟加速」）；
- *    回合计数随趟递增；p0-06「牛马」词落位计数数字脉冲一次〔M-005〕。
+ *    回合计数随趟递增；p0-05「中间层」词落位计数数字脉冲一次〔M-005〕
+ *    （v5 贴源：源页 §问题原词「中间层」取代旧「人肉搬运工」）。
  *  ★ 0-C 接棒建锚：分屏收拢为竖直通道，用户图标淡出、程序方块自下而上滑入接棒；
- *    p0-09「喂回」词落位环体（LoopRing，core 描边 + RING_STROKE——〔M-001〕自此镜建锚）
+ *    p0-07「喂回」词落位环体（LoopRing，core 描边 + RING_STROKE——〔M-001〕自此镜建锚）
  *    自雏形弧闭合成圆 + 一双手轻搭环上（类比 A#1）；@pushIn 揭示全片主角环体。
  *  ★ 署源角标（首部署源位，RSI I-080）：右下常驻「Learn Claude Code」，低饱和小字，
  *    一次淡入后全幕恒定不闪烁（挂在 Sequence 外，不受镜切换与 pushIn 影响）。
  *  ★ Visual Lock：0-C 程序方块无「脑」——决策脑（模型节点脑图标）恒在环上方；
- *    环体闭合成圆只发生在 p0-09 词落位（此前仅 22% 雏形弧）。
+ *    环体闭合成圆只发生在 p0-07 词落位（此前仅 22% 雏形弧）。
  */
 import React from 'react';
 import {AbsoluteFill, Sequence, useCurrentFrame} from 'remotion';
@@ -35,17 +36,17 @@ const TAIL_GAP_FRAMES = 10;
 
 /** 词落位近似（句内相对位置——无词级时间戳，按句窗比例锚定，TTS 变更自动重定时） */
 const W = {
-  /** p0-06「人肉搬运工」 */
-  niuma: 0.75,
-  /** p0-08「交给程序」 */
+  /** p0-05「中间层」（句尾词，锚偏后） */
+  midlayer: 0.72,
+  /** p0-06「交给程序」 */
   handoff: 0.55,
-  /** p0-08「就叫 Harness」（英文词 TTS 拖尾，锚偏后） */
+  /** p0-06「就叫 Harness」（英文词 TTS 拖尾，锚偏后） */
   harness: 0.88,
-  /** p0-09 题眼「一个循环」（span 含句隙折算语音 ≈0.30 起读；全片标题词象绑定） */
+  /** p0-07 题眼「一个循环」（span 含句隙折算语音 ≈0.30 起读；全片标题词象绑定） */
   loop: 0.27,
-  /** p0-09「喂回给模型」（结果光点巡游词窗） */
+  /** p0-07「喂回给模型」（结果光点巡游词窗） */
   feedBack: 0.53,
-  /** p0-09「接上一双手」 */
+  /** p0-07「接上一双手」 */
   hands: 0.8,
 } as const;
 
@@ -101,7 +102,7 @@ const arrowHead = (p: {x: number; y: number}, dir: {x: number; y: number}, color
 
 // ── 图标（简笔 SVG，帧外常量） ──────────────────────────────────────────
 
-/** 用户小人：头 + 肩（牛马在场是 0-B 痛点前提，全程可见） */
+/** 用户小人：头 + 肩（人工搬运在场是 0-B 痛点前提，全程可见） */
 const PersonGlyph: React.FC<{color: string}> = ({color}) => (
   <g>
     <circle cx={0} cy={-22} r={16} fill={color} />
@@ -640,8 +641,8 @@ export const P0ColdOpen: React.FC<{scene: SceneRange}> = ({scene}) => {
   const span = (id: string) => w(id).durationInFrames;
 
   const bA = w('p0-01', 'p0-03');
-  const bB = w('p0-05', 'p0-06');
-  const bC = w('p0-08', 'p0-09');
+  const bB = w('p0-04', 'p0-05');
+  const bC = w('p0-06', 'p0-07');
 
   return (
     <AbsoluteFill>
@@ -653,23 +654,23 @@ export const P0ColdOpen: React.FC<{scene: SceneRange}> = ({scene}) => {
         />
       </Sequence>
       <Sequence {...bB} name="0-B">
-        {/* 局部帧 0 = p0-05 起点；词落位按句窗比例锚定（TTS 变更自动重定时） */}
+        {/* 局部帧 0 = p0-04 起点；词落位按句窗比例锚定（TTS 变更自动重定时） */}
         <ZeroB
           atCarry={DUR.f5}
           atPark={bB.durationInFrames - DUR.f5}
-          atWord={at('p0-06') - bB.from + Math.round(span('p0-06') * W.niuma)}
+          atWord={at('p0-05') - bB.from + Math.round(span('p0-05') * W.midlayer)}
           atEnd={bB.durationInFrames}
         />
       </Sequence>
       <Sequence {...bC} name="0-C">
         <ZeroC
-          atBlock={at('p0-08') - bC.from + Math.round(span('p0-08') * W.handoff)}
-          atHarness={at('p0-08') - bC.from + Math.round(span('p0-08') * W.harness)}
-          atFeed={at('p0-09') - bC.from + Math.round(span('p0-09') * W.loop)}
-          atFeedDot={at('p0-09') - bC.from + Math.round(span('p0-09') * W.feedBack)}
-          atHands={at('p0-09') - bC.from + Math.round(span('p0-09') * W.hands)}
-          atPush={at('p0-09') - bC.from}
-          pushDur={Math.max(DUR.f6, Math.round(span('p0-09') * 0.3))}
+          atBlock={at('p0-06') - bC.from + Math.round(span('p0-06') * W.handoff)}
+          atHarness={at('p0-06') - bC.from + Math.round(span('p0-06') * W.harness)}
+          atFeed={at('p0-07') - bC.from + Math.round(span('p0-07') * W.loop)}
+          atFeedDot={at('p0-07') - bC.from + Math.round(span('p0-07') * W.feedBack)}
+          atHands={at('p0-07') - bC.from + Math.round(span('p0-07') * W.hands)}
+          atPush={at('p0-07') - bC.from}
+          pushDur={Math.max(DUR.f6, Math.round(span('p0-07') * 0.3))}
           atEnd={bC.durationInFrames}
         />
       </Sequence>
