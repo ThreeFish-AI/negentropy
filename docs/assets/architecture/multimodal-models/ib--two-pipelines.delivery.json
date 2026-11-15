@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "cf6427d5-300c-4331-8bf9-82e20c515e58",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/cm.huang/orca/workspaces/negentropy/amphipod/docs/diagrams/ib--two-pipelines/ib--two-pipelines.json",
+  "output": "/Users/cm.huang/orca/workspaces/negentropy/amphipod/docs/assets/architecture/multimodal-models/ib--two-pipelines.html",
+  "specification": {
+    "sha256": "6a9fec0c6f7396b209e93601b41851f5c830fbd86a5841354250d0462b82d7d5",
+    "bytes": 4384
+  },
+  "artifact": {
+    "sha256": "bb2eb56f58a095ab5c8abf62ce6ca1acbf529265fb87fab2b8e69253e1e590e8",
+    "bytes": 763433
+  }
+}

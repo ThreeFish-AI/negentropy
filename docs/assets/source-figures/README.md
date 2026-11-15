@@ -172,3 +172,14 @@ Memadapter 论文图 1–3 取自 [arXiv:2610.05162v1](https://arxiv.org/html/26
 | [jev--src-03-alert-triage-workflow.png](./agent-infra/jev--src-03-alert-triage-workflow.png) | 博客〈Workflow evals〉节配图「最简单的一个 workflow」（2048×704，安全告警分诊四段流水线） | 同上 | 剥未命中像素的 tRNS 索引（103 KiB） |
 | [jev--src-04-accuracy-vs-cost.png](./agent-infra/jev--src-04-accuracy-vs-cost.png) | 博客〈Workflow evals〉节配图 "Average of 4 workflows: accuracy vs cost"（1672×918，workflow/prompt 散点与前沿） | 同上 | 原样（29 KiB） |
 | [jev--src-05-kev-jev-accuracy.png](./agent-infra/jev--src-05-kev-jev-accuracy.png) | [kev README @58d9438](https://github.com/jaredpalmer/kev/blob/58d9438/docs/kev-family.png) 配图 "Accuracy by source for Kev and Jev"（2380×1615，11 源哑铃图） | Apache-2.0 | 原样（263 KiB，RGBA 全不透明） |
+
+### multimodal-models · IndexTTS 2.5 vs Breeze TTS 2 精读对比（[255](../../research/multimodal-models/255-index-tts-vs-breeze-tts.md)）
+
+三张论文原图取自 arXiv e-print TeX 源码包（矢量 PDF 经 pdftoppm 150dpi 渲染）与 HTML 版图件，T2S 模块图取自 2506.21619v2 HTML 版外链 PNG；Elo 榜为 breeze-tts 仓库（commit daa6cb2）自带 SVG 经无头 Chrome 白底 2× 栅格化。逐图署名与时效见 255 正文。
+
+| 文件 | 出处 | 许可 | 处理 |
+| --- | --- | --- | --- |
+| [ib--fig1-paradigm-map.png](./multimodal-models/ib--fig1-paradigm-map.png) | arXiv:2601.03888v5 e-print tree1.pdf（原文图 1） | arXiv perpetual non-exclusive，版权归原作者，仅作学习引用 | PDF 渲染 PNG |
+| [ib--fig2-t2s-module.png](./multimodal-models/ib--fig2-t2s-module.png) | arXiv:2506.21619v2 HTML 版 gpt.png（原文图 2） | 同上 | 原样 PNG |
+| [ib--fig3-multilingual-strategies.png](./multimodal-models/ib--fig3-multilingual-strategies.png) | arXiv:2601.03888v5 e-print lang.pdf（原文图 3） | 同上 | PDF 渲染 PNG |
+| [ib--fig4-elo-leaderboard.png](./multimodal-models/ib--fig4-elo-leaderboard.png) | breeze-tts 仓库 assets/tts-elo-leaderboard.svg @ daa6cb2 | Apache 2.0（厂商自述口径） | SVG 白底栅格化 PNG，抓取 2026-11-15 |

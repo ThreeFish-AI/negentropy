@@ -1,0 +1,19 @@
+%%source: docs/research/multimodal-models/255-index-tts-vs-breeze-tts.md §3（信源：arXiv 2601.03888v5 / breeze-tts repo daa6cb2 / HF api 2026-11-15 快照）
+%%slug: multimodal-models/ib--two-pipelines
+%%type: workflow
+%%derived: archify workflow v2（两路线同轴对照：IndexTTS 2.5 级联把内容韵律（语义码 25Hz）与音色细节（flow matching mel+BigVGAN）拆两级；Breeze TTS 2 单模型双自回归（backbone 第 1 层码 12.5Hz + depth decoder 补 RVQ 其余码本）直出流式 PCM，CUDA Graph 五段预录换 TTFA）
+flowchart LR
+    I0["IndexTTS 2.5 输入<br/>参考音频+文本+语言"]
+    I1["文本前端<br/>正则/发音标注/分词"]
+    I2["GPT T2S（AR）<br/>语义码 25Hz·0.8B"]
+    I3["上采样+Flow Matching<br/>Zipformer S2M 出 mel"]
+    I4["BigVGAN 声码器<br/>22.05kHz wav"]
+    I5["部署加速<br/>vLLM/TRT/CUDA Graph"]
+    B0["Breeze TTS 2 输入<br/>三模式：克隆/描述/指挥"]
+    B1["模板序列构造<br/>文本-音频交错+指令+CFG"]
+    B2["Backbone（AR）<br/>第 1 层码 12.5Hz·3.47B"]
+    B3["Depth Decoder<br/>并行补齐 RVQ 其余码本"]
+    B4["流式神经 codec<br/>24kHz PCM 逐块输出"]
+    B5["Fast Path<br/>五段 CUDA Graph warmed"]
+    I0 --> I1 --> I2 --> I3 --> I4 --> I5
+    B0 --> B1 --> B2 --> B3 --> B4 --> B5

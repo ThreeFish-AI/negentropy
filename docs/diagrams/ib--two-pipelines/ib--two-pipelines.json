@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "两条流水线：级联可控 vs 单模型实时",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "output": "docs/assets/architecture/multimodal-models/ib--two-pipelines.html"
+  },
+  "lanes": [
+    { "id": "idx", "label": "IndexTTS 2.5 · 级联路线" },
+    { "id": "brz", "label": "Breeze TTS 2 · 单模型路线" }
+  ],
+  "phases": [
+    { "id": "in", "label": "输入", "fromCol": 0, "toCol": 0 },
+    { "id": "front", "label": "前端", "fromCol": 1, "toCol": 1 },
+    { "id": "core", "label": "主干生成", "fromCol": 2, "toCol": 2, "variant": "emphasis" },
+    { "id": "detail", "label": "补细节", "fromCol": 3, "toCol": 3 },
+    { "id": "wave", "label": "波形", "fromCol": 4, "toCol": 4 },
+    { "id": "deploy", "label": "加速与部署", "fromCol": 5, "toCol": 5 }
+  ],
+  "mainPath": ["i0", "i1", "i2", "i3", "i4", "i5"],
+  "nodes": [
+    { "id": "i0", "lane": "idx", "col": 0, "type": "external", "label": "参考音频+文本", "sublabel": "另加语言标记", "width": 104 },
+    { "id": "i1", "lane": "idx", "col": 1, "type": "frontend", "label": "文本前端", "sublabel": "正则·发音标注", "width": 104 },
+    { "id": "i2", "lane": "idx", "col": 2, "type": "backend", "label": "GPT T2S 自回归", "sublabel": "语义码 25Hz", "tag": "0.8B", "width": 112 },
+    { "id": "i3", "lane": "idx", "col": 3, "type": "backend", "label": "Flow Matching", "sublabel": "Zipformer 出 mel", "width": 112 },
+    { "id": "i4", "lane": "idx", "col": 4, "type": "messagebus", "label": "BigVGAN", "sublabel": "22.05kHz wav", "width": 104 },
+    { "id": "i5", "lane": "idx", "col": 5, "type": "database", "label": "整段交付", "sublabel": "vLLM/TRT 部署", "width": 104 },
+    { "id": "b0", "lane": "brz", "col": 0, "type": "external", "label": "三模式输入", "sublabel": "克隆/描述/指挥", "width": 104 },
+    { "id": "b1", "lane": "brz", "col": 1, "type": "frontend", "label": "模板序列", "sublabel": "交错+指令+CFG", "width": 104 },
+    { "id": "b2", "lane": "brz", "col": 2, "type": "backend", "label": "Backbone 自回归", "sublabel": "第 1 层码 12.5Hz", "tag": "3.47B", "width": 112 },
+    { "id": "b3", "lane": "brz", "col": 3, "type": "backend", "label": "Depth Decoder", "sublabel": "并行补齐码本", "width": 112 },
+    { "id": "b4", "lane": "brz", "col": 4, "type": "messagebus", "label": "流式神经 codec", "sublabel": "24kHz PCM 逐块", "width": 104 },
+    { "id": "b5", "lane": "brz", "col": 5, "type": "database", "label": "Fast Path", "sublabel": "五段 CUDA Graph", "width": 104 }
+  ],
+  "edges": [
+    { "id": "i0-i1", "from": "i0", "to": "i1", "variant": "default" },
+    { "id": "i1-i2", "from": "i1", "to": "i2", "variant": "default" },
+    { "id": "i2-i3", "from": "i2", "to": "i3", "label": "离散语义码", "variant": "emphasis" },
+    { "id": "i3-i4", "from": "i3", "to": "i4", "variant": "default" },
+    { "id": "i4-i5", "from": "i4", "to": "i5", "variant": "default" },
+    { "id": "b0-b1", "from": "b0", "to": "b1", "variant": "default" },
+    { "id": "b1-b2", "from": "b1", "to": "b2", "label": "带/不带指令双前向", "variant": "emphasis" },
+    { "id": "b2-b3", "from": "b2", "to": "b3", "label": "末层隐状态", "variant": "emphasis" },
+    { "id": "b3-b4", "from": "b3", "to": "b4", "variant": "default" },
+    { "id": "b4-b5", "from": "b4", "to": "b5", "variant": "default" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "级联换可控",
+      "items": [
+        "语义码只装内容与韵律，音色由第二级补",
+        "时长嵌入与位置嵌入共用对照表，说多长可钉死",
+        "GRPO 用识别错误率当奖励压发音"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "单模型换实时",
+      "items": [
+        "指令走 CFG：跑两遍取差放大，官方推荐倍数 4",
+        "深度解码器一次并行补齐同帧其余码本",
+        "CUDA Graph 预录执行计划，首音频 40ms 内（H100 预热，厂商口径）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "口径提醒",
+      "items": [
+        "两者无同基准对拍，指标不可直比",
+        "速度数字：RTF@4090 整段 vs TTFA@H100 首包",
+        "许可：bilibili 普遍可商用 vs 权重仅研究非商用"
+      ]
+    }
+  ]
+}

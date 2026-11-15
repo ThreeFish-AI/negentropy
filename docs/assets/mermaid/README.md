@@ -340,7 +340,7 @@
 | [openviking--memory-identity](./cognitive-context/openviking--memory-identity.mmd) | cognitive-context/014-openviking.md §6.3（视频 P4） | workflow | ✓ | done | 相似 ≠ 同一：预取提名（top-5）→ schema 身份字段裁决（filename_template）→ 确定性 URI → 文件名直查落卡；宁可重复不可错并；2026-09-24 视频第 3 集新增；2026-10-22 修订重渲（「查号」→「文件名直查」）并挂 014 §6 图 11 |
 | [openviking--lab-break-matrix](./cognitive-context/openviking--lab-break-matrix.mmd) | cognitive-context/014-openviking.md §10（视频 P6 → 换代重绘） | workflow | ✓ | done | 五组破坏实验退化矩阵 v2（B1 拔摘要精排致盲/B3 身份/B4 冒泡/B6 提交点/B7 候选池边界）+ 教训关联（摘要-池、身份-提交点、保鲜-提交点）；B2/B5 随上游机制删除退役；2026-10-22 随 014 换代重绘并挂 014 §10 图 14 |
 
-### multimodal-models/（docs/research/multimodal-models/ 的 KTP 精读（240）与 Omnimodal Embeddings 综述精读（253））
+### multimodal-models/（docs/research/multimodal-models/ 的 KTP 精读（240） · Omnimodal Embeddings 综述精读（253） · IndexTTS vs Breeze TTS 精读对比（255））
 
 | slug | 源文档锚点 | 类型 | 产物 | 状态 | 备注 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -349,6 +349,7 @@
 | [kda--evolution-ladder](./model-architecture/kda--evolution-ladder.mmd) | [250 §3](../../research/model-architecture/250-linear-attention-kda.md) | workflow | ✓ | done | 门控演进阶梯：Softmax→线性注意力→+短卷积→DeltaNet→GDN→KDA 五档（每档加一个门治一种病）+ RWKV 平行路线 + Hybrid 产业收敛分支；三卡：粒度天花板/训练视角/2026 产业配比；candidate JSON 入 `docs/diagrams/kda--evolution-ladder/` |
 | [kda--chunkwise-two-level](./model-architecture/kda--chunkwise-two-level.mmd) | [250 §4](../../research/model-architecture/250-linear-attention-kda.md) | dataflow | ✓ | done | chunk-wise 两级并行数据流：Token 切块 → 块间宏观（Transition/Δ 各块独立）与块内微观（WY 解下三角得 U/W）两路 → 汇合 E=U−WS₀ᵀ → 产出块末状态 S_C 与全部输出 O；两卡：两级分工/重写精确性；candidate JSON 入 `docs/diagrams/kda--chunkwise-two-level/` |
 | oe--3c-three-paths | 253 §4（信源 arXiv 2611.00172v1 §6–8 三桥 / Table 9–10 / 图 5–6 / 式 5） | workflow | [HTML](../architecture/multimodal-models/oe--3c-three-paths.html) · [PNG](../architecture/multimodal-models/oe--3c-three-paths-dark.png) | 已入库 | finalize showcase 四门回执（2026-11-07）：三桥交互深度递进、3C 分立举证、Δcomp 判据 |
+| ib--two-pipelines | 255 §2（信源 arXiv 2601.03888v5 / breeze-tts daa6cb2 / HF api 2026-11-15 快照） | workflow | [HTML](../architecture/multimodal-models/ib--two-pipelines.html) · [PNG](../architecture/multimodal-models/ib--two-pipelines-dark.png) | 已入库 | finalize showcase 四门回执（2026-11-15）：两路线同轴对照（级联可控 vs 单模型实时）；candidate JSON 入 docs/diagrams/ib--two-pipelines/ |
 | oe--anatomy-five-parts | 253 §2（信源 §2.1 五件套 / Table 1–2 / 图 2） | architecture | [HTML](../architecture/multimodal-models/oe--anatomy-five-parts.html) · [PNG](../architecture/multimodal-models/oe--anatomy-five-parts-dark.png) | 已入库 | finalize showcase 四门回执（2026-11-07）：结构五件套＋两决策位、模态接入层/共享处理核心两边界 |
 ### physical-ai/（docs/research/physical-ai/ 的 Physical AI monograph 精读（251））
 
